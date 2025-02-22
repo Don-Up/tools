@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>随机时间戳生成器</title>
+    <title>Random Timestamp Generator</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -53,15 +53,15 @@
 <body>
 
 <div class="container">
-    <h2>随机时间戳生成器</h2>
+    <h2>Random Timestamp Generator</h2>
 
-    <label for="start">起始时间:</label>
+    <label for="start">Start Time:</label>
     <input type="datetime-local" id="start">
 
-    <label for="end">结束时间:</label>
+    <label for="end">End Time:</label>
     <input type="datetime-local" id="end">
 
-    <button onclick="generateRandomTimestamp()">生成随机时间</button>
+    <button onclick="generateRandomTimestamp()">Generate Random Time</button>
 
     <p id="result"></p>
 </div>
@@ -76,7 +76,7 @@
             String(date.getSeconds()).padStart(2, '0');
     }
 
-    // 设置默认时间
+    // Set default time
     document.getElementById("start").value = "2023-01-01T00:00:00";
     document.getElementById("end").value = formatDateTime(new Date());
 
@@ -86,7 +86,7 @@
         const resultElement = document.getElementById("result");
 
         if (!startInput || !endInput) {
-            resultElement.textContent = "请填写起始时间和结束时间";
+            resultElement.textContent = "Please enter a start and end time";
             return;
         }
 
@@ -94,7 +94,7 @@
         const endTime = new Date(endInput).getTime();
 
         if (startTime >= endTime) {
-            resultElement.textContent = "起始时间必须小于结束时间";
+            resultElement.textContent = "Start time must be earlier than end time";
             return;
         }
 
@@ -107,7 +107,7 @@
             String(randomTimestamp.getMinutes()).padStart(2, '0') + ":" +
             String(randomTimestamp.getSeconds()).padStart(2, '0');
 
-        resultElement.textContent = "随机时间: " + formattedTime;
+        resultElement.textContent = "Random Time: " + formattedTime;
     }
 </script>
 
