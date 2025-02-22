@@ -137,12 +137,12 @@
 
         .preposition {
             color: greenyellow; /* 设置介词为绿色 */
-            font-weight: lighter;
+            font-weight: normal;
         }
 
         .relative-pronoun {
             color: #00BFFF; /* 关系代词为明亮的蓝色 */
-            font-weight: lighter;
+            font-weight: normal;
         }
 
         .adverb {
@@ -289,7 +289,11 @@
         </switch>
         <switch id="fullscreenToggle" style="margin-left: -20px;">
             <input type="checkbox" id="handleEven">
-            <label for="handleEven" style="margin-left: -20px;" id="handleEvenCheckBox">Even</label>
+            <label for="handleEven" style="margin-left: -20px;" id="handleEvenCheckBox">E</label>
+        </switch>
+        <switch id="fullscreenToggle" style="margin-left: -20px;">
+            <input type="checkbox" id="cbHighlight" checked>
+            <label for="cbHighlight" style="margin-left: -20px;" id="handleHighlight">H</label>
         </switch>
         <button onclick="stopText()">Stop</button>
         <button id="btnAutoScroll">Start Scroll</button>
@@ -513,6 +517,7 @@
 
     // Function to highlight specific words within a node
     function highlightWords(node) {
+        if(!document.getElementById("cbHighlight").checked) return
         if (node.nodeType === Node.TEXT_NODE) {
             let text = node.nodeValue;
             text = text.replace(prepositionRegex, "<span class=\"preposition\">$1</span>");
