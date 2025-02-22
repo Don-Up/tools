@@ -20,13 +20,20 @@
             background-color: #1e1e1e;
             box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
         }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
         input, button {
-            margin: 10px 0;
-            padding: 10px;
             width: 100%;
+            max-width: 300px; /* Ensures consistent width */
+            padding: 10px;
             font-size: 16px;
             border-radius: 5px;
             border: none;
+            text-align: center; /* Centers text inside inputs */
         }
         input {
             background-color: #2c2c2c;
@@ -55,13 +62,15 @@
 <div class="container">
     <h2>Random Timestamp Generator</h2>
 
-    <label for="start">Start Time:</label>
-    <input type="datetime-local" id="start">
+    <div class="input-group">
+        <label for="start">Start Time:</label>
+        <input type="datetime-local" id="start">
 
-    <label for="end">End Time:</label>
-    <input type="datetime-local" id="end">
+        <label for="end">End Time:</label>
+        <input type="datetime-local" id="end">
+    </div>
 
-    <button onclick="generateRandomTimestamp()">Generate Random Time</button>
+    <button onclick="generateRandomTimestamp()" style="margin-top:30px">Generate Random Time</button>
 
     <p id="result"></p>
 </div>
