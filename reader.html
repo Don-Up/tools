@@ -596,8 +596,12 @@
         const handleEven = document.getElementById("handleEven")
 
         lines.forEach((line, index) => {
-            if(handleEven.checked && index % 2 === 1){
-                line = "> "+line
+            if(handleEven.checked){
+                if(index % 2 === 1){
+                    line = "> "+line.replace(/[“”]/g, "")
+                } else {
+                    line = line.replace(/[“”]/g, "\"")
+                }
             }
 
             if (line.toString().trim() === "```") {
