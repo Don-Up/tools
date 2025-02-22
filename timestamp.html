@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>随机时间戳生成器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background-color: #121212;
+            color: #ffffff;
+        }
+        .container {
+            max-width: 400px;
+            margin: auto;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: #1e1e1e;
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        input, button {
+            margin: 10px 0;
+            padding: 10px;
+            width: 100%;
+            font-size: 16px;
+            border-radius: 5px;
+            border: none;
+        }
+        input {
+            background-color: #2c2c2c;
+            color: #ffffff;
+            border: 1px solid #444;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #result {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 15px;
+            color: #00ffcc;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>随机时间戳生成器</h2>
+
+    <label for="start">起始时间:</label>
+    <input type="datetime-local" id="start">
+
+    <label for="end">结束时间:</label>
+    <input type="datetime-local" id="end">
+
+    <button onclick="generateRandomTimestamp()">生成随机时间</button>
+
+    <p id="result"></p>
+</div>
+
+<script>
+    function formatDateTime(date) {
+        return date.getFullYear() + "-" +
+            String(date.getMonth() + 1).padStart(2, '0') + "-" +
+            String(date.getDate()).padStart(2, '0') + "T" +
+            String(date.getHours()).padStart(2, '0') + ":" +
+            String(date.getMinutes()).padStart(2, '0') + ":" +
+            String(date.getSeconds()).padStart(2, '0');
+    }
+
+    // 设置默认时间
+    document.getElementById("start").value = "2023-01-01T00:00:00";
+    document.getElementById("end").value = formatDateTime(new Date());
+
+    function generateRandomTimestamp() {
+        const startInput = document.getElementById("start").value;
+        const endInput = document.getElementById("end").value;
+        const resultElement = document.getElementById("result");
+
+        if (!startInput || !endInput) {
+            resultElement.textContent = "请填写起始时间和结束时间";
+            return;
+        }
+
+        const startTime = new Date(startInput).getTime();
+        const endTime = new Date(endInput).getTime();
+
+        if (startTime >= endTime) {
+            resultElement.textContent = "起始时间必须小于结束时间";
+            return;
+        }
+
+        const randomTimestamp = new Date(startTime + Math.random() * (endTime - startTime));
+
+        const formattedTime = randomTimestamp.getFullYear() + "-" +
+            String(randomTimestamp.getMonth() + 1).padStart(2, '0') + "-" +
+            String(randomTimestamp.getDate()).padStart(2, '0') + " " +
+            String(randomTimestamp.getHours()).padStart(2, '0') + ":" +
+            String(randomTimestamp.getMinutes()).padStart(2, '0') + ":" +
+            String(randomTimestamp.getSeconds()).padStart(2, '0');
+
+        resultElement.textContent = "随机时间: " + formattedTime;
+    }
+</script>
+
+</body>
+</html>

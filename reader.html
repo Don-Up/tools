@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document & TTS</title>
+    <style>
+        .text-block {
+            margin-bottom: 10px;
+            margin-top: 20px;
+            cursor: pointer;
+            font-size: 22px;
+            font-family: "Corbel", 'Segoe UI', Tahoma, Verdana, sans-serif;
+            color: #dfe1e5;
+            font-weight: normal;
+        }
+
+        .code-span {
+            font-family: monospace, 'Consolas';
+            font-size: 22px;
+            color: lightskyblue !important;
+        }
+
+        li {
+            cursor: pointer;
+            font-size: 22px;
+            font-family: "Corbel", 'Segoe UI', Tahoma, Verdana, sans-serif;
+            color: #dfe1e5;
+            font-weight: normal;
+        }
+
+        button {
+            background-color: #1e88e5;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #1565c0;
+        }
+
+        blockquote {
+            margin: 10px 0;
+            padding-left: 15px;
+            border-left: 3px solid #1e88e5;
+            color: #b0b0b0;
+            background: #2f363d;
+            padding: 5px 10px;
+            font-size: 14px;
+            font-family: "Corbel", 'Segoe UI', Tahoma, Verdana, sans-serif;
+        }
+
+        select {
+            width: 220px
+        }
+
+        input {
+            width: 50px
+        }
+
+        select, input {
+            padding: 10px;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            border: 1px solid #333;
+        }
+
+        #rateSlider {
+            width: 60px;
+            vertical-align: middle;
+        }
+
+        #rateValue {
+            color: #e0e0e0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+            position: relative;
+            flex-direction: column;
+            background: #2b2b2b; /* rgba(18, 18, 18, 1) 背景色为 #121212，#2f363d 透明度为 0.7 */
+        }
+
+        #content {
+
+        }
+
+        #wrapper {
+            overflow: auto;
+            height: 100vh;
+        }
+
+        .controls {
+            /* 设置controls为fixed以使其固定在页面顶部 */
+            position: fixed;
+            top: 0;
+            width: 100vw;
+            background-color: #212121;
+            padding: 10px 0;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            height: 60px;
+            margin: 0; /* 移除外边距 */
+            overscroll-behavior-x: auto;
+            overflow-x: auto; /* 启用水平滚动 */
+            white-space: nowrap; /* 防止子元素换行 */
+        }
+
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: Arial, sans-serif;
+            /* 添加padding-top以避免内容被固定的controls遮挡 */
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+        }
+
+        textarea {
+            width: 90%;
+            height: 150px;
+            padding: 10px;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            border: 1px solid #333;
+            margin: 95px auto 0;
+        }
+
+        .preposition {
+            color: greenyellow; /* 设置介词为绿色 */
+            font-weight: lighter;
+        }
+
+        .relative-pronoun {
+            color: #00BFFF; /* 关系代词为明亮的蓝色 */
+            font-weight: lighter;
+        }
+
+        .adverb {
+            /*color: #FF69B4; !* 副词为粉色 *!*/
+            color: lightsalmon;
+            font-style: italic;
+        }
+
+        .conjunction {
+            color: #808080; /* 连词为淡蓝色 */
+            font-weight: normal;
+        }
+
+        .article {
+            color: #808080; /* 冠词为灰色 */
+            font-weight: normal;
+        }
+
+        .be-verb, .auxiliary-verb {
+            color: #808080; /* be 动词和助动词为灰色 */
+            font-weight: normal;
+        }
+
+        .ing-word {
+            color: #fff; /* 以 ing 结尾的单词为黄色 */
+        }
+
+        h3 {
+            font-size: 20px;
+            border-bottom: #00BFFF 1px solid;
+            padding-bottom: 10px;
+        }
+
+        hr {
+            border: 1px solid grey;
+        }
+
+        .confirm-btn {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            margin-left: auto;
+            margin-right: auto;
+            display: block;
+            width: 100px;
+        }
+
+        .background-image {
+            position: fixed; /* 固定定位 */
+            top: 0;
+            left: 0;
+            width: 100vw; /* 覆盖整个视口宽度 */
+            height: 100vh; /* 覆盖整个视口高度 */
+            background-image: url('bg2.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            z-index: -1; /* 置于底层 */
+            /* 模糊度, 默认不模糊*/
+            filter: blur(0px);
+        }
+
+        .background-video {
+            position: fixed; /* 固定定位 */
+            top: 0;
+            left: 0;
+            width: 100vw; /* 覆盖整个视口宽度 */
+            z-index: -1; /* 置于底层 */
+            /* 模糊度, 默认不模糊*/
+            filter: blur(0px);
+        }
+
+        pre {
+            background: #1e1e1e;
+            padding: 0px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+
+        code {
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+
+    </style>
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <video autoplay loop muted playsinline class="background-video">
+        <source src="bg2.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+    <div class="background-image"></div>
+
+    <div class="controls" id="toggleElement">
+        <button id="insertBtn" onclick="insertText()">Insert</button>
+        <select id="voiceSelect"></select>
+        <input id="repeatCount" type="number" min="1" value="1" placeholder="count">
+        <button id="fullscreenBtn" style="width: 60px">Full</button>
+        <span style="margin-left: 10px;">Speed</span>
+        <input id="rateSlider" type="range" min="0.5" max="2" step="0.1" value="1.0" title="语速">
+        <span id="rateValue">1.0</span>
+        <span>Opacity</span>
+        <input type="range" id="opacity-slider" min="0" max="1" step="0.01" value="1" style="width: 40px">
+        <!-- 控制背景模糊度的滑块 -->
+        <span>Blur</span>
+        <input type="range" id="blur-slider" min="0" max="10" step="0.1" value="0" style="width: 40px">
+        <!-- a select used to change font weight of text-block -->
+        <select id="font-weight-select" style="width: 60px" aria-label="select">
+            <option value="lighter">Lighter</option>
+            <option value="normal">Normal</option>
+            <option value="bold">Bold</option>
+        </select>
+        <!-- a select used to change font family -->
+        <select id="font-family-select" style="width: 60px" aria-label="select">
+            <option value="Corbel">Corbel</option>
+            <option value="Consolas">Consolas</option>
+            <option value="Inter">Inter</option>
+            <option value="Georgia">Georgia</option>
+            <option value="Lucida Sans">Lucida Sans</option>
+            <option value="Roboto">Roboto</option>
+            <option value="Droid Sans Mono">Droid Sans Mono</option>
+            <option value="DuBai">DuBai</option>
+            <option value="Arial">Arial</option>
+            <option value="Microsoft YaHei">Microsoft YaHei</option>
+            <option value="SimSun">SimSun</option>
+            <option value="SimHei">SimHei</option>
+        </select>
+        <switch id="fullscreenToggle">
+            <input type="checkbox" id="autoPlayCheckbox">
+            <label for="autoPlayCheckbox" style="margin-left: -20px;" id="autoPlayLabel">Auto Play</label>
+        </switch>
+        <switch id="fullscreenToggle" style="margin-left: -20px;">
+            <input type="checkbox" id="ecCheckBox">
+            <label for="ecCheckBox" style="margin-left: -20px;" id="ecLabel">EC</label>
+        </switch>
+        <switch id="fullscreenToggle" style="margin-left: -20px;">
+            <input type="checkbox" id="eceCheckBox">
+            <label for="eceCheckBox" style="margin-left: -20px;" id="eceLabel">ECE</label>
+        </switch>
+        <switch id="fullscreenToggle" style="margin-left: -20px;">
+            <input type="checkbox" id="handleEven">
+            <label for="handleEven" style="margin-left: -20px;" id="handleEvenCheckBox">Even</label>
+        </switch>
+        <button onclick="stopText()">Stop</button>
+        <button id="btnAutoScroll">Start Scroll</button>
+        <input type="range" id="scroll-speed" min="1" max="20" step="1" value="1" style="width: 100px">
+    </div>
+    <div class="container">
+        <div id="content"></div>
+    </div>
+</div>
+
+<script>
+    let isPlaying = false;
+    let voices = [];
+    let currentSpeaker = "Microsoft Brian Online (Natural) - English (United States)";
+    let currentVoice = null;
+    let currentFont = "Corbel";
+
+    document.getElementById("blur-slider").addEventListener("input", function () {
+        const blurValue = this.value;
+        if (document.querySelector(".background-image") !== null) {
+            document.querySelector(".background-image").style.filter = `blur(${blurValue}px)`;
+        }
+        if (document.querySelector(".background-video") !== null) {
+            document.querySelector(".background-video").style.filter = `blur(${blurValue}px)`;
+        }
+    });
+
+    document.getElementById("font-weight-select").value = "normal";
+    document.getElementById("font-weight-select").addEventListener("change", function () {
+        document.querySelectorAll(".text-block").forEach(textBlock => {
+            textBlock.style.fontWeight = this.value;
+        });
+    });
+
+    let scrollAnimationId = null
+
+    let scrollSpeed = 1;
+
+    document.getElementById("scroll-speed").addEventListener("input", function () {
+        scrollSpeed = this.value;
+    });
+
+    const contentWrapper = document.getElementById("wrapper");
+
+    function startScroll() {
+        if (document.getElementById("btnAutoScroll").textContent === "Stop Scroll") {
+            cancelAnimationFrame(scrollAnimationId);
+            document.getElementById("btnAutoScroll").textContent = "Start Scroll";
+        } else {
+            document.getElementById("btnAutoScroll").textContent = "Stop Scroll";
+
+            if (!contentWrapper) {
+                console.error("Container element not found.");
+                return;
+            }
+
+            const scrollHeight = contentWrapper.scrollHeight;
+            const clientHeight = contentWrapper.clientHeight;
+
+            // Ensure the container is scrollable
+            if (scrollHeight <= clientHeight) {
+                console.log("Container is not scrollable.");
+                return;
+            }
+
+            let scrollTop = contentWrapper.scrollTop; // Capture the current scrollTop position
+
+            function scrollStep() {
+                if (scrollTop < scrollHeight - clientHeight) {
+                    scrollTop += 0.01 * scrollSpeed; // Increment scrollTop by a small amount to simulate scrolling
+                    contentWrapper.scrollTop = scrollTop;
+                    scrollAnimationId = requestAnimationFrame(scrollStep);
+                } else {
+                    contentWrapper.scrollTop = scrollHeight - clientHeight; // Ensure it stays at the bottom
+                    cancelAnimationFrame(scrollAnimationId); // Stop the animation
+                    document.getElementById("btnAutoScroll").textContent = "Start Scroll"; // Change button text
+                }
+            }
+
+            scrollAnimationId = requestAnimationFrame(scrollStep);
+        }
+    }
+
+    document.getElementById("btnAutoScroll").addEventListener("click", startScroll);
+
+
+    const selectFontFamily = document.getElementById("font-family-select");
+    selectFontFamily.addEventListener("change", function () {
+        currentFont = this.value;
+        document.querySelectorAll(".text-block").forEach(textBlock => {
+            textBlock.style.fontFamily = this.value;
+        });
+        for (let element of document.getElementsByTagName("blockquote")) {
+            element.style.fontFamily = this.value;
+        }
+    });
+
+    // Listen to the rate slider changes
+    const rateSlider = document.getElementById("rateSlider");
+    const rateValue = document.getElementById("rateValue");
+    rateSlider.addEventListener("input", function () {
+        rateValue.textContent = this.value;
+    });
+
+    const fullscreenBtn = document.getElementById("fullscreenBtn");
+    fullscreenBtn.addEventListener("click", function () {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+            fullscreenBtn.textContent = "Exit";
+        } else {
+            document.exitFullscreen();
+            fullscreenBtn.textContent = "Full";
+        }
+    });
+
+    const toggleElement = document.getElementById("toggleElement");
+    let show = true;
+    document.addEventListener("keydown", function (event) {
+        if (event.key === "ArrowLeft") {
+            event.preventDefault();
+            if (show) {
+                toggleElement.style.display = "none";
+                show = false;
+            } else {
+                toggleElement.style.display = "flex";
+                show = true;
+            }
+        } else if (event.key === "ArrowRight") {
+            // Usage
+            getClipboardText().then(text => {
+                if (text) {
+                    processText(text);
+                    document.getElementById("wrapper").scrollTo({
+                        top: 0,
+                        behavior: "smooth"
+                    });
+                    highlightWords(rootElement);
+                    document.querySelectorAll(".text-block").forEach(textBlock => {
+                        textBlock.style.fontFamily = currentFont;
+                    });
+                    for (let element of document.getElementsByTagName("blockquote")) {
+                        element.style.fontFamily = currentFont;
+                    }
+                } else {
+                    console.log("No clipboard text retrieved.");
+                }
+            });
+        } else if (event.key === "0") {
+            // Toggle between dynamic and static backgrounds
+            if (document.querySelector(".background-video").style.display !== "none") {
+                document.querySelector(".background-video").style.display = "none";
+                // Pause the video
+                document.querySelector(".background-video").pause();
+            } else {
+                document.querySelector(".background-video").style.display = "block";
+                document.querySelector(".background-video").play();
+            }
+        } else if (event.key === "1") {
+            const texts = document.querySelectorAll(".text-block")
+            // Ensure the text-block is positioned relative so the mask can be positioned absolutely within it
+            texts.forEach(text => {
+                if (text.style.color !== "transparent") {
+                    text.style.color = "transparent";
+                } else {
+                    text.style.color = "#dfe1e5";
+                }
+            });
+        }
+    });
+
+    function populateVoices() {
+        voices = speechSynthesis.getVoices();
+        const voiceSelect = document.getElementById("voiceSelect");
+        voiceSelect.addEventListener("change", function () {
+            currentSpeaker = this.value;
+            currentVoice = voices.find(voice => voice.name === this.value);
+        });
+        voiceSelect.innerHTML = "";
+        voices.forEach(voice => {
+            const option = document.createElement("option");
+            option.textContent = `${voice.name} - ${voice.lang}`;
+            option.value = voice.name;
+            if (voice.name === currentSpeaker) {
+                option.selected = true;
+                currentVoice = voice;
+            }
+            voiceSelect.appendChild(option);
+        });
+    }
+
+    speechSynthesis.onvoiceschanged = populateVoices;
+
+    // Define lists and regular expressions for word highlighting
+    const prepositions = [
+        "at", "in", "on", "under", "above", "below", "beside", "between", "among",
+        "to", "from", "into", "out of", "toward", "towards", "through", "across",
+        "for", "since", "during", "until", "till", "because of", "due to", "with",
+        "without", "of", "about", "against", "as", "like", "despite", "except", "upon", "onto", "near", "over",
+        "within"
+    ];
+    const relativePronouns = ["which", "that", "who", "whom", "whose", "where", "what"];
+    const adverbRegex = /\b\w+ly\b/gi;
+    const conjunctions = [
+        "and", "or", "but", "so", "for", "yet", "nor", "because", "although", "if",
+        "when", "while", "since", "unless", "until", "though", "even though", "as",
+        "as if", "as though", "whereas", "wherever", "whether", "after", "before",
+        "once", "provided that", "so that", "in order that", "now that", "rather than"
+    ];
+    const articles = ["a", "an", "the", "this", "these", "those", "than", "even", "still"];
+    const beVerbs = ["am", "is", "are", "was", "were", "be", "being", "been"];
+    const auxiliaryVerbs = ["do", "does", "did", "have", "has", "had", "will", "would", "shall",
+        "should", "can", "could", "may", "might", "must", "hadn't", "haven't", "hasn't", "shouldn't",
+        "wouldn't", "didn't", "can't", "doesn't", "don't"];
+    const ingWordRegex = /\b\w+ing\b/gi;
+    const prepositionRegex = new RegExp(`\\b(${prepositions.join("|")})\\b`, "gi");
+    const relativePronounRegex = new RegExp(`\\b(${relativePronouns.join("|")})\\b`, "gi");
+    const conjunctionRegex = new RegExp(`\\b(${conjunctions.join("|")})\\b`, "gi");
+    const articleRegex = new RegExp(`\\b(${articles.join("|")})\\b`, "g");
+    const beVerbRegex = new RegExp(`\\b(${beVerbs.join("|")})\\b`, "gi");
+    const auxiliaryVerbRegex = new RegExp(`\\b(${auxiliaryVerbs.join("|")})\\b`, "gi");
+
+    // Function to highlight specific words within a node
+    function highlightWords(node) {
+        if (node.nodeType === Node.TEXT_NODE) {
+            let text = node.nodeValue;
+            text = text.replace(prepositionRegex, "<span class=\"preposition\">$1</span>");
+            text = text.replace(relativePronounRegex, "<span class=\"relative-pronoun\">$1</span>");
+            text = text.replace(adverbRegex, "<span class=\"adverb\">$&</span>");
+            text = text.replace(conjunctionRegex, "<span class=\"conjunction\">$1</span>");
+            text = text.replace(articleRegex, "<span class=\"article\">$1</span>");
+            text = text.replace(beVerbRegex, "<span class=\"be-verb\">$1</span>");
+            text = text.replace(auxiliaryVerbRegex, "<span class=\"auxiliary-verb\">$1</span>");
+            text = text.replace(ingWordRegex, "<span class=\"ing-word\">$&</span>");
+            if (text !== node.nodeValue) {
+                const span = document.createElement("span");
+                span.innerHTML = text;
+                node.replaceWith(span);
+            }
+        } else if (node.nodeType === Node.ELEMENT_NODE && node.tagName !== "SCRIPT" && node.tagName !== "STYLE") {
+            Array.from(node.childNodes).forEach(highlightWords);
+        }
+    }
+
+    const rootElement = document.getElementById("content");
+
+    function insertText() {
+        const input = document.createElement("textarea");
+        input.placeholder = "Please enter text...";
+        input.style.display = "block";
+        document.body.appendChild(input);
+        input.focus();
+
+        // 监听粘贴事件, 一旦粘贴, 自动触发确认按钮
+        input.addEventListener("paste", function (event) {
+            setTimeout(() => {
+                confirmBtn.click();
+            }, 500);
+        });
+
+        const confirmBtn = document.createElement("button");
+        confirmBtn.textContent = "Confirm";
+        confirmBtn.classList.add("confirm-btn");
+
+        confirmBtn.onclick = () => {
+            if (input.value.trim() === "") return;
+            processText(input.value);
+            document.body.removeChild(input);
+            document.body.removeChild(confirmBtn);
+            window.scrollTo({
+                top: 0,
+                behavior: "smooth"
+            });
+            highlightWords(rootElement);
+            document.querySelectorAll(".text-block").forEach(textBlock => {
+                textBlock.style.fontFamily = currentFont;
+            });
+            for (let element of document.getElementsByTagName("blockquote")) {
+                element.style.fontFamily = currentFont;
+            }
+        };
+        document.body.appendChild(confirmBtn);
+    }
+
+    function escapeMarkdownHTML(markdown) {
+        return markdown.replace(/(`[^`]*`)|[<>]/g, (match, codeBlock) => {
+            if (codeBlock) {
+                return codeBlock; // 保持代码块不变
+            }
+            return match === '<' ? '&lt;' : '&gt;'; // 转义 < 和 >
+        });
+    }
+
+    function processText(input) {
+        const contentDiv = document.getElementById("content");
+        contentDiv.innerHTML = "";
+
+        const lines = input.split("\n");
+        let isInCodeBlock = false;
+        let codeLines = [];
+        let codeLang = "";
+        let isInList = false;
+        let list = []
+
+        const handleEven = document.getElementById("handleEven")
+
+        lines.forEach((line, index) => {
+            if(handleEven.checked && index % 2 === 1){
+                line = "> "+line
+            }
+
+            if (line.toString().trim() === "```") {
+                isInCodeBlock = false;
+                const pre = document.createElement("pre");
+                const code = document.createElement("code");
+                code.className = `language-${codeLang}`;
+                code.textContent = codeLines.join("\n");
+                pre.appendChild(code);
+                contentDiv.appendChild(pre);
+                hljs.highlightElement(code);
+                return;
+            }
+
+            const codeBlockStart = line.toString().trim().match(/^```(\w*)/);
+            if (codeBlockStart) {
+                if (isInCodeBlock) {
+                    return;
+                }
+                isInCodeBlock = true;
+                codeLang = codeBlockStart[1] || "plaintext";
+                codeLines = [];
+                return;
+            }
+
+            if (isInCodeBlock) {
+                codeLines.push(line);
+                return;
+            }
+
+            line = line.replace(/[*]/g, "").replace(/[’]/g, "'").trim();
+
+            if (line.startsWith("---")) {
+                const hr = document.createElement("hr");
+                contentDiv.appendChild(hr);
+                return;
+            }
+
+            if (line.startsWith("> ")) {
+                const quote = document.createElement("blockquote");
+                quote.textContent = line.substring(2);
+                quote.style.cursor = "pointer";
+                quote.dataset.originalText = line;
+                quote.onclick = function () {
+                    playText(this.dataset.originalText, this);
+                }
+                contentDiv.appendChild(quote);
+                return;
+            }
+
+            const headingMatch = line.match(/^(#{1,4})\s+(.*)/);
+            if (headingMatch) {
+                const level = headingMatch[1].length;
+                let text = headingMatch[2];
+                const heading = document.createElement(`h${level}`);
+                heading.style.cursor = "pointer";
+                heading.dataset.originalText = line;
+                heading.onclick = function () {
+                    playText(this.dataset.originalText, this);
+                }
+                text = text.replace(/(`+)(.*?)\1/g, (match, p1, p2) => {
+                    return `<span class="code-span">${p2}</span>`;
+                })
+                heading.innerHTML = text;
+                contentDiv.appendChild(heading);
+                return;
+            }
+
+            const textBlock = document.createElement("div");
+            textBlock.classList.add("text-block");
+            textBlock.dataset.originalText = line;
+            textBlock.onclick = function () {
+                if (event.ctrlKey) {
+                    if (!textBlock.innerHTML.startsWith("👀")) {
+                        textBlock.innerHTML = "👀" + textBlock.innerHTML;
+                    } else {
+                        textBlock.innerHTML = textBlock.innerHTML.replace("👀", "");
+                    }
+                } else {
+                    playText(this.dataset.originalText, this);
+                }
+            }
+            // 将line中, 将所有的<替换为$lt;, 将所有>替换为$gt, 最后将所有包含``的部分全都替换为<code></code>;
+            line = line.replace(/<|>/g, (match) => {
+                if (match === '<') {
+                    return '&lt;';
+                } else {
+                    return '&gt;';
+                }
+            }).replace(/(`+)(.*?)\1/g, (match, p1, p2) => {
+                return `<span class="code-span" style="color: lightskyblue">${p2}</span>`;
+            })
+
+            if (line.startsWith("- ")) {
+                isInList = true;
+                line = line.replace(/-/g, "");
+                list.push(line)
+                return
+            }
+
+            if (isInList) {
+                const ul = document.createElement("ul");
+                const originalTextList = []
+                list.forEach(item => {
+                    const li = document.createElement("li");
+                    li.innerHTML = item;
+                    li.dataset.originalText = li.textContent
+                    console.log(li.dataset.originalText)
+                    originalTextList.push(li.textContent + (li.textContent.trim().endsWith(".") ? "" : ". "))
+                    li.onclick = function () {
+                        if (event.ctrlKey) {
+                            if (!textBlock.innerHTML.startsWith("👀")) {
+                                textBlock.innerHTML = "👀" + textBlock.innerHTML;
+                            } else {
+                                textBlock.innerHTML = textBlock.innerHTML.replace("👀", "");
+                            }
+                        } else {
+                            playText(li.textContent, this);
+                        }
+                    }
+                    ul.dataset.originalText = originalTextList.join("\n")
+                    ul.appendChild(li)
+                })
+                contentDiv.appendChild(ul)
+                list = []
+                isInList = false
+            }
+
+            textBlock.innerHTML = line;
+            contentDiv.appendChild(textBlock);
+        });
+
+        if (isInCodeBlock) {
+            const pre = document.createElement("pre");
+            pre.textContent = "```" + (codeLang ? codeLang : "") + "\n" + codeLines.join("\n");
+            contentDiv.appendChild(pre);
+        }
+        contentDiv.style.padding = "70px 20px 20px";
+        //contentDiv.lastElementChild?.scrollIntoView({behavior: "smooth"});
+        contentWrapper?.scrollIntoView({behavior: "smooth"});
+    }
+
+    const eceCheckBox = document.getElementById("eceCheckBox")
+    const ecCheckBox = document.getElementById("ecCheckBox")
+
+    // Modified playText function for interleaved sentence repetition.
+    function playText(originalText, clickedElement) {
+        // 判断ALT键是否处于按下状态, 如果是则取消播放。
+        if (event.altKey) {
+            isPlaying = false;
+            return;
+        }
+
+        if (isPlaying) {
+            speechSynthesis.cancel();
+        }
+        isPlaying = true;
+
+        originalText = originalText + (originalText.trim().endsWith(".") ? "" : ". ")
+
+        // Gather individual sentences from the clicked element and its subsequent siblings.
+        let sentences = [];
+        if (originalText && originalText.trim()) {
+            sentences.push(originalText.trim());
+        }
+        const autoPlayEnabled = document.getElementById("autoPlayCheckbox").checked;
+        if (autoPlayEnabled && clickedElement) {
+            let next = clickedElement.nextElementSibling;
+            while (next) {
+                if (next.dataset && next.dataset.originalText) {
+                    const txt = next.dataset.originalText.trim();
+                    console.log(txt)
+                    if (txt) sentences.push(txt);
+                }
+                next = next.nextElementSibling;
+            }
+        }
+
+        // Build the final text by interleaving the sentences.
+        const repeatCount = Math.max(1, parseInt(document.getElementById("repeatCount").value));
+        let finalText = ''; // Ensure finalText is initialized
+
+        if (autoPlayEnabled) {//filter(sentence => !sentence.startsWith(">")).
+            if (ecCheckBox.checked || eceCheckBox.checked) {
+                let tempSentence = ""
+                finalText = sentences.map((sentence, index) => {
+                    if (sentence.startsWith(">")) {
+                        const result = (ecCheckBox.checked ? `${tempSentence + sentence} ` : `${tempSentence + sentence + tempSentence} `)
+                            .repeat(repeatCount)
+                        tempSentence = ""
+                        return result;
+                    } else {
+                        tempSentence += sentence + " "
+                        return ""
+                    }
+                }).join('');
+            } else {
+                finalText = sentences.filter(sentence => !sentence.startsWith(">")).map(sentence => {
+                    return `${sentence} `.repeat(repeatCount)
+                }).join('');
+            }
+        } else {
+            if (repeatCount > 0 && sentences.length > 0) {
+                finalText = Array.from({length: repeatCount}, () => sentences.join(' ')).join(' ');
+            }
+        }
+
+
+        console.log("Final Text:", finalText)
+        finalText = finalText.replace(/[()#*<>`•\/🔹✅🚀]/g, " ").trim() + " ";
+        const utterance = new SpeechSynthesisUtterance(finalText);
+        utterance.voice = currentVoice;
+        utterance.lang = "en-US";
+        utterance.rate = parseFloat(rateSlider.value);
+        utterance.onend = () => isPlaying = false;
+        speechSynthesis.speak(utterance);
+    }
+
+    function stopText() {
+        speechSynthesis.cancel();
+        isPlaying = false;
+    }
+
+    // 监听快捷键Space, 按下后调用stopText
+    document.addEventListener("keydown", (event) => {
+        console.log("Keydown event:", event.code)
+        if (event.code === "Space") {
+            event.preventDefault()
+            stopText();
+            if (document.getElementById("autoPlayCheckbox").checked) {
+                if (document.getElementById("btnAutoScroll").textContent === "Stop Scroll") {
+                    cancelAnimationFrame(scrollAnimationId);
+                    document.getElementById("btnAutoScroll").textContent = "Start Scroll";
+                }
+            }
+        } else if (event.code === "KeyC") {
+            startScroll()
+        } else if (event.code === "KeyV") {
+            // 打开或关闭Auto Play
+            // document.getElementById("autoPlayCheckbox").checked = !document.getElementById("autoPlayCheckbox").checked;
+            insertText()
+        }
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+        hljs.highlightAll();
+    });
+
+    const slider = document.getElementById("opacity-slider");
+    const container = document.querySelector(".container");
+    slider.addEventListener("input", (event) => {
+        const opacity = event.target.value;
+        container.style.background = `rgba(47, 54, 61, ${opacity})`;
+    });
+
+    async function getClipboardText() {
+        try {
+            if (!navigator.clipboard) {
+                throw new Error("Clipboard API not supported");
+            }
+            const permission = await navigator.permissions.query({name: "clipboard-read"});
+            if (permission.state === "denied") {
+                throw new Error("Clipboard permission denied");
+            }
+            const text = await navigator.clipboard.readText();
+            return text;
+        } catch (error) {
+            console.error("Failed to read clipboard text:", error);
+            return null;
+        }
+    }
+</script>
+</body>
+
+

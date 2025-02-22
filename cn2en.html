@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CN2EN Practice Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1e1e1e;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            margin-bottom: 20px;
+            padding: 10px;
+            font-size: 14px;
+            background-color: #2c2c2c;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+
+        textarea::placeholder {
+            color: #888;
+        }
+
+        .button-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 6px;
+            font-size: 14px;
+            color: #fff;
+            background-color: #3a86ff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #2a6edc;
+        }
+
+        .dialog-list {
+            margin-top: 20px;
+        }
+
+        .dialog-item {
+            margin-bottom: 10px;
+            background: #292929;
+            padding: 10px;
+            border: 1px solid #444;
+            border-radius: 8px;
+        }
+
+        .dialog-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .dialog-content {
+            margin: 15px 0;
+        }
+
+        .cn-text {
+            color: #88c999;
+            border-left: 3px solid #4CAF50;
+            padding-left: 15px;
+            margin: 10px 0;
+        }
+
+        .en-text {
+            margin: 10px 0;
+            font-size: 18px;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .word-display {
+            background: #1e1e1e;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .highlight {
+            background-color: yellow;
+            color: black;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>CN2EN Practice Tool</h1>
+    <textarea
+            id="inputText"
+            placeholder="Please paste the dialogue (example format): &#10;&#10;Hi! I’m interested...&#10;&gt; 你好！我想...&#10;Sure! We offer...&#10;&gt; 当然可以...&#10;I’m looking to...&#10;&gt; 我想提高..."></textarea>
+    <div class="button-row">
+        <button id="generateBtn" style="font-size: 18px">Generate</button>
+        <button id="resetBtn" style="font-size: 18px">Reset</button>
+    </div>
+    <div>
+        <!-- 用于控制TTS语速的滑块   -->
+        TTS Speed <input type="range" min="0.5" max="2" value="1" step="0.1" id="speedSlider">
+        <span id="speedValue">1.0</span>
+        <!-- 用于选择微软TTS语音播音人的下拉选项   -->
+        <label for="voiceSelect" style="margin-left: 10px;">Select Voice:</label>
+        <select id="voiceSelect">
+            <option value="">Select Voice</option>
+        </select>
+        <div style="display: flex; margin-top: 10px;">
+            <span>Role1:</span>
+            <select id="voiceSelectRole1" style="width: 350px">
+            </select>
+            <span style="margin-left: 10px;">Role2:</span>
+            <select id="voiceSelectRole2" style="width: 350px">
+            </select>
+        </div>
+        <div class="control-buttons">
+            <button id="playBtn" style="font-size: 18px">Play Dialogue</button>
+            <button id="loopBtn" style="font-size: 18px">Loop Dialogue</button>
+            <button id="stopBtn" style="font-size: 18px">Stop</button>
+        </div>
+    </div>
+    <div class="dialog-list" id="dialogList"></div>
+</div>
+
+<script>
+    let audioStream; // Store the stream globally
+
+    let selectedVoice = null;
+    let selectedVoiceRole1 = null;
+    let selectedVoiceRole2 = null;
+    const defaultVoiceName = "Microsoft Brian Online (Natural) - English (United States)";
+    const defaultVoiceRole1 = "Microsoft Guy Online (Natural) - English (United States)";
+    const defaultVoiceRole2 = "Microsoft Jenny Online (Natural) - English (United States)";
+    const speedValue = document.getElementById("speedValue");
+    // update speedValue as the slider value changes
+    document.getElementById("speedSlider").addEventListener("input", function () {
+        speedValue.textContent = this.value;
+    });
+
+
+    // Function to populate the voice select dropdown
+    function populateVoiceList() {
+        const voiceSelect = document.getElementById("voiceSelect");
+        const voiceSelectRole1 = document.getElementById("voiceSelectRole1");
+        const voiceSelectRole2 = document.getElementById("voiceSelectRole2");
+        const voices = window.speechSynthesis.getVoices();
+        voiceSelect.innerHTML = voices
+            .filter(voice => voice.lang === "en-US")
+            .map(voice => `<option value="${voice.name}" ${voice.name === defaultVoiceName ? "selected" : ""}>${voice.name}</option>`)
+            .join("");
+
+        voiceSelectRole1.innerHTML = voices
+            .filter(voice => voice.lang === "en-US")
+            .map(voice => `<option value="${voice.name}" ${voice.name === defaultVoiceRole1 ? "selected" : ""}>${voice.name}</option>`)
+            .join("");
+
+        voiceSelectRole2.innerHTML = voices
+            .filter(voice => voice.lang === "en-US")
+            .map(voice => `<option value="${voice.name}" ${voice.name === defaultVoiceRole2 ? "selected" : ""}>${voice.name}</option>`)
+            .join("");
+
+        voiceSelect.addEventListener("change", function () {
+            selectedVoice = voices.find(voice => voice.name === this.value && voice.lang === "en-US");
+        });
+
+        voiceSelectRole1.addEventListener("change", function () {
+            selectedVoiceRole1 = voices.find(voice => voice.name === this.value && voice.lang === "en-US");
+        });
+
+        voiceSelectRole2.addEventListener("change", function () {
+            selectedVoiceRole2 = voices.find(voice => voice.name === this.value && voice.lang === "en-US");
+        });
+
+        // Set the selectedVoice to the default voice
+        selectedVoice = voices.find(voice => voice.name === defaultVoiceName && voice.lang === "en-US");
+
+        selectedVoiceRole1 = voices.find(voice => voice.name === defaultVoiceRole1 && voice.lang === "en-US");
+
+        selectedVoiceRole2 = voices.find(voice => voice.name === defaultVoiceRole2 && voice.lang === "en-US");
+
+    }
+
+    const btnPlayDialogue = document.getElementById("playBtn");
+    const btnLoopDialogue = document.getElementById("loopBtn");
+    const stopPlayDialogue = document.getElementById("stopBtn");
+
+    let isLooping = false; // 新增循环状态标识
+    let currentIndex = 0;  // 当前播放索引
+
+    const playNext = () => {
+        if (currentIndex >= dialogList.length) {
+            if (isLooping) {
+                currentIndex = 0; // 循环时重置索引
+            } else {
+                return; // 非循环模式直接退出
+            }
+        }
+
+        // 停止之前可能未完成的语音
+        window.speechSynthesis.cancel();
+
+        // 创建语音实例
+        const utterance = new SpeechSynthesisUtterance(dialogList[currentIndex]);
+        utterance.rate = document.getElementById("speedSlider").value;
+
+        // 设置语音角色
+        utterance.voice = currentIndex % 2 === 0
+            ? selectedVoiceRole1
+            : selectedVoiceRole2;
+
+        // 绑定播放结束事件
+        utterance.onend = () => {
+            currentIndex++;
+            if (isLooping || currentIndex < dialogList.length) {
+                playNext();
+            }
+        };
+
+        window.speechSynthesis.speak(utterance);
+    };
+
+    // 播放按钮 - 单次播放
+    btnPlayDialogue.addEventListener("click", function () {
+        if (dialogList.length) {
+            isLooping = false;
+            currentIndex = 0; // 每次点击都从头开始
+            playNext();
+        }
+    });
+
+    // 循环按钮 - 切换循环模式
+    btnLoopDialogue.addEventListener("click", function () {
+        if (!dialogList.length) return;
+
+        isLooping = !isLooping;
+        this.textContent = isLooping ? "Stop Looping" : "Loop Dialogue";
+
+        if (isLooping) {
+            currentIndex = 0;
+            playNext();
+        } else {
+            window.speechSynthesis.cancel();
+        }
+    });
+
+    // 停止按钮
+    stopPlayDialogue.addEventListener("click", function () {
+        isLooping = false;
+        btnLoopDialogue.textContent = "Loop Dialogue";
+        window.speechSynthesis.cancel();
+    });
+
+    // Event listener for voice changes
+    document.getElementById("voiceSelect").addEventListener("change", function () {
+        const selectedVoiceName = this.value;
+        selectedVoice = window.speechSynthesis.getVoices().find(voice => voice.name === selectedVoiceName);
+    });
+
+    // Handle voiceschanged event to ensure voices are loaded
+    window.speechSynthesis.onvoiceschanged = populateVoiceList;
+
+    // Initial population of voice list
+    populateVoiceList();
+
+    const dialogList = [];
+
+    // 文本解析函数
+    function parseDialog(text) {
+        const blocks =
+            text.split("\n").filter(b => b.trim()).filter(b => b.trim() !== "---")
+        const dialogs = [];
+
+        for (let i = 0; i < blocks.length; i += 2) {
+            if (i + 1 >= blocks.length) break;
+
+            const en = blocks[i].trim();
+            const cn = blocks[i + 1].trim().replace(/^>\s*/, "");
+            console.log("en is "+en, "cn is "+cn)
+            dialogs.push({en, cn});
+            dialogList.push(en);
+        }
+        return dialogs;
+    }
+
+    // 创建对话项
+    function createDialogItem(enText, cnText, index) {
+        enText = enText.replace(/^\d+\.\s*/gm, "").replace(/[-#*<>`•]/g, "").replace(/\//g, " ").replace(/e\.g\.,/gi, "such-as").trim();
+        cnText = cnText.replace(/^\d+\.\s*/gm, "").replace(/[-#*`•]/g, "").trim();
+        const dialogItem = document.createElement("div");
+        dialogItem.className = "dialog-item";
+
+        // 头部
+        const header = document.createElement("div");
+        header.className = "dialog-header";
+        header.innerHTML = `
+        <h2>Sentence ${index + 1}</h2>
+        <button class="toggle-sentence" style="margin-left: 400px;">Show/Hide</button>
+        <button class="reset-add" style="margin-left: 10px;">Reset</button>
+      `;
+
+        // 内容区域
+        const content = document.createElement("div");
+        content.className = "dialog-content";
+        content.innerHTML = `
+        <div class="en-text" style="display: none">${enText}</div>
+        <div class="cn-text" id="cn" style="cursor: pointer">${cnText}</div>
+        <div class="word-display"></div>
+      `;
+
+        content.querySelector("#cn").addEventListener("click", function () {
+            speakText(cnText, this, false)
+        });
+
+        // 控制按钮
+        const controls = document.createElement("div");
+        controls.className = "control-buttons";
+        controls.innerHTML = `
+        <button class="loop-btn">Loop</button>
+        <button class="stop-btn">Stop</button>
+        <button class="show-word">Next Word</button>
+        <button class="record-btn">Record</button>
+        <button class="playback-btn">Playback</button>
+                <button class="play-btn">Read</button>
+      `;
+
+        dialogItem.appendChild(header);
+        dialogItem.appendChild(content);
+        dialogItem.appendChild(controls);
+
+        // 添加功能逻辑
+        let currentUtterance = null;
+        let isLooping = false;
+        let wordIndex = 0;
+        const words = enText.split(/\s+/);
+        const wordDisplay = content.querySelector(".word-display");
+        const enTextElement = content.querySelector(".en-text");
+        const resetAdd = header.querySelector(".reset-add");
+        // 显示/隐藏对话
+        header.querySelector(".toggle-sentence").addEventListener("click", () => {
+            if (enTextElement) {
+                enTextElement.style.display = enTextElement.style.display === "none" ? "block" : "none";
+            }
+        });
+
+        resetAdd.addEventListener("click", () => {
+            wordIndex = 0;
+            wordDisplay.style.display = "none";
+            wordDisplay.innerHTML = "";
+        });
+
+        // 朗读控制
+        controls.querySelector(".play-btn").addEventListener("click", () => {
+            if (speechSynthesis.speaking) {
+                speechSynthesis.pause();
+            } else {
+                // enTextElement.style.display = 'block'; // Show the English text
+                currentUtterance = speakText(enText, enTextElement);
+            }
+        });
+
+        controls.querySelector(".loop-btn").addEventListener("click", () => {
+            isLooping = !isLooping;
+            if (isLooping) {
+                // enTextElement.style.display = 'block'; // Show the English text
+                currentUtterance = speakText(enText, enTextElement, true);
+                controls.querySelector(".loop-btn").textContent = "Stop Looping";
+            } else {
+                speechSynthesis.cancel();
+                controls.querySelector(".loop-btn").textContent = "Loop";
+            }
+        });
+
+        controls.querySelector(".stop-btn").addEventListener("click", () => {
+            speechSynthesis.cancel();
+            isLooping = false;
+            controls.querySelector(".loop-btn").textContent = "Loop";
+        });
+
+        // 逐词显示
+        controls.querySelector(".show-word").addEventListener("click", () => {
+            if (wordIndex < words.length) {
+                wordDisplay.style.display = "block";
+                wordDisplay.textContent = words.slice(0, wordIndex + 1).join(" ");
+                // speakText(words[wordIndex]);
+                wordIndex++;
+            } else {
+                wordDisplay.textContent += " (Done)";
+            }
+        });
+
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+
+        controls.querySelector(".record-btn").addEventListener("click", async () => {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                if (isRecording) {
+                    // Stop recording
+                    mediaRecorder.stop();
+                    isRecording = false;
+                    controls.querySelector(".record-btn").textContent = "Record";
+                } else {
+                    // Start recording
+                    if (!audioStream) {
+                        try {
+                            audioStream = await navigator.mediaDevices.getUserMedia({audio: true});
+                        } catch (err) {
+                            console.error("Error accessing media devices.", err);
+                            return;
+                        }
+                    }
+
+                    mediaRecorder = new MediaRecorder(audioStream);
+
+                    mediaRecorder.ondataavailable = event => {
+                        audioChunks = []
+                        audioChunks.push(event.data);
+                    };
+
+                    mediaRecorder.onstop = () => {
+                        // const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+                        // const audioUrl = URL.createObjectURL(audioBlob);
+                        // const audio = new Audio(audioUrl);
+                        // audio.play(); // Play the recorded audio
+                    };
+
+                    mediaRecorder.start();
+                    isRecording = true;
+                    controls.querySelector(".record-btn").textContent = "Recording";
+                }
+            } else {
+                console.error("getUserMedia not supported on your browser.");
+            }
+        });
+
+// It's also a good idea to handle cleanup when done
+        window.addEventListener("beforeunload", () => {
+            if (audioStream) {
+                audioStream.getTracks().forEach(track => track.stop());
+            }
+        });
+
+        controls.querySelector(".playback-btn").addEventListener("click", () => {
+            if (audioChunks.length > 0) {
+                const audioBlob = new Blob(audioChunks, {type: 'audio/wav'});
+                const audioUrl = URL.createObjectURL(audioBlob);
+                const audio = new Audio(audioUrl);
+                audio.play();
+            } else {
+                console.log("No audio recorded to play back.");
+            }
+        });
+
+
+        return dialogItem;
+    }
+
+    // 语音功能
+    function speakText(text, element, loop = false) {
+        if (!window.speechSynthesis) return;
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.voice = selectedVoice;
+        utterance.rate = document.getElementById("speedSlider").value;
+
+        // Split text into words and wrap them in spans with data attributes
+        const words = text.split(/\s+/);
+        let currentIndex = 0;
+        const spans = [];
+        words.forEach(word => {
+            const start = currentIndex;
+            const end = start + word.length;
+            spans.push(`<span data-start="${start}" data-end="${end}">${word}</span>`);
+            currentIndex = end + 1; // Account for space after the word
+        });
+        element.innerHTML = spans.join(' '); // Update element with spans
+
+        // Highlight current word on boundary event
+        utterance.addEventListener('boundary', (event) => {
+            if (event.name === 'word') {
+                const charIndex = event.charIndex;
+                const spans = element.querySelectorAll('span');
+                spans.forEach(span => {
+                    const start = parseInt(span.dataset.start);
+                    const end = parseInt(span.dataset.end);
+                    span.classList.toggle('highlight', charIndex >= start && charIndex < end);
+                });
+            }
+        });
+
+        // Remove highlights when speech ends
+        utterance.addEventListener('end', () => {
+            element.querySelectorAll('span').forEach(span => span.classList.remove('highlight'));
+            if (loop) {
+                speakText(text, element, true); // Loop if enabled
+            }
+        });
+
+        window.speechSynthesis.speak(utterance);
+        return utterance;
+    }
+
+    // 生成按钮事件
+    document.getElementById("generateBtn").addEventListener("click", () => {
+        const inputText = document.getElementById("inputText").value.trim();
+        const dialogs = parseDialog(inputText);
+        const dialogList = document.getElementById("dialogList");
+
+        dialogList.innerHTML = "";
+        dialogs.forEach((dialog, index) => {
+            dialogList.appendChild(createDialogItem(dialog.en, dialog.cn, index));
+        });
+
+        // 清空inputText
+        document.getElementById("inputText").value = "";
+    });
+
+    // 重置按钮事件
+    document.getElementById("resetBtn").addEventListener("click", () => {
+        document.getElementById("inputText").value = "";
+        document.getElementById("dialogList").innerHTML = "";
+        window.speechSynthesis.cancel();
+    });
+</script>
+</body>
+</html>

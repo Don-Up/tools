@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>多选择题生成器</title>
+    <style>
+        html{
+            background: #262a2b;
+        }
+        body {
+            color: #eee;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10px 20px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        /* 外层 Flex 布局实现左右分栏 */
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        /* 左侧输入区域 */
+        .input-panel {
+            flex: 1 1 300px;
+            max-width: 600px;
+            background-color: #444;
+            padding: 20px;
+            border-radius: 5px;
+            height: 70vh;
+            max-height: 70vh; /* Set a max-height if needed */
+        }
+
+        .input-panel textarea {
+            width: 96%;
+            height: 87%;
+            margin-bottom: 10px;
+            font-size: 14px;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #888;
+            background-color: #333;
+            color: #eee;
+        }
+
+        .input-panel button {
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            background-color: #0066cc;
+            color: #fff;
+        }
+
+        /* 右侧展示区域 */
+        .output-panel {
+            flex: 1 1 300px;
+            min-width: 60%;
+            background-color: #444;
+            padding: 20px;
+            border-radius: 5px;
+            min-height: 300px;
+        }
+
+        #front-content {
+            overflow-y: auto; /* Enable vertical scrolling */
+            max-height: 70vh;
+        }
+
+        /* Webkit-based browsers (Chrome, Safari, Edge) */
+        #front-content::-webkit-scrollbar {
+            width: 8px; /* Width of the scrollbar */
+        }
+
+        #front-content::-webkit-scrollbar-track {
+            background: #555; /* Color of the scrollbar track */
+        }
+
+        #front-content::-webkit-scrollbar-thumb {
+            background: #888; /* Color of the scrollbar thumb */
+            border-radius: 4px; /* Rounded corners for the scrollbar thumb */
+        }
+
+        #front-content::-webkit-scrollbar-thumb:hover {
+            background: #aaa; /* Color of the scrollbar thumb on hover */
+        }
+
+        /* Firefox */
+        #front-content {
+            scrollbar-width: thin; /* Thickness of the scrollbar */
+            scrollbar-color: #888 #555; /* Color of the scrollbar thumb and track */
+        }
+
+        .voice-select {
+            width: 450px;
+            padding: 5px;
+            font-size: 14px;
+            background-color: #2c2c2c;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            margin-right: 20px;
+        }
+
+        .hide-control{
+            margin-left: 20px;
+        }
+
+        .multiple-choice-component {
+            border: 2px solid #444;
+            border-radius: 6px;
+            padding: 0 15px 10px;
+            background-color: #222;
+            color: #fff;
+            text-align: left;
+            margin-bottom: 15px;
+        }
+
+        .multiple-choice-component p.questionText {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+
+        .radio-label {
+            display: block;
+            margin: 5px 0;
+            font-size: 15px;
+            cursor: pointer;
+            padding-left: 10px;
+        }
+
+        .btnCopy,
+        .btnHide {
+            display: inline-block;
+            margin-left: 8px;
+            padding: 4px 8px; /* Reduced padding for a smaller button */
+            background-color: #007BFF; /* Primary blue color */
+            color: #fff;
+            border-radius: 4px; /* Slightly reduced border-radius */
+            font-size: 12px; /* Smaller font size */
+            cursor: pointer;
+            border: none; /* Remove default border */
+            transition: background-color 0.3s ease; /* Smooth transition */
+        }
+
+
+        .btnCopy:hover,
+        .btnHide:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+        }
+
+
+        /* 隐藏原生单选按钮 */
+        input[type="radio"] {
+            display: none;
+        }
+
+        .correct {
+            background-color: #28a745;
+            color: #eee;
+        }
+
+        .incorrect {
+            background-color: #dc3545;
+            color: #eee;
+        }
+    </style>
+</head>
+<body>
+<h1>Multiple Choice Question Generator</h1>
+<div style="display: flex;align-items: center">
+    <select id="voiceSelect" class="voice-select">
+        <option value="">Choose the speaker</option>
+    </select>
+    <!-- 语速设置 -->
+    <div class="speed-control">
+        <label for="speedRange" class="speed-label">Speed: <span id="speedValue">1.0</span></label>
+        <input type="range" id="speedRange" min="0.5" max="1.5" step="0.1" value="1.0">
+    </div>
+    <!-- 默认是否隐藏开关   -->
+    <div class="hide-control">
+        <label for="hideCheckbox">Hide</label>
+        <input type="checkbox" id="hideCheckbox" checked>
+    </div>
+    <!--    <div class="hide-control">-->
+    <!--        <label for="listenCheckbox">Listen</label>-->
+    <!--        <input type="checkbox" id="listenCheckbox">-->
+    <!--    </div>-->
+    <!--  连读次数输入框  -->
+    <div class="hide-control">
+        <label for="loopCount">Loop:</label>
+        <input type="number" id="loopCount" min="1" max="10" value="2"></input>
+    </div>
+    <button id="copyHint" class="hide-control">copy hint</button>
+    <input type="number" id="qCount" min="1" max="30" value="10" style="margin-left: 10px;"></input>
+    <div class="hide-control">
+        <label for="ctrlCheckbox">Ctrl</label>
+        <input type="checkbox" id="ctrlCheckbox">
+    </div>
+    <button id="fullScreen" class="hide-control">Full</button>
+</div>
+<div class="container">
+    <!-- 左侧输入区域 -->
+    <div class="input-panel">
+<textarea id="choiceInput" placeholder="请按照以下格式输入多个选择题（每行一项）：
+题目文本（第一行）
+1. 选项内容1
+2. 选项内容2
+3. 选项内容3
+正确答案（例如：1）
+题目文本2
+1. 选项内容1
+2. 选项内容2
+3. 选项内容3
+正确答案（例如：2）"></textarea>
+        <br>
+        <button id="btnConfirm">确认</button>
+    </div>
+
+    <!-- 右侧展示区域 -->
+    <div class="output-panel">
+        <div id="front-content">
+            <div id="choiceField"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let voices = [];
+    let selectedVoice = null;
+    let isLooping = false;
+    let isPaused = false;
+    let utteranceRef = null;
+    let speechSpeed = 1.0; // 默认语速
+    const inputCount = document.getElementById('loopCount');
+
+    // 默认发音人名称
+    const defaultVoiceName = "Microsoft Brian Online (Natural) - English (United States)";
+
+    const btnFullScreen = document.getElementById('fullScreen')
+    btnFullScreen.addEventListener('click', function () {
+        if(btnFullScreen.textContent === 'Full'){
+            document.documentElement.requestFullscreen();
+            btnFullScreen.textContent = 'Exit'
+        }else{
+            document.exitFullscreen();
+            btnFullScreen.textContent = 'Full'
+        }
+    })
+
+    const qCountInput = document.getElementById('qCount')
+    document.getElementById("copyHint").addEventListener("click", function () {
+        fallbackCopyText(`Elaborately construct ${qCountInput.value} different multiple choice questions for the topics below and put them into a single snippet, Don't use "---" or "###" titles. (Note: Don't insert any code snippet in a question in case the response format messy): `)
+})
+
+    // 加载发音人
+    function loadVoices() {
+        if (selectedVoice !== null) return
+        voices = window.speechSynthesis.getVoices();
+        const voiceSelect = document.querySelector('#voiceSelect');
+        voiceSelect.innerHTML = '<option value="">选择发音人</option>'; // 清空并添加默认选项
+        let defaultVoiceIndex = null;
+
+        voices.forEach((voice, index) => {
+            const option = document.createElement('option');
+            option.textContent = `${voice.name} (${voice.lang})`;
+            option.value = index;
+
+            // 检查是否为默认发音人
+            if (voice.name === defaultVoiceName && voice.lang === "en-US") {
+                defaultVoiceIndex = index;
+            }
+
+            voiceSelect.appendChild(option);
+        });
+
+        // 自动选择默认发音人
+        if (defaultVoiceIndex !== null) {
+            voiceSelect.value = defaultVoiceIndex;
+            selectedVoice = defaultVoiceIndex;
+        }
+    }
+
+    // 文本转语音朗读
+    function speakText(text, loop = false, utteranceRef = null) {
+        if ('speechSynthesis' in window) {
+            if (!utteranceRef) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-US';
+                utterance.rate = speechSpeed; // 使用当前语速
+                if (selectedVoice) {
+                    utterance.voice = voices[selectedVoice];
+                }
+                if (loop) {
+                    utterance.onend = () => speakText(text, true, utterance);
+                }
+                speechSynthesis.speak(utterance);
+                return utterance;
+            } else {
+                if (loop) {
+                    utteranceRef.onend = () => speakText(text, true, utteranceRef);
+                }
+                utteranceRef.rate = speechSpeed; // 更新语速
+                speechSynthesis.speak(utteranceRef);
+                return utteranceRef;
+            }
+        } else {
+            console.warn('当前浏览器不支持语音合成功能');
+            return null;
+        }
+    }
+
+    // 停止朗读
+    function stopSpeaking() {
+        if ('speechSynthesis' in window) {
+            speechSynthesis.cancel();
+        }
+    }
+
+    function stop() {
+        stopSpeaking();
+        isLooping = false;
+        isPaused = false;
+        // 清除之前的 utteranceRef 的循环逻辑
+        if (utteranceRef) {
+            utteranceRef.onend = null; // 移除 onend 回调
+            utteranceRef = null;       // 重置 utteranceRef
+        }
+    }
+
+    // 监听语速滑块
+    document.querySelector('#speedRange').addEventListener('input', (event) => {
+        speechSpeed = parseFloat(event.target.value);
+        document.querySelector('#speedValue').textContent = speechSpeed.toFixed(1);
+    });
+
+    // 监听发音人选择
+    document.querySelector('#voiceSelect').addEventListener('change', (event) => {
+        // alert(event.target.value)
+        selectedVoice = event.target.value ? parseInt(event.target.value, 10) : null;
+    });
+
+    // 加载发音人
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+
+
+    // 辅助函数：复制文本到剪贴板
+    function fallbackCopyText(text) {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+    }
+
+    // const listenCheckBox = document.getElementById('listenCheckbox');
+
+    // 单选按钮点击处理函数
+    function handleChoice(selectedRadio, answer) {
+        // if(listenCheckBox.checked) return
+        if(event.ctrlKey) return
+        const component = selectedRadio.closest('.multiple-choice-component');
+        const correctAnswer = component.dataset.correctAnswer;
+        // 禁用当前题目中所有选项
+        const radios = component.querySelectorAll('input[type="radio"]');
+        radios.forEach(radio => {
+            radio.disabled = true;
+        });
+        // 添加样式标记选择结果
+        if (answer === correctAnswer) {
+            selectedRadio.parentNode.classList.add('correct');
+        } else {
+            selectedRadio.parentNode.classList.add('incorrect');
+            // 标记正确答案
+            const correctRadio = Array.from(radios).find(radio =>
+                radio.nextSibling.textContent.trim().startsWith(correctAnswer + '.')
+            );
+            if (correctRadio) {
+                correctRadio.parentNode.classList.add('correct');
+            }
+        }
+    }
+
+    // 解析输入文本，返回题目块数组
+    function parseQuestionBlocks(rawText) {
+        const lines = rawText.split('\n').map(line => line.trim()).filter(line => line !== '');
+        const blocks = [];
+        let i = 0;
+        while (i < lines.length) {
+            // 第一行为题目文本
+            const questionText = lines[i++];
+            const options = [];
+            // 收集选项：直到遇到只有一个数字的行（表示正确答案）
+            while (i < lines.length && !/^\d+$/.test(lines[i])) {
+                options.push(lines[i++]);
+            }
+            if (i < lines.length && /^\d+$/.test(lines[i])) {
+                const correctAnswer = lines[i++];
+                blocks.push({questionText, options, correctAnswer});
+            } else {
+                // 格式错误：未找到答案行，退出
+                break;
+            }
+        }
+        return blocks;
+    }
+
+    const hideCheckbox = document.querySelector('#hideCheckbox');
+
+    hideCheckbox.addEventListener('change', (event) => {
+        document.querySelectorAll('.btnHide').forEach(component => {
+            component.click()
+        });
+    })
+
+
+    // 根据题目块生成选择题组件，并放入页面中
+    function buildMultipleChoiceComponents(rawText) {
+        const blocks = parseQuestionBlocks(rawText);
+        const choiceField = document.getElementById('choiceField');
+        choiceField.innerHTML = '';  // 清空之前的内容
+
+        blocks.forEach((block, blockIndex) => {
+            // 使用正则解析选项（格式： "数字. 选项内容" ）
+            const optionRegex = /^(\d+)\.\s*(.+)$/;
+            let optionObjects = block.options.map(optionText => {
+                const match = optionText.match(optionRegex);
+                if (!match) return null;
+                return {
+                    originalNumber: match[1], // 原始选项编号
+                    answerContent: match[2]
+                };
+            }).filter(item => item !== null);
+
+            if (optionObjects.length === 0) return; // 无有效选项则跳过
+
+            // 随机打乱选项顺序（Fisher-Yates 洗牌算法）
+            for (let j = optionObjects.length - 1; j > 0; j--) {
+                const k = Math.floor(Math.random() * (j + 1));
+                [optionObjects[j], optionObjects[k]] = [optionObjects[k], optionObjects[j]];
+            }
+
+            let optionContent = ""
+            for (let i = 0; i < optionObjects.length; i++) {
+                const option = optionObjects[i];
+                optionContent += (i + 1) + ". " + option.answerContent + " ";
+            }
+            const readText = block.questionText + " " + optionContent
+
+            // 创建组件外层容器
+            const container = document.createElement('div');
+            container.className = 'multiple-choice-component';
+            // data-correct-answer 稍后设置
+            container.setAttribute('data-correct-answer', '');
+
+            // 题目文本
+            const p = document.createElement('p');
+            p.className = 'questionText';
+            p.textContent = block.questionText;
+            container.appendChild(p);
+
+            container.append(document.createElement("br"))
+
+            // 复制按钮（使用 class 以免重复 id）
+            const copyButton = document.createElement('button');
+            copyButton.className = 'btnCopy';
+            copyButton.textContent = 'copy';
+            container.appendChild(copyButton);
+
+            // 播放按钮
+            const playButton = document.createElement('button');
+            playButton.className = 'btnCopy';
+            playButton.textContent = 'play';
+            container.appendChild(playButton);
+            playButton.addEventListener('click', () => {
+                play(readText)
+            });
+
+            const playButton1 = document.createElement('button');
+            playButton1.className = 'btnCopy';
+            playButton1.textContent = 'play q';
+            container.appendChild(playButton1);
+            playButton1.addEventListener('click', () => {
+                play(block.questionText)
+            });
+
+            const playButton2 = document.createElement('button');
+            playButton2.className = 'btnCopy';
+            playButton2.textContent = 'play op';
+            container.appendChild(playButton2);
+            playButton2.addEventListener('click', () => {
+                play(optionContent)
+            });
+
+            function play(textForReading) {
+                stop()
+                const text = textForReading.trim().replace(/[()#*<>`•__]/g, '').replace(/e\.g\.,/gi, 'such-as').replace(/\//g, ' '); // .replace(/^\d+\.\s*/gm, '')
+                if (!text) {
+                    alert('Please enter the English sentence to be played');
+                    return;
+                }
+
+                if (isPaused) {
+                    isPaused = false;
+                    speechSynthesis.resume();
+                } else if (speechSynthesis.speaking) {
+                    isPaused = true;
+                    speechSynthesis.pause();
+                } else {
+                    utteranceRef = speakText(text, false, utteranceRef);
+                }
+            }
+
+            // 循环按钮
+            const loopButton = document.createElement('button');
+            loopButton.className = 'btnCopy';
+            loopButton.textContent = 'loop';
+            container.appendChild(loopButton);
+            loopButton.addEventListener('click', () => {
+                // 播放题目文本
+                const text = readText.replace(/[()#*<>`•]/g, '').replace(/e\.g\.,/gi, 'such-as').replace(/\//g, ' '); //.replace(/^\d+\.\s*/gm, '')
+                if (!text) {
+                    alert('Please enter the English sentence to be played');
+                    return;
+                }
+                isLooping = !isLooping;
+                stopSpeaking();
+                if (isLooping) {
+                    loopButton.textContent = 'Looping';
+                    utteranceRef = speakText(text, true, utteranceRef);
+                } else {
+                    loopButton.textContent = 'Loop';
+                }
+            });
+
+            // 停止按钮
+            const stopButton = document.createElement('button');
+            stopButton.className = 'btnCopy';
+            stopButton.textContent = 'stop';
+            container.appendChild(stopButton);
+            stopButton.addEventListener('click', () => {
+                // 停止播放
+                if ('speechSynthesis' in window) {
+                    speechSynthesis.cancel();
+                }
+            });
+
+            // 隐藏按钮
+            const hideButton = document.createElement('button');
+            hideButton.className = 'btnHide';
+            hideButton.textContent = 'hide';
+            container.appendChild(hideButton);
+            const questionText = container.querySelector(".questionText")
+            hideButton.addEventListener('click', () => {
+                const answers = container.querySelectorAll(".answer")
+                // 隐藏组件
+                if (questionText.style.visibility === 'hidden') {
+                    questionText.style.visibility = 'visible';
+                    answers.forEach(answer => {
+                        answer.style.visibility = 'visible'
+                    })
+                    hideButton.textContent = 'hide'
+                } else {
+                    questionText.style.visibility = 'hidden';
+                    answers.forEach(answer => {
+                        answer.style.visibility = 'hidden'
+                    })
+                    hideButton.textContent = 'show'
+                }
+            });
+
+            // 根据随机顺序为每个选项重新分配编号（从 1 开始）
+            let newCorrectNumber = '';
+            optionObjects.forEach((optionObj, index) => {
+                const newNumber = (index + 1).toString();
+                // 如果原始选项编号与本题正确答案一致，则新的正确答案编号更新为当前 newNumber
+                if (optionObj.originalNumber === block.correctAnswer) {
+                    newCorrectNumber = newNumber;
+                }
+                // 生成单个选项（label 内包含隐藏的 radio 和选项文本）
+                const label = document.createElement('label');
+                label.className = 'radio-label';
+                const input = document.createElement('input');
+                input.type = 'radio';
+                // 每题的 radio 组名使用不同标识，保证互斥性
+                input.name = 'answer' + blockIndex;
+                input.setAttribute('onclick', `handleChoice(this, '${newNumber}')`);
+                label.appendChild(input);
+                // 添加选项编号（例如 "1. "）
+                label.appendChild(document.createTextNode(newNumber + '. '));
+                // 包裹选项内容的 span
+                const span = document.createElement('span');
+                span.className = 'answer';
+                span.textContent = optionObj.answerContent;
+                label.appendChild(span);
+                // label点击事件
+                label.addEventListener('click', () => {
+                    // 如果alt键已经按下, 则获取inputCount的值, 并将span.textContent重复对应的次数
+                    if (event.altKey || document.getElementById("ctrlCheckbox").checked) {
+                        const count = parseInt(inputCount.value);
+                        const repeatedText = `${span.textContent} `.repeat(count);
+                        console.log(repeatedText)
+                        play(repeatedText)
+                    } else {
+                        play(span.textContent)
+                    }
+                    if (hideButton.textContent === "show" && !event.ctrlKey) { //  !listenCheckBox.checked
+                        hideButton.click()
+                    }
+                });
+                container.appendChild(label);
+            });
+
+            // 设置当前组件的正确答案编号
+            container.setAttribute('data-correct-answer', newCorrectNumber);
+            choiceField.appendChild(container);
+
+            // 为复制按钮添加点击事件
+            copyButton.addEventListener('click', () => {
+                const questionText = container.querySelector('.questionText').innerText;
+                const answers = Array.from(container.querySelectorAll('.radio-label'))
+                    .map(label => label.innerText.trim());
+                const textToCopy = `${questionText}\n${answers.join("\n")}`;
+                fallbackCopyText(textToCopy);
+                copyButton.innerText = 'copied';
+            });
+
+            if (hideCheckbox.checked) {
+                hideButton.click()
+            }
+        });
+    }
+
+    const frontContent = document.getElementById("front-content")
+
+    // 当点击“确认”按钮时，读取 textarea 内容，生成多个选择题组件
+    document.getElementById('btnConfirm').addEventListener('click', () => {
+        const rawText = document.getElementById('choiceInput').value;
+        buildMultipleChoiceComponents(rawText);
+        document.getElementById('choiceInput').value = '';
+        // frontContent滑倒最顶部
+        frontContent.scrollTop = 0;
+    });
+</script>
+</body>
+</html>
