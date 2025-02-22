@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>English Practice Tool</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #121212;
+      color: #e0e0e0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #1e1e1e;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+    }
+    textarea {
+      width: 100%;
+      height: 60px; /* 调低输入框高度 */
+      margin-bottom: 20px;
+      padding: 10px;
+      font-size: 14px; /* 调整字体大小 */
+      background-color: #2c2c2c;
+      color: #e0e0e0;
+      border: 1px solid #444;
+      border-radius: 4px;
+      resize: none;
+      box-sizing: border-box;
+    }
+    textarea::placeholder {
+      color: #888;
+    }
+    .button-row {
+      display: flex;
+      justify-content: space-between; /* 按钮左右对齐 */
+      gap: 10px; /* 按钮之间的间距 */
+      margin-bottom: 20px;
+    }
+    button {
+      flex: 1; /* 按钮均分宽度 */
+      padding: 10px;
+      font-size: 16px;
+      color: #fff;
+      background-color: #3a86ff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #2a6edc;
+    }
+    .output {
+      margin-top: 20px;
+    }
+    .output h3 {
+      margin-bottom: 10px;
+      font-size: 18px;
+      color: #bbbbbb;
+    }
+    .output h3::before {
+      content: ">";
+      margin-right: 5px;
+      color: #3a86ff;
+    }
+    ul {
+      list-style-type: none;
+      padding: 0;
+    }
+    li {
+      margin-bottom: 10px;
+      background: #292929;
+      padding: 10px;
+      border: 1px solid #444;
+      border-radius: 4px;
+      color: #e0e0e0;
+    }
+    .button-group {
+      display: flex;
+      gap: 10px; /* 按钮之间的间距 */
+      margin-top: 5px;
+    }
+    .list-btn {
+      padding: 5px 10px;
+      font-size: 12px;
+      color: #3a86ff;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+    .list-btn:hover {
+      text-decoration: underline;
+    }
+    .sentence, .word {
+      margin-top: 10px;
+      padding: 10px;
+      background: #1e1e1e;
+      border: 1px solid #444;
+      border-radius: 4px;
+      display: none; /* 默认隐藏 */
+    }
+    .control-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .control-buttons button {
+      font-size: 12px;
+      padding: 5px 10px;
+      color: #fff;
+      background-color: #3a86ff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .control-buttons button:hover {
+      background-color: #2a6edc;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>English Practice Tool</h1>
+    <textarea id="englishInput" placeholder="Please enter the English part..."></textarea>
+	<textarea id="chineseInput" placeholder="Please enter the Chinese part..."></textarea>
+    <div class="button-row">
+      <button id="processBtn">Process</button>
+      <button id="resetBtn">Reset</button>
+    </div>
+    <div class="output">
+      <h3>CN</h3>
+      <p id="chineseText"></p>
+      <h3>EN</h3>
+      <ul id="englishList">
+        <!-- 切割后的英文句子将显示在这里 -->
+      </ul>
+    </div>
+  </div>
+
+  <script>
+      let selectedVoice = null;
+     const defaultVoiceName = "Microsoft Brian Online (Natural) - English (United States)";
+  
+	function loadVoices() {
+      voices = window.speechSynthesis.getVoices();
+      let defaultVoiceIndex = null;
+
+      voices.forEach((voice, index) => {
+        // 检查是否为默认发音人
+        if (voice.name === defaultVoiceName && voice.lang === "en-US") {
+          defaultVoiceIndex = index;
+        }
+      });
+
+      // 自动选择默认发音人
+      if (defaultVoiceIndex !== null) {
+        selectedVoice = defaultVoiceIndex;
+      }
+    }
+	
+	window.speechSynthesis.onvoiceschanged = loadVoices;
+	  
+    // 文本转语音朗读函数
+    function speakText(text, loop = false, utteranceRef = null) {
+      if ('speechSynthesis' in window) {
+        // 如果没有现成的 utterance 对象，则创建新的
+        if (!utteranceRef) {
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'en-US'; // 设置语言为英语
+		  if (selectedVoice) {
+            utterance.voice = voices[selectedVoice];
+          }
+          if (loop) {
+            utterance.onend = () => speakText(text, true, utterance); // 循环播放
+          }
+          speechSynthesis.speak(utterance);
+          return utterance;
+        } else {
+          // 如果传入了现成的 utterance 对象
+          if (loop) {
+            utteranceRef.onend = () => speakText(text, true, utteranceRef); // 循环播放
+          }
+          speechSynthesis.speak(utteranceRef);
+          return utteranceRef;
+        }
+      } else {
+        console.warn('当前浏览器不支持语音合成功能');
+        return null;
+      }
+    }
+
+    // 停止朗读函数
+    function stopSpeaking() {
+      if ('speechSynthesis' in window) {
+        speechSynthesis.cancel();
+      }
+    }
+
+    // 处理按钮点击事件
+    document.getElementById('processBtn').addEventListener('click', () => {
+      const chineseInput = document.getElementById('chineseInput');
+      const englishInput = document.getElementById('englishInput');
+
+      // 获取中文和英文内容
+      const chineseText = chineseInput.value.trim() || '无中文内容';
+      const englishText = englishInput.value.trim().replace(/e\.g\.,/gi, 'such-as').replace(/^\d+\.\s*/gm, '').replace(/[()#*•<>`]/g, '').replace(/\//g, ' ') || '无英文内容';
+
+      // 显示中文部分
+      document.getElementById('chineseText').textContent = chineseText;
+
+      // 英文部分按标点符号切割
+      const englishSentences = englishText.split(/[;.?!]/).filter(sentence => sentence.trim() !== '');
+
+      // 清空英文列表
+      const englishList = document.getElementById('englishList');
+      englishList.innerHTML = '';
+
+      // 显示英文部分为列表
+      englishSentences.forEach((sentence, index) => {
+        const listItem = document.createElement('li');
+        
+        // 创建句子显示区
+        const sentenceDiv = document.createElement('div');
+        sentenceDiv.className = 'sentence';
+        sentenceDiv.id = `sentence-${index}`;
+        sentenceDiv.textContent = sentence.trim();
+        sentenceDiv.style.display = 'none'; // 初始化为隐藏状态
+
+        // 创建单词显示区
+        const wordDiv = document.createElement('div');
+        wordDiv.className = 'word';
+        wordDiv.id = `word-${index}`;
+        wordDiv.dataset.wordIndex = 0; // 当前显示的单词索引
+        wordDiv.textContent = ''; // 初始内容为空
+
+        // 创建按钮组
+        const buttonGroup = document.createElement('div');
+        buttonGroup.className = 'button-group';
+
+        const showSentenceBtn = document.createElement('button');
+        showSentenceBtn.textContent = 'Show the sentence';
+        showSentenceBtn.className = 'list-btn';
+
+        // 保存当前句子的朗读状态
+        let isLooping = false;
+        let utteranceRef = null;
+
+        showSentenceBtn.addEventListener('click', () => {
+          if (sentenceDiv.style.display === 'none' || sentenceDiv.style.display === '') {
+            sentenceDiv.style.display = 'block'; // 显示句子
+          } else {
+            sentenceDiv.style.display = 'none'; // 隐藏句子
+          }
+        });
+
+        const showWordBtn = document.createElement('button');
+        showWordBtn.textContent = 'show next word';
+        showWordBtn.className = 'list-btn';
+        showWordBtn.addEventListener('click', () => {
+          const words = sentence.trim().split(/\s+/); // 按空格拆分单词
+          const currentWordIndex = parseInt(wordDiv.dataset.wordIndex, 10);
+
+          if (currentWordIndex < words.length) {
+            const word = words[currentWordIndex]; // 当前单词
+            wordDiv.style.display = 'block';
+            wordDiv.textContent += (currentWordIndex === 0 ? '' : ' ') + word; // 拼接单词
+            wordDiv.dataset.wordIndex = currentWordIndex + 1; // 更新索引
+
+            // 使用 TTS 朗读单词
+            //speakText(word);
+          } else {
+            wordDiv.textContent += ' (All words have been displayed)';
+          }
+        });
+
+        // 创建控制按钮
+        const controlButtons = document.createElement('div');
+        controlButtons.className = 'control-buttons';
+
+        const playPauseBtn = document.createElement('button');
+        playPauseBtn.textContent = 'Read';
+        playPauseBtn.addEventListener('click', () => {
+          if ('speechSynthesis' in window) {
+            if (speechSynthesis.speaking) {
+              speechSynthesis.pause();
+            } else if (speechSynthesis.paused) {
+              speechSynthesis.resume();
+            } else {
+              utteranceRef = speakText(sentence.trim());
+            }
+          }
+        });
+
+        const loopBtn = document.createElement('button');
+        loopBtn.textContent = 'Loop';
+        loopBtn.addEventListener('click', () => {
+          isLooping = !isLooping;
+          stopSpeaking();
+          if (isLooping) {
+            loopBtn.textContent = 'Looping';
+            utteranceRef = speakText(sentence.trim(), true, utteranceRef); // 开启循环朗读
+          } else {
+            loopBtn.textContent = 'Loop';
+          }
+        });
+
+        const stopBtn = document.createElement('button');
+        stopBtn.textContent = 'Stop';
+        stopBtn.addEventListener('click', () => {
+		  loopBtn.textContent = 'Loop';
+		  isLooping = false
+          stopSpeaking();
+        });
+
+        // 添加控制按钮到控制组
+        controlButtons.appendChild(playPauseBtn);
+        controlButtons.appendChild(loopBtn);
+        controlButtons.appendChild(stopBtn);
+
+        // 将按钮添加到按钮组
+        buttonGroup.appendChild(showSentenceBtn);
+        buttonGroup.appendChild(showWordBtn);
+
+        // 将按钮组和显示区添加到列表项
+        listItem.appendChild(buttonGroup);
+        listItem.appendChild(sentenceDiv);
+        listItem.appendChild(wordDiv);
+        listItem.appendChild(controlButtons);
+
+        // 添加列表项到列表
+        englishList.appendChild(listItem);
+      });
+
+      // 清空输入框
+      chineseInput.value = '';
+      englishInput.value = '';
+    });
+
+    // 重置按钮点击事件
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      // 隐藏句子并重置单词显示区域
+      const sentences = document.querySelectorAll('.sentence');
+      const words = document.querySelectorAll('.word');
+
+      sentences.forEach(sentence => {
+        sentence.style.display = 'none'; // 隐藏句子
+      });
+
+      words.forEach(word => {
+        word.style.display = 'none'; // 隐藏单词显示区域
+        word.textContent = ''; // 清空单词内容
+        word.dataset.wordIndex = 0; // 重置单词索引
+      });
+
+      stopSpeaking(); // 停止所有朗读
+    });
+		
+  </script>
+</body>
+</html>
