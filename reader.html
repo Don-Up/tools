@@ -337,8 +337,8 @@
         <div class="modal-overlay" id="modalOverlay">
             <div class="modal">
                 <!-- 显示子网页: https://don-up.github.io/tools/md/ -->
-                <iframe id="iframe" src="https://don-up.github.io/tools/md/" style="width: 100%; height: 100%; border: none;"></iframe>
-                <button class="close-btn" onclick="closeModal()">关闭</button>
+                <iframe id="iframe" style="width: 100%; height: 100%; border: none;"></iframe>
+                <button class="close-btn" onclick="closeModal()">Close</button>
             </div>
         </div>
     </div>
@@ -388,6 +388,14 @@
             localStorage.setItem(bookName, scrollTop);
         }
     });
+
+    function loadIframe() {
+        let iframe = document.getElementById("myIframe");
+        let url = "https://don-up.github.io/tools/md/"; // 你的网页地址
+        iframe.src = url + "?t=" + new Date().getTime(); // 添加时间戳
+    }
+
+    loadIframe(); // 初次加载
 
 
     // 监听 iframe 发送的消息
