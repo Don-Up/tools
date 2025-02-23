@@ -97,9 +97,9 @@
                     // 弹出Toast, 显示复制成功, 然后自动关闭
                     const toast = document.createElement('div');
                     toast.className = 'toast';
-                    toast.textContent = '复制成功'
+                    toast.textContent = 'copied'
                     if(window.parent){
-                        window.parent.postMessage(filename, "http://localhost:63342/");
+                        window.parent.postMessage(filename, "https://don-up.github.io/");
                     }
                     document.body.appendChild(toast);
                     setTimeout(() => {
