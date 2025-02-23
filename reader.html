@@ -16,8 +16,6 @@
         }
 
         .code-span {
-            font-family: monospace, 'Consolas';
-            font-size: 22px;
             color: lightskyblue !important;
         }
 
@@ -587,6 +585,48 @@
         });
     }
 
+    function markdownTableToHTML(markdown) {
+        // Split the markdown into lines and trim whitespace
+        const lines = markdown.trim().split('\n').map(line => line.trim());
+
+        // Extract headers from the first line
+        const headers = lines[0].split('|')
+            .map(cell => cell.trim())
+            .filter(cell => cell !== '');
+
+        // Skip the separator line (second line)
+        // Process the data rows (starting from line 2)
+        const rows = lines.slice(2).map(line =>
+            line.split('|')
+                .map(cell => cell.trim())
+                .filter(cell => cell !== '')
+        );
+
+        // Create HTML table
+        let html = '<table border="1" style="border-collapse: collapse; width: 100%;">\n';
+
+        // Add header row
+        html += '  <thead>\n    <tr>\n';
+        headers.forEach(header => {
+            html += `      <th style="padding: 8px; text-align: left;">${header}</th>\n`;
+        });
+        html += '    </tr>\n  </thead>\n';
+
+        // Add body rows
+        html += '  <tbody>\n';
+        rows.forEach(row => {
+            html += '    <tr>\n';
+            row.forEach(cell => {
+                html += `      <td style="padding: 8px;">${cell}</td>\n`;
+            });
+            html += '    </tr>\n';
+        });
+        html += '  </tbody>\n';
+        html += '</table>';
+
+        return html;
+    }
+
     function processText(input) {
         const contentDiv = document.getElementById("content");
         contentDiv.innerHTML = "";
@@ -597,6 +637,8 @@
         let codeLang = "";
         let isInList = false;
         let list = []
+        let table = []
+        let isInTable = false
 
         const handleEven = document.getElementById("handleEven")
 
@@ -607,6 +649,22 @@
                 } else {
                     line = line.replace(/[“”]/g, "\"")
                 }
+            }
+
+            if(line.toString().trim().startsWith("|") && line.toString().trim().endsWith("|")) {
+                // 将所有**xx**替换为<b>xx</b>
+                line = line.toString().trim().replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
+                // 将所有`xx`替换为<span class="code-span">xx</span>
+                line = line.toString().trim().replace(/`(.*?)`/g, "<span class=\"code-span\">$1</span>")
+                table.push(line)
+                isInTable = true
+                return
+            }
+
+            if (isInTable) {
+                document.getElementById("content").innerHTML += markdownTableToHTML(table.join("\n"))
+                isInTable = false
+                table = []
             }
 
             if (line.toString().trim() === "```") {
@@ -697,7 +755,7 @@
                     return '&gt;';
                 }
             }).replace(/(`+)(.*?)\1/g, (match, p1, p2) => {
-                return `<span class="code-span" style="color: lightskyblue">${p2}</span>`;
+                return `<span style="color: lightskyblue">${p2}</span>`;
             })
 
             if (line.startsWith("- ")) {
