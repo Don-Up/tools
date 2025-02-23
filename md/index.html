@@ -13,17 +13,20 @@
             padding: 20px;
             overflow: hidden;
         }
+
         h1 {
             color: #ffffff;
             text-align: center;
             margin-bottom: 30px;
         }
+
         ul {
             list-style-type: none;
             padding: 0;
             max-width: 600px;
             margin: 0 auto;
         }
+
         li {
             background-color: #1e1e1e;
             margin: 10px 0;
@@ -31,25 +34,83 @@
             border-radius: 5px;
             transition: background-color 0.3s ease;
         }
+
         li:hover {
             background-color: #2d2d2d;
         }
+
+        ul li {
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
         a {
             color: #64b5f6;
             text-decoration: none;
             font-size: 18px;
             display: block;
         }
+
         a:hover {
             color: #90caf9;
         }
+
+        .toast {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            border-radius: 5px;
+            z-index: 9999;
+            transition: opacity 0.3s;
+        }
+
     </style>
 </head>
 <body>
-    <h1>Markdown Files</h1>
-    <ul>
-        <li><a href="雷神桥.md">雷神桥</a></li>
-        <li><a href="赖盖特之谜.md">赖盖特之谜</a></li>
-    </ul>
+<h1>Markdown Files</h1>
+<ul>
+</ul>
+
 </body>
+<script>
+    const books = ["雷神桥", "赖盖特之谜"]
+    // 根据书名动态生成li, 同时设置点击事件
+    for (let i = 0; i < books.length; i++) {
+        const li = document.createElement('li');
+        li.textContent = books[i];
+        li.onclick = () => {
+            downloadAndCopy(books[i] + '.md');
+        };
+        document.querySelector('ul').appendChild(li);
+    }
+
+    function downloadAndCopy(filename) {
+        // Fetch the file content and copy to clipboard
+        fetch(`/tools/md/${filename}`)
+            .then(response => response.text())
+            .then(text => {
+                navigator.clipboard.writeText(text).then(() => {
+                    // 弹出Toast, 显示复制成功, 然后自动关闭
+                    const toast = document.createElement('div');
+                    toast.className = 'toast';
+                    toast.textContent = '复制成功'
+                    if(window.parent){
+                        window.parent.postMessage(filename, "http://localhost:63342/");
+                    }
+                    document.body.appendChild(toast);
+                    setTimeout(() => {
+                        document.body.removeChild(toast);
+                    }, 800);
+                }).catch(err => {
+                    console.error('Could not copy text: ', err);
+                });
+            })
+            .catch(error => console.error('Error fetching the file: ', error));
+    }
+</script>
+
 </html>
