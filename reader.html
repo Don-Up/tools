@@ -356,8 +356,10 @@
 
     if(window.screen.width < 1400){
         const toggleElement = document.getElementById("toggleElement")
-        // 缩小为原先的0.7倍
-        toggleElement.style.transform = "scale(0.7)";
+        // 将toggleElement的所有子元素缩小为原先的0.7倍
+        for (let i = 0; i < toggleElement.children.length; i++) {
+            toggleElement.children[i].style.transform = "scale(0.7)";
+        }
     }
 
     // 打开弹窗
