@@ -233,10 +233,10 @@
 </head>
 <body>
 <div id="wrapper">
-    <video autoplay loop muted playsinline class="background-video">
-        <source src="mp4/bg.mp4" type="video/mp4">
-        Your browser does not support the video tag.
-    </video>
+<!--    <video autoplay loop muted playsinline class="background-video">-->
+<!--        <source src="mp4/bg.mp4" type="video/mp4">-->
+<!--        Your browser does not support the video tag.-->
+<!--    </video>-->
     <div class="background-image"></div>
 
     <div class="controls" id="toggleElement">
@@ -305,7 +305,7 @@
 <script>
     let isPlaying = false;
     let voices = [];
-    let currentSpeaker = "Microsoft Brian Online (Natural) - English (United States)";
+    let currentSpeaker = "Microsoft Andrew Online (Natural) - English (United States)";
     let currentVoice = null;
     let currentFont = "Corbel";
 
@@ -441,14 +441,14 @@
             });
         } else if (event.key === "0") {
             // Toggle between dynamic and static backgrounds
-            if (document.querySelector(".background-video").style.display !== "none") {
-                document.querySelector(".background-video").style.display = "none";
-                // Pause the video
-                document.querySelector(".background-video").pause();
-            } else {
-                document.querySelector(".background-video").style.display = "block";
-                document.querySelector(".background-video").play();
-            }
+            // if (document.querySelector(".background-video").style.display !== "none") {
+            //     document.querySelector(".background-video").style.display = "none";
+            //     // Pause the video
+            //     document.querySelector(".background-video").pause();
+            // } else {
+            //     document.querySelector(".background-video").style.display = "block";
+            //     document.querySelector(".background-video").play();
+            // }
         } else if (event.key === "1") {
             const texts = document.querySelectorAll(".text-block")
             // Ensure the text-block is positioned relative so the mask can be positioned absolutely within it
@@ -662,7 +662,9 @@
             }
 
             if (isInTable) {
-                document.getElementById("content").innerHTML += markdownTableToHTML(table.join("\n"))
+                const div = document.createElement("div");
+                div.innerHTML = markdownTableToHTML(table.join("\n"))
+                contentDiv.append(div)
                 isInTable = false
                 table = []
             }
@@ -695,7 +697,10 @@
                 return;
             }
 
-            line = line.replace(/[*]/g, "").replace(/[’]/g, "'").trim();
+            line = line.trim()
+                .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
+                // .replace(/`(.*?)`/g, "<span class=\"code-span\">$1</span>")
+                .replace(/[’]/g, "'");
 
             if (line.startsWith("---")) {
                 const hr = document.createElement("hr");
@@ -772,7 +777,6 @@
                     const li = document.createElement("li");
                     li.innerHTML = item;
                     li.dataset.originalText = li.textContent
-                    console.log(li.dataset.originalText)
                     originalTextList.push(li.textContent + (li.textContent.trim().endsWith(".") ? "" : ". "))
                     li.onclick = function () {
                         if (event.ctrlKey) {
@@ -824,6 +828,8 @@
         isPlaying = true;
 
         originalText = originalText + (originalText.trim().endsWith(".") ? "" : ". ")
+        // 将所有<b>XX</b>替换为XX
+        originalText = originalText.replace(/<b>(.*?)<\/b>/g, '$1');
 
         // Gather individual sentences from the clicked element and its subsequent siblings.
         let sentences = [];
