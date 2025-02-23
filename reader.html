@@ -698,8 +698,8 @@
             }
 
             line = line.trim()
-                .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
-                // .replace(/`(.*?)`/g, "<span class=\"code-span\">$1</span>")
+                .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+                .replace(/`(.*?)`/g, "<span class=\"code-span\">$1</span>")
                 .replace(/[’]/g, "'");
 
             if (line.startsWith("---")) {
@@ -710,7 +710,7 @@
 
             if (line.startsWith("> ")) {
                 const quote = document.createElement("blockquote");
-                quote.textContent = line.substring(2);
+                quote.innerHTML = line.substring(2);
                 quote.style.cursor = "pointer";
                 quote.dataset.originalText = line;
                 quote.onclick = function () {
@@ -730,9 +730,9 @@
                 heading.onclick = function () {
                     playText(this.dataset.originalText, this);
                 }
-                text = text.replace(/(`+)(.*?)\1/g, (match, p1, p2) => {
-                    return `<span class="code-span">${p2}</span>`;
-                })
+                // text = text.replace(/(`+)(.*?)\1/g, (match, p1, p2) => {
+                //     return `<span class="code-span">${p2}</span>`;
+                // })
                 heading.innerHTML = text;
                 contentDiv.appendChild(heading);
                 return;
@@ -752,6 +752,9 @@
                     playText(this.dataset.originalText, this);
                 }
             }
+            textBlock.innerHTML = line;
+            contentDiv.appendChild(textBlock);
+
             // 将line中, 将所有的<替换为$lt;, 将所有>替换为$gt, 最后将所有包含``的部分全都替换为<code></code>;
             line = line.replace(/<|>/g, (match) => {
                 if (match === '<') {
@@ -759,9 +762,10 @@
                 } else {
                     return '&gt;';
                 }
-            }).replace(/(`+)(.*?)\1/g, (match, p1, p2) => {
-                return `<span style="color: lightskyblue">${p2}</span>`;
             })
+            //     .replace(/(`+)(.*?)\1/g, (match, p1, p2) => {
+            //     return `<span style="color: lightskyblue">${p2}</span>`;
+            // })
 
             if (line.startsWith("- ")) {
                 isInList = true;
@@ -797,8 +801,6 @@
                 isInList = false
             }
 
-            textBlock.innerHTML = line;
-            contentDiv.appendChild(textBlock);
         });
 
         if (isInCodeBlock) {
@@ -830,6 +832,8 @@
         originalText = originalText + (originalText.trim().endsWith(".") ? "" : ". ")
         // 将所有<b>XX</b>替换为XX
         originalText = originalText.replace(/<b>(.*?)<\/b>/g, '$1');
+        // 将所有的<span class="code-span">XX</span>替换为XX
+        originalText = originalText.replace(/<span class="code-span">(.*?)<\/span>/g, '$1');
 
         // Gather individual sentences from the clicked element and its subsequent siblings.
         let sentences = [];
