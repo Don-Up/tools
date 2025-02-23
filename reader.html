@@ -1010,6 +1010,12 @@
     function stopText() {
         speechSynthesis.cancel();
         isPlaying = false;
+        if (document.getElementById("autoPlayCheckbox").checked) {
+            if (document.getElementById("btnAutoScroll").textContent === "Stop Scroll") {
+                cancelAnimationFrame(scrollAnimationId);
+                document.getElementById("btnAutoScroll").textContent = "Start Scroll";
+            }
+        }
     }
 
     // 监听快捷键Space, 按下后调用stopText
@@ -1024,8 +1030,6 @@
                     document.getElementById("btnAutoScroll").textContent = "Start Scroll";
                 }
             }
-        } else if (event.code === "KeyC") {
-            startScroll()
         } else if (event.code === "KeyV") {
             // 打开或关闭Auto Play
             // document.getElementById("autoPlayCheckbox").checked = !document.getElementById("autoPlayCheckbox").checked;
