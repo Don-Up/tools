@@ -95,7 +95,7 @@
             /* 设置controls为fixed以使其固定在页面顶部 */
             position: fixed;
             top: 0;
-            width: 100vw;
+            width: 100%;
             background-color: #212121;
             padding: 10px 0;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
@@ -351,16 +351,13 @@
     let currentVoice = null;
     let currentFont = "Corbel";
     let bookName = null
-    let hostName = window.location.hostname;
-    console.log(hostName)
+    // let hostName = window.location.hostname;
 
-    if(window.screen.width < 1400){
-        const toggleElement = document.getElementById("toggleElement")
-        // 将toggleElement的所有子元素缩小为原先的0.7倍, 以及外边距减少为原先的1/2
-        for (let i = 0; i < toggleElement.children.length; i++) {
-            toggleElement.children[i].style.transform = "scale(0.7)";
-            toggleElement.children[i].style.margin = "0 0 0 0";
-        }
+    // 屏幕分辨率
+    let screenWidth = window.innerWidth;
+    if(screenWidth < 1400){
+        document.querySelector(".controls").style.gap = "3px";
+        document.querySelector("button").style.padding = "5px 10px";
     }
 
     // 打开弹窗
