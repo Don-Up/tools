@@ -356,9 +356,10 @@
 
     if(window.screen.width < 1400){
         const toggleElement = document.getElementById("toggleElement")
-        // 将toggleElement的所有子元素缩小为原先的0.7倍
+        // 将toggleElement的所有子元素缩小为原先的0.7倍, 以及外边距减少为原先的1/2
         for (let i = 0; i < toggleElement.children.length; i++) {
             toggleElement.children[i].style.transform = "scale(0.7)";
+            toggleElement.children[i].style.margin = "0 0 0 0";
         }
     }
 
