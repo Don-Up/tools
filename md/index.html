@@ -77,7 +77,7 @@
 
 </body>
 <script>
-    const books = ["雷神桥", "赖盖特之谜"]
+    const books = ["雷神桥", "赖盖特之谜", "黑彼得"]
     // 根据书名动态生成li, 同时设置点击事件
     for (let i = 0; i < books.length; i++) {
         const li = document.createElement('li');
@@ -97,7 +97,7 @@
                     // 弹出Toast, 显示复制成功, 然后自动关闭
                     const toast = document.createElement('div');
                     toast.className = 'toast';
-                    toast.textContent = 'copied'
+                    toast.textContent = 'Copied'
                     if(window.parent){
                         window.parent.postMessage(filename, "https://don-up.github.io/");
                     }
