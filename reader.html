@@ -357,7 +357,9 @@
     let screenWidth = window.innerWidth;
     if(screenWidth < 1400){
         document.querySelector(".controls").style.gap = "3px";
-        document.querySelector("button").style.padding = "5px 10px";
+        document.querySelectorAll("button").forEach((button)=>{
+            button.style.padding = "5px 10px";
+        })
     }
 
     // 打开弹窗
