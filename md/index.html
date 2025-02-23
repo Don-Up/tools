@@ -71,10 +71,12 @@
     </style>
 </head>
 <body>
+<button onclick="refreshPage()" style="position: absolute; right: 20px">Refresh</button>
+
 <h1>Markdown Files</h1>
+
 <ul>
 </ul>
-
 </body>
 <script>
     const books = ["雷神桥", "赖盖特之谜", "黑彼得", "退休的油漆商"]
@@ -86,6 +88,10 @@
             downloadAndCopy(books[i] + '.md');
         };
         document.querySelector('ul').appendChild(li);
+    }
+
+    function refreshPage(){
+        window.location.reload();
     }
 
     function downloadAndCopy(filename) {
