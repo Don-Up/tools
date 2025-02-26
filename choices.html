@@ -4,9 +4,10 @@
     <meta charset="UTF-8">
     <title>多选择题生成器</title>
     <style>
-        html{
+        html {
             background: #262a2b;
         }
+
         body {
             color: #eee;
             font-family: Arial, sans-serif;
@@ -35,6 +36,8 @@
             border-radius: 5px;
             height: 70vh;
             max-height: 70vh; /* Set a max-height if needed */
+            display: flex;
+            flex-direction: column;
         }
 
         .input-panel textarea {
@@ -109,7 +112,7 @@
             margin-right: 20px;
         }
 
-        .hide-control{
+        .hide-control {
             margin-left: 20px;
         }
 
@@ -174,6 +177,9 @@
             color: #eee;
         }
     </style>
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
 </head>
 <body>
 <h1>Multiple Choice Question Generator</h1>
@@ -211,7 +217,8 @@
 <div class="container">
     <!-- 左侧输入区域 -->
     <div class="input-panel">
-<textarea id="choiceInput" placeholder="请按照以下格式输入多个选择题（每行一项）：
+        <div style="height: 20vh">
+            <textarea id="choiceInput" placeholder="请按照以下格式输入多个选择题（每行一项）：
 题目文本（第一行）
 1. 选项内容1
 2. 选项内容2
@@ -222,8 +229,13 @@
 2. 选项内容2
 3. 选项内容3
 正确答案（例如：2）"></textarea>
-        <br>
-        <button id="btnConfirm">确认</button>
+            <br>
+            <button id="btnConfirm">确认</button>
+            <button id="btnInsertCode">插入代码</button>
+        </div>
+        <pre style="flex: 1;overflow-y: auto;margin-top: 60px;">
+            <code id="codeOutput"></code>
+        </pre>
     </div>
 
     <!-- 右侧展示区域 -->
@@ -248,10 +260,10 @@
 
     const btnFullScreen = document.getElementById('fullScreen')
     btnFullScreen.addEventListener('click', function () {
-        if(btnFullScreen.textContent === 'Full'){
+        if (btnFullScreen.textContent === 'Full') {
             document.documentElement.requestFullscreen();
             btnFullScreen.textContent = 'Exit'
-        }else{
+        } else {
             document.exitFullscreen();
             btnFullScreen.textContent = 'Full'
         }
@@ -260,7 +272,7 @@
     const qCountInput = document.getElementById('qCount')
     document.getElementById("copyHint").addEventListener("click", function () {
         fallbackCopyText(`Elaborately construct ${qCountInput.value} different multiple choice questions for the topics below and put them into a single snippet, Don't use "---" or "###" titles. (Note: Don't insert any code snippet in a question in case the response format messy): `)
-})
+    })
 
     // 加载发音人
     function loadVoices() {
@@ -368,7 +380,7 @@
     // 单选按钮点击处理函数
     function handleChoice(selectedRadio, answer) {
         // if(listenCheckBox.checked) return
-        if(event.ctrlKey) return
+        if (event.ctrlKey) return
         const component = selectedRadio.closest('.multiple-choice-component');
         const correctAnswer = component.dataset.correctAnswer;
         // 禁用当前题目中所有选项
@@ -438,7 +450,7 @@
                 if (!match) return null;
                 return {
                     originalNumber: match[1], // 原始选项编号
-                    answerContent: match[2]
+                    answerContent: match[2].trim()+(match[2].trim().endsWith(".")?" ":". ")
                 };
             }).filter(item => item !== null);
 
@@ -453,7 +465,7 @@
             let optionContent = ""
             for (let i = 0; i < optionObjects.length; i++) {
                 const option = optionObjects[i];
-                optionContent += (i + 1) + ". " + option.answerContent + " ";
+                optionContent += (i + 1) + ". " + option.answerContent;
             }
             const readText = block.questionText + " " + optionContent
 
@@ -650,6 +662,16 @@
         document.getElementById('choiceInput').value = '';
         // frontContent滑倒最顶部
         frontContent.scrollTop = 0;
+    });
+
+    const code = document.getElementById("codeOutput")
+    document.getElementById('btnInsertCode').addEventListener('click', () => {
+        const rawText = document.getElementById('choiceInput').value;
+        code.textContent = rawText;
+        code.className = `language-tsx`;
+        document.getElementById('choiceInput').value = '';
+        // Manually trigger Prism.js to highlight the inserted code
+        hljs.highlightElement(code)(code);
     });
 </script>
 </body>
