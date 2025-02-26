@@ -231,7 +231,7 @@
 正确答案（例如：2）"></textarea>
             <br>
             <button id="btnConfirm">确认</button>
-            <button id="btnInsertCode">插入代码</button>
+<!--            <button id="btnInsertCode">插入代码</button>-->
         </div>
         <pre style="flex: 1;overflow-y: auto;margin-top: 60px;">
             <code id="codeOutput"></code>
@@ -254,6 +254,7 @@
     let utteranceRef = null;
     let speechSpeed = 1.0; // 默认语速
     const inputCount = document.getElementById('loopCount');
+    const code = document.getElementById("codeOutput")
 
     // 默认发音人名称
     const defaultVoiceName = "Microsoft Brian Online (Natural) - English (United States)";
@@ -405,7 +406,17 @@
 
     // 解析输入文本，返回题目块数组
     function parseQuestionBlocks(rawText) {
-        const lines = rawText.split('\n').map(line => line.trim()).filter(line => line !== '');
+        let textList = rawText.split('\n')
+        const separateIndex = textList.findIndex(line => line.trim() === "------")
+        if (separateIndex !== -1) {
+            const codeSnippet = textList.slice(separateIndex + 2)
+            code.textContent = codeSnippet.join('\n');
+            code.className = `language-tsx`;
+            hljs.highlightElement(code);
+            textList = textList.slice(0, separateIndex)
+        }
+
+        const lines = textList.map(line => line.trim()).filter(line => line !== '');
         const blocks = [];
         let i = 0;
         while (i < lines.length) {
@@ -450,7 +461,7 @@
                 if (!match) return null;
                 return {
                     originalNumber: match[1], // 原始选项编号
-                    answerContent: match[2].trim()+(match[2].trim().endsWith(".")?" ":". ")
+                    answerContent: match[2].trim() + (match[2].trim().endsWith(".") ? " " : ". ")
                 };
             }).filter(item => item !== null);
 
@@ -478,7 +489,7 @@
             // 题目文本
             const p = document.createElement('p');
             p.className = 'questionText';
-            p.textContent = block.questionText;
+            p.textContent = (blockIndex+1)+". "+block.questionText;
             container.appendChild(p);
 
             container.append(document.createElement("br"))
@@ -664,14 +675,13 @@
         frontContent.scrollTop = 0;
     });
 
-    const code = document.getElementById("codeOutput")
     document.getElementById('btnInsertCode').addEventListener('click', () => {
         const rawText = document.getElementById('choiceInput').value;
         code.textContent = rawText;
         code.className = `language-tsx`;
         document.getElementById('choiceInput').value = '';
         // Manually trigger Prism.js to highlight the inserted code
-        hljs.highlightElement(code)(code);
+        hljs.highlightElement(code);
     });
 </script>
 </body>
