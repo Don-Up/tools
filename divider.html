@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文本分割器</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            border: 1px solid #333;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        button {
+            background-color: #333;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #555;
+        }
+        #output {
+            margin-top: 20px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>文本分割器</h1>
+    <textarea id="inputText" placeholder="请输入文本..."></textarea>
+    <button onclick="processText()">处理文本</button>
+    <button onclick="mergeText()">合并文本</button>
+    <div id="output"></div>
+
+    <script>
+        function processText() {
+            const inputText = document.getElementById('inputText').value;
+            const sentences = inputText.split(/([。？])/g);
+            let output = '';
+            for (let i = 0; i < sentences.length; i += 2) {
+                const sentence = sentences[i].trim();
+                const punctuation = sentences[i + 1] || '';
+                if (sentence !== '') {
+                    console.log(sentence, sentence[1] === "”", sentence[0], sentence[1])
+                    if(sentence[1] === "”"){
+                        console.log(sentence)
+                        // 移除output末尾换行符并加上”\n
+                        output = output.replace(/\n$/, '') + '”\n';
+                        output += sentence.substring(2) + punctuation + '\n';
+                    } else {
+                        output += sentence + punctuation + '\n';
+                    }
+                }
+            }
+            document.getElementById('output').textContent = output;
+            // 清空文本域
+            navigator.clipboard.writeText(output).then(() => {
+                document.getElementById('inputText').value = '';
+            }).catch((error) => {
+                alert("复制失败:', error")
+            });
+            // 返回顶部
+            window.scrollTo(0, 0);
+        }
+
+        function mergeText(){
+            const inputText = document.getElementById('inputText').value.split("\n");
+
+            const outputText = document.getElementById('output').textContent.trim().split("\n");
+
+            const result = []
+
+            for(let i = 0; i < inputText.length; i++){
+                result.push(inputText[i])
+                result.push("> "+outputText[i])
+            }
+
+            const resultString = result.join("\n")
+
+            document.getElementById('output').textContent = resultString
+
+            // 复制resultString
+            navigator.clipboard.writeText(resultString).then(() => {
+                document.getElementById('inputText').value = '';
+            }).catch((error) => {
+                alert("复制失败:', error")
+            });
+            // 返回顶部
+            window.scrollTo(0, 0);
+        }
+    </script>
+</body>
+</html>
