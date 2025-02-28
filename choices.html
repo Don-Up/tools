@@ -34,8 +34,8 @@
             background-color: #444;
             padding: 20px;
             border-radius: 5px;
-            height: 70vh;
-            max-height: 70vh; /* Set a max-height if needed */
+            height: 72vh;
+            max-height: 72vh; /* Set a max-height if needed */
             display: flex;
             flex-direction: column;
         }
@@ -218,19 +218,17 @@
     <!-- 左侧输入区域 -->
     <div class="input-panel">
         <div style="height: 20vh">
-            <textarea id="choiceInput" placeholder="请按照以下格式输入多个选择题（每行一项）：
-题目文本（第一行）
-1. 选项内容1
-2. 选项内容2
-3. 选项内容3
-正确答案（例如：1）
-题目文本2
-1. 选项内容1
-2. 选项内容2
-3. 选项内容3
-正确答案（例如：2）"></textarea>
+            <textarea id="choiceInput" placeholder="1. 按住ctrl键, 点击选项后, 播放n次.
+2. 按住alt键, 取消点击播放.
+3. 按住shift键, 点击试听选项.
+                      "></textarea>
             <br>
-            <button id="btnConfirm">确认</button>
+            <div>
+                <button id="btnConfirm">确认</button>
+                <button id="btnRead" style="margin-left: 5px;">朗读</button>
+                <input type="number" id="countInput" min="1" max="100" value="10" style="width: 50px;margin-left: 5px;">
+                <span>次</span>
+            </div>
             <!--            <button id="btnInsertCode">插入代码</button>-->
         </div>
         <pre style="flex: 1;overflow-y: auto;margin-top: 60px;">
@@ -255,6 +253,14 @@
     let speechSpeed = 1.0; // 默认语速
     const inputCount = document.getElementById('loopCount');
     const code = document.getElementById("codeOutput")
+    const btnRead = document.getElementById('btnRead')
+    const countInput = document.getElementById('countInput')
+    btnRead.addEventListener('click', function () {
+        const text = document.getElementById('choiceInput').value
+        if (text) {
+            speakText(`${text}, `.repeat(countInput.value))
+        }
+    });
 
     inputCount.value = localStorage.getItem('loopCount') || 2;
     inputCount.addEventListener('input', function () {
@@ -392,12 +398,12 @@
         document.body.removeChild(textarea);
     }
 
-    // const listenCheckBox = document.getElementById('listenCheckbox');
-
     // 单选按钮点击处理函数
-    function handleChoice(selectedRadio, answer) {
-        // if(listenCheckBox.checked) return
-        if (event.ctrlKey) return
+    function handleChoice(event, selectedRadio, answer) {
+        if (event.shiftKey){
+            event.preventDefault()
+            return
+        }
         const component = selectedRadio.closest('.multiple-choice-component');
         const correctAnswer = component.dataset.correctAnswer;
         // 禁用当前题目中所有选项
@@ -552,6 +558,7 @@
             });
 
             function play(textForReading) {
+                if (event.altKey) return
                 stop()
                 const text = textForReading.trim().replace(/[()#*<>`•__]/g, '').replace(/e\.g\.,/gi, 'such-as').replace(/\//g, ' '); // .replace(/^\d+\.\s*/gm, '')
                 if (!text) {
@@ -653,9 +660,9 @@
                 span.textContent = optionObj.answerContent;
                 label.appendChild(span);
                 // label点击事件
-                label.addEventListener('click', () => {
+                label.addEventListener('click', (event) => {
                     // 如果alt键已经按下, 则获取inputCount的值, 并将span.textContent重复对应的次数
-                    if (event.altKey || ctrlCheckBox.checked) {
+                    if (event.ctrlKey || ctrlCheckBox.checked) {
                         const count = parseInt(inputCount.value);
                         const repeatedText = `${span.textContent} `.repeat(count);
                         console.log(repeatedText)
