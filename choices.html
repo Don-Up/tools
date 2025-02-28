@@ -231,7 +231,7 @@
 正确答案（例如：2）"></textarea>
             <br>
             <button id="btnConfirm">确认</button>
-<!--            <button id="btnInsertCode">插入代码</button>-->
+            <!--            <button id="btnInsertCode">插入代码</button>-->
         </div>
         <pre style="flex: 1;overflow-y: auto;margin-top: 60px;">
             <code id="codeOutput"></code>
@@ -256,8 +256,13 @@
     const inputCount = document.getElementById('loopCount');
     const code = document.getElementById("codeOutput")
 
-    // 默认发音人名称
-    const defaultVoiceName = "Microsoft Brian Online (Natural) - English (United States)";
+    inputCount.value = localStorage.getItem('loopCount') || 2;
+    inputCount.addEventListener('input', function () {
+        localStorage.setItem('loopCount', inputCount.value);
+    });
+
+    // 默认发音人名称, 优先从localstorage中获取, 获取不到使用Microsoft Brian Online (Natural) - English (United States)
+    const defaultVoiceName = localStorage.getItem('defaultVoiceName') || 'Microsoft Brian Online (Natural) - English (United States)';
 
     const btnFullScreen = document.getElementById('fullScreen')
     btnFullScreen.addEventListener('click', function () {
@@ -271,8 +276,10 @@
     })
 
     const qCountInput = document.getElementById('qCount')
-    document.getElementById("copyHint").addEventListener("click", function () {
-        fallbackCopyText(`Elaborately construct ${qCountInput.value} different multiple choice questions for the topics below and put them into a single snippet, Don't use "---" or "###" titles. (Note: Don't insert any code snippet in a question in case the response format messy): `)
+    document.getElementById("copyHint").addEventListener("click", async function () {
+        // 获取剪贴板中的文本
+        const clipboardText = await navigator.clipboard.readText();
+        fallbackCopyText(`Elaborately construct ${qCountInput.value} different multiple choice questions for the topics below and put them into a single snippet (with code snippet at the bottom if needed): ${clipboardText ? "\n" + clipboardText : ""}`)
     })
 
     // 加载发音人
@@ -350,16 +357,25 @@
         }
     }
 
+    const speedRange = document.querySelector('#speedRange')
+    const speedSpan = document.querySelector('#speedValue')
+    // 从localstorage中获取语速, 获取不到使用默认值1.0
+    speechSpeed = parseFloat(localStorage.getItem('speechSpeed')) || 1.0;
+    speedSpan.textContent = speechSpeed.toFixed(1);
+    speedRange.value = speechSpeed;
     // 监听语速滑块
-    document.querySelector('#speedRange').addEventListener('input', (event) => {
+    speedRange.addEventListener('input', (event) => {
         speechSpeed = parseFloat(event.target.value);
-        document.querySelector('#speedValue').textContent = speechSpeed.toFixed(1);
+        speedSpan.textContent = speechSpeed.toFixed(1);
+        localStorage.setItem('speechSpeed', speechSpeed.toString());
     });
 
     // 监听发音人选择
     document.querySelector('#voiceSelect').addEventListener('change', (event) => {
         // alert(event.target.value)
         selectedVoice = event.target.value ? parseInt(event.target.value, 10) : null;
+        // 更新默认发音人名称
+        localStorage.setItem('defaultVoiceName', voices[selectedVoice].name);
     });
 
     // 加载发音人
@@ -422,6 +438,9 @@
         while (i < lines.length) {
             // 第一行为题目文本
             const questionText = lines[i++];
+            if (questionText.startsWith("#")) {
+                continue
+            }
             const options = [];
             // 收集选项：直到遇到只有一个数字的行（表示正确答案）
             while (i < lines.length && !/^\d+$/.test(lines[i])) {
@@ -439,13 +458,20 @@
     }
 
     const hideCheckbox = document.querySelector('#hideCheckbox');
+    hideCheckbox.checked = localStorage.getItem('hideCheckbox') === 'true';
 
     hideCheckbox.addEventListener('change', (event) => {
+        localStorage.setItem('hideCheckbox', event.target.checked);
         document.querySelectorAll('.btnHide').forEach(component => {
             component.click()
         });
     })
 
+    const ctrlCheckBox = document.getElementById("ctrlCheckbox")
+    ctrlCheckBox.checked = localStorage.getItem('ctrlCheckbox') === 'true';
+    ctrlCheckBox.addEventListener('change', (event) => {
+        localStorage.setItem('ctrlCheckbox', event.target.checked);
+    })
 
     // 根据题目块生成选择题组件，并放入页面中
     function buildMultipleChoiceComponents(rawText) {
@@ -489,7 +515,7 @@
             // 题目文本
             const p = document.createElement('p');
             p.className = 'questionText';
-            p.textContent = (blockIndex+1)+". "+block.questionText;
+            p.textContent = (blockIndex + 1) + ". " + block.questionText;
             container.appendChild(p);
 
             container.append(document.createElement("br"))
@@ -629,7 +655,7 @@
                 // label点击事件
                 label.addEventListener('click', () => {
                     // 如果alt键已经按下, 则获取inputCount的值, 并将span.textContent重复对应的次数
-                    if (event.altKey || document.getElementById("ctrlCheckbox").checked) {
+                    if (event.altKey || ctrlCheckBox.checked) {
                         const count = parseInt(inputCount.value);
                         const repeatedText = `${span.textContent} `.repeat(count);
                         console.log(repeatedText)
