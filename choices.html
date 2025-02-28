@@ -221,6 +221,7 @@
             <textarea id="choiceInput" placeholder="1. 按住ctrl键, 点击选项后, 播放n次.
 2. 按住alt键, 取消点击播放.
 3. 按住shift键, 点击试听选项.
+4. 按下space键, 立即停止播放.
                       "></textarea>
             <br>
             <div>
@@ -255,10 +256,17 @@
     const code = document.getElementById("codeOutput")
     const btnRead = document.getElementById('btnRead')
     const countInput = document.getElementById('countInput')
+    let currentText = '';
+    countInput.value = localStorage.getItem('loopCount') || 10;
+    countInput.addEventListener('input', function () {
+        localStorage.setItem('loopCount', countInput.value);
+    });
     btnRead.addEventListener('click', function () {
         const text = document.getElementById('choiceInput').value
-        if (text) {
-            speakText(`${text}, `.repeat(countInput.value))
+        currentText = text || currentText
+        if (currentText) {
+            speakText(`${currentText}, `.repeat(countInput.value))
+            document.getElementById('choiceInput').value = ""
         }
     });
 
@@ -287,6 +295,14 @@
         const clipboardText = await navigator.clipboard.readText();
         fallbackCopyText(`Elaborately construct ${qCountInput.value} different multiple choice questions for the topics below and put them into a single snippet (with code snippet at the bottom if needed): ${clipboardText ? "\n" + clipboardText : ""}`)
     })
+
+    // 监听space键
+    document.addEventListener('keydown', function (event) {
+        if (event.code === 'Space') {
+            event.preventDefault()
+            window.speechSynthesis.cancel()
+        }
+    });
 
     // 加载发音人
     function loadVoices() {
@@ -399,7 +415,7 @@
     }
 
     // 单选按钮点击处理函数
-    function handleChoice(event, selectedRadio, answer) {
+    function handleChoice(selectedRadio, answer) {
         if (event.shiftKey){
             event.preventDefault()
             return
@@ -661,7 +677,7 @@
                 label.appendChild(span);
                 // label点击事件
                 label.addEventListener('click', (event) => {
-                    // 如果alt键已经按下, 则获取inputCount的值, 并将span.textContent重复对应的次数
+                    // 如果ctrl键已经按下, 则获取inputCount的值, 并将span.textContent重复对应的次数
                     if (event.ctrlKey || ctrlCheckBox.checked) {
                         const count = parseInt(inputCount.value);
                         const repeatedText = `${span.textContent} `.repeat(count);
@@ -670,7 +686,7 @@
                     } else {
                         play(span.textContent)
                     }
-                    if (hideButton.textContent === "show" && !event.ctrlKey) { //  !listenCheckBox.checked
+                    if (hideButton.textContent === "show" && !event.shiftKey) { //  !listenCheckBox.checked
                         hideButton.click()
                     }
                 });
@@ -708,14 +724,14 @@
         frontContent.scrollTop = 0;
     });
 
-    document.getElementById('btnInsertCode').addEventListener('click', () => {
-        const rawText = document.getElementById('choiceInput').value;
-        code.textContent = rawText;
-        code.className = `language-tsx`;
-        document.getElementById('choiceInput').value = '';
-        // Manually trigger Prism.js to highlight the inserted code
-        hljs.highlightElement(code);
-    });
+    // document.getElementById('btnInsertCode').addEventListener('click', () => {
+    //     const rawText = document.getElementById('choiceInput').value;
+    //     code.textContent = rawText;
+    //     code.className = `language-tsx`;
+    //     document.getElementById('choiceInput').value = '';
+    //     // Manually trigger Prism.js to highlight the inserted code
+    //     hljs.highlightElement(code);
+    // });
 </script>
 </body>
 </html>
