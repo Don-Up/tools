@@ -219,7 +219,7 @@
         <div style="height: 20vh">
             <textarea id="choiceInput" placeholder="1. 按住ctrl键, 点击选项后, 播放n次.
 2. 按住alt键, 取消点击播放.
-3. 按住shift键, 点击试听选项.
+3. 按下1234键, 试听选项.
 4. 按下space键, 立即停止播放.
                       "></textarea>
             <br>
@@ -297,9 +297,39 @@
 
     // 监听space键
     document.addEventListener('keydown', function (event) {
-        if (event.code === 'Space') {
-            event.preventDefault()
-            window.speechSynthesis.cancel()
+        console.log(event.code, event.key)
+        switch (event.code) {
+            case 'Space':
+                event.preventDefault()
+                window.speechSynthesis.cancel()
+                break;
+            case 'Digit1':
+                event.preventDefault()
+                if(currentText.length === 4){
+                    speakText(currentText[0])
+                }
+                break
+            case 'Digit2':
+                event.preventDefault()
+                if(currentText.length === 4){
+                    stop()
+                    speakText(currentText[1])
+                }
+                break
+            case 'Digit3':
+                event.preventDefault()
+                if(currentText.length === 4){
+                    stop()
+                    speakText(currentText[2])
+                }
+                break
+            case 'Digit4':
+                event.preventDefault()
+                if(currentText.length === 4){
+                    stop()
+                    speakText(currentText[3])
+                }
+                break
         }
     });
 
@@ -415,10 +445,6 @@
 
     // 单选按钮点击处理函数
     function handleChoice(selectedRadio, answer) {
-        if (event.shiftKey){
-            event.preventDefault()
-            return
-        }
         const component = selectedRadio.closest('.multiple-choice-component');
         const correctAnswer = component.dataset.correctAnswer;
         // 禁用当前题目中所有选项
@@ -494,6 +520,8 @@
         localStorage.setItem('ctrlCheckbox', event.target.checked);
     })
 
+    const currentOptions = []
+
     // 根据题目块生成选择题组件，并放入页面中
     function buildMultipleChoiceComponents(rawText) {
         const blocks = parseQuestionBlocks(rawText);
@@ -559,7 +587,10 @@
             container.appendChild(playButton);
             playButton.addEventListener('click', () => {
                 play(readText)
-                // container.scrollIntoView({behavior: "smooth", block: "center"});
+                const items = optionContent.split(/\d+\.\s/);
+                const result = items.filter(item => item.trim() !== '');
+                currentText = []
+                currentText = result
             });
 
             const playButton1 = document.createElement('button');
@@ -568,8 +599,10 @@
             container.appendChild(playButton1);
             playButton1.addEventListener('click', () => {
                 play(block.questionText)
-                // container滚动到中央
-                // container.scrollIntoView({behavior: "smooth", block: "center"});
+                const items = optionContent.split(/\d+\.\s/);
+                const result = items.filter(item => item.trim() !== '');
+                currentText = []
+                currentText = result
             });
 
             const playButton2 = document.createElement('button');
@@ -693,7 +726,7 @@
                     } else {
                         play(span.textContent)
                     }
-                    if (hideButton.textContent === "show" && !event.shiftKey) { //  !listenCheckBox.checked
+                    if (hideButton.textContent === "show") { //  !listenCheckBox.checked
                         hideButton.click()
                     }
                 });
