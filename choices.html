@@ -206,13 +206,13 @@
         <label for="loopCount">Loop:</label>
         <input type="number" id="loopCount" min="1" max="10" value="2"></input>
     </div>
-    <button id="copyHint" class="hide-control">copy hint</button>
+    <button id="copyHint" class="btnCopy">copy hint</button>
     <input type="number" id="qCount" min="1" max="30" value="10" style="margin-left: 10px;"></input>
     <div class="hide-control">
         <label for="ctrlCheckbox">Ctrl</label>
         <input type="checkbox" id="ctrlCheckbox">
     </div>
-    <button id="fullScreen" class="hide-control">Full</button>
+    <button id="fullScreen" class="btnCopy">Full</button>
 </div>
 <div class="container">
     <!-- 左侧输入区域 -->
@@ -542,6 +542,11 @@
 
             container.append(document.createElement("br"))
 
+            const divQ = document.createElement('div')
+            divQ.className = 'btnCopy'
+            divQ.textContent = "Q" + (blockIndex+1)
+            container.appendChild(divQ)
+
             // 复制按钮（使用 class 以免重复 id）
             const copyButton = document.createElement('button');
             copyButton.className = 'btnCopy';
@@ -555,6 +560,7 @@
             container.appendChild(playButton);
             playButton.addEventListener('click', () => {
                 play(readText)
+                container.scrollIntoView({behavior: "smooth", block: "center"});
             });
 
             const playButton1 = document.createElement('button');
@@ -563,6 +569,8 @@
             container.appendChild(playButton1);
             playButton1.addEventListener('click', () => {
                 play(block.questionText)
+                // container滚动到中央
+                container.scrollIntoView({behavior: "smooth", block: "center"});
             });
 
             const playButton2 = document.createElement('button');
