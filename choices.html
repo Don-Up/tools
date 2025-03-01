@@ -560,7 +560,7 @@
             container.appendChild(playButton);
             playButton.addEventListener('click', () => {
                 play(readText)
-                container.scrollIntoView({behavior: "smooth", block: "center"});
+                // container.scrollIntoView({behavior: "smooth", block: "center"});
             });
 
             const playButton1 = document.createElement('button');
@@ -570,7 +570,7 @@
             playButton1.addEventListener('click', () => {
                 play(block.questionText)
                 // container滚动到中央
-                container.scrollIntoView({behavior: "smooth", block: "center"});
+                // container.scrollIntoView({behavior: "smooth", block: "center"});
             });
 
             const playButton2 = document.createElement('button');
