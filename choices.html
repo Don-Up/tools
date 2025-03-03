@@ -76,25 +76,25 @@
         }
 
         /* Webkit-based browsers (Chrome, Safari, Edge) */
-        #front-content::-webkit-scrollbar {
+        #front-content::-webkit-scrollbar{
             width: 8px; /* Width of the scrollbar */
         }
 
-        #front-content::-webkit-scrollbar-track {
+        #front-content::-webkit-scrollbar-track{
             background: #555; /* Color of the scrollbar track */
         }
 
-        #front-content::-webkit-scrollbar-thumb {
+        #front-content::-webkit-scrollbar-thumb{
             background: #888; /* Color of the scrollbar thumb */
             border-radius: 4px; /* Rounded corners for the scrollbar thumb */
         }
 
-        #front-content::-webkit-scrollbar-thumb:hover {
+        #front-content::-webkit-scrollbar-thumb:hover{
             background: #aaa; /* Color of the scrollbar thumb on hover */
         }
 
         /* Firefox */
-        #front-content {
+        #front-content{
             scrollbar-width: thin; /* Thickness of the scrollbar */
             scrollbar-color: #888 #555; /* Color of the scrollbar thumb and track */
         }
@@ -231,7 +231,7 @@
             </div>
             <!--            <button id="btnInsertCode">插入代码</button>-->
         </div>
-        <pre style="flex: 1;overflow-y: auto;margin-top: 60px;">
+        <pre id="codePre" style="flex: 1;overflow-y: auto;margin-top: 60px;">
             <code id="codeOutput"></code>
         </pre>
     </div>
@@ -255,7 +255,7 @@
     const code = document.getElementById("codeOutput")
     const btnRead = document.getElementById('btnRead')
     const countInput = document.getElementById('countInput')
-    let currentText = '';
+    let currentText = [];
     countInput.value = localStorage.getItem('loopCount') || 10;
     countInput.addEventListener('input', function () {
         localStorage.setItem('loopCount', countInput.value);
@@ -306,28 +306,45 @@
             case 'Digit1':
                 event.preventDefault()
                 if(currentText.length === 4){
-                    speakText(currentText[0])
+                    if(event.altKey){
+                        currentContainer[0].click()
+                    } else {
+                        stop()
+                        speakText(currentText[0])
+                    }
                 }
                 break
             case 'Digit2':
                 event.preventDefault()
                 if(currentText.length === 4){
-                    stop()
-                    speakText(currentText[1])
+                    if(event.altKey){
+                        currentContainer[1].click()
+                    } else {
+                        stop()
+                        speakText(currentText[1])
+                    }
                 }
                 break
             case 'Digit3':
                 event.preventDefault()
                 if(currentText.length === 4){
-                    stop()
-                    speakText(currentText[2])
+                    if(event.altKey){
+                        currentContainer[2].click()
+                    } else {
+                        stop()
+                        speakText(currentText[2])
+                    }
                 }
                 break
             case 'Digit4':
                 event.preventDefault()
                 if(currentText.length === 4){
-                    stop()
-                    speakText(currentText[3])
+                    if(event.altKey){
+                        currentContainer[3].click()
+                    } else {
+                        stop()
+                        speakText(currentText[3])
+                    }
                 }
                 break
         }
@@ -520,7 +537,7 @@
         localStorage.setItem('ctrlCheckbox', event.target.checked);
     })
 
-    const currentOptions = []
+    let currentContainer = []
 
     // 根据题目块生成选择题组件，并放入页面中
     function buildMultipleChoiceComponents(rawText) {
@@ -529,6 +546,9 @@
         choiceField.innerHTML = '';  // 清空之前的内容
 
         blocks.forEach((block, blockIndex) => {
+            // 创建组件外层容器
+            const container = document.createElement('div');
+
             // 使用正则解析选项（格式： "数字. 选项内容" ）
             const optionRegex = /^(\d+)\.\s*(.+)$/;
             let optionObjects = block.options.map(optionText => {
@@ -555,8 +575,7 @@
             }
             const readText = block.questionText + " " + optionContent
 
-            // 创建组件外层容器
-            const container = document.createElement('div');
+
             container.className = 'multiple-choice-component';
             // data-correct-answer 稍后设置
             container.setAttribute('data-correct-answer', '');
@@ -585,25 +604,13 @@
             playButton.className = 'btnCopy';
             playButton.textContent = 'play';
             container.appendChild(playButton);
-            playButton.addEventListener('click', () => {
-                play(readText)
-                const items = optionContent.split(/\d+\.\s/);
-                const result = items.filter(item => item.trim() !== '');
-                currentText = []
-                currentText = result
-            });
+
 
             const playButton1 = document.createElement('button');
             playButton1.className = 'btnCopy';
             playButton1.textContent = 'play q';
             container.appendChild(playButton1);
-            playButton1.addEventListener('click', () => {
-                play(block.questionText)
-                const items = optionContent.split(/\d+\.\s/);
-                const result = items.filter(item => item.trim() !== '');
-                currentText = []
-                currentText = result
-            });
+
 
             const playButton2 = document.createElement('button');
             playButton2.className = 'btnCopy';
@@ -750,6 +757,26 @@
             if (hideCheckbox.checked) {
                 hideButton.click()
             }
+
+            playButton.addEventListener('click', () => {
+                play(readText)
+                const items = optionContent.split(/\d+\.\s/);
+                const result = items.filter(item => item.trim() !== '');
+                currentText = []
+                currentText = result
+            });
+
+            playButton1.addEventListener('click', () => {
+                play(block.questionText)
+                const items = optionContent.split(/\d+\.\s/);
+                const result = items.filter(item => item.trim() !== '');
+                currentText = []
+                currentText = result
+                currentContainer = []
+                // 将container中的所有label子标签过滤到currentContainer中
+                currentContainer = container.querySelectorAll('label');
+                console.log(currentContainer)
+            });
         });
     }
 
