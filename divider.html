@@ -40,11 +40,12 @@
     <h1>文本分割器</h1>
     <textarea id="inputText" placeholder="请输入文本..."></textarea>
     <button onclick="processText()">处理文本</button>
+    <button onclick="processText(true)">处理文本1</button>
     <button onclick="mergeText()">合并文本</button>
     <div id="output"></div>
 
     <script>
-        function processText() {
+        function processText(hasPre = false) {
             const inputText = document.getElementById('inputText').value;
             const sentences = inputText.split(/([。？])/g);
             let output = '';
@@ -63,9 +64,19 @@
                     }
                 }
             }
-            document.getElementById('output').textContent = output.trim();
+            output = output.trim()
+            document.getElementById('output').textContent = output;
             // 清空文本域
-            navigator.clipboard.writeText(output).then(() => {
+            const pre = "翻译以下文本, 并以中英对照的格式进行呈现.\n" +
+                "格式(中文原句放在英文译句下方的引用中):\n" +
+                "English Sentence 1.\n" +
+                "> 中文句子1。\n" +
+                "\n" +
+                "English Sentence 2.\n" +
+                "> 中文句子2。\n" +
+                "\n" +
+                "待翻译(每一行为一组中英对照):\n"
+            navigator.clipboard.writeText(hasPre?pre+output:output).then(() => {
                 document.getElementById('inputText').value = '';
             }).catch((error) => {
                 alert("复制失败:', error")
