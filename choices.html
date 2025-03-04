@@ -142,6 +142,7 @@
 
         .btnPlay,
         .btnCopy,
+        .btnOption,
         .btnHide {
             display: inline-block;
             margin-left: 8px;
@@ -276,7 +277,7 @@
     <pre id="codePre1" style="overflow-y: auto;height: 480px;padding: 0 20px">
             <code id="codeOutput1" style="padding: 0!important;margin: 0!important;"></code>
         </pre>
-<!--    <span class="close" id="closePopup">&times;</span>-->
+    <!--    <span class="close" id="closePopup">&times;</span>-->
 </div>
 <script>
     let voices = [];
@@ -363,7 +364,98 @@
     const inputPanel = document.querySelector(".input-panel")
     const outputPanel = document.querySelector(".output-panel")
     const choiceField = document.getElementById('choiceField')
+    const frontContent = document.getElementById("front-content")
+    const codePre = document.getElementById("codePre")
     let codePreHeight = 0
+
+    // 监听鼠标按键
+    document.addEventListener('mousedown', function (event) {
+        console.log(event.button)
+        switch (event.button) {
+            case 4:
+                if (immersion) {
+                    event.preventDefault()
+                    const children = choiceField.children
+                    children[currentIndex].querySelector(".btnPlay").click()
+                }
+                break;
+            case 3:
+                if (immersion) {
+                    event.preventDefault()
+                    const children = choiceField.children
+                    children[currentIndex].querySelector(".btnOption").click()
+                }
+                break;
+        }
+    });
+
+    let lastScrollTime = 0;
+
+    // 监听鼠标滚轮事件
+    document.addEventListener('wheel', function (event) {
+        switch (event.deltaY) {
+            case 100:
+                if (Date.now() - lastScrollTime > 1000) {
+                    lastScrollTime = Date.now();
+                    nextQuestion(event)
+                }
+                break;
+            case -100:
+                if (Date.now() - lastScrollTime > 1000) {
+                    lastScrollTime = Date.now();
+                    preQuestion(event)
+                }
+                break;
+        }
+    });
+
+    function preQuestion(event){
+        if (immersion) {
+            event.preventDefault()
+            if (currentIndex > 0) {
+                const children = choiceField.children
+                const questionText = children[currentIndex].querySelector(".questionText")
+                const answers = children[currentIndex].querySelectorAll(".answer")
+                questionText.style.visibility = 'hidden';
+                answers.forEach(answer => {
+                    answer.style.visibility = 'hidden'
+                })
+                currentIndex--
+                children[currentIndex].style.visibility = "visible"
+                children[currentIndex].querySelector(".btnPlay").click()
+                children[currentIndex].scrollIntoView({behavior: "smooth", block: "center"})
+                for (let i = 0; i < children.length; i++) {
+                    if (i !== currentIndex) {
+                        children[i].style.visibility = "hidden"
+                    }
+                }
+            }
+        }
+    }
+
+    function nextQuestion(event){
+        if (immersion) {
+            event.preventDefault()
+            if (currentIndex < choiceField.children.length - 1) {
+                const children = choiceField.children
+                const questionText = children[currentIndex].querySelector(".questionText")
+                const answers = children[currentIndex].querySelectorAll(".answer")
+                questionText.style.visibility = 'hidden';
+                answers.forEach(answer => {
+                    answer.style.visibility = 'hidden'
+                })
+                currentIndex++
+                children[currentIndex].style.visibility = "visible"
+                children[currentIndex].querySelector(".btnPlay").click()
+                children[currentIndex].scrollIntoView({behavior: "smooth", block: "center"})
+                for (let i = 0; i < children.length; i++) {
+                    if (i !== currentIndex) {
+                        children[i].style.visibility = "hidden"
+                    }
+                }
+            }
+        }
+    }
 
     // 监听space键
     document.addEventListener('keydown', function (event) {
@@ -376,54 +468,14 @@
                 style.visibility = visibility === "visible" ? "hidden" : "visible"
                 break
             case 'ArrowUp':
-                if (immersion) {
-                    event.preventDefault()
-                    if (currentIndex > 0) {
-                        const children = choiceField.children
-                        const questionText = children[currentIndex].querySelector(".questionText")
-                        const answers = children[currentIndex].querySelectorAll(".answer")
-                        questionText.style.visibility = 'hidden';
-                        answers.forEach(answer => {
-                            answer.style.visibility = 'hidden'
-                        })
-                        currentIndex--
-                        children[currentIndex].style.visibility = "visible"
-                        children[currentIndex].querySelector(".btnPlay").click()
-                        children[currentIndex].scrollIntoView({behavior: "smooth", block: "center"})
-                        for (let i = 0; i < children.length; i++) {
-                            if (i !== currentIndex) {
-                                children[i].style.visibility = "hidden"
-                            }
-                        }
-                    }
-                }
+                preQuestion(event)
                 break
             case 'ArrowDown':
-                if (immersion) {
-                    event.preventDefault()
-                    if (currentIndex < choiceField.children.length - 1) {
-                        const children = choiceField.children
-                        const questionText = children[currentIndex].querySelector(".questionText")
-                        const answers = children[currentIndex].querySelectorAll(".answer")
-                        questionText.style.visibility = 'hidden';
-                        answers.forEach(answer => {
-                            answer.style.visibility = 'hidden'
-                        })
-                        currentIndex++
-                        children[currentIndex].style.visibility = "visible"
-                        children[currentIndex].querySelector(".btnPlay").click()
-                        children[currentIndex].scrollIntoView({behavior: "smooth", block: "center"})
-                        for (let i = 0; i < children.length; i++) {
-                            if (i !== currentIndex) {
-                                children[i].style.visibility = "hidden"
-                            }
-                        }
-                    }
-                }
+                nextQuestion(event)
                 break
             case 'KeyF':
                 if (!immersion) {
-                    codePreHeight = document.getElementById("codePre").clientHeight
+                    codePreHeight = codePre.clientHeight
                     immersion = true
                     inputPanel.style.display = 'none'
                     // inputPanel.style.height = '70vh'
@@ -431,9 +483,12 @@
                     outputPanel.style.height = '90vh'
                     outputPanel.style.padding = '0'
                     outputPanel.style.backgroundColor = 'rgba(0, 0, 0, 0)'
-                    document.getElementById("front-content").style.maxHeight = '90vh'
+                    frontContent.style.maxHeight = '90vh'
+                    // 隐藏滚动条
+                    frontContent.style.overflowY = 'hidden'
                     choiceField.style.padding = "0 20%"
                     const children = choiceField.children
+                    children[currentIndex].querySelector(".btnPlay").click()
                     children[currentIndex].style.marginTop = "50%"
                     children[children.length - 1].style.marginBottom = "50%"
                     children[currentIndex].scrollIntoView({behavior: "smooth", block: "center"})
@@ -447,13 +502,14 @@
                     inputPanel.style.display = 'block'
                     document.getElementById("header").style.display = 'block'
                     // flex: 1;overflow-y: auto;margin-top: 60px;
-                    document.getElementById("codePre").style.flex = '1'
-                    document.getElementById("codePre").style.maxHeight = codePreHeight + "px"
-                    document.getElementById("codePre").style.overflowY = 'auto'
+                    codePre.style.flex = '1'
+                    codePre.style.maxHeight = codePreHeight + "px"
+                    codePre.style.overflowY = 'auto'
+                    frontContent.style.overflowY = 'auto'
                     outputPanel.style.height = '70vh'
                     outputPanel.style.padding = '20px'
                     outputPanel.style.backgroundColor = '#444'
-                    document.getElementById("front-content").style.maxHeight = '70vh'
+                    frontContent.style.maxHeight = '70vh'
                     choiceField.style.padding = "0"
                     const children = choiceField.children
                     children[currentIndex].style.marginTop = "0%"
@@ -786,7 +842,7 @@
 
 
             const playButton2 = document.createElement('button');
-            playButton2.className = 'btnCopy';
+            playButton2.className = 'btnOption';
             playButton2.textContent = 'play op';
             container.appendChild(playButton2);
             playButton2.addEventListener('click', () => {
@@ -954,8 +1010,6 @@
             });
         });
     }
-
-    const frontContent = document.getElementById("front-content")
 
     // 当点击“确认”按钮时，读取 textarea 内容，生成多个选择题组件
     document.getElementById('btnConfirm').addEventListener('click', () => {
