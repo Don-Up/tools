@@ -476,6 +476,7 @@
                     // 获取剪贴板中的文本
                     navigator.clipboard.readText().then(text => {
                         // 将文本内容替换到input中
+                        currentIndex = 0
                         document.getElementById('choiceInput').value = text
                         document.getElementById('btnConfirm').click()
                         if(immersion){
