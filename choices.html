@@ -176,6 +176,26 @@
             background-color: #dc3545;
             color: #eee;
         }
+
+        .popup {
+            position: absolute;
+            width: 800px;
+            height: 500px;
+            top: calc((100% - 500px) / 2);
+            left: calc((100% - 800px) / 2);
+            background-color: #262a2b;
+            border-radius: 10px;
+            visibility: hidden;
+        }
+
+        .close {
+            padding-left: 10px;
+            padding-right: 10px;
+            font-size: 40px;
+            right: 0;
+            position: absolute;
+            top: 0;
+        }
     </style>
     <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
@@ -251,7 +271,13 @@
         </div>
     </div>
 </div>
-
+<!--弹窗-->
+<div id="popup" class="popup">
+    <pre id="codePre1" style="overflow-y: auto;height: 480px;padding: 0 20px">
+            <code id="codeOutput1" style="padding: 0!important;margin: 0!important;"></code>
+        </pre>
+<!--    <span class="close" id="closePopup">&times;</span>-->
+</div>
 <script>
     let voices = [];
     let selectedVoice = null;
@@ -261,6 +287,7 @@
     let speechSpeed = 1.0; // 默认语速
     const inputCount = document.getElementById('loopCount');
     const code = document.getElementById("codeOutput")
+    const code1 = document.getElementById("codeOutput1")
     const btnRead = document.getElementById('btnRead')
     const countInput = document.getElementById('countInput')
     let currentText = [];
@@ -337,10 +364,17 @@
     const outputPanel = document.querySelector(".output-panel")
     const choiceField = document.getElementById('choiceField')
     let codePreHeight = 0
+
     // 监听space键
     document.addEventListener('keydown', function (event) {
         console.log(event.code, event.key)
         switch (event.code) {
+            case 'KeyD':
+                // 显示自定义弹窗
+                const style = document.querySelector(".popup").style
+                const visibility = style.visibility
+                style.visibility = visibility === "visible" ? "hidden" : "visible"
+                break
             case 'ArrowUp':
                 if (immersion) {
                     event.preventDefault()
@@ -377,7 +411,6 @@
                 break
             case 'KeyF':
                 if (!immersion) {
-                    // 全屏
                     codePreHeight = document.getElementById("codePre").clientHeight
                     immersion = true
                     inputPanel.style.display = 'none'
@@ -389,7 +422,6 @@
                     document.getElementById("front-content").style.maxHeight = '90vh'
                     choiceField.style.padding = "0 20%"
                     const children = choiceField.children
-                    children[currentIndex].querySelector(".btnPlay").click()
                     children[currentIndex].style.marginTop = "50%"
                     children[children.length - 1].style.marginBottom = "50%"
                     children[currentIndex].scrollIntoView({behavior: "smooth", block: "center"})
@@ -615,7 +647,10 @@
             const codeSnippet = textList.slice(separateIndex + 2)
             code.textContent = codeSnippet.join('\n');
             code.className = `language-tsx`;
+            code1.textContent = codeSnippet.join('\n');
+            code1.className = `language-tsx`;
             hljs.highlightElement(code);
+            hljs.highlightElement(code1);
             textList = textList.slice(0, separateIndex)
         }
 
@@ -714,6 +749,9 @@
             const divQ = document.createElement('div')
             divQ.className = 'btnCopy'
             divQ.textContent = "Q" + (blockIndex + 1)
+            divQ.addEventListener('click', () => {
+                currentIndex = blockIndex
+            })
             container.appendChild(divQ)
 
             // 复制按钮（使用 class 以免重复 id）
