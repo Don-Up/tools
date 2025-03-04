@@ -140,6 +140,7 @@
             padding-left: 10px;
         }
 
+        .btnPlay,
         .btnCopy,
         .btnHide {
             display: inline-block;
@@ -181,41 +182,43 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
 </head>
 <body>
-<h1>Multiple Choice Question Generator</h1>
-<div style="display: flex;align-items: center">
-    <select id="voiceSelect" class="voice-select">
-        <option value="">Choose the speaker</option>
-    </select>
-    <!-- 语速设置 -->
-    <div class="speed-control">
-        <label for="speedRange" class="speed-label">Speed: <span id="speedValue">1.0</span></label>
-        <input type="range" id="speedRange" min="0.5" max="1.5" step="0.1" value="1.0">
-    </div>
-    <!-- 默认是否隐藏开关   -->
-    <div class="hide-control">
-        <label for="hideCheckbox">Hide</label>
-        <input type="checkbox" id="hideCheckbox" checked>
-    </div>
-    <!--    <div class="hide-control">-->
-    <!--        <label for="listenCheckbox">Listen</label>-->
-    <!--        <input type="checkbox" id="listenCheckbox">-->
-    <!--    </div>-->
-    <!--  连读次数输入框  -->
-    <div class="hide-control">
-        <label for="loopCount">Loop:</label>
-        <input type="number" id="loopCount" min="1" max="10" value="2"></input>
-    </div>
-    <button id="copyHint" class="btnCopy">copy hint</button>
-    <input type="number" id="qCount" min="1" max="30" value="10" style="margin-left: 10px;"></input>
-    <div class="hide-control">
-        <label for="ctrlCheckbox">Ctrl</label>
-        <input type="checkbox" id="ctrlCheckbox">
-    </div>
-    <button id="fullScreen" class="btnCopy">Full</button>
-    <div class="hide-control">
-        <label for="countdown">Countdown(m):</label>
-        <input type="number" id="countdown" min="0" max="40" value="0"></input>
-        <button id="startCountdown" class="btnCopy">Start</button>
+<div id="header">
+    <h1>Multiple Choice Question Generator</h1>
+    <div style="display: flex;align-items: center">
+        <select id="voiceSelect" class="voice-select">
+            <option value="">Choose the speaker</option>
+        </select>
+        <!-- 语速设置 -->
+        <div class="speed-control">
+            <label for="speedRange" class="speed-label">Speed: <span id="speedValue">1.0</span></label>
+            <input type="range" id="speedRange" min="0.5" max="1.5" step="0.1" value="1.0">
+        </div>
+        <!-- 默认是否隐藏开关   -->
+        <div class="hide-control">
+            <label for="hideCheckbox">Hide</label>
+            <input type="checkbox" id="hideCheckbox" checked>
+        </div>
+        <!--    <div class="hide-control">-->
+        <!--        <label for="listenCheckbox">Listen</label>-->
+        <!--        <input type="checkbox" id="listenCheckbox">-->
+        <!--    </div>-->
+        <!--  连读次数输入框  -->
+        <div class="hide-control">
+            <label for="loopCount">Loop:</label>
+            <input type="number" id="loopCount" min="1" max="10" value="2"></input>
+        </div>
+        <button id="copyHint" class="btnCopy">copy hint</button>
+        <input type="number" id="qCount" min="1" max="30" value="10" style="margin-left: 10px;"></input>
+        <div class="hide-control">
+            <label for="ctrlCheckbox">Ctrl</label>
+            <input type="checkbox" id="ctrlCheckbox">
+        </div>
+        <button id="fullScreen" class="btnCopy">Full</button>
+        <div class="hide-control">
+            <label for="countdown">Countdown(m):</label>
+            <input type="number" id="countdown" min="0" max="40" value="0"></input>
+            <button id="startCountdown" class="btnCopy">Start</button>
+        </div>
     </div>
 </div>
 <div class="container">
@@ -270,18 +273,18 @@
     });
     const startCountdown = document.getElementById("startCountdown")
     startCountdown.addEventListener('click', function () {
-        if(countdown.value === "0"){
+        if (countdown.value === "0") {
             alert('Please input countdown time')
             return
         }
-        if(timerId === null && startCountdown.textContent === "Start"){
+        if (timerId === null && startCountdown.textContent === "Start") {
             startCountdown.textContent = "stop"
             timerId = setTimeout(() => {
                 alert('Time out')
                 startCountdown.textContent = "Start"
                 timerId = null
             }, countdown.value * 60 * 1000)
-        } else if(timerId !== null){
+        } else if (timerId !== null) {
             clearTimeout(timerId)
             startCountdown.textContent = "Start"
             timerId = null
@@ -328,10 +331,97 @@
         fallbackCopyText(`Elaborately construct ${qCountInput.value} different multiple choice questions for the topics below and put them into a single snippet (with code snippet at the bottom if needed): ${clipboardText ? "\n" + clipboardText : ""}`)
     })
 
+    let currentIndex = 0
+    let immersion = false
+    const inputPanel = document.querySelector(".input-panel")
+    const outputPanel = document.querySelector(".output-panel")
+    const choiceField = document.getElementById('choiceField')
+    let codePreHeight = 0
     // 监听space键
     document.addEventListener('keydown', function (event) {
         console.log(event.code, event.key)
         switch (event.code) {
+            case 'ArrowUp':
+                if (immersion) {
+                    event.preventDefault()
+                    if (currentIndex > 0) {
+                        currentIndex--
+                        const children = choiceField.children
+                        children[currentIndex].style.visibility = "visible"
+                        children[currentIndex].querySelector(".btnPlay").click()
+                        children[currentIndex].scrollIntoView({behavior: "smooth", block: "center"})
+                        for (let i = 0; i < children.length; i++) {
+                            if (i !== currentIndex) {
+                                children[i].style.visibility = "hidden"
+                            }
+                        }
+                    }
+                }
+                break
+            case 'ArrowDown':
+                if (immersion) {
+                    event.preventDefault()
+                    if (currentIndex < choiceField.children.length - 1) {
+                        currentIndex++
+                        const children = choiceField.children
+                        children[currentIndex].style.visibility = "visible"
+                        children[currentIndex].querySelector(".btnPlay").click()
+                        children[currentIndex].scrollIntoView({behavior: "smooth", block: "center"})
+                        for (let i = 0; i < children.length; i++) {
+                            if (i !== currentIndex) {
+                                children[i].style.visibility = "hidden"
+                            }
+                        }
+                    }
+                }
+                break
+            case 'KeyF':
+                if (!immersion) {
+                    // 全屏
+                    codePreHeight = document.getElementById("codePre").clientHeight
+                    immersion = true
+                    inputPanel.style.display = 'none'
+                    // inputPanel.style.height = '70vh'
+                    document.getElementById("header").style.display = 'none'
+                    outputPanel.style.height = '90vh'
+                    outputPanel.style.padding = '0'
+                    outputPanel.style.backgroundColor = 'rgba(0, 0, 0, 0)'
+                    document.getElementById("front-content").style.maxHeight = '90vh'
+                    choiceField.style.padding = "0 20%"
+                    const children = choiceField.children
+                    children[currentIndex].querySelector(".btnPlay").click()
+                    children[currentIndex].style.marginTop = "50%"
+                    children[children.length - 1].style.marginBottom = "50%"
+                    children[currentIndex].scrollIntoView({behavior: "smooth", block: "center"})
+                    for (let i = 0; i < children.length; i++) {
+                        if (i !== currentIndex) {
+                            children[i].style.visibility = "hidden"
+                        }
+                    }
+                } else {
+                    immersion = false
+                    inputPanel.style.display = 'block'
+                    document.getElementById("header").style.display = 'block'
+                    // flex: 1;overflow-y: auto;margin-top: 60px;
+                    document.getElementById("codePre").style.flex = '1'
+                    document.getElementById("codePre").style.maxHeight = codePreHeight + "px"
+                    document.getElementById("codePre").style.overflowY = 'auto'
+                    outputPanel.style.height = '70vh'
+                    outputPanel.style.padding = '20px'
+                    outputPanel.style.backgroundColor = '#444'
+                    document.getElementById("front-content").style.maxHeight = '70vh'
+                    choiceField.style.padding = "0"
+                    const children = choiceField.children
+                    children[currentIndex].style.marginTop = "0%"
+                    children[children.length - 1].style.marginBottom = "0%"
+                    children[currentIndex].scrollIntoView({behavior: "smooth", block: "start"})
+                    for (let i = 0; i < children.length; i++) {
+                        if (i !== currentIndex) {
+                            children[i].style.visibility = "visible"
+                        }
+                    }
+                }
+                break;
             case 'Space':
                 event.preventDefault()
                 window.speechSynthesis.cancel()
@@ -640,7 +730,7 @@
 
 
             const playButton1 = document.createElement('button');
-            playButton1.className = 'btnCopy';
+            playButton1.className = 'btnPlay';
             playButton1.textContent = 'play q';
             container.appendChild(playButton1);
 
@@ -792,6 +882,7 @@
             }
 
             playButton.addEventListener('click', () => {
+                currentIndex = blockIndex
                 play(readText)
                 const items = optionContent.split(/\d+\.\s/);
                 const result = items.filter(item => item.trim() !== '');
@@ -800,6 +891,7 @@
             });
 
             playButton1.addEventListener('click', () => {
+                currentIndex = blockIndex
                 play(block.questionText)
                 const items = optionContent.split(/\d+\.\s/);
                 const result = items.filter(item => item.trim() !== '');
