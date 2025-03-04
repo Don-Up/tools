@@ -416,10 +416,77 @@
         }
     }
 
+    function goToImmersion(){
+        codePreHeight = codePre.clientHeight
+        immersion = true
+        inputPanel.style.display = 'none'
+        // inputPanel.style.height = '70vh'
+        document.getElementById("header").style.display = 'none'
+        outputPanel.style.height = '90vh'
+        outputPanel.style.padding = '0'
+        outputPanel.style.backgroundColor = 'rgba(0, 0, 0, 0)'
+        frontContent.style.maxHeight = '90vh'
+        // 隐藏滚动条
+        frontContent.style.overflowY = 'hidden'
+        choiceField.style.padding = "0 20%"
+        const children = choiceField.children
+        children[currentIndex].style.marginTop = "50%"
+        children[children.length - 1].style.marginBottom = "50%"
+        children[currentIndex].scrollIntoView({behavior: "smooth", block: "center"})
+        for (let i = 0; i < children.length; i++) {
+            if (i !== currentIndex) {
+                children[i].style.visibility = "hidden"
+            }
+        }
+    }
+
+    function exitImmersion(){
+        immersion = false
+        inputPanel.style.display = 'block'
+        document.getElementById("header").style.display = 'block'
+        // flex: 1;overflow-y: auto;margin-top: 60px;
+        codePre.style.flex = '1'
+        codePre.style.maxHeight = codePreHeight + "px"
+        codePre.style.overflowY = 'auto'
+        frontContent.style.overflowY = 'auto'
+        outputPanel.style.height = '70vh'
+        outputPanel.style.padding = '20px'
+        outputPanel.style.backgroundColor = '#444'
+        frontContent.style.maxHeight = '70vh'
+        choiceField.style.padding = "0"
+        const children = choiceField.children
+        children[currentIndex].style.marginTop = "0%"
+        children[children.length - 1].style.marginBottom = "0%"
+        children[currentIndex].scrollIntoView({behavior: "smooth", block: "start"})
+        for (let i = 0; i < children.length; i++) {
+            if (i !== currentIndex) {
+                children[i].style.visibility = "visible"
+            }
+        }
+    }
+
     // 监听space键
     document.addEventListener('keydown', function (event) {
-        // console.log(event.code, event.key)
+        console.log(event.code, event.key)
         switch (event.code) {
+            case 'KeyV':
+                event.preventDefault()
+                if(event.ctrlKey){
+                    console.log("ctrl+v")
+                    // 获取剪贴板中的文本
+                    navigator.clipboard.readText().then(text => {
+                        // 将文本内容替换到input中
+                        document.getElementById('choiceInput').value = text
+                        document.getElementById('btnConfirm').click()
+                        if(immersion){
+                            exitImmersion()
+                            goToImmersion()
+                        }
+                    }).catch(error => {
+                        console.error('Failed to read clipboard:', error)
+                    })
+                }
+                break
             case 'KeyQ':
                 event.preventDefault()
                 choiceField.children[currentIndex].querySelector(".btnHide").click()
@@ -450,50 +517,9 @@
                 break
             case 'KeyF':
                 if (!immersion) {
-                    codePreHeight = codePre.clientHeight
-                    immersion = true
-                    inputPanel.style.display = 'none'
-                    // inputPanel.style.height = '70vh'
-                    document.getElementById("header").style.display = 'none'
-                    outputPanel.style.height = '90vh'
-                    outputPanel.style.padding = '0'
-                    outputPanel.style.backgroundColor = 'rgba(0, 0, 0, 0)'
-                    frontContent.style.maxHeight = '90vh'
-                    // 隐藏滚动条
-                    frontContent.style.overflowY = 'hidden'
-                    choiceField.style.padding = "0 20%"
-                    const children = choiceField.children
-                    children[currentIndex].style.marginTop = "50%"
-                    children[children.length - 1].style.marginBottom = "50%"
-                    children[currentIndex].scrollIntoView({behavior: "smooth", block: "center"})
-                    for (let i = 0; i < children.length; i++) {
-                        if (i !== currentIndex) {
-                            children[i].style.visibility = "hidden"
-                        }
-                    }
+                    goToImmersion()
                 } else {
-                    immersion = false
-                    inputPanel.style.display = 'block'
-                    document.getElementById("header").style.display = 'block'
-                    // flex: 1;overflow-y: auto;margin-top: 60px;
-                    codePre.style.flex = '1'
-                    codePre.style.maxHeight = codePreHeight + "px"
-                    codePre.style.overflowY = 'auto'
-                    frontContent.style.overflowY = 'auto'
-                    outputPanel.style.height = '70vh'
-                    outputPanel.style.padding = '20px'
-                    outputPanel.style.backgroundColor = '#444'
-                    frontContent.style.maxHeight = '70vh'
-                    choiceField.style.padding = "0"
-                    const children = choiceField.children
-                    children[currentIndex].style.marginTop = "0%"
-                    children[children.length - 1].style.marginBottom = "0%"
-                    children[currentIndex].scrollIntoView({behavior: "smooth", block: "start"})
-                    for (let i = 0; i < children.length; i++) {
-                        if (i !== currentIndex) {
-                            children[i].style.visibility = "visible"
-                        }
-                    }
+                    exitImmersion()
                 }
                 break;
             case 'Space':
