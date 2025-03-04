@@ -368,48 +368,7 @@
     const codePre = document.getElementById("codePre")
     let codePreHeight = 0
 
-    // 监听鼠标按键
-    document.addEventListener('mousedown', function (event) {
-        console.log(event.button)
-        switch (event.button) {
-            case 4:
-                if (immersion) {
-                    event.preventDefault()
-                    const children = choiceField.children
-                    children[currentIndex].querySelector(".btnPlay").click()
-                }
-                break;
-            case 3:
-                if (immersion) {
-                    event.preventDefault()
-                    const children = choiceField.children
-                    children[currentIndex].querySelector(".btnOption").click()
-                }
-                break;
-        }
-    });
-
-    let lastScrollTime = 0;
-
-    // 监听鼠标滚轮事件
-    document.addEventListener('wheel', function (event) {
-        switch (event.deltaY) {
-            case 100:
-                if (Date.now() - lastScrollTime > 1000) {
-                    lastScrollTime = Date.now();
-                    nextQuestion(event)
-                }
-                break;
-            case -100:
-                if (Date.now() - lastScrollTime > 1000) {
-                    lastScrollTime = Date.now();
-                    preQuestion(event)
-                }
-                break;
-        }
-    });
-
-    function preQuestion(event){
+    function preQuestion(event) {
         if (immersion) {
             event.preventDefault()
             if (currentIndex > 0) {
@@ -433,7 +392,7 @@
         }
     }
 
-    function nextQuestion(event){
+    function nextQuestion(event) {
         if (immersion) {
             event.preventDefault()
             if (currentIndex < choiceField.children.length - 1) {
@@ -459,18 +418,34 @@
 
     // 监听space键
     document.addEventListener('keydown', function (event) {
-        console.log(event.code, event.key)
+        // console.log(event.code, event.key)
         switch (event.code) {
+            case 'KeyQ':
+                event.preventDefault()
+                choiceField.children[currentIndex].querySelector(".btnHide").click()
+                break
+            case 'KeyO':
             case 'KeyD':
+                event.preventDefault()
+                choiceField.children[currentIndex].querySelector(".btnOption").click()
+                break
+            case 'KeyP':
+            case 'KeyA':
+                event.preventDefault()
+                choiceField.children[currentIndex].querySelector(".btnPlay").click()
+                break
+            case 'KeyE':
                 // 显示自定义弹窗
                 const style = document.querySelector(".popup").style
                 const visibility = style.visibility
                 style.visibility = visibility === "visible" ? "hidden" : "visible"
                 break
             case 'ArrowUp':
+            case 'KeyW':
                 preQuestion(event)
                 break
             case 'ArrowDown':
+            case 'KeyS':
                 nextQuestion(event)
                 break
             case 'KeyF':
@@ -488,7 +463,6 @@
                     frontContent.style.overflowY = 'hidden'
                     choiceField.style.padding = "0 20%"
                     const children = choiceField.children
-                    children[currentIndex].querySelector(".btnPlay").click()
                     children[currentIndex].style.marginTop = "50%"
                     children[children.length - 1].style.marginBottom = "50%"
                     children[currentIndex].scrollIntoView({behavior: "smooth", block: "center"})
@@ -533,7 +507,7 @@
                         currentContainer[0].click()
                     } else {
                         stop()
-                        speakText(currentText[0])
+                        speakText(event.ctrlKey?`${currentText[0]} `.repeat(parseInt(inputCount.value)) : currentText[0])
                     }
                 }
                 break
@@ -544,7 +518,7 @@
                         currentContainer[1].click()
                     } else {
                         stop()
-                        speakText(currentText[1])
+                        speakText(event.ctrlKey?`${currentText[1]} `.repeat(parseInt(inputCount.value)) : currentText[1])
                     }
                 }
                 break
@@ -555,7 +529,7 @@
                         currentContainer[2].click()
                     } else {
                         stop()
-                        speakText(currentText[2])
+                        speakText(event.ctrlKey?`${currentText[2]} `.repeat(parseInt(inputCount.value)) : currentText[2])
                     }
                 }
                 break
@@ -566,7 +540,7 @@
                         currentContainer[3].click()
                     } else {
                         stop()
-                        speakText(currentText[3])
+                        speakText(event.ctrlKey?`${currentText[3]} `.repeat(parseInt(inputCount.value)) : currentText[3])
                     }
                 }
                 break
