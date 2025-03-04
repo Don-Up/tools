@@ -469,6 +469,14 @@
     document.addEventListener('keydown', function (event) {
         console.log(event.code, event.key)
         switch (event.code) {
+            case 'KeyR':
+                // 获取当前选中的文本
+                const text = window.getSelection()
+                currentText = text || currentText
+                if (currentText) {
+                    speakText(`${currentText}, `.repeat(countInput.value))
+                }
+                break
             case 'KeyV':
                 event.preventDefault()
                 if(event.ctrlKey){

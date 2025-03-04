@@ -134,8 +134,9 @@
             <!-- 用于控制TTS语速的滑块   -->
             TTS Speed <input type="range" min="0.5" max="2" value="1" step="0.1" id="speedSlider">
             <span id="speedValue">1.0</span>
+            <input id="repeatCount" value="10" style="width:32px;margin-left: 10px;" type="number">
             <!-- 用于选择微软TTS语音播音人的下拉选项   -->
-            <label for="voiceSelect" style="margin-left: 10px;">Select Voice:</label>
+            <label for="voiceSelect" style="margin-left: 10px;">Voice:</label>
             <select id="voiceSelect">
                 <option value="">Select Voice</option>
             </select>
@@ -163,6 +164,7 @@
     let selectedVoice = null;
     let selectedVoiceRole1 = null;
     let selectedVoiceRole2 = null;
+    let currentText = ""
     const defaultVoiceName = localStorage.getItem('defaultVoiceName') || "Microsoft Brian Online (Natural) - English (United States)";
     const defaultVoiceRole1 = localStorage.getItem('defaultVoiceRole1') || "Microsoft Guy Online (Natural) - English (United States)";
     const defaultVoiceRole2 = localStorage.getItem('defaultVoiceRole2') || "Microsoft Jenny Online (Natural) - English (United States)";
@@ -206,10 +208,27 @@
         }
     }
 
+    const inputRepeatCount = document.getElementById("repeatCount")
+    inputRepeatCount.value = localStorage.getItem('repeatCount') || 10
+    inputRepeatCount.addEventListener("input", function () {
+        localStorage.setItem('repeatCount', this.value)
+    });
     let currentQuestion = 0;
     document.addEventListener('keydown', function (event) {
         // console.log(event.code, event.key)
         switch (event.code) {
+            case 'Space':
+                event.preventDefault()
+                window.speechSynthesis.cancel()
+                break;
+            case 'KeyR':
+                // 获取当前选中的文本
+                const text = window.getSelection()
+                currentText = text || currentText
+                if (currentText) {
+                    speakText(`${currentText}, `.repeat(inputRepeatCount.value))
+                }
+                break
             case 'KeyV':
                 event.preventDefault()
                 if (event.ctrlKey) {
@@ -584,12 +603,22 @@
             }
         });
 
-        controls.querySelector(".playback-btn").addEventListener("click", () => {
+        const playback = controls.querySelector(".playback-btn")
+        let currentAudio = null
+        playback.addEventListener("click", () => {
             if (audioChunks.length > 0) {
-                const audioBlob = new Blob(audioChunks, {type: 'audio/wav'});
-                const audioUrl = URL.createObjectURL(audioBlob);
-                const audio = new Audio(audioUrl);
-                audio.play();
+                if(playback.textContent === "Playback"){
+                    const audioBlob = new Blob(audioChunks, {type: 'audio/wav'});
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    const audio = new Audio(audioUrl);
+                    currentAudio = audio;
+                    audio.play();
+                    playback.textContent = "Stop"
+                } else {
+                    // 停止播放录音
+                    currentAudio.pause();
+                    playback.textContent = "Playback"
+                }
             } else {
                 console.log("No audio recorded to play back.");
             }
@@ -599,7 +628,7 @@
     }
 
     // 语音功能
-    function speakText(text, element, loop = false) {
+    function speakText(text, element = null, loop = false) {
         if (!window.speechSynthesis) return;
 
         const utterance = new SpeechSynthesisUtterance(text);
@@ -616,28 +645,32 @@
             spans.push(`<span data-start="${start}" data-end="${end}">${word}</span>`);
             currentIndex = end + 1; // Account for space after the word
         });
-        element.innerHTML = spans.join(' '); // Update element with spans
+        if(element){
+            element.innerHTML = spans.join(' '); // Update element with spans
+        }
 
-        // Highlight current word on boundary event
-        utterance.addEventListener('boundary', (event) => {
-            if (event.name === 'word') {
-                const charIndex = event.charIndex;
-                const spans = element.querySelectorAll('span');
-                spans.forEach(span => {
-                    const start = parseInt(span.dataset.start);
-                    const end = parseInt(span.dataset.end);
-                    span.classList.toggle('highlight', charIndex >= start && charIndex < end);
-                });
-            }
-        });
+        if(element){
+            // Highlight current word on boundary event
+            utterance.addEventListener('boundary', (event) => {
+                if (event.name === 'word') {
+                    const charIndex = event.charIndex;
+                    const spans = element.querySelectorAll('span');
+                    spans.forEach(span => {
+                        const start = parseInt(span.dataset.start);
+                        const end = parseInt(span.dataset.end);
+                        span.classList.toggle('highlight', charIndex >= start && charIndex < end);
+                    });
+                }
+            });
 
-        // Remove highlights when speech ends
-        utterance.addEventListener('end', () => {
-            element.querySelectorAll('span').forEach(span => span.classList.remove('highlight'));
-            if (loop) {
-                speakText(text, element, true); // Loop if enabled
-            }
-        });
+            // Remove highlights when speech ends
+            utterance.addEventListener('end', () => {
+                element.querySelectorAll('span').forEach(span => span.classList.remove('highlight'));
+                if (loop) {
+                    speakText(text, element, true); // Loop if enabled
+                }
+            });
+        }
 
         window.speechSynthesis.speak(utterance);
         return utterance;
