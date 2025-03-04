@@ -379,8 +379,14 @@
                 if (immersion) {
                     event.preventDefault()
                     if (currentIndex > 0) {
-                        currentIndex--
                         const children = choiceField.children
+                        const questionText = children[currentIndex].querySelector(".questionText")
+                        const answers = children[currentIndex].querySelectorAll(".answer")
+                        questionText.style.visibility = 'hidden';
+                        answers.forEach(answer => {
+                            answer.style.visibility = 'hidden'
+                        })
+                        currentIndex--
                         children[currentIndex].style.visibility = "visible"
                         children[currentIndex].querySelector(".btnPlay").click()
                         children[currentIndex].scrollIntoView({behavior: "smooth", block: "center"})
@@ -396,8 +402,14 @@
                 if (immersion) {
                     event.preventDefault()
                     if (currentIndex < choiceField.children.length - 1) {
-                        currentIndex++
                         const children = choiceField.children
+                        const questionText = children[currentIndex].querySelector(".questionText")
+                        const answers = children[currentIndex].querySelectorAll(".answer")
+                        questionText.style.visibility = 'hidden';
+                        answers.forEach(answer => {
+                            answer.style.visibility = 'hidden'
+                        })
+                        currentIndex++
                         children[currentIndex].style.visibility = "visible"
                         children[currentIndex].querySelector(".btnPlay").click()
                         children[currentIndex].scrollIntoView({behavior: "smooth", block: "center"})
