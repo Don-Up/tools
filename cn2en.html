@@ -8,9 +8,9 @@
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
             background-color: #121212;
             color: #e0e0e0;
+            min-height: 100vh;
         }
 
         .container {
@@ -119,36 +119,39 @@
     </style>
 </head>
 <body>
+<div style="height: 20px"></div>
 <div class="container">
-    <h1>CN2EN Practice Tool</h1>
-    <textarea
-            id="inputText"
-            placeholder="Please paste the dialogue (example format): &#10;&#10;Hi! I’m interested...&#10;&gt; 你好！我想...&#10;Sure! We offer...&#10;&gt; 当然可以...&#10;I’m looking to...&#10;&gt; 我想提高..."></textarea>
-    <div class="button-row">
-        <button id="generateBtn" style="font-size: 18px">Generate</button>
-        <button id="resetBtn" style="font-size: 18px">Reset</button>
-    </div>
-    <div>
-        <!-- 用于控制TTS语速的滑块   -->
-        TTS Speed <input type="range" min="0.5" max="2" value="1" step="0.1" id="speedSlider">
-        <span id="speedValue">1.0</span>
-        <!-- 用于选择微软TTS语音播音人的下拉选项   -->
-        <label for="voiceSelect" style="margin-left: 10px;">Select Voice:</label>
-        <select id="voiceSelect">
-            <option value="">Select Voice</option>
-        </select>
-        <div style="display: flex; margin-top: 10px;">
-            <span>Role1:</span>
-            <select id="voiceSelectRole1" style="width: 350px">
-            </select>
-            <span style="margin-left: 10px;">Role2:</span>
-            <select id="voiceSelectRole2" style="width: 350px">
-            </select>
+    <div id="header">
+        <h1>CN2EN Practice Tool</h1>
+        <textarea
+                id="inputText"
+                placeholder="Please paste the dialogue (example format): &#10;&#10;Hi! I’m interested...&#10;&gt; 你好！我想...&#10;Sure! We offer...&#10;&gt; 当然可以...&#10;I’m looking to...&#10;&gt; 我想提高..."></textarea>
+        <div class="button-row">
+            <button id="generateBtn" style="font-size: 18px">Generate</button>
+            <button id="resetBtn" style="font-size: 18px">Reset</button>
         </div>
-        <div class="control-buttons">
-            <button id="playBtn" style="font-size: 18px">Play Dialogue</button>
-            <button id="loopBtn" style="font-size: 18px">Loop Dialogue</button>
-            <button id="stopBtn" style="font-size: 18px">Stop</button>
+        <div>
+            <!-- 用于控制TTS语速的滑块   -->
+            TTS Speed <input type="range" min="0.5" max="2" value="1" step="0.1" id="speedSlider">
+            <span id="speedValue">1.0</span>
+            <!-- 用于选择微软TTS语音播音人的下拉选项   -->
+            <label for="voiceSelect" style="margin-left: 10px;">Select Voice:</label>
+            <select id="voiceSelect">
+                <option value="">Select Voice</option>
+            </select>
+            <div style="display: flex; margin-top: 10px;">
+                <span>Role1:</span>
+                <select id="voiceSelectRole1" style="width: 350px">
+                </select>
+                <span style="margin-left: 10px;">Role2:</span>
+                <select id="voiceSelectRole2" style="width: 350px">
+                </select>
+            </div>
+            <div class="control-buttons">
+                <button id="playBtn" style="font-size: 18px">Play Dialogue</button>
+                <button id="loopBtn" style="font-size: 18px">Loop Dialogue</button>
+                <button id="stopBtn" style="font-size: 18px">Stop</button>
+            </div>
         </div>
     </div>
     <div class="dialog-list" id="dialogList"></div>
@@ -156,7 +159,7 @@
 
 <script>
     let audioStream; // Store the stream globally
-
+    let immersive = false
     let selectedVoice = null;
     let selectedVoiceRole1 = null;
     let selectedVoiceRole2 = null;
@@ -169,6 +172,72 @@
         speedValue.textContent = this.value;
     });
 
+    let currentQuestion = 0;
+    document.addEventListener('keydown', function (event) {
+        console.log(event.code, event.key)
+        switch (event.code) {
+            case 'ArrowUp':
+                if (immersive) {
+                    event.preventDefault()
+                    if (currentQuestion > 0) {
+                        currentQuestion--
+                        const children = document.getElementById("dialogList").children;
+                        children[currentQuestion].style.visibility = "visible"
+                        children[currentQuestion].scrollIntoView({behavior: "smooth", block: "center"})
+                        for (let i = 0; i < children.length; i++) {
+                            if (i !== currentQuestion) {
+                                children[i].style.visibility = "hidden"
+                            }
+                        }
+                    }
+                }
+                break
+            case 'ArrowDown':
+                if (immersive) {
+                    event.preventDefault()
+                    const children = document.getElementById("dialogList").children;
+                    if (currentQuestion < children.length - 1) {
+                        currentQuestion++
+                        children[currentQuestion].style.visibility = "visible"
+                        children[currentQuestion].scrollIntoView({behavior: "smooth", block: "center"})
+                        for (let i = 0; i < children.length; i++) {
+                            if (i !== currentQuestion) {
+                                children[i].style.visibility = "hidden"
+                            }
+                        }
+                    }
+                }
+                break
+            case 'KeyF':
+                if (!immersive) {
+                    immersive = true
+                    document.getElementById("header").style.display = 'none'
+                    document.querySelector(".container").style.background = "#121212"
+                    const children = document.getElementById("dialogList").children;
+                    children[currentQuestion].style.visibility = "visible"
+                    children[currentQuestion].style.marginTop = "50%"
+                    children[children.length - 1].style.marginBottom = "50%"
+                    children[currentQuestion].scrollIntoView({behavior: "smooth", block: "center"})
+                    for (let i = 0; i < children.length; i++) {
+                        if (i !== currentQuestion) {
+                            children[i].style.visibility = "hidden"
+                        }
+                    }
+                } else {
+                    immersive = false
+                    document.getElementById("header").style.display = 'block'
+                    document.querySelector(".container").style.background = "#1e1e1e"
+                    const children = document.getElementById("dialogList").children;
+                    children[currentQuestion].style.marginTop = "0%"
+                    children[children.length - 1].style.marginBottom = "0%"
+                    children[currentQuestion].scrollIntoView({behavior: "smooth", block: "center"})
+                    for (let i = 0; i < children.length; i++) {
+                        children[i].style.visibility = "visible"
+                    }
+                }
+                break
+        }
+    })
 
     // Function to populate the voice select dropdown
     function populateVoiceList() {
@@ -307,7 +376,7 @@
 
             const en = blocks[i].trim();
             const cn = blocks[i + 1].trim().replace(/^>\s*/, "");
-            console.log("en is "+en, "cn is "+cn)
+            console.log("en is " + en, "cn is " + cn)
             dialogs.push({en, cn});
             dialogList.push(en);
         }
@@ -316,8 +385,10 @@
 
     // 创建对话项
     function createDialogItem(enText, cnText, index) {
-        enText = enText.replace(/^\d+\.\s*/gm, "").replace(/[-#*<>`•]/g, "").replace(/\//g, " ").replace(/e\.g\.,/gi, "such-as").trim();
+        enText = enText.replace(/[-#*<>`•]/g, "").replace(/\//g, " ").replace(/e\.g\.,/gi, "such-as").trim();
+        enText = enText.replace(/^\d+\.\s*/gm, "")
         cnText = cnText.replace(/^\d+\.\s*/gm, "").replace(/[-#*`•]/g, "").trim();
+        console.log("enText is " + enText, "cnText is " + cnText)
         const dialogItem = document.createElement("div");
         dialogItem.className = "dialog-item";
 
@@ -363,6 +434,7 @@
         let currentUtterance = null;
         let isLooping = false;
         let wordIndex = 0;
+        // 过滤序号1. 2. 3.
         const words = enText.split(/\s+/);
         const wordDisplay = content.querySelector(".word-display");
         const enTextElement = content.querySelector(".en-text");
