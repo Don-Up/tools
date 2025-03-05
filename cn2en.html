@@ -221,6 +221,12 @@
             case 'Space':
                 event.preventDefault()
                 window.speechSynthesis.cancel()
+                const children = document.getElementById("dialogList").children;
+                const child = children[currentQuestion]
+                child.querySelector(".loop-btn").textContent = "Loop"
+                child.querySelector(".playback-btn").textContent = "Playback"
+                child.querySelector(".play-btn").textContent = "Speak"
+                child.querySelector(".en-text").style.display = "none"
                 break;
             case 'KeyR':
                 // 获取当前选中的文本
@@ -612,13 +618,20 @@
                     const audioBlob = new Blob(audioChunks, {type: 'audio/wav'});
                     const audioUrl = URL.createObjectURL(audioBlob);
                     const audio = new Audio(audioUrl);
+                    // 监听播放结束
+                    audio.addEventListener('ended', () => {
+                        playback.textContent = "Playback"
+                        enTextElement.style.display = "none";
+                    });
                     currentAudio = audio;
                     audio.play();
                     playback.textContent = "Stop"
+                    enTextElement.style.display = "block";
                 } else {
                     // 停止播放录音
                     currentAudio.pause();
                     playback.textContent = "Playback"
+                    enTextElement.style.display = "none";
                 }
             } else {
                 console.log("No audio recorded to play back.");
