@@ -266,10 +266,10 @@
 </head>
 <body>
 <div id="wrapper">
-<!--    <video autoplay loop muted playsinline class="background-video">-->
-<!--        <source src="mp4/bg.mp4" type="video/mp4">-->
-<!--        Your browser does not support the video tag.-->
-<!--    </video>-->
+    <!--    <video autoplay loop muted playsinline class="background-video">-->
+    <!--        <source src="mp4/bg.mp4" type="video/mp4">-->
+    <!--        Your browser does not support the video tag.-->
+    <!--    </video>-->
     <div class="background-image"></div>
 
     <div class="controls" id="toggleElement">
@@ -285,7 +285,7 @@
         <input type="range" id="opacity-slider" min="0" max="1" step="0.01" value="1" style="width: 40px;display: none">
         <!-- 控制背景模糊度的滑块 -->
         <span>Blur</span>
-        <input  type="range" id="blur-slider" min="0" max="10" step="0.1" value="0" style="width: 40px;">
+        <input type="range" id="blur-slider" min="0" max="10" step="0.1" value="0" style="width: 40px;">
         <!-- a select used to change font weight of text-block -->
         <select id="font-weight-select" style="width: 60px" aria-label="select">
             <option value="lighter">Lighter</option>
@@ -347,16 +347,21 @@
 <script>
     let isPlaying = false;
     let voices = [];
-    let currentSpeaker = "Microsoft Andrew Online (Natural) - English (United States)";
+    let currentSpeaker = localStorage.getItem("currentSpeaker") || "Microsoft Andrew Online (Natural) - English (United States)";
     let currentVoice = null;
-    let currentFont = "Corbel";
+    let currentFont = localStorage.getItem("currentFont") || "Corbel";
     let bookName = null
     // let hostName = window.location.hostname;
+    const autoPlay = document.getElementById("autoPlayCheckbox")
+    autoPlay.checked = localStorage.getItem("autoPlay") === "true";
+    autoPlay.addEventListener("change", function () {
+        localStorage.setItem("autoPlay", autoPlay.checked);
+    });
 
     let screenWidth = window.innerWidth;
-    if(screenWidth < 1400){
+    if (screenWidth < 1400) {
         // document.querySelector(".controls").style.gap = "10px";
-        document.querySelectorAll("button").forEach((button)=>{
+        document.querySelectorAll("button").forEach((button) => {
             button.style.padding = "5px 10px";
         })
     }
@@ -372,7 +377,7 @@
     }
 
     // 点击遮罩层关闭弹窗
-    document.getElementById("modalOverlay").addEventListener("click", function(event) {
+    document.getElementById("modalOverlay").addEventListener("click", function (event) {
         if (event.target === this) {
             closeModal();
         }
@@ -381,7 +386,7 @@
     const contentWrapper = document.getElementById("wrapper");
     let scrollTop = 0
     // 监听页面滚动事件, 并记录当前最新滑动到的位置
-    contentWrapper.addEventListener("scroll", function() {
+    contentWrapper.addEventListener("scroll", function () {
         // 获取滚动的垂直位置
         scrollTop = contentWrapper.scrollTop;
 
@@ -390,8 +395,8 @@
     });
 
     // 在页面退出或刷新前将scrollTop保存到LocalStorage中
-    window.addEventListener("beforeunload", function() {
-        if(bookName){
+    window.addEventListener("beforeunload", function () {
+        if (bookName) {
             localStorage.setItem(bookName, scrollTop);
         }
     });
@@ -406,7 +411,7 @@
 
 
     // 监听 iframe 发送的消息
-    window.addEventListener("message", function(event) {
+    window.addEventListener("message", function (event) {
         if (event.origin === "https://don-up.github.io" && !event.data.source) {  // 确保来源正确
             bookName = event.data;
             // 关闭弹窗
@@ -508,9 +513,14 @@
 
 
     const selectFontFamily = document.getElementById("font-family-select");
+    selectFontFamily.value = currentFont
     selectFontFamily.addEventListener("change", function () {
         currentFont = this.value;
+        localStorage.setItem("currentFont", this.value);
         document.querySelectorAll(".text-block").forEach(textBlock => {
+            textBlock.style.fontFamily = this.value;
+        });
+        document.querySelectorAll("li").forEach(textBlock => {
             textBlock.style.fontFamily = this.value;
         });
         for (let element of document.getElementsByTagName("blockquote")) {
@@ -521,8 +531,13 @@
     // Listen to the rate slider changes
     const rateSlider = document.getElementById("rateSlider");
     const rateValue = document.getElementById("rateValue");
+    const rate = localStorage.getItem("rateValue") || 1
+    rateValue.textContent = rate;
+    rateSlider.value = rate;
+
     rateSlider.addEventListener("input", function () {
         rateValue.textContent = this.value;
+        localStorage.setItem("rateValue", this.value);
     });
 
     const fullscreenBtn = document.getElementById("fullscreenBtn");
@@ -561,6 +576,9 @@
                     document.querySelectorAll(".text-block").forEach(textBlock => {
                         textBlock.style.fontFamily = currentFont;
                     });
+                    document.querySelectorAll("li").forEach(textBlock => {
+                        textBlock.style.fontFamily = currentFont;
+                    });
                     for (let element of document.getElementsByTagName("blockquote")) {
                         element.style.fontFamily = currentFont;
                     }
@@ -571,7 +589,7 @@
         } else if (event.key === "ArrowDown") {
             event.preventDefault()
             stopText();
-            if (document.getElementById("autoPlayCheckbox").checked) {
+            if (autoPlay.checked) {
                 if (document.getElementById("btnAutoScroll").textContent === "Stop Scroll") {
                     cancelAnimationFrame(scrollAnimationId);
                     document.getElementById("btnAutoScroll").textContent = "Start Scroll";
@@ -606,8 +624,10 @@
     function populateVoices() {
         voices = speechSynthesis.getVoices();
         const voiceSelect = document.getElementById("voiceSelect");
+        voiceSelect.value = currentSpeaker;
         voiceSelect.addEventListener("change", function () {
             currentSpeaker = this.value;
+            localStorage.setItem("currentSpeaker", this.value);
             currentVoice = voices.find(voice => voice.name === this.value);
         });
         voiceSelect.innerHTML = "";
@@ -656,7 +676,7 @@
 
     // Function to highlight specific words within a node
     function highlightWords(node) {
-        if(!document.getElementById("cbHighlight").checked) return
+        if (!document.getElementById("cbHighlight").checked) return
         if (node.nodeType === Node.TEXT_NODE) {
             let text = node.nodeValue;
             text = text.replace(prepositionRegex, "<span class=\"preposition\">$1</span>");
@@ -708,6 +728,9 @@
             });
             highlightWords(rootElement);
             document.querySelectorAll(".text-block").forEach(textBlock => {
+                textBlock.style.fontFamily = currentFont;
+            });
+            document.querySelectorAll("li").forEach(textBlock => {
                 textBlock.style.fontFamily = currentFont;
             });
             for (let element of document.getElementsByTagName("blockquote")) {
@@ -784,15 +807,15 @@
         const handleEven = document.getElementById("handleEven")
 
         lines.forEach((line, index) => {
-            if(handleEven.checked){
-                if(index % 2 === 1){
-                    line = "> "+line.replace(/[“”]/g, "")
+            if (handleEven.checked) {
+                if (index % 2 === 1) {
+                    line = "> " + line.replace(/[“”]/g, "")
                 } else {
                     line = line.replace(/[“”]/g, "\"")
                 }
             }
 
-            if(line.toString().trim().startsWith("|") && line.toString().trim().endsWith("|")) {
+            if (line.toString().trim().startsWith("|") && line.toString().trim().endsWith("|")) {
                 // 将所有**xx**替换为<b>xx</b>
                 line = line.toString().trim().replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
                 // 将所有`xx`替换为<span class="code-span">xx</span>
@@ -880,11 +903,10 @@
             }
 
 
-
             if (line.startsWith("- ")) {
                 isInList = true;
                 line = line.replace(/-/g, "");
-                console.log("================"+line)
+                console.log("================" + line)
                 list.push(line)
                 return
             }
@@ -985,7 +1007,7 @@
         if (originalText && originalText.trim()) {
             sentences.push(originalText.trim());
         }
-        const autoPlayEnabled = document.getElementById("autoPlayCheckbox").checked;
+        const autoPlayEnabled = autoPlay.checked;
         if (autoPlayEnabled && clickedElement) {
             let next = clickedElement.nextElementSibling;
             while (next) {
@@ -1043,7 +1065,7 @@
     function stopText() {
         speechSynthesis.cancel();
         isPlaying = false;
-        if (document.getElementById("autoPlayCheckbox").checked) {
+        if (autoPlay.checked) {
             if (document.getElementById("btnAutoScroll").textContent === "Stop Scroll") {
                 cancelAnimationFrame(scrollAnimationId);
                 document.getElementById("btnAutoScroll").textContent = "Start Scroll";
@@ -1051,27 +1073,58 @@
         }
     }
 
+    let isPaused = false;
+
     // 监听快捷键Space, 按下后调用stopText
     document.addEventListener("keydown", (event) => {
         console.log("Keydown event:", event.code)
-        if (event.code === "Space") {
-            event.preventDefault()
-            stopText();
-            if (document.getElementById("autoPlayCheckbox").checked) {
-                if (document.getElementById("btnAutoScroll").textContent === "Stop Scroll") {
-                    cancelAnimationFrame(scrollAnimationId);
-                    document.getElementById("btnAutoScroll").textContent = "Start Scroll";
+        switch (event.code) {
+            case "Space":
+                event.preventDefault()
+                stopText();
+                if (autoPlay.checked) {
+                    if (document.getElementById("btnAutoScroll").textContent === "Stop Scroll") {
+                        cancelAnimationFrame(scrollAnimationId);
+                        document.getElementById("btnAutoScroll").textContent = "Start Scroll";
+                    }
                 }
-            }
-        } else if (event.code === "KeyV") {
-            // 打开或关闭Auto Play
-            // document.getElementById("autoPlayCheckbox").checked = !document.getElementById("autoPlayCheckbox").checked;
-            insertText()
+                break;
+            case "KeyV": // 打开或关闭Auto Play
+                // autoPlay.checked = !autoPlay.checked;
+                insertText()
+                break;
+            case "KeyD":
+                event.preventDefault()
+                if(!isPaused && isPlaying){
+                    isPaused = true
+                    window.speechSynthesis.pause()
+                } else {
+                    isPaused = false
+                    window.speechSynthesis.resume()
+                }
+                break
+            case "KeyA":
+                event.preventDefault()
+                autoPlay.checked = !autoPlay.checked;
+                break
         }
     });
 
     document.addEventListener("DOMContentLoaded", () => {
         hljs.highlightAll();
+    });
+
+    // 监听页面退出或刷新
+    window.addEventListener("beforeunload", (event) => {
+        // 停止播放
+        stopText();
+        // 停止自动滚动
+        if (autoPlay.checked) {
+            if (document.getElementById("btnAutoScroll").textContent === "Stop Scroll") {
+                cancelAnimationFrame(scrollAnimationId);
+                document.getElementById("btnAutoScroll").textContent = "Start Scroll";
+            }
+        }
     });
 
     const slider = document.getElementById("opacity-slider");
