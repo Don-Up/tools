@@ -693,6 +693,8 @@
     // 生成按钮事件
     document.getElementById("generateBtn").addEventListener("click", () => {
         const inputTextValue = inputText.value.trim();
+        if(!inputTextValue) return
+        localStorage.setItem("inputText", inputTextValue);
         const dialogs = parseDialog(inputTextValue);
         const dialogList = document.getElementById("dialogList");
 
@@ -709,6 +711,11 @@
         // 清空inputText
         inputText.value = "";
     });
+
+    if(localStorage.getItem("inputText")){
+        inputText.value = localStorage.getItem("inputText");
+        document.getElementById("generateBtn").click()
+    }
 
     // 重置按钮事件
     document.getElementById("resetBtn").addEventListener("click", () => {

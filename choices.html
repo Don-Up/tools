@@ -382,6 +382,7 @@
                     answer.style.visibility = 'hidden'
                 })
                 currentIndex--
+                localStorage.setItem('currentIndex', currentIndex)
                 children[currentIndex].style.visibility = "visible"
                 children[currentIndex].querySelector(".btnPlay").click()
                 children[currentIndex].scrollIntoView({behavior: "smooth", block: "center"})
@@ -406,6 +407,7 @@
                     answer.style.visibility = 'hidden'
                 })
                 currentIndex++
+                localStorage.setItem('currentIndex', currentIndex)
                 children[currentIndex].style.visibility = "visible"
                 children[currentIndex].querySelector(".btnPlay").click()
                 children[currentIndex].scrollIntoView({behavior: "smooth", block: "center"})
@@ -1025,11 +1027,18 @@
     // 当点击“确认”按钮时，读取 textarea 内容，生成多个选择题组件
     document.getElementById('btnConfirm').addEventListener('click', () => {
         const rawText = document.getElementById('choiceInput').value;
+        if(rawText){
+            localStorage.setItem('rawText', rawText);
+        }
         buildMultipleChoiceComponents(rawText);
         document.getElementById('choiceInput').value = '';
         // frontContent滑倒最顶部
         frontContent.scrollTop = 0;
     });
+
+    if(localStorage.getItem('rawText')){
+        buildMultipleChoiceComponents(localStorage.getItem('rawText'));
+    }
 
     // document.getElementById('btnInsertCode').addEventListener('click', () => {
     //     const rawText = document.getElementById('choiceInput').value;
