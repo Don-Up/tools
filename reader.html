@@ -389,9 +389,6 @@
     contentWrapper.addEventListener("scroll", function () {
         // 获取滚动的垂直位置
         scrollTop = contentWrapper.scrollTop;
-
-        // 在控制台输出当前滚动位置
-        console.log("当前滚动位置:", scrollTop);
     });
 
     // 在页面退出或刷新前将scrollTop保存到LocalStorage中
@@ -419,10 +416,6 @@
             getClipboardText().then(text => {
                 if (text) {
                     processText(text);
-                    document.getElementById("wrapper").scrollTo({
-                        top: 0,
-                        behavior: "smooth"
-                    });
                     highlightWords(rootElement);
                     document.querySelectorAll(".text-block").forEach(textBlock => {
                         textBlock.style.fontFamily = currentFont;
@@ -436,6 +429,11 @@
                         contentWrapper.scrollTo({
                             top: savedScrollTop,
                             behavior: "instant"
+                        });
+                    } else {
+                        contentWrapper.scrollTo({
+                            top: 0,
+                            behavior: "smooth"
                         });
                     }
                 } else {
@@ -568,10 +566,6 @@
             getClipboardText().then(text => {
                 if (text) {
                     processText(text);
-                    document.getElementById("wrapper").scrollTo({
-                        top: 0,
-                        behavior: "smooth"
-                    });
                     highlightWords(rootElement);
                     document.querySelectorAll(".text-block").forEach(textBlock => {
                         textBlock.style.fontFamily = currentFont;
@@ -582,6 +576,10 @@
                     for (let element of document.getElementsByTagName("blockquote")) {
                         element.style.fontFamily = currentFont;
                     }
+                    contentWrapper.scrollTo({
+                        top: 0,
+                        behavior: "instant"
+                    });
                 } else {
                     console.log("No clipboard text retrieved.");
                 }
@@ -722,10 +720,6 @@
             processText(input.value);
             document.body.removeChild(input);
             document.body.removeChild(confirmBtn);
-            window.scrollTo({
-                top: 0,
-                behavior: "smooth"
-            });
             highlightWords(rootElement);
             document.querySelectorAll(".text-block").forEach(textBlock => {
                 textBlock.style.fontFamily = currentFont;
@@ -736,6 +730,10 @@
             for (let element of document.getElementsByTagName("blockquote")) {
                 element.style.fontFamily = currentFont;
             }
+            contentWrapper.scrollTo({
+                top: 0,
+                behavior: "instant"
+            });
         };
         document.body.appendChild(confirmBtn);
     }
@@ -1095,7 +1093,7 @@
                 break;
             case "KeyD":
                 event.preventDefault()
-                if(!isPaused && isPlaying){
+                if (!isPaused && isPlaying) {
                     isPaused = true
                     window.speechSynthesis.pause()
                 } else {

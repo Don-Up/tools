@@ -46,7 +46,9 @@
 
     <script>
         function processText(hasPre = false) {
-            const inputText = document.getElementById('inputText').value;
+            let inputText = document.getElementById('inputText').value;
+            // 移除所有空行
+            inputText = inputText.split('\n').filter(line => line.trim() !== '').join('\n');
             const sentences = inputText.split(/([。？])/g);
             let output = '';
             for (let i = 0; i < sentences.length; i += 2) {
