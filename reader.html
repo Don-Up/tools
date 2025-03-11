@@ -904,9 +904,9 @@
             if (line.startsWith("- ")) {
                 isInList = true;
                 line = line.replace(/-/g, "");
-                console.log("================" + line)
                 list.push(line)
-                return
+                console.log(list)
+                if (index !== lines.length - 1) return
             }
 
             // 将line中, 将所有的<替换为$lt;, 将所有>替换为$gt, 最后将所有包含``的部分全都替换为<code></code>;
@@ -946,6 +946,7 @@
                 contentDiv.appendChild(ul)
                 list = []
                 isInList = false
+                if (index === lines.length - 1) return
             }
 
 
