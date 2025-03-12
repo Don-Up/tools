@@ -831,7 +831,7 @@
                 table = []
             }
 
-            if (line.toString().trim() === "```") {
+            if (line.toString().trim() === "```" && isInCodeBlock) {
                 isInCodeBlock = false;
                 const pre = document.createElement("pre");
                 const code = document.createElement("code");

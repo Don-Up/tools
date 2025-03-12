@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+    <div style="display: flex; gap: 10px">
+        <input id="nestmcs">
+        <button id="nestmcs-btn">Generate NestMCS</button>
+    </div>
+</body>
+<script>
+    const btnNestMCS = document.getElementById('nestmcs-btn');
+    btnNestMCS.addEventListener('click', () => {
+        const nestmcs = document.getElementById('nestmcs').value;
+        if (nestmcs) {
+            const target = `nest generate module ${nestmcs}
+nest generate controller ${nestmcs}
+nest generate service ${nestmcs}`
+            // 复制到剪贴板
+            navigator.clipboard.writeText(target).then(() => {
+                alert('复制成功');
+            }).catch(() => {
+                alert('复制失败');
+            });
+        }
+    })
+</script>
+</html>
