@@ -630,14 +630,16 @@
         });
         voiceSelect.innerHTML = "";
         voices.forEach(voice => {
-            const option = document.createElement("option");
-            option.textContent = `${voice.name} - ${voice.lang}`;
-            option.value = voice.name;
-            if (voice.name === currentSpeaker) {
-                option.selected = true;
-                currentVoice = voice;
+            if (voice.lang.startsWith("en") || voice.lang.startsWith("zh")) {
+                const option = document.createElement("option");
+                option.textContent = `${voice.name} - ${voice.lang}`;
+                option.value = voice.name;
+                if (voice.name === currentSpeaker) {
+                    option.selected = true;
+                    currentVoice = voice;
+                }
+                voiceSelect.appendChild(option);
             }
-            voiceSelect.appendChild(option);
         });
     }
 
