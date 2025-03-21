@@ -270,7 +270,8 @@
     <!--        <source src="mp4/bg.mp4" type="video/mp4">-->
     <!--        Your browser does not support the video tag.-->
     <!--    </video>-->
-    <div class="background-image"></div>
+<!--    <div class="background-image"></div>-->
+
 
     <div class="controls" id="toggleElement">
         <button id="insertBtn" onclick="insertText()">Insert</button>
@@ -281,8 +282,8 @@
         <span style="margin-left: 10px;">Speed</span>
         <input id="rateSlider" type="range" min="0.5" max="2" step="0.1" value="1.0" title="语速">
         <span id="rateValue">1.0</span>
-        <span style="display: none">Opacity</span>
-        <input type="range" id="opacity-slider" min="0" max="1" step="0.01" value="1" style="width: 40px;display: none">
+        <span style="display: block">Opacity</span>
+        <input type="range" id="opacity-slider" min="0" max="1" step="0.01" value="1" style="width: 40px;display: block">
         <!-- 控制背景模糊度的滑块 -->
         <span>Blur</span>
         <input type="range" id="blur-slider" min="0" max="10" step="0.1" value="0" style="width: 40px;">
@@ -306,6 +307,7 @@
             <option value="Microsoft YaHei">Microsoft YaHei</option>
             <option value="SimSun">SimSun</option>
             <option value="SimHei">SimHei</option>
+            <option value="Lucida Fax">Lucida Fax</option>
         </select>
         <switch id="fullscreenToggle">
             <input type="checkbox" id="autoPlayCheckbox">
@@ -330,6 +332,8 @@
         <button onclick="stopText()">Stop</button>
         <button id="btnAutoScroll">Start Scroll</button>
         <input type="range" id="scroll-speed" min="1" max="40" step="1" value="1" style="width: 100px">
+        <input type="file" id="imageInput" accept="image/*" style="display: none;">
+        <button id="selectImage" class="btnCopy">Select Image</button>
     </div>
     <div class="container">
         <div id="content"></div>
@@ -344,6 +348,9 @@
     </div>
 </div>
 
+<img id="imgBg" src="img/bg.png" alt="background"
+     style="object-fit: cover;position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;">
+
 <script>
     let isPlaying = false;
     let voices = [];
@@ -351,6 +358,33 @@
     let currentVoice = null;
     let currentFont = localStorage.getItem("currentFont") || "Corbel";
     let bookName = null
+
+    const imgBg = document.getElementById("imgBg");
+
+    // Load image from local storage if it exists
+    const savedBase64Image = localStorage.getItem('base64Image');
+    if (savedBase64Image) {
+        imgBg.src = savedBase64Image;
+    }
+
+    document.getElementById("imageInput").addEventListener("change", function (event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                imgBg.src = e.target.result;
+                // Save the Base64 string to local storage
+                localStorage.setItem('base64Image', e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    document.getElementById("selectImage").addEventListener("click", function () {
+        document.getElementById("imageInput").click();
+    });
+
+
     // let hostName = window.location.hostname;
     const autoPlay = document.getElementById("autoPlayCheckbox")
     autoPlay.checked = localStorage.getItem("autoPlay") === "true";
@@ -443,14 +477,21 @@
         }
     });
 
-    document.getElementById("blur-slider").addEventListener("input", function () {
+
+    const slideBlur = document.getElementById("blur-slider")
+    const currentBlur = localStorage.getItem("blurValue") || 0
+    slideBlur.value = currentBlur;
+    imgBg.style.filter = `blur(${currentBlur}px)`;
+    slideBlur.addEventListener("input", function () {
         const blurValue = this.value;
-        if (document.querySelector(".background-image") !== null) {
-            document.querySelector(".background-image").style.filter = `blur(${blurValue}px)`;
-        }
-        if (document.querySelector(".background-video") !== null) {
-            document.querySelector(".background-video").style.filter = `blur(${blurValue}px)`;
-        }
+        imgBg.style.filter = `blur(${blurValue}px)`;
+        localStorage.setItem("blurValue", blurValue);
+        // if (document.querySelector(".background-image") !== null) {
+        //     document.querySelector(".background-image").style.filter = `blur(${blurValue}px)`;
+        // }
+        // if (document.querySelector(".background-video") !== null) {
+        //     document.querySelector(".background-video").style.filter = `blur(${blurValue}px)`;
+        // }
     });
 
     document.getElementById("font-weight-select").value = "normal";
@@ -673,10 +714,15 @@
     const articleRegex = new RegExp(`\\b(${articles.join("|")})\\b`, "g");
     const beVerbRegex = new RegExp(`\\b(${beVerbs.join("|")})\\b`, "gi");
     const auxiliaryVerbRegex = new RegExp(`\\b(${auxiliaryVerbs.join("|")})\\b`, "gi");
-
+    
+    const cbHighlight = document.getElementById("cbHighlight")
+    cbHighlight.checked = localStorage.getItem("cbHighlight") === "true";
+    cbHighlight.addEventListener("change", function () {
+        localStorage.setItem("cbHighlight", this.checked);
+    });
     // Function to highlight specific words within a node
     function highlightWords(node) {
-        if (!document.getElementById("cbHighlight").checked) return
+        if (!cbHighlight.checked) return
         if (node.nodeType === Node.TEXT_NODE) {
             let text = node.nodeValue;
             text = text.replace(prepositionRegex, "<span class=\"preposition\">$1</span>");
@@ -699,6 +745,24 @@
 
     const rootElement = document.getElementById("content");
 
+    if(localStorage.getItem("text")){
+        processText(localStorage.getItem("text"));
+        highlightWords(rootElement);
+        document.querySelectorAll(".text-block").forEach(textBlock => {
+            textBlock.style.fontFamily = currentFont;
+        });
+        document.querySelectorAll("li").forEach(textBlock => {
+            textBlock.style.fontFamily = currentFont;
+        });
+        for (let element of document.getElementsByTagName("blockquote")) {
+            element.style.fontFamily = currentFont;
+        }
+        contentWrapper.scrollTo({
+            top: 0,
+            behavior: "instant"
+        });
+    }
+
     function insertText() {
         const input = document.createElement("textarea");
         input.placeholder = "Please enter text...";
@@ -719,6 +783,7 @@
 
         confirmBtn.onclick = () => {
             if (input.value.trim() === "") return;
+            localStorage.setItem("text", input.value);
             processText(input.value);
             document.body.removeChild(input);
             document.body.removeChild(confirmBtn);
@@ -1053,7 +1118,7 @@
         finalText = finalText.replace(/<b>(.*?)<\/b>/g, '$1');
         // 将所有的<span class="code-span">XX</span>替换为XX
         finalText = finalText.replace(/<span class="code-span">(.*?)<\/span>/g, '$1');
-        finalText = finalText.replace(/[()#*<>`•\/🔹✅🚀]/g, " ").trim() + " ";
+        finalText = finalText.replace(/[()#*<>`•\/🔹✅🚀🧠🔎❌]/g, " ").trim() + " ";
         console.log("Final Text:", finalText)
         const utterance = new SpeechSynthesisUtterance(finalText);
         utterance.voice = currentVoice;
@@ -1128,11 +1193,17 @@
         }
     });
 
-    const slider = document.getElementById("opacity-slider");
     const container = document.querySelector(".container");
+
+    const slider = document.getElementById("opacity-slider");
+    if (localStorage.getItem("opacity")) {
+        slider.value = localStorage.getItem("opacity");
+        container.style.background = `rgba(43,43,43, ${slider.value})`;
+    }
     slider.addEventListener("input", (event) => {
         const opacity = event.target.value;
-        container.style.background = `rgba(47, 54, 61, ${opacity})`;
+        localStorage.setItem("opacity", opacity);
+        container.style.background = `rgba(43,43,43, ${opacity})`;
     });
 
     async function getClipboardText() {
