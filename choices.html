@@ -302,7 +302,7 @@
     const imgBg = document.getElementById("imgBg");
 
     // Load image from local storage if it exists
-    const savedBase64Image = localStorage.getItem('base64Image');
+    const savedBase64Image = localStorage.getItem('base64Image1');
     if (savedBase64Image) {
         imgBg.src = savedBase64Image;
         if (immersion) {
@@ -320,13 +320,13 @@
                     imgBg.style.visibility = "visible";
                 }
                 // Save the Base64 string to local storage
-                localStorage.setItem('base64Image', e.target.result);
+                localStorage.setItem('base64Image1', e.target.result);
             };
             reader.readAsDataURL(file);
         } else {
             imgBg.style.visibility = "hidden";
             // Remove the Base64 string from local storage if no file is selected
-            localStorage.removeItem('base64Image');
+            localStorage.removeItem('base64Image1');
         }
     });
 

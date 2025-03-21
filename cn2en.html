@@ -173,7 +173,7 @@
     const imgBg = document.getElementById("imgBg")
 
     // Load image from local storage if it exists
-    const savedBase64Image = localStorage.getItem('base64Image');
+    const savedBase64Image = localStorage.getItem('base64Image2');
     if (savedBase64Image) {
         imgBg.src = savedBase64Image;
     }
@@ -185,7 +185,7 @@
             reader.onload = function (e) {
                 imgBg.src = e.target.result;
                 // Save the Base64 string to local storage
-                localStorage.setItem('base64Image', e.target.result);
+                localStorage.setItem('base64Image2', e.target.result);
             };
             reader.readAsDataURL(file);
         }

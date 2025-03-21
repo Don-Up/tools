@@ -274,7 +274,7 @@
 
 
     <div class="controls" id="toggleElement">
-        <button id="insertBtn" onclick="insertText()">Insert</button>
+        <button id="insertBtn" onclick="insertText()" style="display: none">Insert</button>
         <button onclick="openModal()">Open</button>
         <select id="voiceSelect"></select>
         <input id="repeatCount" type="number" min="1" value="1" placeholder="count">
@@ -333,7 +333,7 @@
         <button id="btnAutoScroll">Start Scroll</button>
         <input type="range" id="scroll-speed" min="1" max="40" step="1" value="1" style="width: 100px">
         <input type="file" id="imageInput" accept="image/*" style="display: none;">
-        <button id="selectImage" class="btnCopy">Select Image</button>
+        <button id="selectImage" class="btnCopy">Select Bg</button>
     </div>
     <div class="container">
         <div id="content"></div>
