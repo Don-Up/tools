@@ -4,13 +4,6 @@
     <meta charset="UTF-8">
     <title>多选择题生成器</title>
     <style>
-        html {
-            background-image: url('img/bg.png');
-            background-size: 0; /* Cover the entire area while maintaining aspect ratio */
-            background-position: center;
-            background-repeat: no-repeat;
-            background-attachment: fixed;
-        }
         body {
             color: #eee;
             font-family: Arial, sans-serif;
@@ -246,6 +239,9 @@
             <input type="number" id="countdown" min="0" max="40" value="0"></input>
             <button id="startCountdown" class="btnCopy">Start</button>
         </div>
+        <!--        选择图片-->
+        <input type="file" id="imageInput" accept="image/*" style="display: none;">
+        <button id="selectImage" class="btnCopy">Select Image</button>
     </div>
 </div>
 <div class="container">
@@ -278,6 +274,9 @@
         </div>
     </div>
 </div>
+<img id="imgBg" src="img/bg.png" alt="background"
+     style="visibility: hidden;object-fit: cover;position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;">
+
 <!--弹窗-->
 <div id="popup" class="popup">
     <pre id="codePre1" style="overflow-y: auto;height: 480px;padding: 0 20px">
@@ -286,6 +285,7 @@
     <!--    <span class="close" id="closePopup">&times;</span>-->
 </div>
 <script>
+    let immersion = false
     let voices = [];
     let selectedVoice = null;
     let isLooping = false;
@@ -298,6 +298,41 @@
     const btnRead = document.getElementById('btnRead')
     const countInput = document.getElementById('countInput')
     let currentText = [];
+
+    const imgBg = document.getElementById("imgBg");
+
+    // Load image from local storage if it exists
+    const savedBase64Image = localStorage.getItem('base64Image');
+    if (savedBase64Image) {
+        imgBg.src = savedBase64Image;
+        if (immersion) {
+            imgBg.style.visibility = "visible";
+        }
+    }
+
+    document.getElementById("imageInput").addEventListener("change", function (event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                imgBg.src = e.target.result;
+                if (immersion) {
+                    imgBg.style.visibility = "visible";
+                }
+                // Save the Base64 string to local storage
+                localStorage.setItem('base64Image', e.target.result);
+            };
+            reader.readAsDataURL(file);
+        } else {
+            imgBg.style.visibility = "hidden";
+            // Remove the Base64 string from local storage if no file is selected
+            localStorage.removeItem('base64Image');
+        }
+    });
+
+    document.getElementById("selectImage").addEventListener("click", function () {
+        document.getElementById("imageInput").click();
+    });
 
     let timerId = null;
     const countdown = document.getElementById("countdown")
@@ -366,7 +401,6 @@
     })
 
     let currentIndex = 0
-    let immersion = false
     const inputPanel = document.querySelector(".input-panel")
     const outputPanel = document.querySelector(".output-panel")
     const choiceField = document.getElementById('choiceField')
@@ -424,51 +458,21 @@
         }
     }
 
-    document.addEventListener("keydown", async function (event) {
-        // 检查是否按下了 Alt + V
+    document.addEventListener("keydown", function (event) {
         if (event.altKey && event.code === "KeyV") {
-            event.preventDefault(); // 阻止默认行为（如粘贴）
-
-            try {
-                // 检查剪贴板读取权限
-                const permissionStatus = await navigator.permissions.query({ name: "clipboard-read" });
-                if (permissionStatus.state !== "granted") {
-                    console.warn("剪贴板读取权限未授予");
-                    return;
-                }
-
-                // 读取剪贴板内容
-                const clipboardItems = await navigator.clipboard.read();
+            // 将剪贴板中的图片设置为背景图
+            navigator.clipboard.read().then(async (clipboardItems) => {
                 if (clipboardItems.length > 0) {
-                    // 查找图片数据
-                    for (const item of clipboardItems) {
-                        if (item.types.includes("image/png")) {
-                            const blob = await item.getType("image/png");
-                            const url = URL.createObjectURL(blob);
-
-                            // 设置背景图
-                            document.documentElement.style.backgroundImage = `url(${url})`;
-
-                            // 释放之前创建的 URL（避免内存泄漏）
-                            if (window.previousBackgroundUrl) {
-                                URL.revokeObjectURL(window.previousBackgroundUrl);
-                            }
-                            window.previousBackgroundUrl = url; // 保存当前 URL
-
-                            break; // 找到图片后退出循环
-                        }
-                    }
-                } else {
-                    console.warn("剪贴板中没有内容");
+                    const blob = await clipboardItems[0].getType("image/png");
+                    const url = URL.createObjectURL(blob);
+                    imgBg.src = url;
                 }
-            } catch (error) {
-                console.error("读取剪贴板失败：", error);
-            }
+            });
         }
     });
 
-    function goToImmersion(){
-        document.documentElement.style.backgroundSize = 'cover'
+    function goToImmersion() {
+        imgBg.style.visibility = 'visible'
         codePreHeight = codePre.clientHeight
         immersion = true
         inputPanel.style.display = 'none'
@@ -477,8 +481,9 @@
         outputPanel.style.height = '90vh'
         outputPanel.style.padding = '0'
         outputPanel.style.backgroundColor = 'rgba(0, 0, 0, 0)'
+
         frontContent.style.maxHeight = '90vh'
-        // 隐藏滚动条
+        // 隐藏滚动
         frontContent.style.overflowY = 'hidden'
         choiceField.style.padding = "0 20%"
         const children = choiceField.children
@@ -492,8 +497,8 @@
         }
     }
 
-    function exitImmersion(){
-        document.documentElement.style.backgroundSize = '0'
+    function exitImmersion() {
+        imgBg.style.visibility = 'hidden'
         immersion = false
         inputPanel.style.display = 'block'
         document.getElementById("header").style.display = 'block'
@@ -532,7 +537,7 @@
                 break
             case 'KeyV':
                 event.preventDefault()
-                if(event.ctrlKey){
+                if (event.ctrlKey) {
                     console.log("ctrl+v")
                     // 获取剪贴板中的文本
                     navigator.clipboard.readText().then(text => {
@@ -540,7 +545,7 @@
                         currentIndex = 0
                         document.getElementById('choiceInput').value = text
                         document.getElementById('btnConfirm').click()
-                        if(immersion){
+                        if (immersion) {
                             exitImmersion()
                             goToImmersion()
                         }
@@ -595,7 +600,7 @@
                         currentContainer[0].click()
                     } else {
                         stop()
-                        speakText(event.ctrlKey?`${currentText[0]} `.repeat(parseInt(inputCount.value)) : currentText[0])
+                        speakText(event.ctrlKey ? `${currentText[0]} `.repeat(parseInt(inputCount.value)) : currentText[0])
                     }
                 }
                 break
@@ -606,7 +611,7 @@
                         currentContainer[1].click()
                     } else {
                         stop()
-                        speakText(event.ctrlKey?`${currentText[1]} `.repeat(parseInt(inputCount.value)) : currentText[1])
+                        speakText(event.ctrlKey ? `${currentText[1]} `.repeat(parseInt(inputCount.value)) : currentText[1])
                     }
                 }
                 break
@@ -617,7 +622,7 @@
                         currentContainer[2].click()
                     } else {
                         stop()
-                        speakText(event.ctrlKey?`${currentText[2]} `.repeat(parseInt(inputCount.value)) : currentText[2])
+                        speakText(event.ctrlKey ? `${currentText[2]} `.repeat(parseInt(inputCount.value)) : currentText[2])
                     }
                 }
                 break
@@ -628,7 +633,7 @@
                         currentContainer[3].click()
                     } else {
                         stop()
-                        speakText(event.ctrlKey?`${currentText[3]} `.repeat(parseInt(inputCount.value)) : currentText[3])
+                        speakText(event.ctrlKey ? `${currentText[3]} `.repeat(parseInt(inputCount.value)) : currentText[3])
                     }
                 }
                 break
@@ -1076,7 +1081,7 @@
     // 当点击“确认”按钮时，读取 textarea 内容，生成多个选择题组件
     document.getElementById('btnConfirm').addEventListener('click', () => {
         const rawText = document.getElementById('choiceInput').value;
-        if(rawText){
+        if (rawText) {
             localStorage.setItem('rawText', rawText);
         }
         buildMultipleChoiceComponents(rawText);
@@ -1085,7 +1090,7 @@
         frontContent.scrollTop = 0;
     });
 
-    if(localStorage.getItem('rawText')){
+    if (localStorage.getItem('rawText')) {
         buildMultipleChoiceComponents(localStorage.getItem('rawText'));
     }
 

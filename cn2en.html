@@ -141,6 +141,8 @@
 <!--            是否自动保存的开关-->
             <label for="autoSaveCheckbox" style="margin-left: 20px;">Auto Save:</label>
             <input type="checkbox" id="autoSaveCheckbox" checked></input>
+            <input type="file" id="imageInput" accept="image/*" style="display: none;">
+            <button id="selectImage" class="btnCopy">Select Image</button>
             <!-- 用于选择微软TTS语音播音人的下拉选项   -->
             <br><br>
             <label for="voiceSelect">Voice:</label>
@@ -169,6 +171,30 @@
 <script>
 
     const imgBg = document.getElementById("imgBg")
+
+    // Load image from local storage if it exists
+    const savedBase64Image = localStorage.getItem('base64Image');
+    if (savedBase64Image) {
+        imgBg.src = savedBase64Image;
+    }
+
+    document.getElementById("imageInput").addEventListener("change", function (event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                imgBg.src = e.target.result;
+                // Save the Base64 string to local storage
+                localStorage.setItem('base64Image', e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    document.getElementById("selectImage").addEventListener("click", function () {
+        document.getElementById("imageInput").click();
+    });
+
     // 监听快捷键alt+V
     document.addEventListener("keydown", function (event) {
         if (event.altKey && event.code === "KeyV") {
