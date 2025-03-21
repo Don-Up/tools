@@ -36,15 +36,98 @@
         }
     </style>
 </head>
-<body>
-    <h1>文本分割器</h1>
-    <textarea id="inputText" placeholder="请输入文本..."></textarea>
-    <button onclick="processText()">处理文本</button>
-    <button onclick="processText(true)">处理文本1</button>
-    <button onclick="mergeText()">合并文本</button>
-    <div id="output"></div>
-
+<body style="height: 100vh; overflow-y: hidden">
+    <div style="display: flex">
+        <div>
+            <textarea id="inputText" placeholder="请输入文本..."></textarea>
+            <button onclick="processText()">处理文本</button>
+            <button onclick="processText(true)">处理文本1</button>
+            <button onclick="processText1()">处理文本2</button>
+            <button onclick="processText2()">处理文本3</button>
+            <button onclick="mergeText()">合并文本</button>
+        </div>
+        <div id="output" style="margin-left: 50px;overflow-y: auto;height: 90vh;"></div>
+    </div>
     <script>
+        function processText2() {
+            let inputText = document.getElementById('inputText').value;
+            // 移除所有空行
+            inputText = inputText.split('\n')
+                .filter(line => line.trim() !== '')
+                .join('\n');
+            const sentences = inputText.split(/([。？])/g)
+            let output = '';
+            for (let i = 0; i < sentences.length; i += 2) {
+                const sentence = sentences[i].trim();
+                const punctuation = sentences[i + 1] || '';
+                if (sentence !== '') {
+                    if(sentence[1] === "”"){
+                        // 移除output末尾换行符并加上”\n
+                        output = output.replace(/\n$/, '') + '”\n';
+                        output += sentence.substring(2) + punctuation + '\n';
+                    } else {
+                        output += sentence + punctuation + '\n';
+                    }
+                }
+            }
+            output = output.replace(/\[插图\]/g, '').trim().split("\n").map((line, index) => (index+1)+". "+ line).join("\n")
+            // 替换掉所有的"[插图]"
+            document.getElementById('output').textContent = output;
+            // 清空文本域
+            const pre = ".\n" +
+                "严格按照序号将以下文本翻译为英文:\n"
+            navigator.clipboard.writeText(pre+output).then(() => {
+                document.getElementById('inputText').value = '';
+            }).catch((error) => {
+                alert("复制失败:', error")
+            });
+            // 返回顶部
+            document.getElementById('output').scrollTo(0, 0);
+        }
+
+        function processText1() {
+            let inputText = document.getElementById('inputText').value.trim();
+            // 移除所有空行
+            inputText = inputText.split('\n').filter(line => line.trim() !== '').join('\n');
+            const sentences = inputText.split(/([。？])/g).filter(line => line.trim() !== '');
+            let output = '';
+            for (let i = 0; i < sentences.length; i += 2) {
+                const sentence = `Waiting for translation ${i+1}\n`+"> "+ sentences[i].trim();
+                const punctuation = sentences[i + 1] || '';
+                if (sentence !== '') {
+                    console.log(sentence, sentence[1] === "”", sentence[0], sentence[1])
+                    if(sentence[1] === "”"){
+                        console.log(sentence)
+                        // 移除output末尾换行符并加上”\n
+                        output = output.replace(/\n$/, '') + '”\n';
+                        output += sentence.substring(2) + punctuation + '\n';
+                    } else {
+                        output += sentence + punctuation + '\n';
+                    }
+                }
+            }
+            output = output.replace(/\[插图\]/g, '').trim()
+            document.getElementById('output').textContent = output;
+            // 清空文本域
+            const pre = "翻译以下文本, 并以中英对照的格式进行呈现.\n" +
+                "格式(中文原句放在英文译句下方的引用中):\n" +
+                "I am Li Lei.(不要换行)\n" +
+                "> 我是李磊。(不要换行)\n" +
+                "\n" +
+                "I am Jim.\n" +
+                "> 我是吉姆。\n" +
+                "\n" +
+                "待翻译(每一行为一组中英对照):\n"
+            navigator.clipboard.writeText(pre+output).then(() => {
+                alert("复制成功")
+                document.getElementById('inputText').value = '';
+            }).catch((error) => {
+                alert("复制失败:', error")
+            });
+            // 返回顶部
+            document.getElementById('output').scrollTo(0, 0);
+        }
+
         function processText(hasPre = false) {
             let inputText = document.getElementById('inputText').value;
             // 移除所有空行
@@ -66,7 +149,7 @@
                     }
                 }
             }
-            output = output.trim()
+            output = output.replace(/\[插图\]/g, '').trim()
             document.getElementById('output').textContent = output;
             // 清空文本域
             const pre = "翻译以下文本, 并以中英对照的格式进行呈现.\n" +
@@ -84,7 +167,7 @@
                 alert("复制失败:', error")
             });
             // 返回顶部
-            window.scrollTo(0, 0);
+            document.getElementById('output').scrollTo(0, 0);
         }
 
         function mergeText(){
@@ -95,8 +178,9 @@
             const result = []
 
             for(let i = 0; i < inputText.length; i++){
-                result.push(inputText[i])
-                result.push("> "+outputText[i])
+                // 过滤掉序号1. 2. 3.
+                result.push(inputText[i].replace(/^\d+\.\s*/, ''))
+                result.push("> "+outputText[i].replace(/^\d+\.\s*/, '')+"\n")
             }
 
             const resultString = result.join("\n")
@@ -110,7 +194,7 @@
                 alert("复制失败:', error")
             });
             // 返回顶部
-            window.scrollTo(0, 0);
+            document.getElementById('output').scrollTo(0, 0);
         }
     </script>
 </body>
