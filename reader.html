@@ -313,22 +313,26 @@
             <input type="checkbox" id="autoPlayCheckbox">
             <label for="autoPlayCheckbox" style="margin-left: -20px;" id="autoPlayLabel">Auto Play</label>
         </switch>
-        <switch id="fullscreenToggle" style="margin-left: -20px;">
-            <input type="checkbox" id="ecCheckBox">
-            <label for="ecCheckBox" style="margin-left: -20px;" id="ecLabel">EC</label>
-        </switch>
-        <switch id="fullscreenToggle" style="margin-left: -20px;">
-            <input type="checkbox" id="eceCheckBox">
-            <label for="eceCheckBox" style="margin-left: -20px;" id="eceLabel">ECE</label>
-        </switch>
-        <switch id="fullscreenToggle" style="margin-left: -20px;">
-            <input type="checkbox" id="handleEven">
-            <label for="handleEven" style="margin-left: -20px;" id="handleEvenCheckBox">E</label>
-        </switch>
-        <switch id="fullscreenToggle" style="margin-left: -20px;">
-            <input type="checkbox" id="cbHighlight" checked>
-            <label for="cbHighlight" style="margin-left: -20px;" id="handleHighlight">H</label>
-        </switch>
+        <div style="display: flex;flex-direction: column">
+            <switch id="fullscreenToggle" style="margin-left: -20px;">
+                <input type="checkbox" id="ecCheckBox">
+                <label for="ecCheckBox" style="margin-left: -20px;" id="ecLabel">EC</label>
+            </switch>
+            <switch id="fullscreenToggle" style="margin-left: -20px;">
+                <input type="checkbox" id="eceCheckBox">
+                <label for="eceCheckBox" style="margin-left: -20px;" id="eceLabel">ECE</label>
+            </switch>
+        </div>
+        <div style="display: flex;flex-direction: column">
+            <switch id="fullscreenToggle" style="margin-left: -20px;">
+                <input type="checkbox" id="handleEven">
+                <label for="handleEven" style="margin-left: -20px;" id="handleEvenCheckBox">E</label>
+            </switch>
+            <switch id="fullscreenToggle" style="margin-left: -20px;">
+                <input type="checkbox" id="cbHighlight" checked>
+                <label for="cbHighlight" style="margin-left: -20px;" id="handleHighlight">H</label>
+            </switch>
+        </div>
         <button onclick="stopText()">Stop</button>
         <button id="btnAutoScroll">Start Scroll</button>
         <input type="range" id="scroll-speed" min="1" max="40" step="1" value="1" style="width: 100px">
