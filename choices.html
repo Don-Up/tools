@@ -5,14 +5,18 @@
     <title>多选择题生成器</title>
     <style>
         html {
-            background: #262a2b;
+            background-image: url('img/bg.png');
+            background-size: 0; /* Cover the entire area while maintaining aspect ratio */
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
         }
-
         body {
             color: #eee;
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 10px 20px;
+            background: transparent;
         }
 
         h1 {
@@ -420,7 +424,51 @@
         }
     }
 
+    document.addEventListener("keydown", async function (event) {
+        // 检查是否按下了 Alt + V
+        if (event.altKey && event.code === "KeyV") {
+            event.preventDefault(); // 阻止默认行为（如粘贴）
+
+            try {
+                // 检查剪贴板读取权限
+                const permissionStatus = await navigator.permissions.query({ name: "clipboard-read" });
+                if (permissionStatus.state !== "granted") {
+                    console.warn("剪贴板读取权限未授予");
+                    return;
+                }
+
+                // 读取剪贴板内容
+                const clipboardItems = await navigator.clipboard.read();
+                if (clipboardItems.length > 0) {
+                    // 查找图片数据
+                    for (const item of clipboardItems) {
+                        if (item.types.includes("image/png")) {
+                            const blob = await item.getType("image/png");
+                            const url = URL.createObjectURL(blob);
+
+                            // 设置背景图
+                            document.documentElement.style.backgroundImage = `url(${url})`;
+
+                            // 释放之前创建的 URL（避免内存泄漏）
+                            if (window.previousBackgroundUrl) {
+                                URL.revokeObjectURL(window.previousBackgroundUrl);
+                            }
+                            window.previousBackgroundUrl = url; // 保存当前 URL
+
+                            break; // 找到图片后退出循环
+                        }
+                    }
+                } else {
+                    console.warn("剪贴板中没有内容");
+                }
+            } catch (error) {
+                console.error("读取剪贴板失败：", error);
+            }
+        }
+    });
+
     function goToImmersion(){
+        document.documentElement.style.backgroundSize = 'cover'
         codePreHeight = codePre.clientHeight
         immersion = true
         inputPanel.style.display = 'none'
@@ -445,6 +493,7 @@
     }
 
     function exitImmersion(){
+        document.documentElement.style.backgroundSize = '0'
         immersion = false
         inputPanel.style.display = 'block'
         document.getElementById("header").style.display = 'block'
