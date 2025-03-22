@@ -282,6 +282,8 @@
                 child.querySelector(".playback-btn").textContent = "Playback"
                 child.querySelector(".play-btn").textContent = "Speak"
                 child.querySelector(".en-text").style.display = "none"
+                child.querySelector(".word-display").style.display = "none"
+                isLooping = false
                 break;
             case 'KeyR':
                 // 获取当前选中的文本
@@ -446,7 +448,6 @@
 
         isLooping = !isLooping;
         this.textContent = isLooping ? "Stop Looping" : "Loop Dialogue";
-
         if (isLooping) {
             currentIndex = 0;
             playNext();
@@ -581,16 +582,18 @@
             }
         });
 
+        const loopBtn = controls.querySelector(".loop-btn")
+
         controls.querySelector(".loop-btn").addEventListener("click", () => {
-            isLooping = !isLooping;
+            isLooping = loopBtn.textContent === "Loop";
             if (isLooping) {
                 enTextElement.style.display = 'block'; // Show the English text
                 currentUtterance = speakText(enText, enTextElement, true);
-                controls.querySelector(".loop-btn").textContent = "Stop Looping";
+                loopBtn.textContent = "Stop Looping";
             } else {
                 speechSynthesis.cancel();
                 enTextElement.style.display = 'none'; // Show the English text
-                controls.querySelector(".loop-btn").textContent = "Loop";
+                loopBtn.textContent = "Loop";
             }
         });
 
@@ -769,7 +772,7 @@
         inputText.value = "";
     });
 
-    if(localStorage.getItem("inputText")){
+    if(autoSave.checked && localStorage.getItem("inputText")){
         inputText.value = localStorage.getItem("inputText");
         document.getElementById("generateBtn").click()
     }
