@@ -252,6 +252,8 @@
     const inputText = document.getElementById("inputText")
     const container = document.querySelector(".container")
 
+    let enterIndex = 0
+
     function goToImmersion() {
         immersive = true
         document.getElementById("header").style.display = 'none'
@@ -261,6 +263,7 @@
         children[currentQuestion].style.visibility = "visible"
         children[currentQuestion].style.marginTop = "50%"
         children[children.length - 1].style.marginBottom = "50%"
+        enterIndex = currentQuestion
         children[currentQuestion].scrollIntoView({behavior: "smooth", block: "center"})
         for (let i = 0; i < children.length; i++) {
             if (i !== currentQuestion) {
@@ -275,7 +278,7 @@
         container.style.background = "#1e1e1e"
         container.style.boxShadow = "0 2px 10px rgba(0, 0, 0, 0.3)"
         const children = document.getElementById("dialogList").children;
-        children[currentQuestion].style.marginTop = "0%"
+        children[enterIndex].style.marginTop = "0%"
         children[children.length - 1].style.marginBottom = "0%"
         children[currentQuestion].scrollIntoView({behavior: "smooth", block: "center"})
         for (let i = 0; i < children.length; i++) {
