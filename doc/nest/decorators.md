@@ -3,13 +3,15 @@
 ---
 
 ### **1. 控制器相关注解**
-#### **`@Controller()`**: 定义一个控制器类，用于处理路由请求。
+#### **`@Controller()`**
+定义一个控制器类，用于处理路由请求。
   ```typescript
   @Controller('users')
   export class UsersController {}
   ```
 
-#### **`@Get()`**: 定义处理 HTTP GET 请求的路由。
+#### **`@Get()`**
+定义处理 HTTP GET 请求的路由。
   ```typescript
   @Get()
   findAll() {
@@ -17,7 +19,8 @@
   }
   ```
 
-#### **`@Post()`**: 定义处理 HTTP POST 请求的路由。
+#### **`@Post()`**
+定义处理 HTTP POST 请求的路由。
   ```typescript
   @Post()
   create() {
@@ -25,7 +28,8 @@
   }
   ```
 
-#### **`@Put()`**: 定义处理 HTTP PUT 请求的路由。
+#### **`@Put()`**
+定义处理 HTTP PUT 请求的路由。
   ```typescript
   @Put(':id')
   update(@Param('id') id: string) {
@@ -33,7 +37,8 @@
   }
   ```
 
-#### **`@Delete()`**: 定义处理 HTTP DELETE 请求的路由。
+#### **`@Delete()`**
+定义处理 HTTP DELETE 请求的路由。
   ```typescript
   @Delete(':id')
   remove(@Param('id') id: string) {
@@ -41,7 +46,8 @@
   }
   ```
 
-#### **`@Patch()`**: 定义处理 HTTP PATCH 请求的路由。
+#### **`@Patch()`**
+定义处理 HTTP PATCH 请求的路由。
   ```typescript
   @Patch(':id')
   partialUpdate(@Param('id') id: string) {
@@ -49,7 +55,8 @@
   }
   ```
 
-#### **`@Param()`**: 提取路由参数。
+#### **`@Param()`**
+提取路由参数。
   ```typescript
   @Get(':id')
   findOne(@Param('id') id: string) {
@@ -57,7 +64,8 @@
   }
   ```
 
-#### **`@Query()`**: 提取查询参数。
+#### **`@Query()`**
+提取查询参数。
   ```typescript
   @Get()
   findAll(@Query('limit') limit: number) {
@@ -65,7 +73,8 @@
   }
   ```
 
-#### **`@Body()`**: 提取请求体数据。
+#### **`@Body()`**
+提取请求体数据。
   ```typescript
   @Post()
   create(@Body() createUserDto: CreateUserDto) {
@@ -73,7 +82,8 @@
   }
   ```
 
-#### **`@Headers()`**: 提取请求头数据。
+#### **`@Headers()`**
+提取请求头数据。
   ```typescript
   @Get()
   findAll(@Headers('authorization') auth: string) {
@@ -81,7 +91,8 @@
   }
   ```
 
-#### **`@Req()` 或 `@Request()`**: 提取请求对象。
+#### **`@Req()` 或 `@Request()`**
+提取请求对象。
   ```typescript
   @Get()
   findAll(@Req() request: Request) {
@@ -89,7 +100,8 @@
   }
   ```
 
-#### **`@Res()` 或 `@Response()`**: 提取响应对象。
+#### **`@Res()` 或 `@Response()`**
+提取响应对象。
   ```typescript
   @Get()
   findAll(@Res() response: Response) {
@@ -100,13 +112,15 @@
 ---
 
 ### **2. 提供者相关注解**
-#### **`@Injectable()`**: 定义一个可注入的类（如服务、仓库等）。
+#### **`@Injectable()`**
+定义一个可注入的类（如服务、仓库等）。
   ```typescript
   @Injectable()
   export class UsersService {}
   ```
 
-#### **`@Inject()`**: 手动注入依赖。
+#### **`@Inject()`**
+手动注入依赖。
   ```typescript
   constructor(@Inject('CONNECTION') private connection: Connection) {}
   ```
@@ -114,7 +128,8 @@
 ---
 
 ### **3. 模块相关注解**
-#### **`@Module()`**: 定义一个模块。
+#### **`@Module()`**
+定义一个模块。
   ```typescript
   @Module({
     controllers: [UsersController],
@@ -123,7 +138,8 @@
   export class UsersModule {}
   ```
 
-#### **`@Global()`**: 将模块标记为全局模块，使其在整个应用中可用。
+#### **`@Global()`**
+将模块标记为全局模块，使其在整个应用中可用。
   ```typescript
   @Global()
   @Module({
@@ -136,7 +152,8 @@
 ---
 
 ### **4. 中间件相关注解**
-#### **`@Injectable()`**: 定义中间件类。
+#### **`@Injectable()`**
+定义中间件类。
   ```typescript
   @Injectable()
   export class LoggerMiddleware implements NestMiddleware {
@@ -150,7 +167,8 @@
 ---
 
 ### **5. 异常过滤器相关注解**
-#### **`@Catch()`**: 定义异常过滤器。
+#### **`@Catch()`**
+定义异常过滤器。
   ```typescript
   @Catch(HttpException)
   export class HttpExceptionFilter implements ExceptionFilter {
@@ -166,7 +184,8 @@
   }
   ```
 
-#### **`@UseFilters()`**: 将异常过滤器应用到控制器或路由。
+#### **`@UseFilters()`**
+将异常过滤器应用到控制器或路由。
   ```typescript
   @UseFilters(HttpExceptionFilter)
   @Get()
@@ -178,7 +197,8 @@
 ---
 
 ### **6. 管道相关注解**
-#### **`@UsePipes()`**: 将管道应用到控制器或路由。
+#### **`@UsePipes()`**
+将管道应用到控制器或路由。
   ```typescript
   @UsePipes(ValidationPipe)
   @Post()
@@ -190,7 +210,8 @@
 ---
 
 ### **7. 守卫相关注解**
-#### **`@UseGuards()`**: 将守卫应用到控制器或路由。
+#### **`@UseGuards()`**
+将守卫应用到控制器或路由。
   ```typescript
   @UseGuards(AuthGuard)
   @Get()
@@ -202,7 +223,8 @@
 ---
 
 ### **8. 拦截器相关注解**
-#### **`@UseInterceptors()`**: 将拦截器应用到控制器或路由。
+#### **`@UseInterceptors()`**
+将拦截器应用到控制器或路由。
   ```typescript
   @UseInterceptors(LoggingInterceptor)
   @Get()
@@ -214,7 +236,8 @@
 ---
 
 ### **9. 自定义元数据相关注解**
-#### **`@SetMetadata()`**: 为控制器或路由添加自定义元数据。
+#### **`@SetMetadata()`**
+为控制器或路由添加自定义元数据。
   ```typescript
   @SetMetadata('roles', ['admin'])
   @Get()
@@ -223,12 +246,14 @@
   }
   ```
 
-#### **`@ReflectMetadata()`**: 为类或方法添加元数据（已弃用，推荐使用 `@SetMetadata`）。
+#### **`@ReflectMetadata()`**
+为类或方法添加元数据（已弃用，推荐使用 `@SetMetadata`）。
 
 ---
 
 ### **10. 其他常用注解**
-#### **`@Header()`**: 设置响应头。
+#### **`@Header()`**
+设置响应头。
   ```typescript
   @Get()
   @Header('Cache-Control', 'none')
@@ -237,7 +262,8 @@
   }
   ```
 
-#### **`@HttpCode()`**: 设置响应状态码。
+#### **`@HttpCode()`**
+设置响应状态码。
   ```typescript
   @Post()
   @HttpCode(204)
@@ -246,7 +272,8 @@
   }
   ```
 
-#### **`@Redirect()`**: 重定向到指定 URL。
+#### **`@Redirect()`**
+重定向到指定 URL。
   ```typescript
   @Get()
   @Redirect('https://nestjs.com', 301)
@@ -255,7 +282,8 @@
   }
   ```
 
-#### **`@Render()`**: 渲染视图模板。
+#### **`@Render()`**
+渲染视图模板。
   ```typescript
   @Get()
   @Render('index')
