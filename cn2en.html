@@ -103,7 +103,7 @@
             font-size: 18px;
             color: white;
             font-weight: bold;
-        //    文字描边
+            //    文字描边
             text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
         }
 
@@ -240,9 +240,9 @@
     let selectedVoiceRole1 = null;
     let selectedVoiceRole2 = null;
     let currentText = ""
-    const defaultVoiceName = localStorage.getItem('defaultVoiceName') || "Microsoft Brian Online (Natural) - English (United States)";
-    const defaultVoiceRole1 = localStorage.getItem('defaultVoiceRole1') || "Microsoft Guy Online (Natural) - English (United States)";
-    const defaultVoiceRole2 = localStorage.getItem('defaultVoiceRole2') || "Microsoft Jenny Online (Natural) - English (United States)";
+    let defaultVoiceName = localStorage.getItem('defaultVoiceName') || "Microsoft Brian Online (Natural) - English (United States)";
+    let defaultVoiceRole1 = localStorage.getItem('defaultVoiceRole1') || "Microsoft Guy Online (Natural) - English (United States)";
+    let defaultVoiceRole2 = localStorage.getItem('defaultVoiceRole2') || "Microsoft Jenny Online (Natural) - English (United States)";
     const speedValue = document.getElementById("speedValue");
     // update speedValue as the slider value changes
     document.getElementById("speedSlider").addEventListener("input", function () {
@@ -391,24 +391,28 @@
 
         voiceSelect.addEventListener("change", function () {
             selectedVoice = voices.find(voice => voice.name === this.value && voice.lang === "en-US");
+            defaultVoiceName = selectedVoice.name;
             localStorage.setItem("defaultVoiceName", this.value);
         });
 
         voiceSelectRole1.addEventListener("change", function () {
             selectedVoiceRole1 = voices.find(voice => voice.name === this.value && voice.lang === "en-US");
+            defaultVoiceRole1 = selectedVoiceRole1.name;
             localStorage.setItem("defaultVoiceRole1", this.value);
         });
 
         voiceSelectRole2.addEventListener("change", function () {
             selectedVoiceRole2 = voices.find(voice => voice.name === this.value && voice.lang === "en-US");
+            defaultVoiceRole2 = selectedVoiceRole2.name;
             localStorage.setItem("defaultVoiceRole2", this.value);
         });
 
         // Set the selectedVoice to the default voice
+        // if(selectedVoice === null)
         selectedVoice = voices.find(voice => voice.name === defaultVoiceName && voice.lang === "en-US");
-
+        // if(selectedVoiceRole1 === null)
         selectedVoiceRole1 = voices.find(voice => voice.name === defaultVoiceRole1 && voice.lang === "en-US");
-
+        // if(selectedVoiceRole2 === null)
         selectedVoiceRole2 = voices.find(voice => voice.name === defaultVoiceRole2 && voice.lang === "en-US");
 
     }
