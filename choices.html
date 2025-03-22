@@ -137,6 +137,7 @@
             padding-left: 10px;
         }
 
+        .btnPlayQC,
         .btnPlay,
         .btnCopy,
         .btnOption,
@@ -242,6 +243,14 @@
         <!--        选择图片-->
         <input type="file" id="imageInput" accept="image/*" style="display: none;">
         <button id="selectImage" class="btnCopy">Select Image</button>
+<!--        单选框: Prioritize Read: 1. Question. 2. Q & choices-->
+        <div class="hide-control">
+            <label for="priorityRead">Priority Read:</label>
+            <select id="priorityRead">
+                <option value="1">Question</option>
+                <option value="2">Q & choices</option>
+            </select>
+        </div>
     </div>
 </div>
 <div class="container">
@@ -422,7 +431,11 @@
                 currentIndex--
                 localStorage.setItem('currentIndex', currentIndex)
                 children[currentIndex].style.visibility = "visible"
-                children[currentIndex].querySelector(".btnPlay").click()
+                if(priorityRead.value === 1){
+                    children[currentIndex].querySelector(".btnPlay").click() //111
+                } else  {
+                    children[currentIndex].querySelector(".btnCopy").click()
+                }
                 children[currentIndex].scrollIntoView({behavior: "smooth", block: "center"})
                 for (let i = 0; i < children.length; i++) {
                     if (i !== currentIndex) {
@@ -432,6 +445,12 @@
             }
         }
     }
+
+    const priorityRead = document.getElementById('priorityRead')
+    priorityRead.value = localStorage.getItem('priorityRead') || "1"
+    priorityRead.addEventListener('input', function () {
+        localStorage.setItem('priorityRead', priorityRead.value);
+    });
 
     function nextQuestion(event) {
         if (immersion) {
@@ -447,7 +466,14 @@
                 currentIndex++
                 localStorage.setItem('currentIndex', currentIndex)
                 children[currentIndex].style.visibility = "visible"
-                children[currentIndex].querySelector(".btnPlay").click()
+                console.log("xxxxx", priorityRead.value)
+                if(priorityRead.value === "1"){
+                    alert(1)
+                    children[currentIndex].querySelector(".btnPlay").click() //111
+                } else  {
+                    alert(2)
+                    children[currentIndex].querySelector(".btnPlayQC").click()
+                }
                 children[currentIndex].scrollIntoView({behavior: "smooth", block: "center"})
                 for (let i = 0; i < children.length; i++) {
                     if (i !== currentIndex) {
@@ -897,7 +923,7 @@
 
             // 播放按钮
             const playButton = document.createElement('button');
-            playButton.className = 'btnCopy';
+            playButton.className = 'btnPlayQC';
             playButton.textContent = 'play';
             container.appendChild(playButton);
 
