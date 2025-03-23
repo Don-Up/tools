@@ -66,7 +66,7 @@
         }
 
         #rateSlider {
-            width: 60px;
+            width: 100px;
             vertical-align: middle;
         }
 
@@ -109,6 +109,30 @@
             overscroll-behavior-x: auto;
             overflow-x: auto; /* 启用水平滚动 */
             white-space: nowrap; /* 防止子元素换行 */
+        }
+
+        /* Webkit-based browsers (Chrome, Safari, Edge) */
+        #wrapper::-webkit-scrollbar {
+            width: 8px; /* Width of the scrollbar */
+        }
+
+        #wrapper::-webkit-scrollbar-track {
+            background: #555; /* Color of the scrollbar track */
+        }
+
+        #wrapper::-webkit-scrollbar-thumb {
+            background: #888; /* Color of the scrollbar thumb */
+            border-radius: 4px; /* Rounded corners for the scrollbar thumb */
+        }
+
+        #wrapper::-webkit-scrollbar-thumb:hover {
+            background: #aaa; /* Color of the scrollbar thumb on hover */
+        }
+
+        /* Firefox */
+        #wrapper {
+            scrollbar-width: thin; /* Thickness of the scrollbar */
+            scrollbar-color: #888 #555; /* Color of the scrollbar thumb and track */
         }
 
         body {
@@ -280,8 +304,8 @@
         <input id="repeatCount" type="number" min="1" value="1" placeholder="count">
         <button id="fullscreenBtn" style="width: 60px">Full</button>
         <span style="margin-left: 10px;">Speed</span>
-        <input id="rateSlider" type="range" min="0.5" max="2" step="0.1" value="1.0" title="语速">
-        <span id="rateValue">1.0</span>
+        <input id="rateSlider" type="range" min="0.5" max="2" step="0.05" value="1.00" title="语速">
+        <span id="rateValue">1.00</span>
         <span style="display: block">Opacity</span>
         <input type="range" id="opacity-slider" min="0" max="1" step="0.01" value="1" style="width: 40px;display: block">
         <!-- 控制背景模糊度的滑块 -->
@@ -574,13 +598,13 @@
     // Listen to the rate slider changes
     const rateSlider = document.getElementById("rateSlider");
     const rateValue = document.getElementById("rateValue");
-    const rate = localStorage.getItem("rateValue") || 1
+    const rate = localStorage.getItem("rateValue") || 1.00
     rateValue.textContent = rate;
     rateSlider.value = rate;
 
     rateSlider.addEventListener("input", function () {
-        rateValue.textContent = this.value;
-        localStorage.setItem("rateValue", this.value);
+        rateValue.textContent = Number(this.value).toFixed(2);
+        localStorage.setItem("rateValue", rateValue.textContent);
     });
 
     const fullscreenBtn = document.getElementById("fullscreenBtn");
@@ -1128,6 +1152,8 @@
         // 将所有的<span class="code-span">XX</span>替换为XX
         finalText = finalText.replace(/<span class="code-span">(.*?)<\/span>/g, '$1');
         finalText = finalText.replace(/[()#*<>`•\/🔹✅🚀🧠🔎❌]/g, " ").trim() + " ";
+        // 将列表序号1. 2. 3.修改为1, 2, 3,
+        finalText = finalText.replace(/(\d+)\./g, '$1, ');
         console.log("Final Text:", finalText)
         const utterance = new SpeechSynthesisUtterance(finalText);
         utterance.voice = currentVoice;
