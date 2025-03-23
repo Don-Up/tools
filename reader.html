@@ -80,6 +80,7 @@
             position: relative;
             flex-direction: column;
             background: #2b2b2b; /* rgba(18, 18, 18, 1) 背景色为 #121212，#2f363d 透明度为 0.7 */
+            backdrop-filter: blur(0px);
         }
 
         #content {
@@ -310,7 +311,10 @@
         <input type="range" id="opacity-slider" min="0" max="1" step="0.01" value="1" style="width: 40px;display: block">
         <!-- 控制背景模糊度的滑块 -->
         <span>Blur</span>
-        <input type="range" id="blur-slider" min="0" max="10" step="0.1" value="0" style="width: 40px;">
+        <div>
+            <input type="range" id="blur-slider" min="0" max="10" step="0.1" value="0" style="width: 40px;">
+            <input type="range" id="blur-slider1" min="0" max="20" step="1" value="0" style="width: 40px;">
+        </div>
         <!-- a select used to change font weight of text-block -->
         <select id="font-weight-select" style="width: 60px" aria-label="select">
             <option value="lighter">Lighter</option>
@@ -1229,6 +1233,14 @@
     });
 
     const container = document.querySelector(".container");
+
+    const sliderBlur = document.getElementById("blur-slider1");
+    sliderBlur.value = localStorage.getItem("blur") || 0;
+    sliderBlur.addEventListener("input", (event) => {
+        const blur = event.target.value;
+        localStorage.setItem("blur", blur);
+        container.style.backdropFilter = `blur(${blur}px)`;
+    });
 
     const slider = document.getElementById("opacity-slider");
     if (localStorage.getItem("opacity")) {
