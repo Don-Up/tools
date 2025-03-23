@@ -300,6 +300,8 @@
         isLooping = false
     }
 
+    let currentWord = null
+
     document.addEventListener('keydown', function (event) {
         // console.log(event.code, event.key)
         switch (event.code) {
@@ -330,6 +332,14 @@
                 utterance.rate = document.getElementById("speedSlider").value;
                 utterance.voice = selectedVoice
                 window.speechSynthesis.speak(utterance);
+                break
+            case 'Numpad5':
+                if(currentWord){
+                    const utterance = new SpeechSynthesisUtterance(currentWord);
+                    utterance.rate = document.getElementById("speedSlider").value;
+                    utterance.voice = selectedVoice
+                    window.speechSynthesis.speak(utterance);
+                }
                 break
             case 'Numpad0':
                 (dialogListElement.children)[currentQuestion].querySelector(".record-btn").click()
@@ -674,6 +684,7 @@
             if (wordIndex < words.length) {
                 wordDisplay.style.display = "block";
                 wordDisplay.textContent = words.slice(0, wordIndex + 1).join(" ");
+                currentWord = words[wordIndex];
                 // speakText(words[wordIndex]);
                 wordIndex++;
             } else if (!wordDisplay.textContent.endsWith("(Done)")) {
