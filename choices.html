@@ -9,7 +9,7 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 10px 20px;
-            background: transparent;
+            background-color: #333;
         }
 
         h1 {
@@ -32,6 +32,7 @@
             border-radius: 5px;
             height: 72vh;
             max-height: 72vh; /* Set a max-height if needed */
+            overflow-y: auto;
             display: flex;
             flex-direction: column;
         }
@@ -44,7 +45,8 @@
             padding: 10px;
             border-radius: 4px;
             border: 1px solid #888;
-            background-color: #333;
+            //background-color: #333;
+            background: rgba(50, 50, 50, 0.5);
             color: #eee;
         }
 
@@ -73,25 +75,25 @@
         }
 
         /* Webkit-based browsers (Chrome, Safari, Edge) */
-        #front-content::-webkit-scrollbar {
+        select::-webkit-scrollbar, pre::-webkit-scrollbar, #front-content::-webkit-scrollbar {
             width: 8px; /* Width of the scrollbar */
         }
 
-        #front-content::-webkit-scrollbar-track {
+        select::-webkit-scrollbar-track, pre::-webkit-scrollbar-track, #front-content::-webkit-scrollbar-track {
             background: #555; /* Color of the scrollbar track */
         }
 
-        #front-content::-webkit-scrollbar-thumb {
+        select::-webkit-scrollbar-thumb, pre::-webkit-scrollbar-thumb, #front-content::-webkit-scrollbar-thumb {
             background: #888; /* Color of the scrollbar thumb */
             border-radius: 4px; /* Rounded corners for the scrollbar thumb */
         }
 
-        #front-content::-webkit-scrollbar-thumb:hover {
+        select::-webkit-scrollbar-thumb:hover, pre::-webkit-scrollbar-thumb:hover, #front-content::-webkit-scrollbar-thumb:hover {
             background: #aaa; /* Color of the scrollbar thumb on hover */
         }
 
         /* Firefox */
-        #front-content {
+        select, pre, #front-content {
             scrollbar-width: thin; /* Thickness of the scrollbar */
             scrollbar-color: #888 #555; /* Color of the scrollbar thumb and track */
         }
@@ -112,10 +114,13 @@
         }
 
         .multiple-choice-component {
-            border: 2px solid #444;
+            //border: 2px solid #444;
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 6px;
             padding: 0 15px 10px;
-            background-color: #222;
+            //background-color: #222;
+            background: rgba(50, 50, 50, 0.5);
+            backdrop-filter: blur(7px);
             color: #fff;
             text-align: left;
             margin-bottom: 15px;
@@ -480,6 +485,7 @@
                 currentIndex--
                 localStorage.setItem('currentIndex', currentIndex)
                 children[currentIndex].style.visibility = "visible"
+                children[currentIndex].style.scale = "1.4"
                 if (priorityRead.value === 1) {
                     children[currentIndex].querySelector(".btnPlay").click() //111
                 } else {
@@ -515,6 +521,7 @@
                 currentIndex++
                 localStorage.setItem('currentIndex', currentIndex)
                 children[currentIndex].style.visibility = "visible"
+                children[currentIndex].style.scale = "1.4"
                 if (priorityRead.value === "1") {
                     children[currentIndex].querySelector(".btnPlay").click() //111
                 } else {
@@ -543,9 +550,12 @@
         }
     });
 
+    let enterIndex = 0
+
     function goToImmersion() {
         imgBg.style.visibility = 'visible'
         codePreHeight = codePre.clientHeight
+        document.body.style.background = "transparent"
         immersion = true
         inputPanel.style.display = 'none'
         // inputPanel.style.height = '70vh'
@@ -559,6 +569,8 @@
         frontContent.style.overflowY = 'hidden'
         choiceField.style.padding = "0 20%"
         const children = choiceField.children
+        enterIndex = currentIndex
+        children[currentIndex].style.scale = "1.4"
         children[currentIndex].style.marginTop = "50%"
         children[children.length - 1].style.marginBottom = "50%"
         children[currentIndex].scrollIntoView({behavior: "smooth", block: "center"})
@@ -571,6 +583,7 @@
 
     function exitImmersion() {
         imgBg.style.visibility = 'hidden'
+        document.body.style.background = "#333"
         immersion = false
         inputPanel.style.display = 'block'
         document.getElementById("header").style.display = 'block'
@@ -585,10 +598,11 @@
         frontContent.style.maxHeight = '70vh'
         choiceField.style.padding = "0"
         const children = choiceField.children
-        children[currentIndex].style.marginTop = "0%"
+        children[enterIndex].style.marginTop = "0%"
         children[children.length - 1].style.marginBottom = "0%"
         children[currentIndex].scrollIntoView({behavior: "smooth", block: "start"})
         for (let i = 0; i < children.length; i++) {
+            children[i].style.scale = "1"
             if (i !== currentIndex) {
                 children[i].style.visibility = "visible"
             }
