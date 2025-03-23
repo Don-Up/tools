@@ -9,7 +9,7 @@
             margin-bottom: 10px;
             margin-top: 20px;
             cursor: pointer;
-            font-size: 22px;
+            font-size: 18px;
             font-family: "Corbel", 'Segoe UI', Tahoma, Verdana, sans-serif;
             color: #dfe1e5;
             font-weight: normal;
@@ -21,7 +21,7 @@
 
         li {
             cursor: pointer;
-            font-size: 22px;
+            font-size: 18px;
             font-family: "Corbel", 'Segoe UI', Tahoma, Verdana, sans-serif;
             color: #dfe1e5;
             font-weight: normal;
@@ -902,6 +902,34 @@
                 table = []
             }
 
+            if (isInList) {
+                const ul = document.createElement("ul");
+                const originalTextList = []
+                list.forEach(item => {
+                    const li = document.createElement("li");
+                    li.innerHTML = item;
+                    li.dataset.originalText = li.textContent
+                    originalTextList.push(li.textContent + (li.textContent.trim().endsWith(".") ? "" : ". "))
+                    li.onclick = function () {
+                        if (event.ctrlKey) {
+                            if (!textBlock.innerHTML.startsWith("👀")) {
+                                textBlock.innerHTML = "👀" + textBlock.innerHTML;
+                            } else {
+                                textBlock.innerHTML = textBlock.innerHTML.replace("👀", "");
+                            }
+                        } else {
+                            playText(li.textContent, this);
+                        }
+                    }
+                    ul.dataset.originalText = originalTextList.join("\n")
+                    ul.appendChild(li)
+                })
+                contentDiv.appendChild(ul)
+                list = []
+                isInList = false
+                if (index === lines.length - 1) return
+            }
+
             if (line.toString().trim() === "```" && isInCodeBlock) {
                 isInCodeBlock = false;
                 const pre = document.createElement("pre");
@@ -953,13 +981,13 @@
                 return;
             }
 
-            const headingMatch = line.match(/^(#{1,4})\s+(.*)/);
+            const headingMatch = line.match(/^(#{1,5})\s+(.*)/);
             if (headingMatch) {
                 const level = headingMatch[1].length;
                 let text = headingMatch[2];
                 const heading = document.createElement(`h${level}`);
                 heading.style.cursor = "pointer";
-                heading.dataset.originalText = line;
+                heading.dataset.originalText = line + (line.trim().endsWith(".")?"":". ");
                 heading.onclick = function () {
                     playText(this.dataset.originalText, this);
                 }
@@ -992,33 +1020,7 @@
             //     return `<span style="color: lightskyblue">${p2}</span>`;
             // })
 
-            if (isInList) {
-                const ul = document.createElement("ul");
-                const originalTextList = []
-                list.forEach(item => {
-                    const li = document.createElement("li");
-                    li.innerHTML = item;
-                    li.dataset.originalText = li.textContent
-                    originalTextList.push(li.textContent + (li.textContent.trim().endsWith(".") ? "" : ". "))
-                    li.onclick = function () {
-                        if (event.ctrlKey) {
-                            if (!textBlock.innerHTML.startsWith("👀")) {
-                                textBlock.innerHTML = "👀" + textBlock.innerHTML;
-                            } else {
-                                textBlock.innerHTML = textBlock.innerHTML.replace("👀", "");
-                            }
-                        } else {
-                            playText(li.textContent, this);
-                        }
-                    }
-                    ul.dataset.originalText = originalTextList.join("\n")
-                    ul.appendChild(li)
-                })
-                contentDiv.appendChild(ul)
-                list = []
-                isInList = false
-                if (index === lines.length - 1) return
-            }
+
 
 
             // if (isInCodeBlock) {
@@ -1030,6 +1032,9 @@
             const textBlock = document.createElement("div");
             textBlock.classList.add("text-block");
             textBlock.dataset.originalText = line;
+            if(line.trim() !== "" && !textBlock.dataset.originalText.trim().endsWith(".")){
+                textBlock.dataset.originalText += ". ";
+            }
             textBlock.onclick = function () {
                 if (event.ctrlKey) {
                     if (!textBlock.innerHTML.startsWith("👀")) {
@@ -1066,7 +1071,7 @@
         }
         isPlaying = true;
 
-        originalText = originalText + (originalText.trim().endsWith(".") ? "" : ". ")
+        console.log(originalText)
         // 将所有<b>XX</b>替换为XX
         originalText = originalText.replace(/<b>(.*?)<\/b>/g, '$1');
         // 将所有的<span class="code-span">XX</span>替换为XX
