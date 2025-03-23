@@ -66,7 +66,7 @@
         }
 
         #rateSlider {
-            width: 100px;
+            width: 80px;
             vertical-align: middle;
         }
 
@@ -113,28 +113,34 @@
         }
 
         /* Webkit-based browsers (Chrome, Safari, Edge) */
-        #wrapper::-webkit-scrollbar {
+        #wrapper::-webkit-scrollbar,
+        select::-webkit-scrollbar {
             width: 8px; /* Width of the scrollbar */
         }
 
-        #wrapper::-webkit-scrollbar-track {
+        #wrapper::-webkit-scrollbar-track,
+        select::-webkit-scrollbar-track {
             background: #555; /* Color of the scrollbar track */
         }
 
-        #wrapper::-webkit-scrollbar-thumb {
+        #wrapper::-webkit-scrollbar-thumb,
+        select::-webkit-scrollbar-thumb {
             background: #888; /* Color of the scrollbar thumb */
             border-radius: 4px; /* Rounded corners for the scrollbar thumb */
         }
 
-        #wrapper::-webkit-scrollbar-thumb:hover {
+        #wrapper::-webkit-scrollbar-thumb:hover,
+        select::-webkit-scrollbar-thumb:hover {
             background: #aaa; /* Color of the scrollbar thumb on hover */
         }
 
         /* Firefox */
-        #wrapper {
+        #wrapper,
+        select {
             scrollbar-width: thin; /* Thickness of the scrollbar */
             scrollbar-color: #888 #555; /* Color of the scrollbar thumb and track */
         }
+
 
         body {
             background-color: #121212;
@@ -295,7 +301,7 @@
     <!--        <source src="mp4/bg.mp4" type="video/mp4">-->
     <!--        Your browser does not support the video tag.-->
     <!--    </video>-->
-<!--    <div class="background-image"></div>-->
+    <!--    <div class="background-image"></div>-->
 
 
     <div class="controls" id="toggleElement">
@@ -308,7 +314,8 @@
         <input id="rateSlider" type="range" min="0.5" max="2" step="0.05" value="1.00" title="语速">
         <span id="rateValue">1.00</span>
         <span style="display: block">Opacity</span>
-        <input type="range" id="opacity-slider" min="0" max="1" step="0.01" value="1" style="width: 40px;display: block">
+        <input type="range" id="opacity-slider" min="0" max="1" step="0.01" value="1"
+               style="width: 40px;display: block">
         <!-- 控制背景模糊度的滑块 -->
         <span>Blur</span>
         <div>
@@ -363,7 +370,7 @@
         </div>
         <button onclick="stopText()">Stop</button>
         <button id="btnAutoScroll">Start Scroll</button>
-        <input type="range" id="scroll-speed" min="1" max="40" step="1" value="1" style="width: 100px">
+        <input type="range" id="scroll-speed" min="1" max="40" step="1" value="1" style="width: 80px">
         <input type="file" id="imageInput" accept="image/*" style="display: none;">
         <button id="selectImage" class="btnCopy">Select Bg</button>
     </div>
@@ -746,12 +753,13 @@
     const articleRegex = new RegExp(`\\b(${articles.join("|")})\\b`, "g");
     const beVerbRegex = new RegExp(`\\b(${beVerbs.join("|")})\\b`, "gi");
     const auxiliaryVerbRegex = new RegExp(`\\b(${auxiliaryVerbs.join("|")})\\b`, "gi");
-    
+
     const cbHighlight = document.getElementById("cbHighlight")
     cbHighlight.checked = localStorage.getItem("cbHighlight") === "true";
     cbHighlight.addEventListener("change", function () {
         localStorage.setItem("cbHighlight", this.checked);
     });
+
     // Function to highlight specific words within a node
     function highlightWords(node) {
         if (!cbHighlight.checked) return
@@ -777,7 +785,7 @@
 
     const rootElement = document.getElementById("content");
 
-    if(localStorage.getItem("text")){
+    if (localStorage.getItem("text")) {
         processText(localStorage.getItem("text"));
         highlightWords(rootElement);
         document.querySelectorAll(".text-block").forEach(textBlock => {
@@ -1015,7 +1023,7 @@
                 let text = headingMatch[2];
                 const heading = document.createElement(`h${level}`);
                 heading.style.cursor = "pointer";
-                heading.dataset.originalText = line + (line.trim().endsWith(".")?"":". ");
+                heading.dataset.originalText = line + (line.trim().endsWith(".") ? "" : ". ");
                 heading.onclick = function () {
                     playText(this.dataset.originalText, this);
                 }
@@ -1049,8 +1057,6 @@
             // })
 
 
-
-
             // if (isInCodeBlock) {
             //     const pre = document.createElement("pre");
             //     pre.textContent = "```" + (codeLang ? codeLang : "") + "\n" + codeLines.join("\n");
@@ -1060,7 +1066,7 @@
             const textBlock = document.createElement("div");
             textBlock.classList.add("text-block");
             textBlock.dataset.originalText = line;
-            if(line.trim() !== "" && !textBlock.dataset.originalText.trim().endsWith(".")){
+            if (line.trim() !== "" && !textBlock.dataset.originalText.trim().endsWith(".")) {
                 textBlock.dataset.originalText += ". ";
             }
             textBlock.onclick = function () {
