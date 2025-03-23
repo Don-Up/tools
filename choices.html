@@ -243,7 +243,7 @@
         <!--        选择图片-->
         <input type="file" id="imageInput" accept="image/*" style="display: none;">
         <button id="selectImage" class="btnCopy">Select Image</button>
-<!--        单选框: Prioritize Read: 1. Question. 2. Q & choices-->
+        <!--        单选框: Prioritize Read: 1. Question. 2. Q & choices-->
         <div class="hide-control">
             <label for="priorityRead">Read:</label>
             <select id="priorityRead">
@@ -431,9 +431,9 @@
                 currentIndex--
                 localStorage.setItem('currentIndex', currentIndex)
                 children[currentIndex].style.visibility = "visible"
-                if(priorityRead.value === 1){
+                if (priorityRead.value === 1) {
                     children[currentIndex].querySelector(".btnPlay").click() //111
-                } else  {
+                } else {
                     children[currentIndex].querySelector(".btnCopy").click()
                 }
                 children[currentIndex].scrollIntoView({behavior: "smooth", block: "center"})
@@ -467,11 +467,9 @@
                 localStorage.setItem('currentIndex', currentIndex)
                 children[currentIndex].style.visibility = "visible"
                 console.log("xxxxx", priorityRead.value)
-                if(priorityRead.value === "1"){
-                    alert(1)
+                if (priorityRead.value === "1") {
                     children[currentIndex].querySelector(".btnPlay").click() //111
-                } else  {
-                    alert(2)
+                } else {
                     children[currentIndex].querySelector(".btnPlayQC").click()
                 }
                 children[currentIndex].scrollIntoView({behavior: "smooth", block: "center"})
@@ -873,9 +871,10 @@
             let optionObjects = block.options.map(optionText => {
                 const match = optionText.match(optionRegex);
                 if (!match) return null;
+                const tail = (match[2].trim().endsWith(".") || match[2].trim().endsWith("。")) ? " " : ". "
                 return {
                     originalNumber: match[1], // 原始选项编号
-                    answerContent: match[2].trim() + (match[2].trim().endsWith(".") ? " " : ". ")
+                    answerContent: match[2].trim() + tail
                 };
             }).filter(item => item !== null);
 
