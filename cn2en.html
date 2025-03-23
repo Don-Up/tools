@@ -179,13 +179,52 @@
 </div>
 
 <script>
+    let db;
 
-    const imgBg = document.getElementById("imgBg")
+    function initDB() {
+        const request = indexedDB.open('imageDB', 1);
 
-    // Load image from local storage if it exists
-    const savedBase64Image = localStorage.getItem('base64Image2');
-    if (savedBase64Image) {
-        imgBg.src = savedBase64Image;
+        request.onupgradeneeded = function (event) {
+            db = event.target.result;
+            const objectStore = db.createObjectStore('images', {keyPath: 'id'});
+            objectStore.createIndex('id', 'id', {unique: true});
+        };
+
+        request.onsuccess = function (event) {
+            db = event.target.result;
+            loadImageFromDB(); // Call loadImageFromDB here
+        };
+
+        request.onerror = function (event) {
+            console.error('Database error: ' + event.target.errorCode);
+        };
+    }
+
+    initDB();
+
+    const imgBg = document.getElementById("imgBg");
+
+    // Load image from IndexedDB if it exists
+    function loadImageFromDB() {
+        if (!db) {
+            console.error('Database not initialized');
+            return;
+        }
+
+        const transaction = db.transaction(['images'], 'readonly');
+        const objectStore = transaction.objectStore('images');
+        const request = objectStore.get('backgroundImage');
+
+        request.onsuccess = function (event) {
+            const imageData = event.target.result;
+            if (imageData) {
+                imgBg.src = imageData.data;
+            }
+        };
+
+        request.onerror = function (event) {
+            console.error('Error loading image: ' + event.target.errorCode);
+        };
     }
 
     document.getElementById("imageInput").addEventListener("change", function (event) {
@@ -193,9 +232,20 @@
         if (file) {
             const reader = new FileReader();
             reader.onload = function (e) {
-                imgBg.src = e.target.result;
-                // Save the Base64 string to local storage
-                localStorage.setItem('base64Image2', e.target.result);
+                const base64Image = e.target.result;
+                imgBg.src = base64Image;
+
+                const transaction = db.transaction(['images'], 'readwrite');
+                const objectStore = transaction.objectStore('images');
+                const request = objectStore.put({id: 'backgroundImage', data: base64Image}); // Use put instead of add
+
+                request.onsuccess = function () {
+                    console.log('Image saved successfully');
+                };
+
+                request.onerror = function (event) {
+                    console.error('Error saving image: ' + event.target.errorCode);
+                };
             };
             reader.readAsDataURL(file);
         }
@@ -204,6 +254,7 @@
     document.getElementById("selectImage").addEventListener("click", function () {
         document.getElementById("imageInput").click();
     });
+
 
     // 监听快捷键alt+V
     document.addEventListener("keydown", function (event) {
@@ -287,7 +338,7 @@
 
     let saveMode = true
 
-    function stopPlay(event){
+    function stopPlay(event) {
         event.preventDefault()
         window.speechSynthesis.cancel()
         const children = dialogListElement.children;
@@ -334,7 +385,7 @@
                 window.speechSynthesis.speak(utterance);
                 break
             case 'Numpad5':
-                if(currentWord){
+                if (currentWord) {
                     const utterance = new SpeechSynthesisUtterance(currentWord);
                     utterance.rate = document.getElementById("speedSlider").value;
                     utterance.voice = selectedVoice

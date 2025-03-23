@@ -310,13 +310,53 @@
 
     const imgBg = document.getElementById("imgBg");
 
-    // Load image from local storage if it exists
-    const savedBase64Image = localStorage.getItem('base64Image1');
-    if (savedBase64Image) {
-        imgBg.src = savedBase64Image;
-        if (immersion) {
-            imgBg.style.visibility = "visible";
+    let dbChoices;
+
+    function initDBChoices() {
+        const request = indexedDB.open('choicesDB', 1);
+
+        request.onupgradeneeded = function (event) {
+            dbChoices = event.target.result;
+            const objectStore = dbChoices.createObjectStore('images', { keyPath: 'id' });
+            objectStore.createIndex('id', 'id', { unique: true });
+        };
+
+        request.onsuccess = function (event) {
+            dbChoices = event.target.result;
+            loadImageFromDBChoices();
+        };
+
+        request.onerror = function (event) {
+            console.error('Database error: ' + event.target.errorCode);
+        };
+    }
+
+    initDBChoices();
+
+    // Load image from IndexedDB if it exists
+    function loadImageFromDBChoices() {
+        if (!dbChoices) {
+            console.error('Database not initialized');
+            return;
         }
+
+        const transaction = dbChoices.transaction(['images'], 'readonly');
+        const objectStore = transaction.objectStore('images');
+        const request = objectStore.get('backgroundImage');
+
+        request.onsuccess = function (event) {
+            const imageData = event.target.result;
+            if (imageData) {
+                imgBg.src = imageData.data;
+                if (immersion) {
+                    imgBg.style.visibility = "visible";
+                }
+            }
+        };
+
+        request.onerror = function (event) {
+            console.error('Error loading image: ' + event.target.errorCode);
+        };
     }
 
     document.getElementById("imageInput").addEventListener("change", function (event) {
@@ -324,18 +364,27 @@
         if (file) {
             const reader = new FileReader();
             reader.onload = function (e) {
-                imgBg.src = e.target.result;
+                const base64Image = e.target.result;
+                imgBg.src = base64Image;
                 if (immersion) {
                     imgBg.style.visibility = "visible";
                 }
-                // Save the Base64 string to local storage
-                localStorage.setItem('base64Image1', e.target.result);
+
+                const transaction = dbChoices.transaction(['images'], 'readwrite');
+                const objectStore = transaction.objectStore('images');
+                const request = objectStore.put({ id: 'backgroundImage', data: base64Image });
+
+                request.onsuccess = function () {
+                    console.log('Image saved successfully');
+                };
+
+                request.onerror = function (event) {
+                    console.error('Error saving image: ' + event.target.errorCode);
+                };
             };
             reader.readAsDataURL(file);
         } else {
             imgBg.style.visibility = "hidden";
-            // Remove the Base64 string from local storage if no file is selected
-            localStorage.removeItem('base64Image1');
         }
     });
 
