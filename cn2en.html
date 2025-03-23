@@ -148,11 +148,8 @@
             TTS Speed <input type="range" min="0.5" max="2" value="1" step="0.1" id="speedSlider">
             <span id="speedValue">1.0</span>
             <input id="repeatCount" value="10" style="width:32px;margin-left: 10px;" type="number">
-            <!--            是否自动保存的开关-->
-            <label for="autoSaveCheckbox" style="margin-left: 20px;">Auto Save:</label>
-            <input type="checkbox" id="autoSaveCheckbox" checked></input>
             <input type="file" id="imageInput" accept="image/*" style="display: none;">
-            <button id="selectImage" class="btnCopy">Select Image</button>
+            <button id="selectImage" class="btnCopy" style="margin-left: 20px;">Select Image</button>
             <!--            是否采用对话模式-->
             <label for="dialogModeCheckbox" style="margin-left: 20px;">Dialog Mode:</label>
             <input type="checkbox" id="dialogModeCheckbox"></input>
@@ -222,12 +219,6 @@
         }
     });
 
-    const autoSave = document.getElementById("autoSaveCheckbox");
-    autoSave.checked = localStorage.getItem('autoSave') === 'true';
-    autoSave.addEventListener('change', function () {
-        localStorage.setItem('autoSave', this.checked);
-    });
-
     const dialogModeCheckbox = document.getElementById("dialogModeCheckbox");
     // dialogModeCheckbox.checked = localStorage.getItem('dialogMode') === 'true';
     // dialogModeCheckbox.addEventListener('change', function () {
@@ -292,13 +283,38 @@
         localStorage.setItem('repeatCount', this.value)
     });
     let currentQuestion = 0;
+    const dialogListElement = document.getElementById("dialogList");
+
+    let saveMode = true
+
     document.addEventListener('keydown', function (event) {
         // console.log(event.code, event.key)
         switch (event.code) {
+            case 'ArrowLeft':
+                (dialogListElement.children)[currentQuestion].querySelector(".loop-btn").click()
+                break
+            case 'ArrowRight':
+                (dialogListElement.children)[currentQuestion].querySelector(".show-word").click()
+                break
+            case 'Numpad1':
+                (dialogListElement.children)[currentQuestion].querySelector(".toggle-sentence").click()
+                break
+            case 'Numpad2':
+                (dialogListElement.children)[currentQuestion].querySelector(".reset-add").click()
+                break
+            case 'Numpad0':
+                (dialogListElement.children)[currentQuestion].querySelector(".record-btn").click()
+                break
+            case 'NumpadDecimal':
+                (dialogListElement.children)[currentQuestion].querySelector(".playback-btn").click()
+                break
+            case 'NumpadEnter':
+                (dialogListElement.children)[currentQuestion].querySelector(".play-btn").click()
+                break
             case 'Space':
                 event.preventDefault()
                 window.speechSynthesis.cancel()
-                const children = document.getElementById("dialogList").children;
+                const children = dialogListElement.children;
                 const child = children[currentQuestion]
                 child.querySelector(".loop-btn").textContent = "Loop"
                 child.querySelector(".playback-btn").textContent = "Playback"
@@ -317,24 +333,24 @@
                 break
             case 'KeyV':
                 event.preventDefault()
-                if (event.ctrlKey) {
-                    navigator.clipboard.readText().then(text => {
-                        inputText.value = text
-                        document.getElementById("generateBtn").click()
-                        currentQuestion = 0
-                        if (immersive) {
-                            leaveImmersion()
-                            goToImmersion()
-                        }
-                    })
-                }
+                navigator.clipboard.readText().then(text => {
+                    inputText.value = text
+                    saveMode = event.ctrlKey
+                    document.getElementById("generateBtn").click()
+                    currentQuestion = 0
+                    if (immersive) {
+                        leaveImmersion()
+                        goToImmersion()
+                    }
+                    saveMode = true
+                })
                 break
             case 'ArrowUp':
                 if (immersive) {
                     event.preventDefault()
                     if (currentQuestion > 0) {
                         currentQuestion--
-                        const children = document.getElementById("dialogList").children;
+                        const children = dialogListElement.children;
                         children[currentQuestion].style.visibility = "visible"
                         children[currentQuestion].scrollIntoView({behavior: "smooth", block: "center"})
                         for (let i = 0; i < children.length; i++) {
@@ -348,7 +364,7 @@
             case 'ArrowDown':
                 if (immersive) {
                     event.preventDefault()
-                    const children = document.getElementById("dialogList").children;
+                    const children = dialogListElement.children;
                     if (currentQuestion < children.length - 1) {
                         currentQuestion++
                         children[currentQuestion].style.visibility = "visible"
@@ -782,27 +798,26 @@
     document.getElementById("generateBtn").addEventListener("click", () => {
         const inputTextValue = inputText.value.trim();
         if (!inputTextValue) return
-        if (autoSave.checked) {
+        if (saveMode) {
             localStorage.setItem("inputText", inputTextValue);
         }
         const dialogs = parseDialog(inputTextValue);
-        const dialogList = document.getElementById("dialogList");
 
-        dialogList.innerHTML = "";
+        dialogListElement.innerHTML = "";
         dialogs.forEach((dialog, index) => {
             const dialogItem = createDialogItem(dialog.en, dialog.cn, index)
             dialogItem.addEventListener("click", () => {
                 dialogItem.querySelector("h2").style.color = "gold";
                 currentQuestion = index
             })
-            dialogList.appendChild(dialogItem);
+            dialogListElement.appendChild(dialogItem);
         });
 
         // 清空inputText
         inputText.value = "";
     });
 
-    if (autoSave.checked && localStorage.getItem("inputText")) {
+    if (localStorage.getItem("inputText")) {
         inputText.value = localStorage.getItem("inputText");
         document.getElementById("generateBtn").click()
     }
