@@ -287,6 +287,19 @@
 
     let saveMode = true
 
+    function stopPlay(event){
+        event.preventDefault()
+        window.speechSynthesis.cancel()
+        const children = dialogListElement.children;
+        const child = children[currentQuestion]
+        child.querySelector(".loop-btn").textContent = "Loop"
+        child.querySelector(".playback-btn").textContent = "Playback"
+        child.querySelector(".play-btn").textContent = "Speak"
+        child.querySelector(".en-text").style.display = "none"
+        child.querySelector(".word-display").style.display = "none"
+        isLooping = false
+    }
+
     document.addEventListener('keydown', function (event) {
         // console.log(event.code, event.key)
         switch (event.code) {
@@ -302,6 +315,22 @@
             case 'Numpad2':
                 (dialogListElement.children)[currentQuestion].querySelector(".reset-add").click()
                 break
+            case 'Numpad3':
+                dialogModeCheckbox.click()
+                const utterance1 = new SpeechSynthesisUtterance(dialogModeCheckbox.checked ? "Dialog mode is on" : "Dialog mode is off");
+                utterance1.rate = document.getElementById("speedSlider").value;
+                utterance1.voice = selectedVoice
+                window.speechSynthesis.speak(utterance1);
+                break
+            case 'Numpad4':
+                // 发出音效
+                [defaultVoiceRole1, defaultVoiceRole2] = [defaultVoiceRole2, defaultVoiceRole1];
+                [selectedVoiceRole1, selectedVoiceRole2] = [selectedVoiceRole2, selectedVoiceRole1]
+                const utterance = new SpeechSynthesisUtterance("Roles have been reversed");
+                utterance.rate = document.getElementById("speedSlider").value;
+                utterance.voice = selectedVoice
+                window.speechSynthesis.speak(utterance);
+                break
             case 'Numpad0':
                 (dialogListElement.children)[currentQuestion].querySelector(".record-btn").click()
                 break
@@ -313,15 +342,7 @@
                 break
             case 'Space':
                 event.preventDefault()
-                window.speechSynthesis.cancel()
-                const children = dialogListElement.children;
-                const child = children[currentQuestion]
-                child.querySelector(".loop-btn").textContent = "Loop"
-                child.querySelector(".playback-btn").textContent = "Playback"
-                child.querySelector(".play-btn").textContent = "Speak"
-                child.querySelector(".en-text").style.display = "none"
-                child.querySelector(".word-display").style.display = "none"
-                isLooping = false
+                stopPlay(event)
                 break;
             case 'KeyR':
                 // 获取当前选中的文本
@@ -347,7 +368,7 @@
                 break
             case 'ArrowUp':
                 if (immersive) {
-                    event.preventDefault()
+                    stopPlay(event)
                     if (currentQuestion > 0) {
                         currentQuestion--
                         const children = dialogListElement.children;
@@ -364,6 +385,7 @@
             case 'ArrowDown':
                 if (immersive) {
                     event.preventDefault()
+                    stopPlay(event)
                     const children = dialogListElement.children;
                     if (currentQuestion < children.length - 1) {
                         currentQuestion++
@@ -454,7 +476,7 @@
 
         // 停止之前可能未完成的语音
         window.speechSynthesis.cancel();
-
+        console.log(dialogList[currentIndex])
         // 创建语音实例
         const utterance = new SpeechSynthesisUtterance(dialogList[currentIndex]);
         utterance.rate = document.getElementById("speedSlider").value;
@@ -517,13 +539,14 @@
     // Initial population of voice list
     populateVoiceList();
 
-    const dialogList = [];
+    let dialogList = [];
 
     // 文本解析函数
     function parseDialog(text) {
         const blocks =
             text.split("\n").filter(b => b.trim()).filter(b => b.trim() !== "---")
         const dialogs = [];
+        dialogList = []
 
         for (let i = 0; i < blocks.length; i += 2) {
             if (i + 1 >= blocks.length) break;
@@ -802,7 +825,6 @@
             localStorage.setItem("inputText", inputTextValue);
         }
         const dialogs = parseDialog(inputTextValue);
-
         dialogListElement.innerHTML = "";
         dialogs.forEach((dialog, index) => {
             const dialogItem = createDialogItem(dialog.en, dialog.cn, index)
