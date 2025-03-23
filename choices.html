@@ -466,7 +466,6 @@
                 currentIndex++
                 localStorage.setItem('currentIndex', currentIndex)
                 children[currentIndex].style.visibility = "visible"
-                console.log("xxxxx", priorityRead.value)
                 if (priorityRead.value === "1") {
                     children[currentIndex].querySelector(".btnPlay").click() //111
                 } else {
@@ -549,7 +548,7 @@
 
     // 监听space键
     document.addEventListener('keydown', function (event) {
-        console.log(event.code, event.key)
+        // console.log(event.code, event.key)
         switch (event.code) {
             case 'KeyR':
                 // 获取当前选中的文本
@@ -562,7 +561,6 @@
             case 'KeyV':
                 event.preventDefault()
                 if (event.ctrlKey) {
-                    console.log("ctrl+v")
                     // 获取剪贴板中的文本
                     navigator.clipboard.readText().then(text => {
                         // 将文本内容替换到input中
@@ -678,7 +676,7 @@
             option.value = index;
 
             // 检查是否为默认发音人
-            if (voice.name === defaultVoiceName && voice.lang === "en-US") {
+            if (voice.name === defaultVoiceName) { //  && voice.lang === "en-US"
                 defaultVoiceIndex = index;
             }
 
@@ -1049,7 +1047,7 @@
                     if (event.ctrlKey || ctrlCheckBox.checked) {
                         const count = parseInt(inputCount.value);
                         const repeatedText = `${span.textContent} `.repeat(count);
-                        console.log(repeatedText)
+                        // console.log(repeatedText)
                         play(repeatedText)
                     } else {
                         play(span.textContent)
@@ -1086,6 +1084,9 @@
                 const result = items.filter(item => item.trim() !== '');
                 currentText = []
                 currentText = result
+                currentContainer = []
+                // 将container中的所有label子标签过滤到currentContainer中
+                currentContainer = container.querySelectorAll('label');
             });
 
             playButton1.addEventListener('click', () => {
@@ -1098,7 +1099,6 @@
                 currentContainer = []
                 // 将container中的所有label子标签过滤到currentContainer中
                 currentContainer = container.querySelectorAll('label');
-                console.log(currentContainer)
             });
         });
     }
