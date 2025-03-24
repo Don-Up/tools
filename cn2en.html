@@ -356,6 +356,9 @@
         child.querySelector(".play-btn").textContent = "Speak"
         child.querySelector(".en-text").style.display = "none"
         child.querySelector(".word-display").style.display = "none"
+        if(child.querySelector(".word-display").style.display === "block"){
+            child.querySelector(".reset-add").click()
+        }
         isLooping = false
     }
 
@@ -632,7 +635,7 @@
 
     // 创建对话项
     function createDialogItem(enText, cnText, index) {
-        enText = enText.replace(/[-#*<>`•]/g, "").replace(/\//g, " ").replace(/e\.g\.,/gi, "such-as").trim();
+        enText = enText.replace(/[#*<>`•]/g, "").replace(/\//g, " ").replace(/e\.g\.,/gi, "such-as").trim();
         enText = enText.replace(/^\d+\.\s*/gm, "")
         cnText = cnText.replace(/^\d+\.\s*/gm, "").replace(/[-#*`•]/g, "").trim();
         const dialogItem = document.createElement("div");
@@ -714,6 +717,11 @@
                 currentUtterance.onend = () => {
                     btnPlay.textContent = "Speak";
                     enTextElement.style.display = 'none';
+                    const children = dialogListElement.children;
+                    const child = children[currentQuestion]
+                    if(child.querySelector(".word-display").style.display === "block"){
+                        child.querySelector(".reset-add").click()
+                    }
                 };
             }
         });
