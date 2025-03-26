@@ -188,7 +188,7 @@
             width: 800px;
             height: 500px;
             top: calc((100% - 500px) / 2);
-            left: calc((100% - 800px) / 2);
+            right: 20px;
             background-color: #262a2b;
             border-radius: 10px;
             visibility: hidden;
@@ -634,6 +634,7 @@
                             exitImmersion()
                             goToImmersion()
                         }
+                        document.getElementById("codePre1").scrollTop = 0
                     }).catch(error => {
                         console.error('Failed to read clipboard:', error)
                     })
