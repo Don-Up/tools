@@ -424,9 +424,9 @@
     })
 
 
-    countInput.value = localStorage.getItem('loopCount') || 10;
+    countInput.value = localStorage.getItem('loopCount1') || 10;
     countInput.addEventListener('input', function () {
-        localStorage.setItem('loopCount', countInput.value);
+        localStorage.setItem('loopCount1', countInput.value);
     });
     btnRead.addEventListener('click', function () {
         const text = document.getElementById('choiceInput').value
@@ -963,7 +963,12 @@
             // 题目文本
             const p = document.createElement('p');
             p.className = 'questionText';
-            p.textContent = (blockIndex + 1) + ". " + block.questionText;
+            // Determine if block.questionText starts with a number
+            if (/^\d+/.test(block.questionText)) {
+                p.textContent = block.questionText;
+            } else {
+                p.textContent = (blockIndex + 1) + ". " + block.questionText;
+            }
             container.appendChild(p);
 
             container.append(document.createElement("br"))
