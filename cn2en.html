@@ -728,16 +728,17 @@
 
         const loopBtn = controls.querySelector(".loop-btn")
 
-        controls.querySelector(".loop-btn").addEventListener("click", () => {
+        controls.querySelector(".loop-btn").addEventListener("click", (event) => {
             isLooping = loopBtn.textContent === "Loop";
             if (isLooping) {
                 enTextElement.style.display = 'block'; // Show the English text
                 currentUtterance = speakText(enText, enTextElement, true);
                 loopBtn.textContent = "Stop Looping";
             } else {
-                speechSynthesis.cancel();
-                enTextElement.style.display = 'none'; // Show the English text
-                loopBtn.textContent = "Loop";
+                // speechSynthesis.cancel();
+                // enTextElement.style.display = 'none'; // Show the English text
+                // loopBtn.textContent = "Loop";
+                stopPlay(event)
             }
         });
 
@@ -750,14 +751,19 @@
 
         // 逐词显示
         controls.querySelector(".show-word").addEventListener("click", () => {
+            console.log("show word", wordIndex, words.length)
+            if(wordIndex === words.length){
+                wordIndex = 0;
+            }
             if (wordIndex < words.length) {
                 wordDisplay.style.display = "block";
                 wordDisplay.textContent = words.slice(0, wordIndex + 1).join(" ");
                 currentWord = words[wordIndex];
                 // speakText(words[wordIndex]);
                 wordIndex++;
-            } else if (!wordDisplay.textContent.endsWith("(Done)")) {
-                wordDisplay.textContent += " (Done)";
+                if(wordIndex === words.length){
+                    wordDisplay.textContent += " (Done)";
+                }
             }
         });
 
