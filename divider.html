@@ -73,8 +73,9 @@
             let array = output.replace(/\[插图\]/g, '').trim().split("\n")
             const indexes = []
             array = array.map((line, index) => {
-                    if(line.startsWith("”“")){
-                        line = line.replace("”“", "“")
+                    if(line.startsWith("”")){
+                        line = line.replace("”", "")
+                        // line = line.replace("”“", "“")
                         indexes.push(index-1)
                     }
                     return (index+1)+". "+ line
