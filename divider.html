@@ -61,7 +61,7 @@
                 const sentence = sentences[i].trim();
                 const punctuation = sentences[i + 1] || '';
                 if (sentence !== '') {
-                    if(sentence[1] === "”"){
+                    if(sentence[1] === "”" ){
                         // 移除output末尾换行符并加上”\n
                         output = output.replace(/\n$/, '') + '”\n';
                         output += sentence.substring(2) + punctuation + '\n';
@@ -70,7 +70,19 @@
                     }
                 }
             }
-            output = output.replace(/\[插图\]/g, '').trim().split("\n").map((line, index) => (index+1)+". "+ line).join("\n")
+            let array = output.replace(/\[插图\]/g, '').trim().split("\n")
+            const indexes = []
+            array = array.map((line, index) => {
+                    if(line.startsWith("”“")){
+                        line = line.replace("”“", "“")
+                        indexes.push(index-1)
+                    }
+                    return (index+1)+". "+ line
+                })
+            indexes.forEach(index => {
+                array[index] = array[index]+"”"
+            })
+            output = array.join("\n")
             // 替换掉所有的"[插图]"
             document.getElementById('output').textContent = output;
             // 清空文本域
