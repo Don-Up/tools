@@ -655,13 +655,13 @@
         content.className = "dialog-content";
         content.innerHTML = `
         <div class="en-text" style="display: none">${enText}</div>
-        <div class="cn-text" id="cn" style="cursor: pointer">${cnText}</div>
+        <div class="cn-text" id="cn">${cnText}</div>
         <div class="word-display"></div>
       `;
 
-        content.querySelector("#cn").addEventListener("click", function () {
-            speakText(cnText, this, false)
-        });
+        // content.querySelector("#cn").addEventListener("click", function () {
+        //     speakText(cnText, this, false)
+        // });
 
         // 控制按钮
         const controls = document.createElement("div");
@@ -751,7 +751,6 @@
 
         // 逐词显示
         controls.querySelector(".show-word").addEventListener("click", () => {
-            console.log("show word", wordIndex, words.length)
             if(wordIndex === words.length){
                 wordIndex = 0;
             }

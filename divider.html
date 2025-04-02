@@ -50,7 +50,7 @@
     </div>
     <script>
         function processText2() {
-            let inputText = document.getElementById('inputText').value;
+            let inputText = document.getElementById('inputText').value.replaceAll("\n", "");
             // 移除所有空行
             inputText = inputText.split('\n')
                 .filter(line => line.trim() !== '')
