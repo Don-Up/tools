@@ -55,7 +55,7 @@
             inputText = inputText.split('\n')
                 .filter(line => line.trim() !== '')
                 .join('\n');
-            const sentences = inputText.split(/([。？])/g)
+            const sentences = inputText.split(/([。？；！])/g)
             let output = '';
             for (let i = 0; i < sentences.length; i += 2) {
                 const sentence = sentences[i].trim();
