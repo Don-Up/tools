@@ -619,15 +619,23 @@
         localStorage.setItem("rateValue", rateValue.textContent);
     });
 
+    let inLeft = false
     const fullscreenBtn = document.getElementById("fullscreenBtn");
     fullscreenBtn.addEventListener("click", function () {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen();
-            fullscreenBtn.textContent = "Exit";
+        if(!inLeft){
+            container.style.marginLeft = "0px"
+            inLeft = true
         } else {
-            document.exitFullscreen();
-            fullscreenBtn.textContent = "Full";
+            container.style.margin = "auto"
+            inLeft = false
         }
+        // if (!document.fullscreenElement) {
+        //     document.documentElement.requestFullscreen();
+        //     fullscreenBtn.textContent = "Exit";
+        // } else {
+        //     document.exitFullscreen();
+        //     fullscreenBtn.textContent = "Full";
+        // }
     });
 
     const toggleElement = document.getElementById("toggleElement");
