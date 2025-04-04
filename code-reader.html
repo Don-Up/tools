@@ -1130,6 +1130,9 @@
                 diagramDiv.id = `mermaid-diagram-${index}`;
                 diagramDiv.className = 'mermaid';
                 diagramDiv.style.backgroundColor = '#282c34';
+                // 内容居中
+                diagramDiv.style.display = 'flex';
+                diagramDiv.style.justifyContent = 'center';
                 diagramDiv.textContent = text;
 
                 // Replace the <pre><code> with the new div
