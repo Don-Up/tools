@@ -77,7 +77,7 @@
 
         .container {
             max-width: 800px;
-            margin-left: 200px;
+            margin-left: 150px;
             position: relative;
             flex-direction: column;
             background: #2b2b2b; /* rgba(18, 18, 18, 1) 背景色为 #121212，#2f363d 透明度为 0.7 */
@@ -86,9 +86,9 @@
 
         .dialog {
             position: absolute;
-            left: 1020px;
+            left: 970px;
             top: 80px;
-            width: 600px;
+            width: 650px;
             max-height: 90vh;
             overflow-y: auto
         }
@@ -1124,9 +1124,7 @@
         codeBlocks.forEach((block, index) => {
             const text = block.textContent.trim();
             // Check if the content looks like a Mermaid diagram
-            console.log(text)
             if (text.startsWith('flowchart') || text.startsWith('graph') || text.startsWith('sequenceDiagram') || text.startsWith('classDiagram')) {
-                console.log('Mermaid diagram detected')
                 // Create a div to hold the rendered diagram
                 const diagramDiv = document.createElement('div');
                 diagramDiv.id = `mermaid-diagram-${index}`;
