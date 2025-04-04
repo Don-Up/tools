@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document & TTS</title>
+    <style>
+        .text-block {
+            margin-bottom: 10px;
+            margin-top: 20px;
+            cursor: pointer;
+            font-size: 18px;
+            font-family: "Corbel", 'Segoe UI', Tahoma, Verdana, sans-serif;
+            color: #dfe1e5;
+            font-weight: normal;
+        }
+
+        .code-span {
+            color: lightskyblue !important;
+        }
+
+        li {
+            cursor: pointer;
+            font-size: 18px;
+            font-family: "Corbel", 'Segoe UI', Tahoma, Verdana, sans-serif;
+            color: #dfe1e5;
+            font-weight: normal;
+        }
+
+        button {
+            background-color: #1e88e5;
+            color: white;
+            border: none;
+            padding: 10px 12px;
+            cursor: pointer;
+            border-radius: 2px;
+        }
+
+        button:hover {
+            background-color: #1565c0;
+        }
+
+        blockquote {
+            margin: 10px 0;
+            padding-left: 15px;
+            border-left: 3px solid #1e88e5;
+            color: #b0b0b0;
+            background: #2f363d;
+            padding: 5px 10px;
+            font-size: 14px;
+            font-family: "Corbel", 'Segoe UI', Tahoma, Verdana, sans-serif;
+        }
+
+        select {
+            width: 145px
+        }
+
+        input {
+            width: 50px
+        }
+
+        select, input {
+            padding: 10px;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            border: 1px solid #333;
+        }
+
+        #rateSlider {
+            width: 80px;
+            vertical-align: middle;
+        }
+
+        #rateValue {
+            color: #e0e0e0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin-left: 200px;
+            position: relative;
+            flex-direction: column;
+            background: #2b2b2b; /* rgba(18, 18, 18, 1) 背景色为 #121212，#2f363d 透明度为 0.7 */
+            backdrop-filter: blur(0px);
+        }
+
+        .dialog {
+            position: absolute;left: 1020px;top: 80px;max-height: 90vh;overflow-y: auto
+        }
+
+        #content {
+
+        }
+
+        #wrapper {
+            overflow: auto;
+            height: 100vh;
+        }
+
+        .controls {
+            /* 设置controls为fixed以使其固定在页面顶部 */
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background-color: #212121;
+            padding: 10px 0;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            height: 60px;
+            margin: 0; /* 移除外边距 */
+            overscroll-behavior-x: auto;
+            overflow-x: auto; /* 启用水平滚动 */
+            white-space: nowrap; /* 防止子元素换行 */
+        }
+
+        /* Webkit-based browsers (Chrome, Safari, Edge) */
+        #wrapper::-webkit-scrollbar,
+        select::-webkit-scrollbar {
+            width: 8px; /* Width of the scrollbar */
+        }
+
+        #wrapper::-webkit-scrollbar-track,
+        select::-webkit-scrollbar-track {
+            background: #555; /* Color of the scrollbar track */
+        }
+
+        #wrapper::-webkit-scrollbar-thumb,
+        select::-webkit-scrollbar-thumb {
+            background: #888; /* Color of the scrollbar thumb */
+            border-radius: 4px; /* Rounded corners for the scrollbar thumb */
+        }
+
+        #wrapper::-webkit-scrollbar-thumb:hover,
+        select::-webkit-scrollbar-thumb:hover {
+            background: #aaa; /* Color of the scrollbar thumb on hover */
+        }
+
+        /* Firefox */
+        #wrapper,
+        select {
+            scrollbar-width: thin; /* Thickness of the scrollbar */
+            scrollbar-color: #888 #555; /* Color of the scrollbar thumb and track */
+        }
+
+
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: Arial, sans-serif;
+            /* 添加padding-top以避免内容被固定的controls遮挡 */
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+        }
+
+        textarea {
+            width: 90%;
+            height: 150px;
+            padding: 10px;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            border: 1px solid #333;
+            margin: 95px auto 0;
+        }
+
+        .preposition {
+            color: greenyellow; /* 设置介词为绿色 */
+            font-weight: normal;
+        }
+
+        .relative-pronoun {
+            color: #00BFFF; /* 关系代词为明亮的蓝色 */
+            font-weight: normal;
+        }
+
+        .adverb {
+            /*color: #FF69B4; !* 副词为粉色 *!*/
+            color: lightsalmon;
+            font-style: italic;
+        }
+
+        .conjunction {
+            color: #808080; /* 连词为淡蓝色 */
+            font-weight: normal;
+        }
+
+        .article {
+            color: #808080; /* 冠词为灰色 */
+            font-weight: normal;
+        }
+
+        .be-verb, .auxiliary-verb {
+            color: #808080; /* be 动词和助动词为灰色 */
+            font-weight: normal;
+        }
+
+        .ing-word {
+            color: #fff; /* 以 ing 结尾的单词为黄色 */
+        }
+
+        h3 {
+            font-size: 20px;
+            border-bottom: #00BFFF 1px solid;
+            padding-bottom: 10px;
+        }
+
+        hr {
+            border: 1px solid grey;
+        }
+
+        .confirm-btn {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            margin-left: auto;
+            margin-right: auto;
+            display: block;
+            width: 100px;
+        }
+
+        .background-image {
+            position: fixed; /* 固定定位 */
+            top: 0;
+            left: 0;
+            width: 100vw; /* 覆盖整个视口宽度 */
+            height: 100vh; /* 覆盖整个视口高度 */
+            background-image: url('img/bg.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            z-index: -1; /* 置于底层 */
+            /* 模糊度, 默认不模糊*/
+            filter: blur(0px);
+        }
+
+        .background-video {
+            position: fixed; /* 固定定位 */
+            top: 0;
+            left: 0;
+            width: 100vw; /* 覆盖整个视口宽度 */
+            z-index: -1; /* 置于底层 */
+            /* 模糊度, 默认不模糊*/
+            filter: blur(0px);
+        }
+
+        pre {
+            background: #1e1e1e;
+            padding: 0px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+
+        code {
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* 遮罩层（背景半透明） */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none; /* 初始隐藏 */
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 弹窗主体 */
+        .modal {
+            background: darkslategrey;
+            padding: 5px;
+            border-radius: 4px;
+            width: 60vw;
+            height: 60vh;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 关闭按钮 */
+        .close-btn {
+            background: red;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin-top: 10px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+    </style>
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <!--    <video autoplay loop muted playsinline class="background-video">-->
+    <!--        <source src="mp4/bg.mp4" type="video/mp4">-->
+    <!--        Your browser does not support the video tag.-->
+    <!--    </video>-->
+    <!--    <div class="background-image"></div>-->
+
+
+    <div class="controls" id="toggleElement">
+        <button id="insertBtn" onclick="insertText()" style="display: none">Insert</button>
+        <button onclick="openModal()">Open</button>
+        <select id="voiceSelect"></select>
+        <input id="repeatCount" type="number" min="1" value="1" placeholder="count">
+        <button id="fullscreenBtn" style="width: 60px">Full</button>
+        <span style="margin-left: 10px;">Speed</span>
+        <input id="rateSlider" type="range" min="0.5" max="2" step="0.05" value="1.00" title="语速">
+        <span id="rateValue">1.00</span>
+        <span style="display: block">Opacity</span>
+        <input type="range" id="opacity-slider" min="0" max="1" step="0.01" value="1"
+               style="width: 40px;display: block">
+        <!-- 控制背景模糊度的滑块 -->
+        <span>Blur</span>
+        <div>
+            <input type="range" id="blur-slider" min="0" max="10" step="0.1" value="0" style="width: 40px;">
+            <input type="range" id="blur-slider1" min="0" max="20" step="1" value="0" style="width: 40px;">
+        </div>
+        <!-- a select used to change font weight of text-block -->
+        <select id="font-weight-select" style="width: 60px" aria-label="select">
+            <option value="lighter">Lighter</option>
+            <option value="normal">Normal</option>
+            <option value="bold">Bold</option>
+        </select>
+        <!-- a select used to change font family -->
+        <select id="font-family-select" style="width: 60px" aria-label="select">
+            <option value="Corbel">Corbel</option>
+            <option value="Consolas">Consolas</option>
+            <option value="Inter">Inter</option>
+            <option value="Georgia">Georgia</option>
+            <option value="Lucida Sans">Lucida Sans</option>
+            <option value="Roboto">Roboto</option>
+            <option value="Droid Sans Mono">Droid Sans Mono</option>
+            <option value="DuBai">DuBai</option>
+            <option value="Arial">Arial</option>
+            <option value="Microsoft YaHei">Microsoft YaHei</option>
+            <option value="SimSun">SimSun</option>
+            <option value="SimHei">SimHei</option>
+            <option value="Lucida Fax">Lucida Fax</option>
+        </select>
+        <switch id="fullscreenToggle">
+            <input type="checkbox" id="autoPlayCheckbox">
+            <label for="autoPlayCheckbox" style="margin-left: -20px;" id="autoPlayLabel">Auto Play</label>
+        </switch>
+        <div style="display: flex;flex-direction: column">
+            <switch id="fullscreenToggle" style="margin-left: -20px;">
+                <input type="checkbox" id="ecCheckBox">
+                <label for="ecCheckBox" style="margin-left: -20px;" id="ecLabel">EC</label>
+            </switch>
+            <switch id="fullscreenToggle" style="margin-left: -20px;">
+                <input type="checkbox" id="eceCheckBox">
+                <label for="eceCheckBox" style="margin-left: -20px;" id="eceLabel">ECE</label>
+            </switch>
+        </div>
+        <div style="display: flex;flex-direction: column">
+            <switch id="fullscreenToggle" style="margin-left: -20px;">
+                <input type="checkbox" id="handleEven">
+                <label for="handleEven" style="margin-left: -20px;" id="handleEvenCheckBox">E</label>
+            </switch>
+            <switch id="fullscreenToggle" style="margin-left: -20px;">
+                <input type="checkbox" id="cbHighlight" checked>
+                <label for="cbHighlight" style="margin-left: -20px;" id="handleHighlight">H</label>
+            </switch>
+        </div>
+        <button onclick="stopText()">Stop</button>
+        <button id="btnAutoScroll">Start Scroll</button>
+        <input type="range" id="scroll-speed" min="1" max="40" step="1" value="1" style="width: 80px">
+        <input type="file" id="imageInput" accept="image/*" style="display: none;">
+        <button id="selectImage" class="btnCopy">Select Bg</button>
+    </div>
+    <div class="container">
+        <div id="content"></div>
+        <!-- 遮罩层 -->
+        <div class="modal-overlay" id="modalOverlay">
+            <div class="modal">
+                <!-- 显示子网页: https://don-up.github.io/tools/md/ -->
+                <iframe id="iframe" style="width: 100%; height: 100%; border: none;"></iframe>
+                <button class="close-btn" onclick="closeModal()">Close</button>
+            </div>
+        </div>
+    </div>
+    <!--  对话框  -->
+    <div class="dialog" id="dialog">
+    </div>
+</div>
+
+<img id="imgBg" src="img/bg.png" alt="background"
+     style="object-fit: cover;position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;">
+
+<script>
+    const preList = []
+    let isPlaying = false;
+    let voices = [];
+    let currentSpeaker = localStorage.getItem("currentSpeaker") || "Microsoft Andrew Online (Natural) - English (United States)";
+    let currentVoice = null;
+    let currentFont = localStorage.getItem("currentFont") || "Corbel";
+    let bookName = null
+    const dialog = document.getElementById("dialog")
+
+    const imgBg = document.getElementById("imgBg");
+
+    // Load image from local storage if it exists
+    const savedBase64Image = localStorage.getItem('base64Image');
+    if (savedBase64Image) {
+        imgBg.src = savedBase64Image;
+    }
+
+    document.getElementById("imageInput").addEventListener("change", function (event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                imgBg.src = e.target.result;
+                // Save the Base64 string to local storage
+                localStorage.setItem('base64Image', e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    document.getElementById("selectImage").addEventListener("click", function () {
+        document.getElementById("imageInput").click();
+    });
+
+
+    // let hostName = window.location.hostname;
+    const autoPlay = document.getElementById("autoPlayCheckbox")
+    autoPlay.checked = localStorage.getItem("autoPlay") === "true";
+    autoPlay.addEventListener("change", function () {
+        localStorage.setItem("autoPlay", autoPlay.checked);
+    });
+
+    let screenWidth = window.innerWidth;
+    if (screenWidth < 1400) {
+        // document.querySelector(".controls").style.gap = "10px";
+        document.querySelectorAll("button").forEach((button) => {
+            button.style.padding = "5px 10px";
+        })
+    }
+
+    // 打开弹窗
+    function openModal() {
+        document.getElementById("modalOverlay").style.display = "flex";
+    }
+
+    // 关闭弹窗
+    function closeModal() {
+        document.getElementById("modalOverlay").style.display = "none";
+    }
+
+    // 点击遮罩层关闭弹窗
+    document.getElementById("modalOverlay").addEventListener("click", function (event) {
+        if (event.target === this) {
+            closeModal();
+        }
+    });
+
+    const contentWrapper = document.getElementById("wrapper");
+    let scrollTop = 0
+    // 监听页面滚动事件, 并记录当前最新滑动到的位置
+    contentWrapper.addEventListener("scroll", function () {
+        // 获取滚动的垂直位置
+        scrollTop = contentWrapper.scrollTop;
+    });
+
+    // 在页面退出或刷新前将scrollTop保存到LocalStorage中
+    window.addEventListener("beforeunload", function () {
+        if (bookName) {
+            localStorage.setItem(bookName, scrollTop);
+        }
+    });
+
+    function loadIframe() {
+        let iframe = document.getElementById("iframe");
+        let url = "https://don-up.github.io/tools/md/"; // 你的网页地址
+        iframe.src = url + "?t=" + new Date().getTime(); // 添加时间戳
+    }
+
+    loadIframe(); // 初次加载
+
+
+    // 监听 iframe 发送的消息
+    window.addEventListener("message", function (event) {
+        if (event.origin === "https://don-up.github.io" && !event.data.source) {  // 确保来源正确
+            bookName = event.data;
+            // 关闭弹窗
+            closeModal();
+            getClipboardText().then(text => {
+                if (text) {
+                    processText(text);
+                    highlightWords(rootElement);
+                    document.querySelectorAll(".text-block").forEach(textBlock => {
+                        textBlock.style.fontFamily = currentFont;
+                    });
+                    for (let element of document.getElementsByTagName("blockquote")) {
+                        element.style.fontFamily = currentFont;
+                    }
+                    // 检查LocalStorage中是否有key为bookName, 如果有, 则获取值(滚动位置), 并将contentWrapper滚动到指定位置
+                    if (localStorage.getItem(bookName)) {
+                        const savedScrollTop = localStorage.getItem(bookName);
+                        contentWrapper.scrollTo({
+                            top: savedScrollTop,
+                            behavior: "instant"
+                        });
+                    } else {
+                        contentWrapper.scrollTo({
+                            top: 0,
+                            behavior: "smooth"
+                        });
+                    }
+                } else {
+                    console.log("No clipboard text retrieved.");
+                }
+            });
+        }
+    });
+
+
+    const slideBlur = document.getElementById("blur-slider")
+    const currentBlur = localStorage.getItem("blurValue") || 0
+    slideBlur.value = currentBlur;
+    imgBg.style.filter = `blur(${currentBlur}px)`;
+    slideBlur.addEventListener("input", function () {
+        const blurValue = this.value;
+        imgBg.style.filter = `blur(${blurValue}px)`;
+        localStorage.setItem("blurValue", blurValue);
+        // if (document.querySelector(".background-image") !== null) {
+        //     document.querySelector(".background-image").style.filter = `blur(${blurValue}px)`;
+        // }
+        // if (document.querySelector(".background-video") !== null) {
+        //     document.querySelector(".background-video").style.filter = `blur(${blurValue}px)`;
+        // }
+    });
+
+    document.getElementById("font-weight-select").value = "normal";
+    document.getElementById("font-weight-select").addEventListener("change", function () {
+        document.querySelectorAll(".text-block").forEach(textBlock => {
+            textBlock.style.fontWeight = this.value;
+        });
+    });
+
+    let scrollAnimationId = null
+
+    let scrollSpeed = 1;
+
+    document.getElementById("scroll-speed").addEventListener("input", function () {
+        scrollSpeed = this.value;
+    });
+
+    function startScroll() {
+        if (document.getElementById("btnAutoScroll").textContent === "Stop Scroll") {
+            cancelAnimationFrame(scrollAnimationId);
+            document.getElementById("btnAutoScroll").textContent = "Start Scroll";
+        } else {
+            document.getElementById("btnAutoScroll").textContent = "Stop Scroll";
+
+            if (!contentWrapper) {
+                console.error("Container element not found.");
+                return;
+            }
+
+            const scrollHeight = contentWrapper.scrollHeight;
+            const clientHeight = contentWrapper.clientHeight;
+
+            // Ensure the container is scrollable
+            if (scrollHeight <= clientHeight) {
+                console.log("Container is not scrollable.");
+                return;
+            }
+
+            let scrollTop = contentWrapper.scrollTop; // Capture the current scrollTop position
+
+            function scrollStep() {
+                if (scrollTop < scrollHeight - clientHeight) {
+                    scrollTop += 0.01 * scrollSpeed; // Increment scrollTop by a small amount to simulate scrolling
+                    contentWrapper.scrollTop = scrollTop;
+                    scrollAnimationId = requestAnimationFrame(scrollStep);
+                } else {
+                    contentWrapper.scrollTop = scrollHeight - clientHeight; // Ensure it stays at the bottom
+                    cancelAnimationFrame(scrollAnimationId); // Stop the animation
+                    document.getElementById("btnAutoScroll").textContent = "Start Scroll"; // Change button text
+                }
+            }
+
+            scrollAnimationId = requestAnimationFrame(scrollStep);
+        }
+    }
+
+    document.getElementById("btnAutoScroll").addEventListener("click", startScroll);
+
+
+    const selectFontFamily = document.getElementById("font-family-select");
+    selectFontFamily.value = currentFont
+    selectFontFamily.addEventListener("change", function () {
+        currentFont = this.value;
+        localStorage.setItem("currentFont", this.value);
+        document.querySelectorAll(".text-block").forEach(textBlock => {
+            textBlock.style.fontFamily = this.value;
+        });
+        document.querySelectorAll("li").forEach(textBlock => {
+            textBlock.style.fontFamily = this.value;
+        });
+        for (let element of document.getElementsByTagName("blockquote")) {
+            element.style.fontFamily = this.value;
+        }
+    });
+
+    // Listen to the rate slider changes
+    const rateSlider = document.getElementById("rateSlider");
+    const rateValue = document.getElementById("rateValue");
+    const rate = localStorage.getItem("rateValue") || 1.00
+    rateValue.textContent = rate;
+    rateSlider.value = rate;
+
+    rateSlider.addEventListener("input", function () {
+        rateValue.textContent = Number(this.value).toFixed(2);
+        localStorage.setItem("rateValue", rateValue.textContent);
+    });
+
+    let inLeft = false
+    const fullscreenBtn = document.getElementById("fullscreenBtn");
+    fullscreenBtn.addEventListener("click", function () {
+        if(!inLeft){
+            container.style.marginLeft = "0px"
+            inLeft = true
+        } else {
+            container.style.margin = "auto"
+            inLeft = false
+        }
+        // if (!document.fullscreenElement) {
+        //     document.documentElement.requestFullscreen();
+        //     fullscreenBtn.textContent = "Exit";
+        // } else {
+        //     document.exitFullscreen();
+        //     fullscreenBtn.textContent = "Full";
+        // }
+    });
+
+    const toggleElement = document.getElementById("toggleElement");
+    let show = true;
+    document.addEventListener("keydown", function (event) {
+        if (event.key === "ArrowLeft") {
+            event.preventDefault();
+            if (show) {
+                toggleElement.style.display = "none";
+                show = false;
+            } else {
+                toggleElement.style.display = "flex";
+                show = true;
+            }
+        } else if (event.key === "ArrowRight") {
+            // Usage
+            getClipboardText().then(text => {
+                if (text) {
+                    processText(text);
+                    highlightWords(rootElement);
+                    document.querySelectorAll(".text-block").forEach(textBlock => {
+                        textBlock.style.fontFamily = currentFont;
+                    });
+                    document.querySelectorAll("li").forEach(textBlock => {
+                        textBlock.style.fontFamily = currentFont;
+                    });
+                    for (let element of document.getElementsByTagName("blockquote")) {
+                        element.style.fontFamily = currentFont;
+                    }
+                    contentWrapper.scrollTo({
+                        top: 0,
+                        behavior: "instant"
+                    });
+                } else {
+                    console.log("No clipboard text retrieved.");
+                }
+            });
+        } else if (event.key === "ArrowDown") {
+            event.preventDefault()
+            stopText();
+            if (autoPlay.checked) {
+                if (document.getElementById("btnAutoScroll").textContent === "Stop Scroll") {
+                    cancelAnimationFrame(scrollAnimationId);
+                    document.getElementById("btnAutoScroll").textContent = "Start Scroll";
+                }
+            }
+        } else if (event.key === "ArrowUp") {
+            event.preventDefault()
+            startScroll()
+        } else if (event.key === "0") {
+            // Toggle between dynamic and static backgrounds
+            // if (document.querySelector(".background-video").style.display !== "none") {
+            //     document.querySelector(".background-video").style.display = "none";
+            //     // Pause the video
+            //     document.querySelector(".background-video").pause();
+            // } else {
+            //     document.querySelector(".background-video").style.display = "block";
+            //     document.querySelector(".background-video").play();
+            // }
+        } else if (event.key === "1") {
+            const texts = document.querySelectorAll(".text-block")
+            // Ensure the text-block is positioned relative so the mask can be positioned absolutely within it
+            texts.forEach(text => {
+                if (text.style.color !== "transparent") {
+                    text.style.color = "transparent";
+                } else {
+                    text.style.color = "#dfe1e5";
+                }
+            });
+        }
+    });
+
+    function populateVoices() {
+        voices = speechSynthesis.getVoices();
+        const voiceSelect = document.getElementById("voiceSelect");
+        voiceSelect.value = currentSpeaker;
+        voiceSelect.addEventListener("change", function () {
+            currentSpeaker = this.value;
+            localStorage.setItem("currentSpeaker", this.value);
+            currentVoice = voices.find(voice => voice.name === this.value);
+        });
+        voiceSelect.innerHTML = "";
+        voices.forEach(voice => {
+            if (voice.lang.startsWith("en") || voice.lang.startsWith("zh")) {
+                const option = document.createElement("option");
+                option.textContent = `${voice.name} - ${voice.lang}`;
+                option.value = voice.name;
+                if (voice.name === currentSpeaker) {
+                    option.selected = true;
+                    currentVoice = voice;
+                }
+                voiceSelect.appendChild(option);
+            }
+        });
+    }
+
+    speechSynthesis.onvoiceschanged = populateVoices;
+
+    // Define lists and regular expressions for word highlighting
+    const prepositions = [
+        "at", "in", "on", "under", "above", "below", "beside", "between", "among",
+        "to", "from", "into", "out of", "toward", "towards", "through", "across",
+        "for", "since", "during", "until", "till", "because of", "due to", "with",
+        "without", "of", "about", "against", "as", "like", "despite", "except", "upon", "onto", "near", "over",
+        "within"
+    ];
+    const relativePronouns = ["which", "that", "who", "whom", "whose", "where", "what"];
+    const adverbRegex = /\b\w+ly\b/gi;
+    const conjunctions = [
+        "and", "or", "but", "so", "for", "yet", "nor", "because", "although", "if",
+        "when", "while", "since", "unless", "until", "though", "even though", "as",
+        "as if", "as though", "whereas", "wherever", "whether", "after", "before",
+        "once", "provided that", "so that", "in order that", "now that", "rather than"
+    ];
+    const articles = ["a", "an", "the", "this", "these", "those", "than", "even", "still"];
+    const beVerbs = ["am", "is", "are", "was", "were", "be", "being", "been"];
+    const auxiliaryVerbs = ["do", "does", "did", "have", "has", "had", "will", "would", "shall",
+        "should", "can", "could", "may", "might", "must", "hadn't", "haven't", "hasn't", "shouldn't",
+        "wouldn't", "didn't", "can't", "doesn't", "don't"];
+    const ingWordRegex = /\b\w+ing\b/gi;
+    const prepositionRegex = new RegExp(`\\b(${prepositions.join("|")})\\b`, "gi");
+    const relativePronounRegex = new RegExp(`\\b(${relativePronouns.join("|")})\\b`, "gi");
+    const conjunctionRegex = new RegExp(`\\b(${conjunctions.join("|")})\\b`, "gi");
+    const articleRegex = new RegExp(`\\b(${articles.join("|")})\\b`, "g");
+    const beVerbRegex = new RegExp(`\\b(${beVerbs.join("|")})\\b`, "gi");
+    const auxiliaryVerbRegex = new RegExp(`\\b(${auxiliaryVerbs.join("|")})\\b`, "gi");
+
+    const cbHighlight = document.getElementById("cbHighlight")
+    cbHighlight.checked = localStorage.getItem("cbHighlight") === "true";
+    cbHighlight.addEventListener("change", function () {
+        localStorage.setItem("cbHighlight", this.checked);
+    });
+
+    // Function to highlight specific words within a node
+    function highlightWords(node) {
+        if (!cbHighlight.checked) return
+        if (node.nodeType === Node.TEXT_NODE) {
+            let text = node.nodeValue;
+            text = text.replace(prepositionRegex, "<span class=\"preposition\">$1</span>");
+            text = text.replace(relativePronounRegex, "<span class=\"relative-pronoun\">$1</span>");
+            text = text.replace(adverbRegex, "<span class=\"adverb\">$&</span>");
+            text = text.replace(conjunctionRegex, "<span class=\"conjunction\">$1</span>");
+            text = text.replace(articleRegex, "<span class=\"article\">$1</span>");
+            text = text.replace(beVerbRegex, "<span class=\"be-verb\">$1</span>");
+            text = text.replace(auxiliaryVerbRegex, "<span class=\"auxiliary-verb\">$1</span>");
+            text = text.replace(ingWordRegex, "<span class=\"ing-word\">$&</span>");
+            if (text !== node.nodeValue) {
+                const span = document.createElement("span");
+                span.innerHTML = text;
+                node.replaceWith(span);
+            }
+        } else if (node.nodeType === Node.ELEMENT_NODE && node.tagName !== "SCRIPT" && node.tagName !== "STYLE") {
+            Array.from(node.childNodes).forEach(highlightWords);
+        }
+    }
+
+    const rootElement = document.getElementById("content");
+
+    // if (localStorage.getItem("text")) {
+    //     processText(localStorage.getItem("text"));
+    //     highlightWords(rootElement);
+    //     document.querySelectorAll(".text-block").forEach(textBlock => {
+    //         textBlock.style.fontFamily = currentFont;
+    //     });
+    //     document.querySelectorAll("li").forEach(textBlock => {
+    //         textBlock.style.fontFamily = currentFont;
+    //     });
+    //     for (let element of document.getElementsByTagName("blockquote")) {
+    //         element.style.fontFamily = currentFont;
+    //     }
+    //     contentWrapper.scrollTo({
+    //         top: 0,
+    //         behavior: "instant"
+    //     });
+    // }
+
+    function insertText() {
+        preList.length = 0;
+        // 移除所有子元素
+        dialog.innerHTML = "";
+        const input = document.createElement("textarea");
+        input.placeholder = "Please enter text...";
+        input.style.display = "block";
+        document.body.appendChild(input);
+        input.focus();
+
+        // 监听粘贴事件, 一旦粘贴, 自动触发确认按钮
+        input.addEventListener("paste", function (event) {
+            setTimeout(() => {
+                confirmBtn.click();
+            }, 500);
+        });
+
+        const confirmBtn = document.createElement("button");
+        confirmBtn.textContent = "Confirm";
+        confirmBtn.classList.add("confirm-btn");
+
+        confirmBtn.onclick = () => {
+            if (input.value.trim() === "") return;
+            // localStorage.setItem("text", input.value);
+            processText(input.value);
+            document.body.removeChild(input);
+            document.body.removeChild(confirmBtn);
+            highlightWords(rootElement);
+            document.querySelectorAll(".text-block").forEach(textBlock => {
+                textBlock.style.fontFamily = currentFont;
+            });
+            document.querySelectorAll("li").forEach(textBlock => {
+                textBlock.style.fontFamily = currentFont;
+            });
+            for (let element of document.getElementsByTagName("blockquote")) {
+                element.style.fontFamily = currentFont;
+            }
+            contentWrapper.scrollTo({
+                top: 0,
+                behavior: "instant"
+            });
+        };
+        document.body.appendChild(confirmBtn);
+    }
+
+    function escapeMarkdownHTML(markdown) {
+        return markdown.replace(/(`[^`]*`)|[<>]/g, (match, codeBlock) => {
+            if (codeBlock) {
+                return codeBlock; // 保持代码块不变
+            }
+            return match === '<' ? '&lt;' : '&gt;'; // 转义 < 和 >
+        });
+    }
+
+    function markdownTableToHTML(markdown) {
+        // Split the markdown into lines and trim whitespace
+        const lines = markdown.trim().split('\n').map(line => line.trim());
+
+        // Extract headers from the first line
+        const headers = lines[0].split('|')
+            .map(cell => cell.trim())
+            .filter(cell => cell !== '');
+
+        // Skip the separator line (second line)
+        // Process the data rows (starting from line 2)
+        const rows = lines.slice(2).map(line =>
+            line.split('|')
+                .map(cell => cell.trim())
+                .filter(cell => cell !== '')
+        );
+
+        // Create HTML table
+        let html = '<table border="1" style="border-collapse: collapse; width: 100%;">\n';
+
+        // Add header row
+        html += '  <thead>\n    <tr>\n';
+        headers.forEach(header => {
+            html += `      <th style="padding: 8px; text-align: left;">${header}</th>\n`;
+        });
+        html += '    </tr>\n  </thead>\n';
+
+        // Add body rows
+        html += '  <tbody>\n';
+        rows.forEach(row => {
+            html += '    <tr>\n';
+            row.forEach(cell => {
+                html += `      <td style="padding: 8px;">${cell}</td>\n`;
+            });
+            html += '    </tr>\n';
+        });
+        html += '  </tbody>\n';
+        html += '</table>';
+
+        return html;
+    }
+
+    function processText(input) {
+        const contentDiv = document.getElementById("content");
+        contentDiv.innerHTML = "";
+
+        const lines = input.split("\n");
+        let isInCodeBlock = false;
+        let codeLines = [];
+        let codeLang = "";
+        let isInList = false;
+        let list = []
+        let table = []
+        let isInTable = false
+
+        const handleEven = document.getElementById("handleEven")
+
+        lines.forEach((line, index) => {
+            if (handleEven.checked) {
+                if (index % 2 === 1) {
+                    line = "> " + line.replace(/[“”]/g, "")
+                } else {
+                    line = line.replace(/[“”]/g, "\"")
+                }
+            }
+
+            if (line.toString().trim().startsWith("|") && line.toString().trim().endsWith("|")) {
+                // 将所有**xx**替换为<b>xx</b>
+                line = line.toString().trim().replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
+                // 将所有`xx`替换为<span class="code-span">xx</span>
+                line = line.toString().trim().replace(/`(.*?)`/g, "<span class=\"code-span\">$1</span>")
+                table.push(line)
+                isInTable = true
+                return
+            }
+
+            if (isInTable) {
+                const div = document.createElement("div");
+                div.innerHTML = markdownTableToHTML(table.join("\n"))
+                contentDiv.append(div)
+                isInTable = false
+                table = []
+            }
+
+            if (isInList) {
+                const ul = document.createElement("ul");
+                const originalTextList = []
+                list.forEach(item => {
+                    const li = document.createElement("li");
+                    li.innerHTML = item;
+                    li.dataset.originalText = li.textContent
+                    originalTextList.push(li.textContent + (li.textContent.trim().endsWith(".") ? "" : ". "))
+                    li.onclick = function () {
+                        if (event.ctrlKey) {
+                            if (!textBlock.innerHTML.startsWith("👀")) {
+                                textBlock.innerHTML = "👀" + textBlock.innerHTML;
+                            } else {
+                                textBlock.innerHTML = textBlock.innerHTML.replace("👀", "");
+                            }
+                        } else {
+                            playText(li.textContent, this);
+                        }
+                    }
+                    ul.dataset.originalText = originalTextList.join("\n")
+                    ul.appendChild(li)
+                })
+                contentDiv.appendChild(ul)
+                list = []
+                isInList = false
+                if (index === lines.length - 1) return
+            }
+
+            if (line.toString().trim() === "```" && isInCodeBlock) {
+                isInCodeBlock = false;
+                const pre = document.createElement("pre");
+                const code = document.createElement("code");
+                code.className = `language-${codeLang}`;
+                code.textContent = codeLines.join("\n");
+                pre.appendChild(code);
+                preList.push(pre)
+                contentDiv.appendChild(pre);
+                hljs.highlightElement(code);
+                return;
+            }
+
+            const codeBlockStart = line.toString().trim().match(/^```(\w*)/);
+            if (codeBlockStart) {
+                if (isInCodeBlock) {
+                    return;
+                }
+                isInCodeBlock = true;
+                codeLang = codeBlockStart[1] || "plaintext";
+                codeLines = [];
+                return;
+            }
+
+            if (isInCodeBlock) {
+                codeLines.push(line);
+                return;
+            }
+
+            line = line.trim()
+                .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+                .replace(/`(.*?)`/g, "<span class=\"code-span\">$1</span>")
+                .replace(/[’]/g, "'");
+
+            if (line.startsWith("---")) {
+                const hr = document.createElement("hr");
+                contentDiv.appendChild(hr);
+                return;
+            }
+
+            if (line.startsWith("> ")) {
+                const quote = document.createElement("blockquote");
+                quote.innerHTML = line.substring(2);
+                quote.style.cursor = "pointer";
+                quote.dataset.originalText = line;
+                quote.onclick = function () {
+                    playText(this.dataset.originalText, this);
+                }
+                contentDiv.appendChild(quote);
+                return;
+            }
+
+            const headingMatch = line.match(/^(#{1,5})\s+(.*)/);
+            if (headingMatch) {
+                const level = headingMatch[1].length;
+                let text = headingMatch[2];
+                const heading = document.createElement(`h${level}`);
+                heading.style.cursor = "pointer";
+                heading.dataset.originalText = line + (line.trim().endsWith(".") ? "" : ". ");
+                heading.onclick = function () {
+                    playText(this.dataset.originalText, this);
+                }
+                // text = text.replace(/(`+)(.*?)\1/g, (match, p1, p2) => {
+                //     return `<span class="code-span">${p2}</span>`;
+                // })
+                heading.innerHTML = text;
+                contentDiv.appendChild(heading);
+                return;
+            }
+
+
+            if (line.startsWith("- ")) {
+                isInList = true;
+                line = line.replace(/-/g, "");
+                list.push(line)
+                console.log(list)
+                if (index !== lines.length - 1) return
+            }
+
+            // 将line中, 将所有的<替换为$lt;, 将所有>替换为$gt, 最后将所有包含``的部分全都替换为<code></code>;
+            // line = line.replace(/<|>/g, (match) => {
+            //     if (match === '<') {
+            //         return '&lt;';
+            //     } else {
+            //         return '&gt;';
+            //     }
+            // })
+            //     .replace(/(`+)(.*?)\1/g, (match, p1, p2) => {
+            //     return `<span style="color: lightskyblue">${p2}</span>`;
+            // })
+
+
+            // if (isInCodeBlock) {
+            //     const pre = document.createElement("pre");
+            //     pre.textContent = "```" + (codeLang ? codeLang : "") + "\n" + codeLines.join("\n");
+            //     contentDiv.appendChild(pre);
+            // }
+
+            const textBlock = document.createElement("div");
+            textBlock.classList.add("text-block");
+            textBlock.dataset.originalText = line;
+            if (line.trim() !== "" && !textBlock.dataset.originalText.trim().endsWith(".")) {
+                textBlock.dataset.originalText += ". ";
+            }
+            textBlock.onclick = function () {
+                if (event.ctrlKey) {
+                    if (!textBlock.innerHTML.startsWith("👀")) {
+                        textBlock.innerHTML = "👀" + textBlock.innerHTML;
+                    } else {
+                        textBlock.innerHTML = textBlock.innerHTML.replace("👀", "");
+                    }
+                } else {
+                    playText(this.dataset.originalText, this);
+                }
+            }
+            textBlock.innerHTML = line;
+            contentDiv.appendChild(textBlock);
+
+        });
+        preList.forEach(pre => {
+            dialog.appendChild(pre)
+        })
+        contentDiv.style.padding = "70px 20px 20px";
+        contentWrapper?.scrollIntoView({behavior: "smooth"});
+    }
+
+    const eceCheckBox = document.getElementById("eceCheckBox")
+    const ecCheckBox = document.getElementById("ecCheckBox")
+
+    // Modified playText function for interleaved sentence repetition.
+    function playText(originalText, clickedElement) {
+        // 判断ALT键是否处于按下状态, 如果是则取消播放。
+        if (event.altKey) {
+            isPlaying = false;
+            return;
+        }
+
+        if (isPlaying) {
+            speechSynthesis.cancel();
+        }
+        isPlaying = true;
+
+        console.log(originalText)
+        // 将所有<b>XX</b>替换为XX
+        originalText = originalText.replace(/<b>(.*?)<\/b>/g, '$1');
+        // 将所有的<span class="code-span">XX</span>替换为XX
+        originalText = originalText.replace(/<span class="code-span">(.*?)<\/span>/g, '$1');
+
+        // Gather individual sentences from the clicked element and its subsequent siblings.
+        let sentences = [];
+        if (originalText && originalText.trim()) {
+            sentences.push(originalText.trim());
+        }
+        const autoPlayEnabled = autoPlay.checked;
+        if (autoPlayEnabled && clickedElement) {
+            let next = clickedElement.nextElementSibling;
+            while (next) {
+                if (next.dataset && next.dataset.originalText) {
+                    const txt = next.dataset.originalText.trim();
+                    if (txt) sentences.push(txt);
+                }
+                next = next.nextElementSibling;
+            }
+        }
+
+        // Build the final text by interleaving the sentences.
+        const repeatCount = Math.max(1, parseInt(document.getElementById("repeatCount").value));
+        let finalText = ''; // Ensure finalText is initialized
+
+        if (autoPlayEnabled) {//filter(sentence => !sentence.startsWith(">")).
+            if (ecCheckBox.checked || eceCheckBox.checked) {
+                let tempSentence = ""
+                finalText = sentences.map((sentence, index) => {
+                    if (sentence.startsWith(">")) {
+                        const result = (ecCheckBox.checked ? `${tempSentence + sentence} ` : `${tempSentence + sentence + tempSentence} `)
+                            .repeat(repeatCount)
+                        tempSentence = ""
+                        return result;
+                    } else {
+                        tempSentence += sentence + " "
+                        return ""
+                    }
+                }).join('');
+            } else {
+                finalText = sentences.filter(sentence => !sentence.startsWith(">")).map(sentence => {
+                    return `${sentence} `.repeat(repeatCount)
+                }).join('');
+            }
+        } else {
+            if (repeatCount > 0 && sentences.length > 0) {
+                finalText = Array.from({length: repeatCount}, () => sentences.join(' ')).join(' ');
+            }
+        }
+
+        // 将所有<b>XX</b>替换为XX
+        finalText = finalText.replace(/<b>(.*?)<\/b>/g, '$1');
+        // 将所有的<span class="code-span">XX</span>替换为XX
+        finalText = finalText.replace(/<span class="code-span">(.*?)<\/span>/g, '$1');
+        finalText = finalText.replace(/[()#*<>`•\/🔹✅🚀🧠🔎❌]/g, " ").trim() + " ";
+        // 将列表序号1. 2. 3.修改为1, 2, 3,
+        finalText = finalText.replace(/(\d+)\./g, '$1, ');
+        console.log("Final Text:", finalText)
+        const utterance = new SpeechSynthesisUtterance(finalText);
+        utterance.voice = currentVoice;
+        utterance.lang = "en-US";
+        utterance.rate = parseFloat(rateSlider.value);
+        utterance.onend = () => isPlaying = false;
+        speechSynthesis.speak(utterance);
+    }
+
+    function stopText() {
+        speechSynthesis.cancel();
+        isPlaying = false;
+        if (autoPlay.checked) {
+            if (document.getElementById("btnAutoScroll").textContent === "Stop Scroll") {
+                cancelAnimationFrame(scrollAnimationId);
+                document.getElementById("btnAutoScroll").textContent = "Start Scroll";
+            }
+        }
+    }
+
+    let isPaused = false;
+
+    // 监听快捷键Space, 按下后调用stopText
+    document.addEventListener("keydown", (event) => {
+        console.log("Keydown event:", event.code)
+        switch (event.code) {
+            case "Space":
+                event.preventDefault()
+                stopText();
+                if (autoPlay.checked) {
+                    if (document.getElementById("btnAutoScroll").textContent === "Stop Scroll") {
+                        cancelAnimationFrame(scrollAnimationId);
+                        document.getElementById("btnAutoScroll").textContent = "Start Scroll";
+                    }
+                }
+                break;
+            case "KeyV": // 打开或关闭Auto Play
+                // autoPlay.checked = !autoPlay.checked;
+                insertText()
+                break;
+            case "KeyD":
+                event.preventDefault()
+                if (!isPaused && isPlaying) {
+                    isPaused = true
+                    window.speechSynthesis.pause()
+                } else {
+                    isPaused = false
+                    window.speechSynthesis.resume()
+                }
+                break
+            case "KeyA":
+                event.preventDefault()
+                autoPlay.checked = !autoPlay.checked;
+                break
+        }
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+        hljs.highlightAll();
+    });
+
+    // 监听页面退出或刷新
+    window.addEventListener("beforeunload", (event) => {
+        // 停止播放
+        stopText();
+        // 停止自动滚动
+        if (autoPlay.checked) {
+            if (document.getElementById("btnAutoScroll").textContent === "Stop Scroll") {
+                cancelAnimationFrame(scrollAnimationId);
+                document.getElementById("btnAutoScroll").textContent = "Start Scroll";
+            }
+        }
+    });
+
+    const container = document.querySelector(".container");
+
+    const sliderBlur = document.getElementById("blur-slider1");
+    sliderBlur.value = localStorage.getItem("blur") || 0;
+    sliderBlur.addEventListener("input", (event) => {
+        const blur = event.target.value;
+        localStorage.setItem("blur", blur);
+        container.style.backdropFilter = `blur(${blur}px)`;
+    });
+
+    const slider = document.getElementById("opacity-slider");
+    if (localStorage.getItem("opacity")) {
+        slider.value = localStorage.getItem("opacity");
+        container.style.background = `rgba(43,43,43, ${slider.value})`;
+    }
+    slider.addEventListener("input", (event) => {
+        const opacity = event.target.value;
+        localStorage.setItem("opacity", opacity);
+        container.style.background = `rgba(43,43,43, ${opacity})`;
+    });
+
+    async function getClipboardText() {
+        try {
+            if (!navigator.clipboard) {
+                throw new Error("Clipboard API not supported");
+            }
+            const permission = await navigator.permissions.query({name: "clipboard-read"});
+            if (permission.state === "denied") {
+                throw new Error("Clipboard permission denied");
+            }
+            const text = await navigator.clipboard.readText();
+            return text;
+        } catch (error) {
+            console.error("Failed to read clipboard text:", error);
+            return null;
+        }
+    }
+</script>
+</body>
