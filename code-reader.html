@@ -1344,6 +1344,7 @@
             case "Space":
                 event.preventDefault()
                 stopText();
+                caption.style.visibility = "hidden";
                 if (autoPlay.checked) {
                     if (document.getElementById("btnAutoScroll").textContent === "Stop Scroll") {
                         cancelAnimationFrame(scrollAnimationId);
