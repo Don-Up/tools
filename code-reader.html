@@ -1123,7 +1123,6 @@
                 isInList = true;
                 line = line.replace(/-/g, "");
                 list.push(line)
-                console.log(list)
                 if (index !== lines.length - 1) return
             }
 
@@ -1218,7 +1217,6 @@
         }
         isPlaying = true;
 
-        console.log(originalText)
         // 将所有<b>XX</b>替换为XX
         originalText = originalText.replace(/<b>(.*?)<\/b>/g, '$1');
         // 将所有的<span class="code-span">XX</span>替换为XX
@@ -1277,7 +1275,6 @@
         finalText = finalText.replace(/[()#*<>`•\/🔹✅🚀🧠🔎❌]/g, " ").trim() + " ";
         // 将列表序号1. 2. 3.修改为1, 2, 3,
         finalText = finalText.replace(/(\d+)\./g, '$1, ');
-        console.log("Final Text:", finalText)
         const utterance = new SpeechSynthesisUtterance(finalText);
         utterance.voice = currentVoice;
         utterance.lang = "en-US";
@@ -1342,7 +1339,7 @@
 
     // 监听快捷键Space, 按下后调用stopText
     document.addEventListener("keydown", (event) => {
-        console.log("Keydown event:", event.code)
+        // console.log("Keydown event:", event.code)
         switch (event.code) {
             case "Space":
                 event.preventDefault()
