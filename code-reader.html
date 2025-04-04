@@ -401,9 +401,9 @@
     <!--  对话框  -->
     <div class="dialog" id="dialog">
     </div>
-    <div style="position: absolute;top: 20%;  right: 20%;display: flex;align-items: baseline;visibility: hidden" id="caption">
-        <div id="lastWord" style="margin-right: 5px;color: darkgrey"></div>
-        <h1 id="currentWord"></h1>
+    <div style="position: absolute;top: 20%;  right: 20%;display: flex;align-items: baseline;visibility: hidden;" id="caption">
+        <div id="lastWord" style="margin-right: 5px;color: darkgrey;background-color: #333333"></div>
+        <h1 id="currentWord" style="background-color: #333333"></h1>
     </div>
 </div>
 
@@ -412,6 +412,12 @@
 
 <script>
     const caption = document.getElementById('caption');
+    if(localStorage.getItem("captionX")){
+        caption.style.left = localStorage.getItem("captionX") + 'px';
+    }
+    if(localStorage.getItem("captionY")){
+        caption.style.top = localStorage.getItem("captionY") + 'px';
+    }
     let isDragging = false;
     let offsetX, offsetY;
 
@@ -442,6 +448,8 @@
         // Update the div's position
         caption.style.left = x + 'px';
         caption.style.top = y + 'px';
+        localStorage.setItem("captionX", String(x))
+        localStorage.setItem("captionY", String(y))
         caption.style.right = 'auto'; // Reset right positioning
     });
 
