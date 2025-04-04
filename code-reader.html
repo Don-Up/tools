@@ -85,7 +85,12 @@
         }
 
         .dialog {
-            position: absolute;left: 1020px;top: 80px;max-height: 90vh;overflow-y: auto
+            position: absolute;
+            left: 1020px;
+            top: 80px;
+            width: 600px;
+            max-height: 90vh;
+            overflow-y: auto
         }
 
         #content {
@@ -300,6 +305,7 @@
     <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 </head>
 <body>
 <div id="wrapper">
@@ -400,6 +406,7 @@
      style="object-fit: cover;position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;">
 
 <script>
+    mermaid.initialize({ startOnLoad: false, theme: "dark" });
     const preList = []
     let isPlaying = false;
     let voices = [];
@@ -1112,6 +1119,28 @@
         })
         contentDiv.style.padding = "70px 20px 20px";
         contentWrapper?.scrollIntoView({behavior: "smooth"});
+
+        const codeBlocks = document.querySelectorAll('pre code');
+        codeBlocks.forEach((block, index) => {
+            const text = block.textContent.trim();
+            // Check if the content looks like a Mermaid diagram
+            console.log(text)
+            if (text.startsWith('flowchart') || text.startsWith('graph') || text.startsWith('sequenceDiagram') || text.startsWith('classDiagram')) {
+                console.log('Mermaid diagram detected')
+                // Create a div to hold the rendered diagram
+                const diagramDiv = document.createElement('div');
+                diagramDiv.id = `mermaid-diagram-${index}`;
+                diagramDiv.className = 'mermaid';
+                diagramDiv.style.backgroundColor = '#282c34';
+                diagramDiv.textContent = text;
+
+                // Replace the <pre><code> with the new div
+                block.parentElement.replaceWith(diagramDiv);
+
+                // Render the diagram
+                mermaid.init(undefined, `#mermaid-diagram-${index}`);
+            }
+        });
     }
 
     const eceCheckBox = document.getElementById("eceCheckBox")
