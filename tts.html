@@ -215,6 +215,8 @@
         <!--   开关, 是否在播放时隐藏文本     -->
         <label for="hideTextCheckbox" style="margin-right: 0px;">Hide Text When Reading</label>
         <input type="checkbox" id="hideTextCheckbox" checked></input>
+        <label for="randomVoiceCheckbox" style="margin-left: 10px">Use Random Voice</label>
+        <input type="checkbox" id="randomVoiceCheckbox"></input>
     </div>
 
     <!-- 语速设置 -->
@@ -248,11 +250,14 @@
 
     // 默认发音人名称
     const defaultVoiceName = "Microsoft Brian Online (Natural) - English (United States)";
-    
+
+    let voicesEn = []
+
     // 加载发音人
     function loadVoices() {
         if (selectedVoice !== null) return
         voices = window.speechSynthesis.getVoices();
+        voicesEn = voices.filter(voice => voice.lang.includes('en'))
         const voiceSelect = document.querySelector('#voiceSelect');
         voiceSelect.innerHTML = '<option value="">选择发音人</option>'; // 清空并添加默认选项
         let defaultVoiceIndex = null;
@@ -277,6 +282,15 @@
         }
     }
 
+    let useRandomVoice = localStorage.getItem("useRandomVoice") === "true"
+
+    const cbRandomVoice = document.getElementById("randomVoiceCheckbox")
+    cbRandomVoice.checked = useRandomVoice
+    cbRandomVoice.addEventListener("change", () => {
+        useRandomVoice = cbRandomVoice.checked
+        localStorage.setItem("useRandomVoice", useRandomVoice)
+    })
+
     // 文本转语音朗读
     function speakText(text, loop = false, utteranceRef = null) {
         if ('speechSynthesis' in window) {
@@ -287,7 +301,10 @@
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'en-US';
                 utterance.rate = speechSpeed; // 使用当前语速
-                if (selectedVoice) {
+                if(useRandomVoice){
+                    const randomVoice = Math.floor(Math.random() * voicesEn.length)
+                    utterance.voice = voicesEn[randomVoice];
+                } else if (selectedVoice) {
                     utterance.voice = voices[selectedVoice];
                 }
                 if (loop) {
@@ -300,6 +317,10 @@
                     utteranceRef.onend = () => speakText(text, true, utteranceRef);
                 }
                 utteranceRef.rate = speechSpeed; // 更新语速
+                if(useRandomVoice){
+                    const randomVoice = Math.floor(Math.random() * voicesEn.length)
+                    utteranceRef.voice = voicesEn[randomVoice];
+                }
                 speechSynthesis.speak(utteranceRef);
                 return utteranceRef;
             }
@@ -368,6 +389,10 @@
         }
         isLooping = !isLooping;
         stopSpeaking();
+        if (utteranceRef) {
+            utteranceRef.onend = null; // 移除 onend 回调
+            utteranceRef = null;       // 重置 utteranceRef
+        }
         if (isLooping) {
             document.querySelector('#loopPauseBtn').textContent = 'Looping';
             utteranceRef = speakText(text, true, utteranceRef);
