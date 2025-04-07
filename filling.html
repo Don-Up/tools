@@ -10,7 +10,6 @@
             margin: 0;
         }
 
-
         #divContent {
             white-space: pre-wrap;
         }
@@ -26,19 +25,23 @@
             color: transparent;
         }
 
+        #container {
+            background-color: #000;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
         #divContent {
             font-size: 20px;
             width: 800px;
             background-color: #2b2b2b;
             margin-left: auto;
             margin-right: auto;
-            padding: 20px 100px;
-        }
-
-        #container {
-            display: flex;
-            height: 100vh;
-            background-color: #000;
+            padding: 40px 100px;
+            line-height: 2;
+            height: calc(100vh - 80px);
+            overflow-y: auto;
         }
 
         #dialog {
