@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>代码填空题</title>
+    <style>
+        body {
+            padding: 0;
+            margin: 0;
+        }
+
+
+        #divContent {
+            white-space: pre-wrap;
+        }
+
+        input {
+            border: 1px solid #ccc;
+            padding: 2px;
+            font-size: 20px;
+            text-align: center;
+        }
+
+        input::placeholder {
+            color: transparent;
+        }
+
+        #divContent {
+            font-size: 20px;
+            width: 800px;
+            background-color: #2b2b2b;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 20px 100px;
+        }
+
+        #container {
+            display: flex;
+            height: 100vh;
+            background-color: #000;
+        }
+
+        #dialog {
+            background: #2b2b2b;
+            padding: 20px;
+            border-radius: 5px;
+            width: 500px;
+            position: absolute;
+            left: calc(50% - 250px);
+            top: calc(50% - 250px);
+            display: none;
+            border: grey 1px solid;
+        }
+
+        #dialog textarea {
+            width: 480px;
+            height: 200px;
+            margin: 0 auto 10px;
+            background: #1e1e1e;
+            color: #fff;
+            border: 1px solid #444;
+            padding: 10px;
+        }
+
+        .dialog-actions {
+            text-align: center;
+        }
+
+    </style>
+</head>
+<body>
+<div id="container">
+    <div id="divContent"></div>
+</div>
+<div id="dialog">
+    <textarea id="codeInput" placeholder="Enter your code/content here..."></textarea>
+    <div class="dialog-actions">
+        <button onclick="generateContent()">Generate</button>
+        <button onclick="closeDialog()">Close</button>
+    </div>
+</div>
+<script>
+    const dialog = document.getElementById('dialog');
+    const codeInput = document.getElementById('codeInput')
+
+    // Add these functions to the <script> section
+    function openDialog() {
+        dialog.style.display = 'block';
+        codeInput.focus();
+    }
+
+    function closeDialog() {
+        document.getElementById('dialog').style.display = 'none';
+    }
+
+    function generateContent() {
+        const newCode = codeInput.value;
+        const indentedCode = autoIndent(newCode);
+        const processedCode = replacePlaceholders(indentedCode);
+        document.getElementById('divContent').innerHTML = processedCode;
+        closeDialog();
+        initializeInputs(); // Re-initialize event listeners for new inputs
+        codeInput.value = ""
+    }
+
+    // Add keyboard shortcut handler
+    document.addEventListener('keydown', (e) => {
+        if (e.key.toLowerCase() === 'o' && document.getElementById('dialog').style.display !== 'block') {
+            openDialog();
+            e.preventDefault();
+        }
+    });
+
+
+    function autoIndent(code) {
+        const lines = code.split('\n');
+        let indentLevel = 0;
+        const result = [];
+
+        for (const line of lines) {
+            const trimmedLine = line.trimStart();
+            const numClose = (trimmedLine.match(/}/g) || []).length;
+            const numOpen = (trimmedLine.match(/{/g) || []).length;
+
+            const currentIndent = Math.max(indentLevel - numClose, 0) * 4;
+            result.push(' '.repeat(currentIndent) + trimmedLine);
+
+            indentLevel = Math.max(indentLevel - numClose + numOpen, 0);
+        }
+
+        return result.join('\n');
+    }
+
+    function replacePlaceholders(code) {
+        return code.replace(/\*\*([^\*]+)\*\*/g, (match, p1) => {
+            return `<input placeholder="${p1}" data-char-index="0">`; // 移除 p1.trim()
+        });
+    }
+
+//     const code = `
+// 1. In React, **JSX** is a syntax extension for JavaScript that allows you to write HTML - like code in your JavaScript files.
+// 2. A React component can be either a **class component** or a functional component.
+// 3. To pass data from a parent component to a child component in React, you use **props**.
+// 4. React uses a **virtual DOM** to optimize the rendering process and improve performance.
+// 5. The **useState** hook is used to add state to a functional component in React.`;
+//
+//     const indentedCode = autoIndent(code);
+//     const processedCode = replacePlaceholders(indentedCode);
+//     document.getElementById('divContent').innerHTML = processedCode;
+
+    function initializeInputs() {
+        const inputs = document.querySelectorAll('#divContent input');
+        inputs.forEach(input => {
+            input.addEventListener('input', function () {
+                const userInput = this.value; // 移除 trim()
+                const placeholder = this.getAttribute('placeholder'); // 移除 trim()
+
+                if (userInput === placeholder) {
+                    this.style.color = 'orange';
+                } else if (placeholder.startsWith(userInput) && userInput !== '') {
+                    this.style.color = 'green';
+                } else {
+                    this.style.color = 'red';
+                }
+
+                // 更新字符索引
+                if (placeholder.startsWith(userInput)) {
+                    this.dataset.charIndex = userInput.length;
+                } else {
+                    this.dataset.charIndex = '0';
+                }
+
+            });
+
+            // Add these event listeners inside the inputs.forEach loop
+            input.addEventListener('mousedown', function (e) {
+                this.longPressTimer = setTimeout(() => {
+                    const placeholder = this.getAttribute('placeholder');
+                    this.value = placeholder;
+                    this.dataset.charIndex = placeholder.length.toString();
+                    this.style.color = 'orange';
+                    this.dispatchEvent(new Event('input'));
+                }, 500); // 500ms press duration
+            });
+
+            input.addEventListener('mouseup', function (e) {
+                clearTimeout(this.longPressTimer);
+            });
+
+            input.addEventListener('mouseleave', function (e) {
+                clearTimeout(this.longPressTimer);
+            });
+
+
+            input.addEventListener('click', function () {
+                const placeholder = this.getAttribute('placeholder'); // 移除 trim()
+                const currentIndex = parseInt(this.dataset.charIndex || '0', 10);
+                const currentValue = this.value; // 移除 trim()
+
+                // 检查当前输入是否匹配前N个字符
+                if (currentValue === placeholder.substring(0, currentIndex)) {
+                    const nextIndex = currentIndex + 1;
+                    if (nextIndex <= placeholder.length) {
+                        this.value = placeholder.substring(0, nextIndex);
+                        this.dataset.charIndex = nextIndex.toString();
+                        this.dispatchEvent(new Event('input'));
+                    }
+                }
+            });
+        });
+    }
+</script>
+</body>
+</html>
