@@ -111,6 +111,11 @@
     </div>
     <button onclick="fill()" style="margin-top: 15px;">Fill All Inputs</button>
     <button onclick="reset()" style="margin-top: 15px;">Reset All Inputs</button>
+<!--    复选框: hide-->
+    <div style="margin-top: 15px;">
+        <label for="hideCheckbox">Hide When Reading:</label>
+        <input type="checkbox" id="hideCheckbox"></input>
+    </div>
 </div>
 <div id="container">
     <div id="divContent"></div>
@@ -129,6 +134,11 @@
     loopInput.value = localStorage.getItem('loopCount') || 1;
     loopInput.addEventListener('change', function () {
         localStorage.setItem('loopCount', this.value);
+    });
+    const hideCheckbox = document.getElementById('hideCheckbox');
+    hideCheckbox.checked = localStorage.getItem('hideCheckbox') === 'true';
+    hideCheckbox.addEventListener('change', function () {
+        localStorage.setItem('hideCheckbox', this.checked);
     });
 
     function fill() {
@@ -276,7 +286,7 @@
         document.querySelectorAll("p").forEach(p => {
             p.style.cursor = 'pointer'
             p.addEventListener('click', function () {
-                playText(p.innerHTML, p.querySelectorAll('input'))
+                playText(p.innerHTML, p.querySelectorAll('input'), p)
             })
         })
 
@@ -327,11 +337,10 @@
 
     let isPlaying = false;
 
-    function playText(htmlText, inputs) {
+    function playText(htmlText, inputs, p) {
         if (isPlaying) {
             speechSynthesis.cancel();
         }
-        isPlaying = true;
 
         if(inputs){
             // 使用正则表达式将 <input {动态长度字符串}> 替换为 what
@@ -357,7 +366,18 @@
         utterance.voice = voices[selectedVoice];
         utterance.lang = "en-US";
         utterance.rate = parseFloat(rateSlider.value);
-        utterance.onend = () => isPlaying = false;
+        utterance.onstart = () => {
+            isPlaying = true;
+            if(p && !htmlText.includes("what") && hideCheckbox.checked){
+                p.style.visibility = 'hidden'
+            }
+        }
+        utterance.onend = () => {
+            isPlaying = false;
+            if(p && !htmlText.includes("what") && hideCheckbox.checked){
+                p.style.visibility = 'visible'
+            }
+        }
         speechSynthesis.speak(utterance);
     }
 
