@@ -334,6 +334,10 @@
             htmlText = (htmlText+" ").repeat(count).trim()
         }
 
+        // 过滤掉1. 2. 3.
+        htmlText = htmlText.replace(/^(\d+)\. /gm, "");
+        htmlText = htmlText.replace(/```(.*?)```/gs, "");
+        console.log(htmlText)
         const utterance = new SpeechSynthesisUtterance(htmlText);
         utterance.voice = voices[selectedVoice];
         utterance.lang = "en-US";
