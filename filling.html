@@ -260,6 +260,11 @@
                     }
                 }
             });
+
+            const length = input.getAttribute('placeholder').length
+            let width = Math.max(length * 15, 40)
+            width = Math.min(width, 500)
+            input.style.width = width + 'px'
         });
 
         document.querySelectorAll("p").forEach(p => {
