@@ -39,7 +39,7 @@
             margin-left: auto;
             margin-right: auto;
             padding: 40px 100px;
-            line-height: 2;
+            line-height: 1.5;
             height: calc(100vh - 80px);
             overflow-y: auto;
         }
@@ -70,9 +70,48 @@
             text-align: center;
         }
 
+        p {
+            margin-bottom: 0;
+            margin-top: 0;
+            // 覆盖显示鼠标指针
+            cursor: pointer;
+        }
+
+        .voice-select {
+            width: 320px;
+            padding: 5px;
+            font-size: 14px;
+            background-color: #2c2c2c;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            margin-right: 20px;
+        }
+
+        #rateSlider {
+            width: 200px;
+            vertical-align: middle;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
+<div style="display: inline-block;position: fixed;margin-left: 10px;margin-top: 20px;">
+    <select id="voiceSelect" class="voice-select">
+        <option value="">Choose the speaker</option>
+    </select>
+    <div>
+        <label for="rateSlider">Speed:</label>
+        <input id="rateSlider" type="range" min="0.5" max="2" step="0.05" value="1.00" title="语速" style="margin-bottom: 10px;">
+        <span id="rateValue">1.00</span>
+    </div>
+    <div>
+        <label for="loopInput">Loop Count:</label>
+        <input id="loopInput" type="number" min="1" max="100" value="1"></input>
+    </div>
+    <button onclick="fill()" style="margin-top: 15px;">Fill All Inputs</button>
+    <button onclick="reset()" style="margin-top: 15px;">Reset All Inputs</button>
+</div>
 <div id="container">
     <div id="divContent"></div>
 </div>
@@ -86,6 +125,25 @@
 <script>
     const dialog = document.getElementById('dialog');
     const codeInput = document.getElementById('codeInput')
+    const loopInput = document.getElementById('loopInput')
+    loopInput.value = localStorage.getItem('loopCount') || 1;
+    loopInput.addEventListener('change', function () {
+        localStorage.setItem('loopCount', this.value);
+    });
+
+    function fill() {
+        document.querySelectorAll('#divContent input').forEach(input => {
+            input.value = input.getAttribute('placeholder');
+            input.style.color = 'orange';
+        });
+    }
+
+    function reset(){
+        document.querySelectorAll('#divContent input').forEach(input => {
+            input.value = '';
+            input.style.color = 'green';
+        });
+    }
 
     // Add these functions to the <script> section
     function openDialog() {
@@ -141,20 +199,10 @@
         });
     }
 
-//     const code = `
-// 1. In React, **JSX** is a syntax extension for JavaScript that allows you to write HTML - like code in your JavaScript files.
-// 2. A React component can be either a **class component** or a functional component.
-// 3. To pass data from a parent component to a child component in React, you use **props**.
-// 4. React uses a **virtual DOM** to optimize the rendering process and improve performance.
-// 5. The **useState** hook is used to add state to a functional component in React.`;
-//
-//     const indentedCode = autoIndent(code);
-//     const processedCode = replacePlaceholders(indentedCode);
-//     document.getElementById('divContent').innerHTML = processedCode;
-
     function initializeInputs() {
         const inputs = document.querySelectorAll('#divContent input');
         inputs.forEach(input => {
+            input.style.cursor = 'pointer'
             input.addEventListener('input', function () {
                 const userInput = this.value; // 移除 trim()
                 const placeholder = this.getAttribute('placeholder'); // 移除 trim()
@@ -196,7 +244,8 @@
             });
 
 
-            input.addEventListener('click', function () {
+            input.addEventListener('click', function (e) {
+                e.stopPropagation()
                 const placeholder = this.getAttribute('placeholder'); // 移除 trim()
                 const currentIndex = parseInt(this.dataset.charIndex || '0', 10);
                 const currentValue = this.value; // 移除 trim()
@@ -212,7 +261,108 @@
                 }
             });
         });
+
+        document.querySelectorAll("p").forEach(p => {
+            p.style.cursor = 'pointer'
+            p.addEventListener('click', function () {
+                playText(p.innerHTML, p.querySelectorAll('input'))
+            })
+        })
+
     }
+
+    let selectedVoice = null
+    let voices = []
+
+    const defaultVoiceName = localStorage.getItem('defaultVoiceName') || 'Microsoft Brian Online (Natural) - English (United States)';
+
+    // 加载发音人
+    function loadVoices() {
+        if (selectedVoice !== null) return
+        voices = window.speechSynthesis.getVoices();
+        const voiceSelect = document.querySelector('#voiceSelect');
+        voiceSelect.innerHTML = '<option value="">选择发音人</option>'; // 清空并添加默认选项
+        let defaultVoiceIndex = null;
+
+        voices.forEach((voice, index) => {
+            const option = document.createElement('option');
+            option.textContent = `${voice.name} (${voice.lang})`;
+            option.value = index;
+
+            // 检查是否为默认发音人
+            if (voice.name === defaultVoiceName) { //  && voice.lang === "en-US"
+                defaultVoiceIndex = index;
+            }
+
+            voiceSelect.appendChild(option);
+        });
+
+        // 自动选择默认发音人
+        if (defaultVoiceIndex !== null) {
+            voiceSelect.value = defaultVoiceIndex;
+            selectedVoice = defaultVoiceIndex;
+        }
+    }
+
+    window.speechSynthesis.onvoiceschanged = loadVoices
+
+    // 监听发音人选择
+    document.querySelector('#voiceSelect').addEventListener('change', (event) => {
+        // alert(event.target.value)
+        selectedVoice = event.target.value ? parseInt(event.target.value, 10) : null;
+        // 更新默认发音人名称
+        localStorage.setItem('defaultVoiceName', voices[selectedVoice].name);
+    });
+
+    let isPlaying = false;
+
+    function playText(htmlText, inputs) {
+        if (isPlaying) {
+            speechSynthesis.cancel();
+        }
+        isPlaying = true;
+
+        // 使用正则表达式将 <input {动态长度字符串}> 替换为 what
+        let inputIndex = 0
+        while (htmlText.includes('<input')){
+            htmlText = htmlText.replace(/<input (.*?)>/, inputs[inputIndex].value ? inputs[inputIndex].value : "what-");
+            inputIndex += 1
+        }
+
+        if(!htmlText.includes("what-")){
+            const count = loopInput.value
+            htmlText = (htmlText+" ").repeat(count).trim()
+        }
+
+        const utterance = new SpeechSynthesisUtterance(htmlText);
+        utterance.voice = voices[selectedVoice];
+        utterance.lang = "en-US";
+        utterance.rate = parseFloat(rateSlider.value);
+        utterance.onend = () => isPlaying = false;
+        speechSynthesis.speak(utterance);
+    }
+
+    const rateSlider = document.getElementById("rateSlider");
+    const rateValue = document.getElementById("rateValue");
+    const rate = localStorage.getItem("rateValue") || 1.00
+    rateValue.textContent = rate;
+    rateSlider.value = rate;
+
+    rateSlider.addEventListener("input", function () {
+        rateValue.textContent = Number(this.value).toFixed(2);
+        localStorage.setItem("rateValue", rateValue.textContent);
+    });
+
+    document.addEventListener("keydown", (event) => {
+        console.log("Keydown event:", event.code)
+        switch (event.code) {
+            case "Space":
+                event.preventDefault()
+                speechSynthesis.cancel();
+                isPlaying = false;
+                break;
+        }
+    })
 </script>
 </body>
 </html>
