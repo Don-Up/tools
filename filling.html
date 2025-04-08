@@ -361,6 +361,22 @@
                 speechSynthesis.cancel();
                 isPlaying = false;
                 break;
+            case "KeyV":
+                event.preventDefault()
+                if(event.ctrlKey){
+                    console.log("V pressed")
+                    // 从剪贴板获取文本
+                    navigator.clipboard.readText().then(text => {
+                        const indentedCode = autoIndent(text);
+                        const processedCode = replacePlaceholders(indentedCode);
+                        document.getElementById('divContent').innerHTML = processedCode;
+                        closeDialog();
+                        initializeInputs(); // Re-initialize event listeners for new inputs
+                        codeInput.value = ""
+                    }).catch(err => {
+                        console.error('Failed to read clipboard contents: ', err);
+                    });
+                }
         }
     })
 </script>
