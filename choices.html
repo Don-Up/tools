@@ -231,7 +231,7 @@
         <!--  连读次数输入框  -->
         <div class="hide-control">
             <label for="loopCount">Loop:</label>
-            <input type="number" id="loopCount" min="1" max="10" value="2"></input>
+            <input type="number" id="loopCount" min="0" max="10" value="2"></input>
         </div>
         <button id="copyHint" class="btnCopy">copy hint</button>
         <input type="number" id="qCount" min="1" max="30" value="10" style="margin-left: 10px;"></input>
@@ -1115,9 +1115,11 @@
                     // 如果ctrl键已经按下, 则获取inputCount的值, 并将span.textContent重复对应的次数
                     if (event.ctrlKey || ctrlCheckBox.checked) {
                         const count = parseInt(inputCount.value);
-                        const repeatedText = `${span.textContent} `.repeat(count);
-                        // console.log(repeatedText)
-                        play(repeatedText)
+                        if(count > 0){
+                            const repeatedText = `${span.textContent} `.repeat(count);
+                            // console.log(repeatedText)
+                            play(repeatedText)
+                        }
                     } else {
                         play(span.textContent)
                     }
