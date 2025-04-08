@@ -335,7 +335,7 @@
         // 使用正则表达式将 <input {动态长度字符串}> 替换为 what
         let inputIndex = 0
         while (htmlText.includes('<input')){
-            htmlText = htmlText.replace(/<input (.*?)>/, inputs[inputIndex].value ? inputs[inputIndex].value : "what-");
+            htmlText = htmlText.replace(/<input (.*?)>/, inputs[inputIndex].value ? inputs[inputIndex].value : "what");
             inputIndex += 1
         }
 
@@ -343,7 +343,7 @@
         htmlText = htmlText.replace(/^(\d+)\. /gm, "");
         htmlText = htmlText.replace(/```(.*?)```/gs, "");
 
-        if(!htmlText.includes("what-")){
+        if(!htmlText.includes("what")){
             const count = loopInput.value
             htmlText = (htmlText+" ").repeat(count).trim()
         }
@@ -367,6 +367,8 @@
         localStorage.setItem("rateValue", rateValue.textContent);
     });
 
+    let isPaused = false
+
     document.addEventListener("keydown", (event) => {
         console.log("Keydown event:", event.code)
         switch (event.code) {
@@ -375,6 +377,16 @@
                 speechSynthesis.cancel();
                 isPlaying = false;
                 break;
+            case "KeyD":
+                event.preventDefault()
+                if (!isPaused && isPlaying) {
+                    isPaused = true
+                    window.speechSynthesis.pause()
+                } else {
+                    isPaused = false
+                    window.speechSynthesis.resume()
+                }
+                break
             case "KeyV":
                 event.preventDefault()
                 if(event.ctrlKey){
