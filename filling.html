@@ -209,6 +209,7 @@
 
                 if (userInput === placeholder) {
                     this.style.color = 'orange';
+                    playText(placeholder)
                 } else if (placeholder.startsWith(userInput) && userInput !== '') {
                     this.style.color = 'green';
                 } else {
@@ -332,20 +333,24 @@
         }
         isPlaying = true;
 
-        // 使用正则表达式将 <input {动态长度字符串}> 替换为 what
-        let inputIndex = 0
-        while (htmlText.includes('<input')){
-            htmlText = htmlText.replace(/<input (.*?)>/, inputs[inputIndex].value ? inputs[inputIndex].value : "what");
-            inputIndex += 1
-        }
+        if(inputs){
+            // 使用正则表达式将 <input {动态长度字符串}> 替换为 what
+            let inputIndex = 0
+            while (htmlText.includes('<input')){
+                htmlText = htmlText.replace(/<input (.*?)>/, inputs[inputIndex].value ? inputs[inputIndex].value : "what");
+                inputIndex += 1
+            }
 
-        // 过滤掉1. 2. 3.
-        htmlText = htmlText.replace(/^(\d+)\. /gm, "");
-        htmlText = htmlText.replace(/```(.*?)```/gs, "");
+            // 过滤掉1. 2. 3.
+            htmlText = htmlText.replace(/^(\d+)\. /gm, "");
+            htmlText = htmlText.replace(/^([A-Za-z]+): /gm, "");
+            console.log(htmlText)
+            htmlText = htmlText.replace(/```(.*?)```/gs, "");
 
-        if(!htmlText.includes("what")){
-            const count = loopInput.value
-            htmlText = (htmlText+" ").repeat(count).trim()
+            if(!htmlText.includes("what")){
+                const count = loopInput.value
+                htmlText = (htmlText+" ").repeat(count).trim()
+            }
         }
 
         const utterance = new SpeechSynthesisUtterance(htmlText);
