@@ -221,6 +221,22 @@
     }
 
     function initializeInputs() {
+        if(divideCheckbox.checked) {
+            document.querySelectorAll("p").forEach(p => {
+                const html = p.innerHTML
+                p.innerHTML = ""
+                // 将.或!作为分隔符
+                // const list = html.split(/\.|!/).filter(item => item.trim() !== "")
+                const list = html.split(".")
+                list.forEach((inner, index) => {
+                    const childP = document.createElement('p')
+                    childP.innerHTML = inner.trim() + (index === list.length - 1 ? "" : ".")
+                    p.appendChild(childP)
+                })
+            })
+        }
+
+
         const inputs = document.querySelectorAll('#divContent input');
         inputs.forEach(input => {
             input.style.cursor = 'pointer'
@@ -294,27 +310,11 @@
             }
         });
 
-        document.querySelectorAll("p").forEach(p => {
+        document.querySelectorAll("p p").forEach(p => {
             p.style.cursor = 'pointer'
-            if(divideCheckbox.checked){
-                const html = p.innerHTML
-                p.innerHTML = ""
-                // 将.或!作为分隔符
-                // const list = html.split(/\.|!/).filter(item => item.trim() !== "")
-                const list = html.split(".")
-                list.forEach((inner, index) => {
-                    const childP = document.createElement('p')
-                    childP.innerHTML = inner.trim() + (index === list.length - 1 ? "" : ".")
-                    childP.addEventListener('click', function () {
-                        playText(childP.innerHTML, p.querySelectorAll('input'), p)
-                    })
-                    p.appendChild(childP)
-                })
-            } else {
-                p.addEventListener('click', function () {
-                    playText(p.innerHTML, p.querySelectorAll('input'), p)
-                })
-            }
+            p.addEventListener('click', function () {
+                playText(p.innerHTML, p.querySelectorAll('input'), p)
+            })
         })
 
     }
@@ -365,7 +365,6 @@
     let isPlaying = false;
 
     function playText(htmlText, inputs, p) {
-        console.log(htmlText)
         if (isPlaying) {
             speechSynthesis.cancel();
         }
@@ -424,7 +423,7 @@
     let isPaused = false
 
     document.addEventListener("keydown", (event) => {
-        console.log("Keydown event:", event.code)
+        // console.log("Keydown event:", event.code)
         switch (event.code) {
             case "Space":
                 event.preventDefault()
@@ -444,7 +443,6 @@
             case "KeyV":
                 event.preventDefault()
                 if (event.ctrlKey) {
-                    console.log("V pressed")
                     // 从剪贴板获取文本
                     navigator.clipboard.readText().then(text => {
                         const indentedCode = autoIndent(text);
