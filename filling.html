@@ -22,7 +22,7 @@
         }
 
         input::placeholder {
-            color: transparent;
+            //color: transparent;
         }
 
         #container {
@@ -195,7 +195,7 @@
 
     function replacePlaceholders(code) {
         return code.replace(/\*\*([^\*]+)\*\*/g, (match, p1) => {
-            return `<input placeholder="${p1}" data-char-index="0">`; // 移除 p1.trim()
+            return `<input data-placeholder="${p1}" data-char-index="0">`; // 移除 p1.trim()
         });
     }
 
@@ -205,7 +205,7 @@
             input.style.cursor = 'pointer'
             input.addEventListener('input', function () {
                 const userInput = this.value; // 移除 trim()
-                const placeholder = this.getAttribute('placeholder'); // 移除 trim()
+                const placeholder = this.dataset.placeholder// this.getAttribute('placeholder'); // 移除 trim()
 
                 if (userInput === placeholder) {
                     this.style.color = 'orange';
@@ -227,7 +227,7 @@
             // Add these event listeners inside the inputs.forEach loop
             input.addEventListener('mousedown', function (e) {
                 this.longPressTimer = setTimeout(() => {
-                    const placeholder = this.getAttribute('placeholder');
+                    const placeholder = this.dataset.placeholder// this.getAttribute('placeholder');
                     this.value = placeholder;
                     this.dataset.charIndex = placeholder.length.toString();
                     this.style.color = 'orange';
@@ -246,7 +246,7 @@
 
             input.addEventListener('click', function (e) {
                 e.stopPropagation()
-                const placeholder = this.getAttribute('placeholder'); // 移除 trim()
+                const placeholder = this.dataset.placeholder //this.getAttribute('placeholder'); // 移除 trim()
                 const currentIndex = parseInt(this.dataset.charIndex || '0', 10);
                 const currentValue = this.value; // 移除 trim()
 
@@ -261,10 +261,15 @@
                 }
             });
 
-            const length = input.getAttribute('placeholder').length
+            const length = input.dataset.placeholder.length//input.getAttribute('placeholder').length
             let width = Math.max(length * 15, 40)
             width = Math.min(width, 500)
             input.style.width = width + 'px'
+            // 设置placeholder
+            const wordLength =  input.dataset.placeholder.split(" ").length
+            if(wordLength > 1){
+                input.placeholder = wordLength
+            }
         });
 
         document.querySelectorAll("p").forEach(p => {
@@ -334,15 +339,15 @@
             inputIndex += 1
         }
 
+        // 过滤掉1. 2. 3.
+        htmlText = htmlText.replace(/^(\d+)\. /gm, "");
+        htmlText = htmlText.replace(/```(.*?)```/gs, "");
+
         if(!htmlText.includes("what-")){
             const count = loopInput.value
             htmlText = (htmlText+" ").repeat(count).trim()
         }
 
-        // 过滤掉1. 2. 3.
-        htmlText = htmlText.replace(/^(\d+)\. /gm, "");
-        htmlText = htmlText.replace(/```(.*?)```/gs, "");
-        console.log(htmlText)
         const utterance = new SpeechSynthesisUtterance(htmlText);
         utterance.voice = voices[selectedVoice];
         utterance.lang = "en-US";
