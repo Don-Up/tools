@@ -102,7 +102,8 @@
     </select>
     <div>
         <label for="rateSlider">Speed:</label>
-        <input id="rateSlider" type="range" min="0.5" max="2" step="0.05" value="1.00" title="语速" style="margin-bottom: 10px;">
+        <input id="rateSlider" type="range" min="0.5" max="2" step="0.05" value="1.00" title="语速"
+               style="margin-bottom: 10px;">
         <span id="rateValue">1.00</span>
     </div>
     <div>
@@ -111,10 +112,14 @@
     </div>
     <button onclick="fill()" style="margin-top: 15px;">Fill All Inputs</button>
     <button onclick="reset()" style="margin-top: 15px;">Reset All Inputs</button>
-<!--    复选框: hide-->
+    <!--    复选框: hide-->
     <div style="margin-top: 15px;">
         <label for="hideCheckbox">Hide When Reading:</label>
         <input type="checkbox" id="hideCheckbox"></input>
+    </div>
+    <div style="margin-top: 15px;">
+        <label for="divideCheckbox">Divide Sentence:</label>
+        <input type="checkbox" id="divideCheckbox"></input>
     </div>
 </div>
 <div id="container">
@@ -128,6 +133,12 @@
     </div>
 </div>
 <script>
+    const divideCheckbox = document.getElementById("divideCheckbox")
+    divideCheckbox.checked = localStorage.getItem('divideCheckbox') === 'true';
+    divideCheckbox.addEventListener('change', function () {
+        localStorage.setItem('divideCheckbox', this.checked);
+    });
+
     const dialog = document.getElementById('dialog');
     const codeInput = document.getElementById('codeInput')
     const loopInput = document.getElementById('loopInput')
@@ -148,7 +159,7 @@
         });
     }
 
-    function reset(){
+    function reset() {
         document.querySelectorAll('#divContent input').forEach(input => {
             input.value = '';
             input.style.color = 'green';
@@ -277,17 +288,33 @@
             width = Math.min(width, 500)
             input.style.width = width + 'px'
             // 设置placeholder
-            const wordLength =  input.dataset.placeholder.split(" ").length
-            if(wordLength > 1){
+            const wordLength = input.dataset.placeholder.split(" ").length
+            if (wordLength > 1) {
                 input.placeholder = wordLength
             }
         });
 
         document.querySelectorAll("p").forEach(p => {
             p.style.cursor = 'pointer'
-            p.addEventListener('click', function () {
-                playText(p.innerHTML, p.querySelectorAll('input'), p)
-            })
+            if(divideCheckbox.checked){
+                const html = p.innerHTML
+                p.innerHTML = ""
+                // 将.或!作为分隔符
+                // const list = html.split(/\.|!/).filter(item => item.trim() !== "")
+                const list = html.split(".")
+                list.forEach((inner, index) => {
+                    const childP = document.createElement('p')
+                    childP.innerHTML = inner.trim() + (index === list.length - 1 ? "" : ".")
+                    childP.addEventListener('click', function () {
+                        playText(childP.innerHTML, p.querySelectorAll('input'), p)
+                    })
+                    p.appendChild(childP)
+                })
+            } else {
+                p.addEventListener('click', function () {
+                    playText(p.innerHTML, p.querySelectorAll('input'), p)
+                })
+            }
         })
 
     }
@@ -338,27 +365,29 @@
     let isPlaying = false;
 
     function playText(htmlText, inputs, p) {
+        console.log(htmlText)
         if (isPlaying) {
             speechSynthesis.cancel();
         }
 
-        if(inputs){
+        if (inputs) {
             // 使用正则表达式将 <input {动态长度字符串}> 替换为 what
             let inputIndex = 0
-            while (htmlText.includes('<input')){
+            while (htmlText.includes('<input')) {
                 htmlText = htmlText.replace(/<input (.*?)>/, inputs[inputIndex].value ? inputs[inputIndex].value : "what");
                 inputIndex += 1
             }
 
             // 过滤掉1. 2. 3.
+            // 过滤掉所有<p>和</P>
+            htmlText = htmlText.replace(/<\/?p>/g, "");
             htmlText = htmlText.replace(/^(\d+)\. /gm, "");
             htmlText = htmlText.replace(/^([A-Za-z]+): /gm, "");
-            console.log(htmlText)
             htmlText = htmlText.replace(/```(.*?)```/gs, "");
 
-            if(!htmlText.includes("what")){
+            if (!htmlText.includes("what")) {
                 const count = loopInput.value
-                htmlText = (htmlText+" ").repeat(count).trim()
+                htmlText = (htmlText + " ").repeat(count).trim()
             }
         }
 
@@ -368,13 +397,13 @@
         utterance.rate = parseFloat(rateSlider.value);
         utterance.onstart = () => {
             isPlaying = true;
-            if(p && !htmlText.includes("what") && hideCheckbox.checked){
+            if (p && !htmlText.includes("what") && hideCheckbox.checked) {
                 p.style.visibility = 'hidden'
             }
         }
         utterance.onend = () => {
             isPlaying = false;
-            if(p && !htmlText.includes("what") && hideCheckbox.checked){
+            if (p && !htmlText.includes("what") && hideCheckbox.checked) {
                 p.style.visibility = 'visible'
             }
         }
@@ -414,7 +443,7 @@
                 break
             case "KeyV":
                 event.preventDefault()
-                if(event.ctrlKey){
+                if (event.ctrlKey) {
                     console.log("V pressed")
                     // 从剪贴板获取文本
                     navigator.clipboard.readText().then(text => {
