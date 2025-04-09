@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>代码填空题</title>
+    <title>Filling</title>
     <style>
         body {
             padding: 0;
@@ -480,7 +480,7 @@
             // 使用正则表达式将 <input {动态长度字符串}> 替换为 what
             let inputIndex = 0
             while (htmlText.includes('<input')) {
-                htmlText = htmlText.replace(/<input (.*?)>/, inputs[inputIndex].value ? inputs[inputIndex].value : "what");
+                htmlText = htmlText.replace(/<input (.*?)>/, inputs[inputIndex].value ? inputs[inputIndex].value : "*what*");
                 inputIndex += 1
             }
 
@@ -491,7 +491,7 @@
             htmlText = htmlText.replace(/^([A-Za-z]+): /gm, "");
             // htmlText = htmlText.replace(/<pre>(.*?)pre>/gs, "");
 
-            if (!htmlText.includes("what")) {
+            if (!htmlText.includes("*what*")) {
                 const count = loopInput.value
                 htmlText = (htmlText + " ").repeat(count).trim()
             }
@@ -503,13 +503,13 @@
         utterance.rate = parseFloat(rateSlider.value);
         utterance.onstart = () => {
             isPlaying = true;
-            if (p && !htmlText.includes("what") && hideCheckbox.checked) {
+            if (p && !htmlText.includes("*what*") && hideCheckbox.checked) {
                 p.style.visibility = 'hidden'
             }
         }
         utterance.onend = () => {
             isPlaying = false;
-            if (p && !htmlText.includes("what") && hideCheckbox.checked) {
+            if (p && !htmlText.includes("*what*") && hideCheckbox.checked) {
                 p.style.visibility = 'visible'
             }
         }
