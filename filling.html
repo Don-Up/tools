@@ -330,7 +330,10 @@
         })
 
         document.querySelectorAll('code').forEach(code => {
-            console.log("2132123")
+            const innerHTML = code.innerHTML
+            // 转义所有的<和>
+            code.innerHTML = innerHTML.replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
             hljs.highlightElement(code);
         })
 
@@ -463,9 +466,7 @@
                 if (event.ctrlKey) {
                     // 从剪贴板获取文本
                     navigator.clipboard.readText().then(text => {
-                        const indentedCode = text;
-                        console.log(indentedCode)
-
+                        const indentedCode = text // autoIndent(text);
                         const processedCode = replacePlaceholders(indentedCode);
                         document.getElementById('divContent').innerHTML = processedCode;
                         closeDialog();
