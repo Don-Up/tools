@@ -141,6 +141,10 @@
         <label for="hideTextCheckbox">Hide Text When Recording:</label>
         <input type="checkbox" id="hideTextCheckbox"></input>
     </div>
+    <div style="margin-top: 15px;">
+        <label for="randomCheckbox">Random Voices:</label>
+        <input type="checkbox" id="randomCheckbox"></input>
+    </div>
 </div>
 <div id="container">
     <div id="divContent"></div>
@@ -163,6 +167,12 @@
     hideTextCheckbox.checked = localStorage.getItem('hideTextCheckbox') === 'true';
     hideTextCheckbox.addEventListener('change', function () {
         localStorage.setItem('hideTextCheckbox', this.checked);
+    });
+
+    const randomCheckbox = document.getElementById('randomCheckbox');
+    randomCheckbox.checked = localStorage.getItem('randomCheckbox') === 'true';
+    randomCheckbox.addEventListener('change', function () {
+        localStorage.setItem('randomCheckbox', this.checked);
     });
 
     const dialog = document.getElementById('dialog');
@@ -427,6 +437,7 @@
 
     let selectedVoice = null
     let voices = []
+    let voicesEn = []
 
     const defaultVoiceName = localStorage.getItem('defaultVoiceName') || 'Microsoft Brian Online (Natural) - English (United States)';
 
@@ -434,6 +445,7 @@
     function loadVoices() {
         if (selectedVoice !== null) return
         voices = window.speechSynthesis.getVoices();
+        voicesEn = voices.filter(voice => voice.lang.includes('en'))
         const voiceSelect = document.querySelector('#voiceSelect');
         voiceSelect.innerHTML = '<option value="">选择发音人</option>'; // 清空并添加默认选项
         let defaultVoiceIndex = null;
@@ -498,7 +510,12 @@
         }
 
         const utterance = new SpeechSynthesisUtterance(htmlText);
-        utterance.voice = voices[selectedVoice];
+        if(randomCheckbox.checked){
+            const randomVoice = Math.floor(Math.random() * voicesEn.length)
+            utterance.voice = voicesEn[randomVoice];
+        } else {
+            utterance.voice = voices[selectedVoice];
+        }
         utterance.lang = "en-US";
         utterance.rate = parseFloat(rateSlider.value);
         utterance.onstart = () => {
