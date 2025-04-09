@@ -681,7 +681,7 @@
                 break;
             case 'Digit1':
                 event.preventDefault()
-                if (currentText.length === 4) {
+                if (currentText.length > 0) {
                     if (event.altKey) {
                         currentContainer[0].click()
                     } else {
@@ -692,7 +692,7 @@
                 break
             case 'Digit2':
                 event.preventDefault()
-                if (currentText.length === 4) {
+                if (currentText.length > 1) {
                     if (event.altKey) {
                         currentContainer[1].click()
                     } else {
@@ -703,7 +703,7 @@
                 break
             case 'Digit3':
                 event.preventDefault()
-                if (currentText.length === 4) {
+                if (currentText.length > 2) {
                     if (event.altKey) {
                         currentContainer[2].click()
                     } else {
@@ -714,7 +714,7 @@
                 break
             case 'Digit4':
                 event.preventDefault()
-                if (currentText.length === 4) {
+                if (currentText.length > 3) {
                     if (event.altKey) {
                         currentContainer[3].click()
                     } else {
