@@ -520,9 +520,11 @@
                 inputIndex += 1
             }
 
-            // 过滤掉1. 2. 3.
+            // 过滤掉所有&lt;和 &gt;
+            htmlText = htmlText.replace(/&lt;|&gt;/g, "");
             // 过滤掉所有<p>和</P>
             htmlText = htmlText.replace(/<\/?p>/g, "");
+            // 过滤掉1. 2. 3.
             htmlText = htmlText.replace(/^(\d+)\. /gm, "");
             htmlText = htmlText.replace(/^([A-Za-z]+): /gm, "");
             // htmlText = htmlText.replace(/<pre>(.*?)pre>/gs, "");
@@ -603,7 +605,7 @@
                 if (event.ctrlKey) {
                     // 从剪贴板获取文本
                     navigator.clipboard.readText().then(text => {
-                        const indentedCode = text // autoIndent(text);
+                        const indentedCode = text.replaceAll("`<", "`&lt;").replaceAll(">`", "&gt;`") // autoIndent(text);
                         const processedCode = replacePlaceholders(indentedCode);
                         document.getElementById('divContent').innerHTML = processedCode;
                         closeDialog();
