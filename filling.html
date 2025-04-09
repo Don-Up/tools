@@ -584,6 +584,9 @@
                 event.preventDefault()
                 speechSynthesis.cancel();
                 isPlaying = false;
+                if(currentP.style.visibility === 'hidden'){
+                    currentP.style.visibility = 'visible'
+                }
                 break;
             case "KeyD":
                 event.preventDefault()
