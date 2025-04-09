@@ -10,6 +10,16 @@
             margin: 0;
         }
 
+        code {
+            font-size: 16px;
+            font-family: 'Consolas', 'Courier New', 'monospace';
+        }
+
+        pre {
+            margin-top: -55px;
+            margin-bottom: -55px;
+        }
+
         #divContent {
             white-space: pre-wrap;
         }
@@ -94,6 +104,9 @@
             margin-top: 10px;
         }
     </style>
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
 </head>
 <body>
 <div style="display: inline-block;position: fixed;margin-left: 10px;margin-top: 20px;">
@@ -236,7 +249,6 @@
             })
         }
 
-
         const inputs = document.querySelectorAll('#divContent input');
         inputs.forEach(input => {
             input.style.cursor = 'pointer'
@@ -317,6 +329,11 @@
             })
         })
 
+        document.querySelectorAll('code').forEach(code => {
+            console.log("2132123")
+            hljs.highlightElement(code);
+        })
+
     }
 
     let selectedVoice = null
@@ -383,7 +400,7 @@
             htmlText = htmlText.replace(/<\/?p>/g, "");
             htmlText = htmlText.replace(/^(\d+)\. /gm, "");
             htmlText = htmlText.replace(/^([A-Za-z]+): /gm, "");
-            htmlText = htmlText.replace(/```(.*?)```/gs, "");
+            // htmlText = htmlText.replace(/<pre>(.*?)pre>/gs, "");
 
             if (!htmlText.includes("what")) {
                 const count = loopInput.value
