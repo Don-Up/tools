@@ -345,10 +345,16 @@
             <option value="SimHei">SimHei</option>
             <option value="Lucida Fax">Lucida Fax</option>
         </select>
-        <switch id="fullscreenToggle">
-            <input type="checkbox" id="autoPlayCheckbox">
-            <label for="autoPlayCheckbox" style="margin-left: -20px;" id="autoPlayLabel">Auto Play</label>
-        </switch>
+        <div style="display: flex;flex-direction: column">
+            <switch>
+                <input type="checkbox" id="autoPlayCheckbox">
+                <label for="autoPlayCheckbox" style="margin-left: -20px;" id="autoPlayLabel">Auto Play</label>
+            </switch>
+            <switch>
+                <input type="checkbox" id="hideReadCheckbox">
+                <label for="hideReadCheckbox" style="margin-left: -20px;" id="hideReadLabel">Hide Read</label>
+            </switch>
+        </div>
         <div style="display: flex;flex-direction: column">
             <switch id="fullscreenToggle" style="margin-left: -20px;">
                 <input type="checkbox" id="ecCheckBox">
@@ -406,6 +412,12 @@
     if (savedBase64Image) {
         imgBg.src = savedBase64Image;
     }
+
+    const hideReadCheckbox = document.getElementById("hideReadCheckbox");
+    hideReadCheckbox.checked = localStorage.getItem("hideRead") === "true";
+    hideReadCheckbox.addEventListener("change", function () {
+        localStorage.setItem("hideRead", hideReadCheckbox.checked);
+    });
 
     document.getElementById("imageInput").addEventListener("change", function (event) {
         const file = event.target.files[0];
@@ -1173,12 +1185,22 @@
         finalText = finalText.replace(/[()#*<>`•\/🔹✅🚀🧠🔎❌]/g, " ").trim() + " ";
         // 将列表序号1. 2. 3.修改为1, 2, 3,
         finalText = finalText.replace(/(\d+)\./g, '$1, ');
-        console.log("Final Text:", finalText)
+        // console.log("Final Text:", finalText)
         const utterance = new SpeechSynthesisUtterance(finalText);
         utterance.voice = currentVoice;
         utterance.lang = "en-US";
         utterance.rate = parseFloat(rateSlider.value);
-        utterance.onend = () => isPlaying = false;
+        utterance.onend = () => {
+            isPlaying = false;
+            if(!autoPlay.checked && hideReadCheckbox.checked && clickedElement){
+                clickedElement.style.visibility = "visible";
+            }
+        }
+        utterance.onstart = () => {
+            if(!autoPlay.checked && hideReadCheckbox.checked && clickedElement){
+                clickedElement.style.visibility = "hidden";
+            }
+        };
         speechSynthesis.speak(utterance);
     }
 
