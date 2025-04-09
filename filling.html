@@ -17,7 +17,7 @@
 
         pre {
             margin-top: -55px;
-            margin-bottom: -55px;
+            margin-bottom: -30px;
         }
 
         #divContent {
@@ -191,7 +191,7 @@
 
     function generateContent() {
         const newCode = codeInput.value;
-        const indentedCode = autoIndent(newCode);
+        const indentedCode = newCode // autoIndent(newCode);
         const processedCode = replacePlaceholders(indentedCode);
         document.getElementById('divContent').innerHTML = processedCode;
         closeDialog();
@@ -463,7 +463,9 @@
                 if (event.ctrlKey) {
                     // 从剪贴板获取文本
                     navigator.clipboard.readText().then(text => {
-                        const indentedCode = autoIndent(text);
+                        const indentedCode = text;
+                        console.log(indentedCode)
+
                         const processedCode = replacePlaceholders(indentedCode);
                         document.getElementById('divContent').innerHTML = processedCode;
                         closeDialog();
