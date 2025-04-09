@@ -103,6 +103,11 @@
             vertical-align: middle;
             margin-top: 10px;
         }
+
+        hr {
+            border-width: 1px;
+            border-color: #333;
+        }
     </style>
     <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
@@ -354,6 +359,10 @@
                     const childP = document.createElement('p')
                     childP.innerHTML = inner.trim() + (index === list.length - 1 ? "" : ".")
                     p.appendChild(childP)
+                    if(index !== list.length - 1){
+                        const hr = document.createElement('hr')
+                        p.appendChild(hr)
+                    }
                 })
             })
         }
