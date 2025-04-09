@@ -175,6 +175,11 @@
         <label for="capitalCheckbox">Show Capital:</label>
         <input type="checkbox" id="capitalCheckbox"></input>
     </div>
+<!--    数字选择框-->
+    <div style="margin-top: 15px;">
+        <label for="wordLengthInput">Word Length:</label>
+        <input id="wordLengthInput" type="number" min="0" max="10" value="0" step="1"></input>
+    </div>
 </div>
 <div id="container">
     <div id="divContent"></div>
@@ -192,6 +197,12 @@
     </div>
 </div>
 <script>
+    const wordLengthInput = document.getElementById("wordLengthInput");
+    wordLengthInput.value = localStorage.getItem('wordLengthInput') || '0';
+    wordLengthInput.addEventListener('change', function () {
+        localStorage.setItem('wordLengthInput', this.value);
+    });
+
     const divideCheckbox = document.getElementById("divideCheckbox")
     divideCheckbox.checked = localStorage.getItem('divideCheckbox') === 'true';
     divideCheckbox.addEventListener('change', function () {
@@ -523,7 +534,11 @@
                             html += `<input data-placeholder="${word.slice(0, -1)}" data-char-index="0" style="margin-right: 20px;margin-bottom: 10px;">`
                             html += `<span style="margin-right: 20px;margin-bottom: 10px;">${word.charAt(word.length - 1)}</span>`
                         } else {
-                            html += `<input data-placeholder="${word}" data-char-index="0" style="margin-right: 20px;margin-bottom: 10px;">`
+                            if(word.length <= wordLengthInput.value){
+                                html += `<span style="margin-right: 20px;margin-bottom: 10px;">${word}</span>`
+                            } else {
+                                html += `<input data-placeholder="${word}" data-char-index="0" style="margin-right: 20px;margin-bottom: 10px;">`
+                            }
                         }
                     })
                     dialog1.innerHTML = html
