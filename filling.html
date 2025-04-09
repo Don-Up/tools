@@ -66,6 +66,27 @@
             border: grey 1px solid;
         }
 
+        #dialog1Bg {
+            background: rgba(0, 0, 0, 1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            visibility: hidden;
+        }
+
+        #dialog1 {
+            background: #2b2b2b;
+            padding: 20px 20px 10px 20px;
+            border-radius: 5px;
+            width: 600px;
+            position: absolute;
+            left: calc(50% - 300px);
+            top: calc(50% - 250px);
+            border: grey 1px solid;
+        }
+
         #dialog textarea {
             width: 480px;
             height: 200px;
@@ -165,6 +186,11 @@
         <button onclick="closeDialog()">Close</button>
     </div>
 </div>
+<div id="dialog1Bg">
+    <div id="dialog1">
+
+    </div>
+</div>
 <script>
     const divideCheckbox = document.getElementById("divideCheckbox")
     divideCheckbox.checked = localStorage.getItem('divideCheckbox') === 'true';
@@ -191,6 +217,14 @@
     });
 
     const dialog = document.getElementById('dialog');
+    const dialog1 = document.getElementById('dialog1');
+    const dialog1Bg = document.getElementById('dialog1Bg');
+    // 点击取消显示
+    dialog1Bg.addEventListener('click', function () {
+        dialog1Bg.style.visibility = 'hidden';
+        dialog1.innerHTML = '';
+    });
+
     const codeInput = document.getElementById('codeInput')
     const loopInput = document.getElementById('loopInput')
     loopInput.value = localStorage.getItem('loopCount') || 1;
@@ -347,6 +381,84 @@
         });
     }
 
+    function handleInput(input){
+        input.style.cursor = 'pointer'
+        input.addEventListener('input', function () {
+            const userInput = this.value; // 移除 trim()
+            const placeholder = this.dataset.placeholder// this.getAttribute('placeholder'); // 移除 trim()
+
+            if (userInput === placeholder) {
+                this.style.color = 'orange';
+                playText(placeholder)
+            } else if (placeholder.startsWith(userInput) && userInput !== '') {
+                this.style.color = 'green';
+            } else {
+                this.style.color = 'red';
+            }
+
+            // 更新字符索引
+            if (placeholder.startsWith(userInput)) {
+                this.dataset.charIndex = userInput.length;
+            } else {
+                this.dataset.charIndex = '0';
+            }
+
+        });
+
+        // Add these event listeners inside the inputs.forEach loop
+        input.addEventListener('mousedown', function (e) {
+            this.longPressTimer = setTimeout(() => {
+                const placeholder = this.dataset.placeholder// this.getAttribute('placeholder');
+                this.value = placeholder;
+                this.dataset.charIndex = placeholder.length.toString();
+                this.style.color = 'orange';
+                this.dispatchEvent(new Event('input'));
+            }, 500); // 500ms press duration
+        });
+
+        input.addEventListener('mouseup', function (e) {
+            clearTimeout(this.longPressTimer);
+        });
+
+        input.addEventListener('mouseleave', function (e) {
+            clearTimeout(this.longPressTimer);
+        });
+
+
+        input.addEventListener('click', function (e) {
+            e.stopPropagation()
+            const placeholder = this.dataset.placeholder //this.getAttribute('placeholder'); // 移除 trim()
+            const currentIndex = parseInt(this.dataset.charIndex || '0', 10);
+            const currentValue = this.value; // 移除 trim()
+
+            // 检查当前输入是否匹配前N个字符
+            if (currentValue === placeholder.substring(0, currentIndex)) {
+                const nextIndex = currentIndex + 1;
+                if (nextIndex <= placeholder.length) {
+                    this.value = placeholder.substring(0, nextIndex);
+                    this.dataset.charIndex = nextIndex.toString();
+                    this.dispatchEvent(new Event('input'));
+                }
+            }
+        });
+
+        const length = input.dataset.placeholder.length//input.getAttribute('placeholder').length
+        let width = Math.max(length * 15, 40)
+        width = Math.min(width, 500)
+        input.style.width = width + 'px'
+        // 设置placeholder
+        const wordLength = input.dataset.placeholder.split(" ").length
+        if (wordLength > 1) {
+            input.placeholder = wordLength
+        }
+
+        if(capitalCheckbox.checked){
+            input.click()
+        }
+    }
+
+    let currentDialogText = null
+
     function initializeInputs() {
         if(divideCheckbox.checked) {
             document.querySelectorAll("p").forEach(p => {
@@ -369,86 +481,54 @@
 
         const inputs = document.querySelectorAll('#divContent input');
         inputs.forEach(input => {
-            input.style.cursor = 'pointer'
-            input.addEventListener('input', function () {
-                const userInput = this.value; // 移除 trim()
-                const placeholder = this.dataset.placeholder// this.getAttribute('placeholder'); // 移除 trim()
-
-                if (userInput === placeholder) {
-                    this.style.color = 'orange';
-                    playText(placeholder)
-                } else if (placeholder.startsWith(userInput) && userInput !== '') {
-                    this.style.color = 'green';
-                } else {
-                    this.style.color = 'red';
-                }
-
-                // 更新字符索引
-                if (placeholder.startsWith(userInput)) {
-                    this.dataset.charIndex = userInput.length;
-                } else {
-                    this.dataset.charIndex = '0';
-                }
-
-            });
-
-            // Add these event listeners inside the inputs.forEach loop
-            input.addEventListener('mousedown', function (e) {
-                this.longPressTimer = setTimeout(() => {
-                    const placeholder = this.dataset.placeholder// this.getAttribute('placeholder');
-                    this.value = placeholder;
-                    this.dataset.charIndex = placeholder.length.toString();
-                    this.style.color = 'orange';
-                    this.dispatchEvent(new Event('input'));
-                }, 500); // 500ms press duration
-            });
-
-            input.addEventListener('mouseup', function (e) {
-                clearTimeout(this.longPressTimer);
-            });
-
-            input.addEventListener('mouseleave', function (e) {
-                clearTimeout(this.longPressTimer);
-            });
-
-
-            input.addEventListener('click', function (e) {
-                e.stopPropagation()
-                const placeholder = this.dataset.placeholder //this.getAttribute('placeholder'); // 移除 trim()
-                const currentIndex = parseInt(this.dataset.charIndex || '0', 10);
-                const currentValue = this.value; // 移除 trim()
-
-                // 检查当前输入是否匹配前N个字符
-                if (currentValue === placeholder.substring(0, currentIndex)) {
-                    const nextIndex = currentIndex + 1;
-                    if (nextIndex <= placeholder.length) {
-                        this.value = placeholder.substring(0, nextIndex);
-                        this.dataset.charIndex = nextIndex.toString();
-                        this.dispatchEvent(new Event('input'));
-                    }
-                }
-            });
-
-            const length = input.dataset.placeholder.length//input.getAttribute('placeholder').length
-            let width = Math.max(length * 15, 40)
-            width = Math.min(width, 500)
-            input.style.width = width + 'px'
-            // 设置placeholder
-            const wordLength = input.dataset.placeholder.split(" ").length
-            if (wordLength > 1) {
-                input.placeholder = wordLength
-            }
-
-            if(capitalCheckbox.checked){
-                input.click()
-            }
+            handleInput(input)
         });
 
         document.querySelectorAll(divideCheckbox.checked?"p p":"p").forEach(p => {
             p.style.cursor = 'pointer'
-            p.addEventListener('click', function () {
-                currentP = p
-                playText(p.innerHTML, p.querySelectorAll('input'), p)
+            p.addEventListener('click', function (event) {
+                if(event.altKey){
+                    const inputValues = []
+                    p.querySelectorAll('input').forEach(
+                        input => {
+                            inputValues.push(input.dataset.placeholder)
+                        }
+                    )
+                    //1
+                    dialog1Bg.style.visibility = 'visible'
+                    let inputValueIndex = 0
+                    const words = p.innerText.split(" ").filter(word => word !== "A:" && word !== "B:").map(word => {
+                        if(word.trim()){
+                            return word
+                        } else {
+                            return inputValues[inputValueIndex++]
+                        }
+                    })
+                    if(inputValueIndex < inputValues.length){
+                        const last = words.pop()
+                        words.push(inputValues[inputValueIndex]+last)
+                    }
+                    currentDialogText = words.join(" ")
+                    let html = ""
+                    words.forEach(word => {
+                        // 判断word最后一个字符是否是标点符号
+                        // html += `<input data-placeholder="${word}" data-char-index="0" style="margin-right: 20px;margin-bottom: 10px;">`
+
+                        if (word.length > 0 && word.charAt(word.length - 1).match(/[.,!?]/)) {
+                            html += `<input data-placeholder="${word.slice(0, -1)}" data-char-index="0" style="margin-right: 20px;margin-bottom: 10px;">`
+                            html += `<span style="margin-right: 20px;margin-bottom: 10px;">${word.charAt(word.length - 1)}</span>`
+                        } else {
+                            html += `<input data-placeholder="${word}" data-char-index="0" style="margin-right: 20px;margin-bottom: 10px;">`
+                        }
+                    })
+                    dialog1.innerHTML = html
+                    dialog1.querySelectorAll('input').forEach(input => {
+                        handleInput(input)
+                    })
+                } else {
+                    currentP = p
+                    playText(p.innerHTML, p.querySelectorAll('input'), p)
+                }
             })
         })
 
@@ -516,7 +596,6 @@
     let isPlaying = false;
 
     function playText(htmlText, inputs, p) {
-        console.log(htmlText)
         if (isPlaying) {
             speechSynthesis.cancel();
         }
@@ -584,6 +663,12 @@
     document.addEventListener("keydown", (event) => {
         // console.log("Keydown event:", event.code)
         switch (event.code) {
+            case "KeyF":
+                event.preventDefault()
+                if(currentDialogText){
+                    playText(currentDialogText)
+                }
+                break
             case "KeyR":
                 event.preventDefault()
                 record()
