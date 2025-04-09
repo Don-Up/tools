@@ -310,7 +310,7 @@
             }
         });
 
-        document.querySelectorAll("p p").forEach(p => {
+        document.querySelectorAll(divideCheckbox.checked?"p p":"p").forEach(p => {
             p.style.cursor = 'pointer'
             p.addEventListener('click', function () {
                 playText(p.innerHTML, p.querySelectorAll('input'), p)
@@ -365,6 +365,7 @@
     let isPlaying = false;
 
     function playText(htmlText, inputs, p) {
+        console.log(htmlText)
         if (isPlaying) {
             speechSynthesis.cancel();
         }
