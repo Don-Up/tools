@@ -220,10 +220,14 @@
     const dialog1 = document.getElementById('dialog1');
     const dialog1Bg = document.getElementById('dialog1Bg');
     // 点击取消显示
-    dialog1Bg.addEventListener('click', function () {
-        dialog1Bg.style.visibility = 'hidden';
-        dialog1.innerHTML = '';
+    dialog1Bg.addEventListener('click', function (e) {
+        // Only close if clicking the background (not children)
+        if (e.target === dialog1Bg) {
+            dialog1Bg.style.visibility = 'hidden';
+            dialog1.innerHTML = '';
+        }
     });
+
 
     const codeInput = document.getElementById('codeInput')
     const loopInput = document.getElementById('loopInput')
@@ -498,10 +502,11 @@
                     dialog1Bg.style.visibility = 'visible'
                     let inputValueIndex = 0
                     const words = p.innerText.split(" ").filter(word => word !== "A:" && word !== "B:").map(word => {
-                        if(word.trim()){
-                            return word
-                        } else {
+                        // 判断word属于标点符号
+                        if(!word.trim() || (word.length === 1 && word.match(/[.,!?]/))){
                             return inputValues[inputValueIndex++]
+                        } else {
+                            return word
                         }
                     })
                     if(inputValueIndex < inputValues.length){
