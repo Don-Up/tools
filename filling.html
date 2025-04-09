@@ -145,6 +145,10 @@
         <label for="randomCheckbox">Random Voices:</label>
         <input type="checkbox" id="randomCheckbox"></input>
     </div>
+    <div style="margin-top: 15px;">
+        <label for="capitalCheckbox">Show Capital:</label>
+        <input type="checkbox" id="capitalCheckbox"></input>
+    </div>
 </div>
 <div id="container">
     <div id="divContent"></div>
@@ -175,6 +179,12 @@
         localStorage.setItem('randomCheckbox', this.checked);
     });
 
+    const capitalCheckbox = document.getElementById('capitalCheckbox');
+    capitalCheckbox.checked = localStorage.getItem('capitalCheckbox') === 'true';
+    capitalCheckbox.addEventListener('change', function () {
+        localStorage.setItem('capitalCheckbox', this.checked);
+    });
+
     const dialog = document.getElementById('dialog');
     const codeInput = document.getElementById('codeInput')
     const loopInput = document.getElementById('loopInput')
@@ -198,7 +208,11 @@
     function reset() {
         document.querySelectorAll('#divContent input').forEach(input => {
             input.value = '';
+            input.dataset.charIndex = "0"
             input.style.color = 'green';
+            if(capitalCheckbox.checked){
+                input.click()
+            }
         });
     }
 
@@ -414,6 +428,10 @@
             const wordLength = input.dataset.placeholder.split(" ").length
             if (wordLength > 1) {
                 input.placeholder = wordLength
+            }
+
+            if(capitalCheckbox.checked){
+                input.click()
             }
         });
 
