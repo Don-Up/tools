@@ -125,6 +125,9 @@
     </div>
     <button onclick="fill()" style="margin-top: 15px;">Fill All Inputs</button>
     <button onclick="reset()" style="margin-top: 15px;">Reset All Inputs</button>
+    <br>
+    <button onclick="record()" style="margin-top: 15px;" id="recordBtn">Record(R)</button>
+    <button onclick="playback()" style="margin-top: 15px;" id="playBtn">Playback(T)</button>
     <!--    复选框: hide-->
     <div style="margin-top: 15px;">
         <label for="hideCheckbox">Hide When Reading:</label>
@@ -133,6 +136,10 @@
     <div style="margin-top: 15px;">
         <label for="divideCheckbox">Divide Sentence:</label>
         <input type="checkbox" id="divideCheckbox"></input>
+    </div>
+    <div style="margin-top: 15px;">
+        <label for="hideTextCheckbox">Hide Text When Recording:</label>
+        <input type="checkbox" id="hideTextCheckbox"></input>
     </div>
 </div>
 <div id="container">
@@ -152,6 +159,12 @@
         localStorage.setItem('divideCheckbox', this.checked);
     });
 
+    const hideTextCheckbox = document.getElementById('hideTextCheckbox');
+    hideTextCheckbox.checked = localStorage.getItem('hideTextCheckbox') === 'true';
+    hideTextCheckbox.addEventListener('change', function () {
+        localStorage.setItem('hideTextCheckbox', this.checked);
+    });
+
     const dialog = document.getElementById('dialog');
     const codeInput = document.getElementById('codeInput')
     const loopInput = document.getElementById('loopInput')
@@ -167,7 +180,7 @@
 
     function fill() {
         document.querySelectorAll('#divContent input').forEach(input => {
-            input.value = input.getAttribute('placeholder');
+            input.value = input.dataset.placeholder;
             input.style.color = 'orange';
         });
     }
@@ -177,6 +190,78 @@
             input.value = '';
             input.style.color = 'green';
         });
+    }
+
+    let currentP = null
+    let isRecording = false
+    let audioChunks = [];
+    let mediaRecorder;
+    let currentAudio = null;
+    let audioStream; // Store the stream globally
+    let recordBtn = document.getElementById('recordBtn');
+    let playBtn = document.getElementById('playBtn');
+
+    async function record(){
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            if (isRecording) {
+                // Stop recording
+                mediaRecorder.stop();
+                isRecording = false;
+                recordBtn.textContent = "Record";
+            } else {
+                // Start recording
+                if (!audioStream) {
+                    try {
+                        audioStream = await navigator.mediaDevices.getUserMedia({audio: true});
+                    } catch (err) {
+                        console.error("Error accessing media devices.", err);
+                        return;
+                    }
+                }
+
+                mediaRecorder = new MediaRecorder(audioStream);
+
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks = []
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    if(currentP && hideTextCheckbox.checked) currentP.style.visibility = "visible";
+                    // const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+                    // const audioUrl = URL.createObjectURL(audioBlob);
+                    // const audio = new Audio(audioUrl);
+                    // audio.play(); // Play the recorded audio
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                recordBtn.textContent = "Recording";
+                if(currentP && hideTextCheckbox.checked) currentP.style.visibility = "hidden";
+            }
+        } else {
+            console.error("getUserMedia not supported on your browser.");
+        }
+    }
+
+    function playback(){
+        if (playBtn.textContent === "Playback(T)") {
+            const audioBlob = new Blob(audioChunks, {type: 'audio/wav'});
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const audio = new Audio(audioUrl);
+            // 监听播放结束
+            audio.addEventListener('ended', () => {
+                playBtn.textContent = "Playback(T)"
+                // enTextElement.style.display = "none";
+            });
+            currentAudio = audio;
+            audio.play();
+            playBtn.textContent = "Stop"
+        } else {
+            // 停止播放录音
+            currentAudio.pause();
+            playBtn.textContent = "Playback(T)"
+        }
     }
 
     // Add these functions to the <script> section
@@ -325,6 +410,7 @@
         document.querySelectorAll(divideCheckbox.checked?"p p":"p").forEach(p => {
             p.style.cursor = 'pointer'
             p.addEventListener('click', function () {
+                currentP = p
                 playText(p.innerHTML, p.querySelectorAll('input'), p)
             })
         })
@@ -446,6 +532,13 @@
     document.addEventListener("keydown", (event) => {
         // console.log("Keydown event:", event.code)
         switch (event.code) {
+            case "KeyR":
+                event.preventDefault()
+                record()
+                break
+            case "KeyT":
+                playback()
+                break;
             case "Space":
                 event.preventDefault()
                 speechSynthesis.cancel();
