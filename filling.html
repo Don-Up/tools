@@ -438,6 +438,11 @@
     let selectedVoice = null
     let voices = []
     let voicesEn = []
+    const voicesOld = [
+        'Microsoft Mark - English (United States)',
+        'Microsoft Zira - English (United States)',
+        'Microsoft David - English (United States)'
+    ]
 
     const defaultVoiceName = localStorage.getItem('defaultVoiceName') || 'Microsoft Brian Online (Natural) - English (United States)';
 
@@ -445,7 +450,8 @@
     function loadVoices() {
         if (selectedVoice !== null) return
         voices = window.speechSynthesis.getVoices();
-        voicesEn = voices.filter(voice => voice.lang.includes('en'))
+        voicesEn = voices.filter(voice => voice.lang.includes('en')
+            && !voicesOld.includes(voice.name))
         const voiceSelect = document.querySelector('#voiceSelect');
         voiceSelect.innerHTML = '<option value="">选择发音人</option>'; // 清空并添加默认选项
         let defaultVoiceIndex = null;
