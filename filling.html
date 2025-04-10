@@ -548,7 +548,7 @@
                     inputNumber.value = localStorage.getItem('dialog1Number') || 50
                     inputNumber.style.width = '60px'
                     inputNumber.style.marginLeft = '20px'
-                    inputNumber.style.marginRight = '20px'
+                    inputNumber.style.marginRight = '5px'
                     inputNumber.addEventListener('input', function () {
                         localStorage.setItem('dialog1Number', this.value)
                     })
@@ -559,6 +559,7 @@
                     wordLenInput.value = localStorage.getItem('wordLengthInput') || 5
                     wordLenInput.style.width = '60px'
                     wordLenInput.style.marginLeft = '20px'
+                    wordLenInput.style.marginRight = '5px'
                     wordLenInput.addEventListener('input', function () {
                         localStorage.setItem('wordLengthInput', this.value)
                         if(wordLengthInput){
@@ -584,6 +585,13 @@
                         })
                     })
 
+                    const span1 = document.createElement("span")
+                    span1.innerText = '%'
+                    span1.style.marginRight = '20px'
+
+                    const span2 = document.createElement("span")
+                    span2.innerText = 'len'
+
                     const buttonRandom = document.createElement('button')
                     buttonRandom.innerText = 'random'
 
@@ -606,15 +614,23 @@
                         inputs.forEach(input => {
                             handleInput(input)
                         })
+                        dialog1.appendChild(document.createElement('br'))
+                        dialog1.appendChild(document.createElement("hr"))
                         dialog1.appendChild(buttonRandom)
                         dialog1.appendChild(inputNumber)
+                        dialog1.appendChild(span1)
                         dialog1.appendChild(buttonCapital)
                         dialog1.appendChild(wordLenInput)
+                        dialog1.appendChild(span2)
                     })
+                    dialog1.appendChild(document.createElement('br'))
+                    dialog1.appendChild(document.createElement("hr"))
                     dialog1.appendChild(buttonRandom)
                     dialog1.appendChild(inputNumber)
+                    dialog1.appendChild(span1)
                     dialog1.appendChild(buttonCapital)
                     dialog1.appendChild(wordLenInput)
+                    dialog1.appendChild(span2)
                     dialog1.querySelectorAll('input').forEach(input => {
                         if(input.type !== "number"){
                             handleInput(input)
