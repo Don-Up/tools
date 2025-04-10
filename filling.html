@@ -512,7 +512,7 @@
                     //1
                     dialog1Bg.style.visibility = 'visible'
                     let inputValueIndex = 0
-                    const words = p.innerText.split(" ").filter(word => word !== "A:" && word !== "B:").map(word => {
+                    const words = p.innerText.replaceAll("—", " - ").split(" ").filter(word => word !== "A:" && word !== "B:").map(word => {
                         // 判断word属于标点符号
                         if (!word.trim() || (word.length === 1 && word.match(/[.,!?]/))) {
                             return inputValues[inputValueIndex++]
