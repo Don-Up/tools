@@ -175,7 +175,7 @@
         <label for="capitalCheckbox">Show Capital:</label>
         <input type="checkbox" id="capitalCheckbox"></input>
     </div>
-<!--    数字选择框-->
+    <!--    数字选择框-->
     <div style="margin-top: 15px;">
         <label for="wordLengthInput">Word Length:</label>
         <input id="wordLengthInput" type="number" min="0" max="10" value="0" step="1"></input>
@@ -264,7 +264,7 @@
             input.value = '';
             input.dataset.charIndex = "0"
             input.style.color = 'green';
-            if(capitalCheckbox.checked){
+            if (capitalCheckbox.checked) {
                 input.click()
             }
         });
@@ -279,7 +279,7 @@
     let recordBtn = document.getElementById('recordBtn');
     let playBtn = document.getElementById('playBtn');
 
-    async function record(){
+    async function record() {
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
             if (isRecording) {
                 // Stop recording
@@ -305,7 +305,7 @@
                 };
 
                 mediaRecorder.onstop = () => {
-                    if(currentP && hideTextCheckbox.checked) currentP.style.visibility = "visible";
+                    if (currentP && hideTextCheckbox.checked) currentP.style.visibility = "visible";
                     // const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
                     // const audioUrl = URL.createObjectURL(audioBlob);
                     // const audio = new Audio(audioUrl);
@@ -315,14 +315,14 @@
                 mediaRecorder.start();
                 isRecording = true;
                 recordBtn.textContent = "Recording";
-                if(currentP && hideTextCheckbox.checked) currentP.style.visibility = "hidden";
+                if (currentP && hideTextCheckbox.checked) currentP.style.visibility = "hidden";
             }
         } else {
             console.error("getUserMedia not supported on your browser.");
         }
     }
 
-    function playback(){
+    function playback() {
         if (playBtn.textContent === "Playback(T)") {
             const audioBlob = new Blob(audioChunks, {type: 'audio/wav'});
             const audioUrl = URL.createObjectURL(audioBlob);
@@ -396,7 +396,7 @@
         });
     }
 
-    function handleInput(input){
+    function handleInput(input) {
         input.style.cursor = 'pointer'
         input.addEventListener('input', function () {
             const userInput = this.value; // 移除 trim()
@@ -467,7 +467,7 @@
             input.placeholder = wordLength
         }
 
-        if(capitalCheckbox.checked){
+        if (capitalCheckbox.checked) {
             input.click()
         }
     }
@@ -475,18 +475,18 @@
     let currentDialogText = null
 
     function initializeInputs() {
-        if(divideCheckbox.checked) {
+        if (divideCheckbox.checked) {
             document.querySelectorAll("p").forEach(p => {
                 const html = p.innerHTML
                 p.innerHTML = ""
                 // 将.或!作为分隔符
                 // const list = html.split(/\.|!/).filter(item => item.trim() !== "")
-                const list = html.split(".")
+                const list = html.split(". ")
                 list.forEach((inner, index) => {
                     const childP = document.createElement('p')
                     childP.innerHTML = inner.trim() + (index === list.length - 1 ? "" : ".")
                     p.appendChild(childP)
-                    if(index !== list.length - 1){
+                    if (index !== list.length - 1) {
                         const hr = document.createElement('hr')
                         p.appendChild(hr)
                     }
@@ -499,10 +499,10 @@
             handleInput(input)
         });
 
-        document.querySelectorAll(divideCheckbox.checked?"p p":"p").forEach(p => {
+        document.querySelectorAll(divideCheckbox.checked ? "p p" : "p").forEach(p => {
             p.style.cursor = 'pointer'
             p.addEventListener('click', function (event) {
-                if(event.altKey){
+                if (event.altKey) {
                     const inputValues = []
                     p.querySelectorAll('input').forEach(
                         input => {
@@ -514,15 +514,15 @@
                     let inputValueIndex = 0
                     const words = p.innerText.split(" ").filter(word => word !== "A:" && word !== "B:").map(word => {
                         // 判断word属于标点符号
-                        if(!word.trim() || (word.length === 1 && word.match(/[.,!?]/))){
+                        if (!word.trim() || (word.length === 1 && word.match(/[.,!?]/))) {
                             return inputValues[inputValueIndex++]
                         } else {
                             return word
                         }
                     })
-                    if(inputValueIndex < inputValues.length){
+                    if (inputValueIndex < inputValues.length) {
                         const last = words.pop()
-                        words.push(inputValues[inputValueIndex]+last)
+                        words.push(inputValues[inputValueIndex] + last)
                     }
                     currentDialogText = words.join(" ")
                     let html = ""
@@ -534,7 +534,7 @@
                             html += `<input data-placeholder="${word.slice(0, -1)}" data-char-index="0" style="margin-right: 20px;margin-bottom: 10px;">`
                             html += `<span style="margin-right: 20px;margin-bottom: 10px;">${word.charAt(word.length - 1)}</span>`
                         } else {
-                            if(word.length <= wordLengthInput.value){
+                            if (word.length <= wordLengthInput.value) {
                                 html += `<span style="margin-right: 20px;margin-bottom: 10px;">${word}</span>`
                             } else {
                                 html += `<input data-placeholder="${word}" data-char-index="0" style="margin-right: 20px;margin-bottom: 10px;">`
@@ -542,8 +542,83 @@
                         }
                     })
                     dialog1.innerHTML = html
+                    // 创建一个数字输入框(0-100)
+                    const inputNumber = document.createElement('input')
+                    inputNumber.type = 'number'
+                    inputNumber.value = localStorage.getItem('dialog1Number') || 50
+                    inputNumber.style.width = '60px'
+                    inputNumber.style.marginLeft = '20px'
+                    inputNumber.style.marginRight = '20px'
+                    inputNumber.addEventListener('input', function () {
+                        localStorage.setItem('dialog1Number', this.value)
+                    })
+
+                    // Word Length数字输入框
+                    const wordLenInput = document.createElement('input')
+                    wordLenInput.type = 'number'
+                    wordLenInput.value = localStorage.getItem('wordLengthInput') || 5
+                    wordLenInput.style.width = '60px'
+                    wordLenInput.style.marginLeft = '20px'
+                    wordLenInput.addEventListener('input', function () {
+                        localStorage.setItem('wordLengthInput', this.value)
+                        if(wordLengthInput){
+                            wordLengthInput.value = this.value
+                        }
+                    })
+
+                    const buttonCapital = document.createElement('button')
+                    buttonCapital.innerHTML = 'Show/Hide Capital'
+                    buttonCapital.addEventListener('click', function () {
+                        capitalCheckbox.checked = !capitalCheckbox.checked
+                        localStorage.setItem('capitalCheckbox', capitalCheckbox.checked)
+                        dialog1.querySelectorAll("input").forEach(input => {
+                            if(input.type !== "number"){
+                                if (input.dataset.charIndex === '0') {
+                                    input.value = input.dataset.placeholder.slice(0, 1)
+                                    input.dataset.charIndex = "1"
+                                } else {
+                                    input.value = ""
+                                    input.dataset.charIndex = "0"
+                                }
+                            }
+                        })
+                    })
+
+                    const buttonRandom = document.createElement('button')
+                    buttonRandom.innerText = 'random'
+
+                    buttonRandom.addEventListener('click', function () {
+                        html = ""
+                        words.forEach(word => {
+                            if (word.length > 0 && word.charAt(word.length - 1).match(/[.,!?]/)) {
+                                html += `<input data-placeholder="${word.slice(0, -1)}" data-char-index="0" style="margin-right: 20px;margin-bottom: 10px;">`
+                                html += `<span style="margin-right: 20px;margin-bottom: 10px;">${word.charAt(word.length - 1)}</span>`
+                            } else {
+                                if (word.length <= wordLengthInput.value || Math.random() * 100 <= inputNumber.value) {
+                                    html += `<span style="margin-right: 20px;margin-bottom: 10px;">${word}</span>`
+                                } else {
+                                    html += `<input data-placeholder="${word}" data-char-index="0" style="margin-right: 20px;margin-bottom: 10px;">`
+                                }
+                            }
+                        })
+                        dialog1.innerHTML = html
+                        const inputs = dialog1.querySelectorAll('input')
+                        inputs.forEach(input => {
+                            handleInput(input)
+                        })
+                        dialog1.appendChild(buttonRandom)
+                        dialog1.appendChild(inputNumber)
+                        dialog1.appendChild(buttonCapital)
+                        dialog1.appendChild(wordLenInput)
+                    })
+                    dialog1.appendChild(buttonRandom)
+                    dialog1.appendChild(inputNumber)
+                    dialog1.appendChild(buttonCapital)
+                    dialog1.appendChild(wordLenInput)
                     dialog1.querySelectorAll('input').forEach(input => {
-                        handleInput(input)
+                        if(input.type !== "number"){
+                            handleInput(input)
+                        }
                     })
                 } else {
                     currentP = p
@@ -644,7 +719,7 @@
         }
 
         const utterance = new SpeechSynthesisUtterance(htmlText);
-        if(randomCheckbox.checked){
+        if (randomCheckbox.checked) {
             const randomVoice = Math.floor(Math.random() * voicesEn.length)
             utterance.voice = voicesEn[randomVoice];
         } else {
@@ -685,7 +760,7 @@
         switch (event.code) {
             case "KeyF":
                 event.preventDefault()
-                if(currentDialogText){
+                if (currentDialogText) {
                     playText(currentDialogText)
                 }
                 break
@@ -700,7 +775,7 @@
                 event.preventDefault()
                 speechSynthesis.cancel();
                 isPlaying = false;
-                if(currentP.style.visibility === 'hidden'){
+                if (currentP.style.visibility === 'hidden') {
                     currentP.style.visibility = 'visible'
                 }
                 break;
