@@ -646,7 +646,8 @@
         header.className = "dialog-header";
         header.innerHTML = `
         <h2>Sentence ${index + 1}</h2>
-        <button class="toggle-sentence" style="margin-left: 400px;">Show/Hide</button>
+        <button class="copy-en" style="margin-left: 400px;width: 100px">Copy EN</button>
+        <button class="toggle-sentence" style="margin-left: 10px;">Show/Hide</button>
         <button class="reset-add" style="margin-left: 10px;">Reset</button>
       `;
 
@@ -688,6 +689,14 @@
         const wordDisplay = content.querySelector(".word-display");
         const enTextElement = content.querySelector(".en-text");
         const resetAdd = header.querySelector(".reset-add");
+        const btnCopyEN = header.querySelector(".copy-en")
+        btnCopyEN.addEventListener("click", () => {
+            navigator.clipboard.writeText(enText);
+            btnCopyEN.textContent = "Copied";
+            setTimeout(() => {
+                btnCopyEN.textContent = "Copy EN";
+            }, 500);
+        })
         // 显示/隐藏对话
         header.querySelector(".toggle-sentence").addEventListener("click", () => {
             if (enTextElement) {
