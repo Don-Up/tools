@@ -476,8 +476,11 @@
             case 'KeyF':
                 if (!immersive) {
                     goToImmersion()
+                    // hide the scrollbar
+                    document.body.style.overflow = "hidden"
                 } else {
                     leaveImmersion()
+                    document.body.style.overflow = "auto"
                 }
                 break
         }
@@ -634,7 +637,7 @@
     }
 
     // 创建对话项
-    function createDialogItem(enText, cnText, index) {
+    function createDialogItem(enText, cnText, index, length) {
         enText = enText.replace(/[#*<>`•]/g, "").replace(/\//g, " ").replace(/e\.g\.,/gi, "such-as").trim();
         enText = enText.replace(/^\d+\.\s*/gm, "")
         cnText = cnText.replace(/^\d+\.\s*/gm, "").replace(/[-#*`•]/g, "").trim();
@@ -645,7 +648,7 @@
         const header = document.createElement("div");
         header.className = "dialog-header";
         header.innerHTML = `
-        <h2>Sentence ${index + 1}</h2>
+        <h2 style="margin-top:7px;">${index + 1}/${length}</h2>
         <button class="copy-en" style="margin-left: 400px;width: 100px">Copy EN</button>
         <button class="toggle-sentence" style="margin-left: 10px;">Show/Hide</button>
         <button class="reset-add" style="margin-left: 10px;">Reset</button>
@@ -921,7 +924,7 @@
         const dialogs = parseDialog(inputTextValue);
         dialogListElement.innerHTML = "";
         dialogs.forEach((dialog, index) => {
-            const dialogItem = createDialogItem(dialog.en, dialog.cn, index)
+            const dialogItem = createDialogItem(dialog.en, dialog.cn, index, dialogs.length)
             dialogItem.addEventListener("click", () => {
                 dialogItem.querySelector("h2").style.color = "gold";
                 currentQuestion = index
