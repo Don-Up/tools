@@ -264,6 +264,7 @@
             font-family: 'Consolas', monospace;
             font-size: 14px;
             line-height: 1.5;
+            cursor: pointer;
         }
 
         /* 遮罩层（背景半透明） */
@@ -1199,14 +1200,26 @@
             document.querySelectorAll('code').forEach(code => {
                 const text = code.innerText
                 // 转义所有的<和>
-                code.addEventListener('click', function () {
+                code.addEventListener('click', function (event) {
+                    if(event.altKey) return
                     const codeText = text
-                        .replaceAll("//", "")
-                        .replaceAll("===", "equal")
-                        .replaceAll("==", "equal")
-                        .replaceAll("<=", "less or equal")
-                        .replaceAll(">=", "greater or equal")
-                        .replaceAll("=>", "arrow")
+                        .replace(event.ctrlKey? /\/\/.*$/gm : /\/\//g, "")
+                        .replace(/===?/g, "-equal-")
+                        .replace(/<==?/g, "-less or equal-")
+                        .replace(/>==?/g, "-greater or equal-")
+                        // 替换所有(任意长度字符) => 为"callback"
+                        .replace(/(?<!\bit)\([^)]*\)\s*=>/g, "-callback-")
+                        .replaceAll("=>", "-arrow-")
+                        .replaceAll("console.", "")
+                        // 过滤掉所有以import开头的语句
+                        .replace(/import .* from '.*';/g, "")
+                        .replaceAll(" < ", "-less-")
+                        .replaceAll(" > ", "-greater-")
+                        .replaceAll(" + ", "-plus-")
+                        .replaceAll(" - ", "-minus-")
+                        .replaceAll(" * ", "-multiply-")
+                        .replaceAll(" / ", "-divide-")
+                        .replaceAll(": ", "-is-")
                     playText(codeText)
                 })
 
@@ -1410,9 +1423,9 @@
         }
     });
 
-    document.addEventListener("DOMContentLoaded", () => {
-        hljs.highlightAll();
-    });
+    // document.addEventListener("DOMContentLoaded", () => {
+    //     hljs.highlightAll();
+    // });
 
     // 监听页面退出或刷新
     window.addEventListener("beforeunload", (event) => {

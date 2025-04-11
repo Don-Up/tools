@@ -16,8 +16,12 @@
         }
 
         pre {
-            margin-top: -55px;
+            margin-top: -20px;
             margin-bottom: -30px;
+        }
+
+        code {
+            cursor: pointer;
         }
 
         #divContent {
@@ -645,13 +649,53 @@
         })
 
         document.querySelectorAll('code').forEach(code => {
-            const innerHTML = code.innerHTML
-            // 转义所有的<和>
-            code.innerHTML = innerHTML.replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;');
             hljs.highlightElement(code);
-        })
+            const innerText = code.innerText.trim();
+            // 转义所有的<和>
+            code.innerHTML = code.innerHTML.trim()
+            // code.innerHTML = code.innerHTML.replace(/</g, '&lt;')
+            //     .replace(/>/g, '&gt;').trim();
+            code.addEventListener('click', function (event) {
+                if(event.altKey) return
+                const codeText = innerText
+                    .replace(event.ctrlKey? /\/\/.*$/gm : /\/\//g, "")
+                    .replace(/===?/g, "-equal-")
+                    .replace(/<==?/g, "-less or equal-")
+                    .replace(/>==?/g, "-greater or equal-")
+                    // 替换所有(任意长度字符) => 为"callback"
+                    .replace(/(?<!\bit)\([^)]*\)\s*=>/g, "-callback-")
+                    .replaceAll("=>", "-arrow-")
+                    .replaceAll("console.", "")
+                    // 过滤掉所有以import开头的语句
+                    .replace(/import .* from '.*';/g, "")
+                    .replaceAll(" < ", "-less-")
+                    .replaceAll(" > ", "-greater-")
+                    .replaceAll(" + ", "-plus-")
+                    .replaceAll(" - ", "-minus-")
+                    .replaceAll(" * ", "-multiply-")
+                    .replaceAll(" / ", "-divide-")
+                    .replaceAll(": ", "-is-")
 
+                playText(codeText)
+            })
+
+            const button = document.createElement('button')
+            button.style.position = 'absolute'  // Add this
+            button.style.top = '10px'          // Add px unit
+            button.style.right = '10px'        // Simplify right position
+            button.innerText = 'copy'
+            button.style.zIndex = '100'
+            button.addEventListener('click', function (e) {
+                e.stopPropagation()
+                navigator.clipboard.writeText(innerText)
+                button.innerText = 'copied'
+                setTimeout(() => {
+                    button.innerText = 'copy'
+                }, 500)
+            })
+            code.style.position = 'relative'
+            code.appendChild(button)
+        })
     }
 
     let selectedVoice = null
