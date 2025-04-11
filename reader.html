@@ -1131,7 +1131,7 @@
 
                 button.addEventListener('click', function (e) {
                     e.stopPropagation()
-                    navigator.clipboard.writeText(code.innerText)
+                    navigator.clipboard.writeText(text)
                     button.innerText = 'copied'
                     setTimeout(() => {
                         button.innerText = 'copy'
