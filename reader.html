@@ -1062,7 +1062,6 @@
                 isInList = true;
                 line = line.replace(/-/g, "");
                 list.push(line)
-                console.log(list)
                 if (index !== lines.length - 1) return
             }
 
@@ -1108,29 +1107,32 @@
         });
         setTimeout(() => {
             document.querySelectorAll('pre').forEach(pre => {
-                const code = document.querySelector("code")
+                const code = pre.querySelector("code")
                 const text = code.innerText
                 // 转义所有的<和>
                 code.addEventListener('click', function (event) {
                     if(event.altKey) return
                     const codeText = text
                         .replace(event.ctrlKey? /\/\/.*$/gm : /\/\//g, "")
-                        .replace(/===?/g, "-equal-")
-                        .replace(/<==?/g, "-less or equal-")
-                        .replace(/>==?/g, "-greater or equal-")
+                        .replace(/\/\*\*[\s\S]*?\*\//g, "")
+                        .replaceAll("args", "arguments")
+                        .replaceAll("...",  ", spread-")
                         // 替换所有(任意长度字符) => 为"callback"
                         .replace(/(?<!\bit)\([^)]*\)\s*=>/g, "-callback-")
+                        .replace(/!==?/g, ",not equal,")
+                        .replace(/==?=?/g, ",equal,")
+                        .replace(/<==?/g, ",less or equal,")
+                        .replace(/>==?/g, ",greater or equal,")
                         .replaceAll("=>", "-arrow-")
                         .replaceAll("console.", "")
                         // 过滤掉所有以import开头的语句
                         .replace(/import .* from '.*';/g, "")
-                        .replaceAll(" < ", "-less-")
-                        .replaceAll(" > ", "-greater-")
+                        .replaceAll(" < ", ",less,")
+                        .replaceAll(" > ", ",greater,")
                         .replaceAll(" + ", "-plus-")
                         .replaceAll(" - ", "-minus-")
                         .replaceAll(" * ", "-multiply-")
                         .replaceAll(" / ", "-divide-")
-                        .replaceAll(": ", "-is-")
                     playText(codeText)
                 })
 
@@ -1175,7 +1177,6 @@
         }
         isPlaying = true;
 
-        console.log(originalText)
         // 将所有<b>XX</b>替换为XX
         originalText = originalText.replace(/<b>(.*?)<\/b>/g, '$1');
         // 将所有的<span class="code-span">XX</span>替换为XX
@@ -1268,7 +1269,7 @@
 
     // 监听快捷键Space, 按下后调用stopText
     document.addEventListener("keydown", (event) => {
-        console.log("Keydown event:", event.code)
+        // console.log("Keydown event:", event.code)
         switch (event.code) {
             case "Space":
                 event.preventDefault()

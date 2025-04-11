@@ -681,22 +681,25 @@
                 if(event.altKey) return
                 const codeText = innerText
                     .replace(event.ctrlKey? /\/\/.*$/gm : /\/\//g, "")
-                    .replace(/===?/g, "-equal-")
-                    .replace(/<==?/g, "-less or equal-")
-                    .replace(/>==?/g, "-greater or equal-")
+                    .replace(/\/\*\*[\s\S]*?\*\//g, "")
+                    .replaceAll("args", "arguments")
+                    .replaceAll("...",  ", spread-")
                     // 替换所有(任意长度字符) => 为"callback"
                     .replace(/(?<!\bit)\([^)]*\)\s*=>/g, "-callback-")
+                    .replace(/!==?/g, ",not equal,")
+                    .replace(/==?=?/g, ",equal,")
+                    .replace(/<==?/g, ",less or equal,")
+                    .replace(/>==?/g, ",greater or equal,")
                     .replaceAll("=>", "-arrow-")
                     .replaceAll("console.", "")
                     // 过滤掉所有以import开头的语句
                     .replace(/import .* from '.*';/g, "")
-                    .replaceAll(" < ", "-less-")
-                    .replaceAll(" > ", "-greater-")
+                    .replaceAll(" < ", ",less,")
+                    .replaceAll(" > ", ",greater,")
                     .replaceAll(" + ", "-plus-")
                     .replaceAll(" - ", "-minus-")
                     .replaceAll(" * ", "-multiply-")
                     .replaceAll(" / ", "-divide-")
-                    .replaceAll(": ", "-is-")
 
                 playText(codeText)
             })
