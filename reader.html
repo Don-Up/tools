@@ -1105,7 +1105,42 @@
             contentDiv.appendChild(textBlock);
 
         });
+        setTimeout(() => {
+            document.querySelectorAll('code').forEach(code => {
+                const text = code.innerText
+                // 转义所有的<和>
+                code.addEventListener('click', function () {
+                    const codeText = text
+                        .replaceAll("//", "")
+                        .replaceAll("===", "equal")
+                        .replaceAll("==", "equal")
+                        .replaceAll("<=", "less or equal")
+                        .replaceAll(">=", "greater or equal")
+                        .replaceAll("=>", "arrow")
+                    playText(codeText)
+                })
 
+                const button = document.createElement('button')
+                button.style.position = 'absolute'  // Add this
+                button.style.top = '10px'          // Add px unit
+                button.style.right = '10px'        // Simplify right position
+                button.style.padding = '5px'
+                button.style.zIndex = '100'
+                button.style.backgroundColor = '#666666'
+                button.innerText = 'copy'
+
+                button.addEventListener('click', function (e) {
+                    e.stopPropagation()
+                    navigator.clipboard.writeText(code.innerText)
+                    button.innerText = 'copied'
+                    setTimeout(() => {
+                        button.innerText = 'copy'
+                    }, 500)
+                })
+                code.style.position = 'relative'
+                code.appendChild(button)
+            })
+        }, 100)
         contentDiv.style.padding = "70px 20px 20px";
         contentWrapper?.scrollIntoView({behavior: "smooth"});
     }
