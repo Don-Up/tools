@@ -1107,7 +1107,8 @@
 
         });
         setTimeout(() => {
-            document.querySelectorAll('code').forEach(code => {
+            document.querySelectorAll('pre').forEach(pre => {
+                const code = document.querySelector("code")
                 const text = code.innerText
                 // 转义所有的<和>
                 code.addEventListener('click', function (event) {
@@ -1150,8 +1151,8 @@
                         button.innerText = 'copy'
                     }, 500)
                 })
-                code.style.position = 'relative'
-                code.appendChild(button)
+                pre.style.position = 'relative'
+                pre.appendChild(button)
             })
         }, 100)
         contentDiv.style.padding = "70px 20px 20px";

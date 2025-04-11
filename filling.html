@@ -648,7 +648,8 @@
             })
         })
 
-        document.querySelectorAll('code').forEach(code => {
+        document.querySelectorAll('pre').forEach(pre => {
+            const code = pre.querySelector("code")
             hljs.highlightElement(code);
             const innerText = code.innerText.trim();
             // 转义所有的<和>
@@ -681,7 +682,7 @@
 
             const button = document.createElement('button')
             button.style.position = 'absolute'  // Add this
-            button.style.top = '10px'          // Add px unit
+            button.style.top = '0px'          // Add px unit
             button.style.right = '10px'        // Simplify right position
             button.innerText = 'copy'
             button.style.zIndex = '100'
@@ -693,8 +694,8 @@
                     button.innerText = 'copy'
                 }, 500)
             })
-            code.style.position = 'relative'
-            code.appendChild(button)
+            pre.style.position = 'relative'
+            pre.appendChild(button)
         })
     }
 
