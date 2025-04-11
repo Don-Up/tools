@@ -202,6 +202,7 @@
     </div>
 </div>
 <script>
+    const divContent = document.getElementById('divContent')
     const wordLengthInput = document.getElementById("wordLengthInput");
     wordLengthInput.value = localStorage.getItem('wordLengthInput') || '0';
     wordLengthInput.addEventListener('change', function () {
@@ -366,7 +367,7 @@
         const newCode = codeInput.value;
         const indentedCode = newCode // autoIndent(newCode);
         const processedCode = replacePlaceholders(indentedCode);
-        document.getElementById('divContent').innerHTML = processedCode;
+        divContent.innerHTML = processedCode;
         closeDialog();
         initializeInputs(); // Re-initialize event listeners for new inputs
         codeInput.value = ""
@@ -879,17 +880,17 @@
                         if(!indentedCode.startsWith("<p>")){
                             if(indentedCode.includes("\n")){
                                 indentedCode = indentedCode.split("\n").map(line => `<p>${line.trim()}</p>`).join(" ")
-                                console.log(indentedCode)
                             } else {
                                 indentedCode = `<p>${indentedCode}</p>`
                             }
                         }
                         const processedCode = replacePlaceholders(indentedCode);
 
-                        document.getElementById('divContent').innerHTML = processedCode;
+                        divContent.innerHTML = processedCode;
                         closeDialog();
                         initializeInputs(); // Re-initialize event listeners for new inputs
                         codeInput.value = ""
+                        divContent.scrollTop = 0
                     }).catch(err => {
                         console.error('Failed to read clipboard contents: ', err);
                     });
