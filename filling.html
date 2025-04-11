@@ -285,14 +285,19 @@
     let playBtn = document.getElementById('playBtn');
 
     async function record() {
+        const recording = dialog1.querySelector("#recording")
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
             if (isRecording) {
                 // Stop recording
+                recording.style.visibility = "hidden";
+
                 mediaRecorder.stop();
                 isRecording = false;
                 recordBtn.textContent = "Record";
             } else {
                 // Start recording
+                recording.style.visibility = "visible";
+
                 if (!audioStream) {
                     try {
                         audioStream = await navigator.mediaDevices.getUserMedia({audio: true});
@@ -610,6 +615,13 @@
             const buttonRandom = document.createElement('button')
             buttonRandom.innerText = 'random'
 
+            const recording = document.createElement('span');
+            recording.textContent = "Recording..."
+            recording.style.visibility = "hidden"
+            recording.style.marginLeft = "20px"
+            recording.style.color = "#d93a49"
+            recording.id = "recording"
+
             buttonRandom.addEventListener('click', function () {
                 html = ""
                 words.forEach(word => {
@@ -637,6 +649,7 @@
                 dialog1.appendChild(buttonCapital)
                 dialog1.appendChild(wordLenInput)
                 dialog1.appendChild(span2)
+                dialog1.appendChild(recording)
             })
             dialog1.appendChild(document.createElement('br'))
             dialog1.appendChild(document.createElement("hr"))
@@ -646,6 +659,7 @@
             dialog1.appendChild(buttonCapital)
             dialog1.appendChild(wordLenInput)
             dialog1.appendChild(span2)
+            dialog1.appendChild(recording)
             dialog1.querySelectorAll('input').forEach(input => {
                 if(input.type !== "number"){
                     handleInput(input)
