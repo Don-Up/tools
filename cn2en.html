@@ -468,7 +468,7 @@
             case 'KeyV':
                 event.preventDefault()
                 navigator.clipboard.readText().then(text => {
-                    inputText.value = text
+                    inputText.value = text.replaceAll("------", "")
                     saveMode = event.ctrlKey
                     document.getElementById("generateBtn").click()
                     currentQuestion = 0
@@ -737,7 +737,7 @@
         wordLenInput.type = 'number'
         wordLenInput.value = localStorage.getItem('wordLengthInput') || 0
         wordLenInput.style.width = '60px'
-        wordLenInput.style.marginLeft = '20px'
+        wordLenInput.style.marginLeft = '10px'
         wordLenInput.style.marginRight = '5px'
         wordLenInput.addEventListener('input', function () {
             localStorage.setItem('wordLengthInput', this.value)
@@ -746,7 +746,8 @@
         })
 
         const buttonCapital = document.createElement('button')
-        buttonCapital.innerHTML = 'Show/Hide Capital'
+        buttonCapital.innerHTML = 'S/H Capital'
+        buttonCapital.style.marginLeft = '10px'
         buttonCapital.addEventListener('click', function () {
             capital = !capital
             localStorage.setItem('capital', String(capital))
@@ -765,7 +766,6 @@
 
         const span1 = document.createElement("span")
         span1.innerText = '%'
-        span1.style.marginRight = '20px'
 
         const span2 = document.createElement("span")
         span2.innerText = 'len'
@@ -783,7 +783,6 @@
         buttonRandom.addEventListener('click', function () {
             html = ""
             words.forEach(word => {
-                console.log(wordLengthValue)
                 if (word.length > 0 && word.charAt(word.length - 1).match(/[.,!?]/)) {
                     if (word.length-1 <= wordLengthValue || Math.random() * 100 <= inputNumber.value) {
                         html += `<span style="margin-right: 20px;margin-bottom: 10px;">${word.slice(0, -1)}</span>`
@@ -807,9 +806,9 @@
             dialog1.appendChild(document.createElement('br'))
             dialog1.appendChild(document.createElement("hr"))
             dialog1.appendChild(buttonRandom)
+            dialog1.appendChild(buttonCapital)
             dialog1.appendChild(inputNumber)
             dialog1.appendChild(span1)
-            dialog1.appendChild(buttonCapital)
             dialog1.appendChild(wordLenInput)
             dialog1.appendChild(span2)
             dialog1.appendChild(recording)
@@ -817,9 +816,9 @@
         dialog1.appendChild(document.createElement('br'))
         dialog1.appendChild(document.createElement("hr"))
         dialog1.appendChild(buttonRandom)
+        dialog1.appendChild(buttonCapital)
         dialog1.appendChild(inputNumber)
         dialog1.appendChild(span1)
-        dialog1.appendChild(buttonCapital)
         dialog1.appendChild(wordLenInput)
         dialog1.appendChild(span2)
         dialog1.appendChild(recording)
