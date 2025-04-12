@@ -679,11 +679,12 @@
 
     // =================================================================================================
     
-    let wordLengthValue = localStorage.getItem("wordLengthValue") || 0
     let capital = localStorage.getItem("capital") || false
     let currentDialogText = ""
 
     function showDialog(enText){
+        let wordLengthValue = localStorage.getItem("wordLengthInput") || 0
+        console.log("word", wordLengthValue)
         // const inputValues = enText.split(" ")
         
         //1
