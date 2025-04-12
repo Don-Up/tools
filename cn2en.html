@@ -126,6 +126,29 @@
             background-color: #007d65;
             color: white;
         }
+
+        #dialog1Bg {
+            background: rgba(0, 0, 0, 1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            visibility: hidden;
+            z-index: 101;
+        }
+
+        #dialog1 {
+            background: #2b2b2b;
+            padding: 20px 20px 10px 20px;
+            border-radius: 5px;
+            width: 600px;
+            position: absolute;
+            left: calc(50% - 300px);
+            top: calc(50% - 250px);
+            border: grey 1px solid;
+            transform: scale(1.5);
+        }
     </style>
 </head>
 <body>
@@ -177,8 +200,23 @@
     </div>
     <div class="dialog-list" id="dialogList"></div>
 </div>
+<div id="dialog1Bg">
+    <div id="dialog1">
 
+    </div>
+</div>
 <script>
+    const dialog1 = document.getElementById('dialog1');
+    const dialog1Bg = document.getElementById('dialog1Bg');
+    // 点击取消显示
+    dialog1Bg.addEventListener('click', function (e) {
+        // Only close if clicking the background (not children)
+        if (e.target === dialog1Bg) {
+            dialog1Bg.style.visibility = 'hidden';
+            dialog1.innerHTML = '';
+        }
+    });
+
     let db;
 
     function initDB() {
@@ -402,6 +440,9 @@
                     utterance.voice = selectedVoice
                     window.speechSynthesis.speak(utterance);
                 }
+                break
+            case 'Numpad6':
+                (dialogListElement.children)[currentQuestion].querySelector(".practice").click()
                 break
             case 'Numpad0':
                 (dialogListElement.children)[currentQuestion].querySelector(".record-btn").click()
@@ -636,6 +677,228 @@
         return dialogs;
     }
 
+    // =================================================================================================
+    
+    let wordLengthValue = localStorage.getItem("wordLengthValue") || 0
+    let capital = localStorage.getItem("capital") || false
+    let currentDialogText = ""
+
+    function showDialog(enText){
+        const inputValues = enText.split(" ")
+        
+        //1
+        dialog1Bg.style.visibility = 'visible'
+        // let inputValueIndex = 0
+        const words = enText.replaceAll("—", " - ").split(" ").filter(word => word !== "A:" && word !== "B:")
+        //     .map(word => {
+        //     // 判断word属于标点符号
+        //     if (!word.trim() || (word.length === 1 && word.match(/[.,!?]/))) {
+        //         return inputValues[inputValueIndex++]
+        //     } else {
+        //         return word
+        //     }
+        // })
+        // if (inputValueIndex < inputValues.length) {
+        //     const last = words.pop()
+        //     words.push(inputValues[inputValueIndex] + last)
+        // }
+        currentDialogText = words.join(" ")
+
+        let html = ""
+        words.forEach(word => {
+            // 判断word最后一个字符是否是标点符号
+            if (word.length > 0 && word.charAt(word.length - 1).match(/[.,!?]/)) {
+                html += `<input data-placeholder="${word.slice(0, -1)}" data-char-index="0" style="margin-right: 20px;margin-bottom: 10px;">`
+                html += `<span style="margin-right: 20px;margin-bottom: 10px;">${word.charAt(word.length - 1)}</span>`
+            } else {
+                if (word.length <= wordLengthValue) {
+                    html += `<span style="margin-right: 20px;margin-bottom: 10px;">${word}</span>`
+                } else {
+                    html += `<input data-placeholder="${word}" data-char-index="0" style="margin-right: 20px;margin-bottom: 10px;">`
+                }
+            }
+        })
+        dialog1.innerHTML = html
+        // 创建一个数字输入框(0-100)
+        const inputNumber = document.createElement('input')
+        inputNumber.type = 'number'
+        inputNumber.value = localStorage.getItem('dialog1Number') || 50
+        inputNumber.style.width = '60px'
+        inputNumber.style.marginLeft = '20px'
+        inputNumber.style.marginRight = '5px'
+        inputNumber.addEventListener('input', function () {
+            localStorage.setItem('dialog1Number', this.value)
+        })
+
+        // Word Length数字输入框
+        const wordLenInput = document.createElement('input')
+        wordLenInput.type = 'number'
+        wordLenInput.value = localStorage.getItem('wordLengthInput') || 5
+        wordLenInput.style.width = '60px'
+        wordLenInput.style.marginLeft = '20px'
+        wordLenInput.style.marginRight = '5px'
+        wordLenInput.addEventListener('input', function () {
+            localStorage.setItem('wordLengthInput', this.value)
+            wordLengthValue = this.value
+            showDialog(enText)
+        })
+
+        const buttonCapital = document.createElement('button')
+        buttonCapital.innerHTML = 'Show/Hide Capital'
+        buttonCapital.addEventListener('click', function () {
+            capital = !capital
+            localStorage.setItem('capital', String(capital))
+            dialog1.querySelectorAll("input").forEach(input => {
+                if(input.type !== "number"){
+                    if (input.dataset.charIndex === '0') {
+                        input.value = input.dataset.placeholder.slice(0, 1)
+                        input.dataset.charIndex = "1"
+                    } else {
+                        input.value = ""
+                        input.dataset.charIndex = "0"
+                    }
+                }
+            })
+        })
+
+        const span1 = document.createElement("span")
+        span1.innerText = '%'
+        span1.style.marginRight = '20px'
+
+        const span2 = document.createElement("span")
+        span2.innerText = 'len'
+
+        const buttonRandom = document.createElement('button')
+        buttonRandom.innerText = 'random'
+
+        const recording = document.createElement('span');
+        recording.textContent = "Recording..."
+        recording.style.visibility = "hidden"
+        recording.style.marginLeft = "20px"
+        recording.style.color = "#d93a49"
+        recording.id = "recording"
+
+        buttonRandom.addEventListener('click', function () {
+            html = ""
+            words.forEach(word => {
+                if (word.length > 0 && word.charAt(word.length - 1).match(/[.,!?]/)) {
+                    html += `<input data-placeholder="${word.slice(0, -1)}" data-char-index="0" style="margin-right: 20px;margin-bottom: 10px;">`
+                    html += `<span style="margin-right: 20px;margin-bottom: 10px;">${word.charAt(word.length - 1)}</span>`
+                } else {
+                    if (word.length <= wordLengthValue || Math.random() * 100 <= inputNumber.value) {
+                        html += `<span style="margin-right: 20px;margin-bottom: 10px;">${word}</span>`
+                    } else {
+                        html += `<input data-placeholder="${word}" data-char-index="0" style="margin-right: 20px;margin-bottom: 10px;">`
+                    }
+                }
+            })
+            dialog1.innerHTML = html
+            const inputs = dialog1.querySelectorAll('input')
+            inputs.forEach(input => {
+                handleInput(input)
+            })
+            dialog1.appendChild(document.createElement('br'))
+            dialog1.appendChild(document.createElement("hr"))
+            dialog1.appendChild(buttonRandom)
+            dialog1.appendChild(inputNumber)
+            dialog1.appendChild(span1)
+            dialog1.appendChild(buttonCapital)
+            dialog1.appendChild(wordLenInput)
+            dialog1.appendChild(span2)
+            dialog1.appendChild(recording)
+        })
+        dialog1.appendChild(document.createElement('br'))
+        dialog1.appendChild(document.createElement("hr"))
+        dialog1.appendChild(buttonRandom)
+        dialog1.appendChild(inputNumber)
+        dialog1.appendChild(span1)
+        dialog1.appendChild(buttonCapital)
+        dialog1.appendChild(wordLenInput)
+        dialog1.appendChild(span2)
+        dialog1.appendChild(recording)
+        dialog1.querySelectorAll('input').forEach(input => {
+            if(input.type !== "number"){
+                handleInput(input)
+            }
+        })
+    }
+
+    function handleInput(input) {
+        input.style.cursor = 'pointer'
+        input.addEventListener('input', function () {
+            const userInput = this.value; // 移除 trim()
+            const placeholder = this.dataset.placeholder// this.getAttribute('placeholder'); // 移除 trim()
+
+            if (userInput === placeholder) {
+                this.style.color = 'orange';
+                speakText(placeholder)
+            } else if (placeholder.startsWith(userInput) && userInput !== '') {
+                this.style.color = 'green';
+            } else {
+                this.style.color = 'red';
+            }
+
+            // 更新字符索引
+            if (placeholder.startsWith(userInput)) {
+                this.dataset.charIndex = userInput.length;
+            } else {
+                this.dataset.charIndex = '0';
+            }
+
+        });
+
+        // Add these event listeners inside the inputs.forEach loop
+        input.addEventListener('mousedown', function (e) {
+            this.longPressTimer = setTimeout(() => {
+                const placeholder = this.dataset.placeholder// this.getAttribute('placeholder');
+                this.value = placeholder;
+                this.dataset.charIndex = placeholder.length.toString();
+                this.style.color = 'orange';
+                this.dispatchEvent(new Event('input'));
+            }, 500); // 500ms press duration
+        });
+
+        input.addEventListener('mouseup', function (e) {
+            clearTimeout(this.longPressTimer);
+        });
+
+        input.addEventListener('mouseleave', function (e) {
+            clearTimeout(this.longPressTimer);
+        });
+
+
+        input.addEventListener('click', function (e) {
+            e.stopPropagation()
+            const placeholder = this.dataset.placeholder //this.getAttribute('placeholder'); // 移除 trim()
+            const currentIndex = parseInt(this.dataset.charIndex || '0', 10);
+            const currentValue = this.value; // 移除 trim()
+
+            // 检查当前输入是否匹配前N个字符
+            if (currentValue === placeholder.substring(0, currentIndex)) {
+                const nextIndex = currentIndex + 1;
+                if (nextIndex <= placeholder.length) {
+                    this.value = placeholder.substring(0, nextIndex);
+                    this.dataset.charIndex = nextIndex.toString();
+                    this.dispatchEvent(new Event('input'));
+                }
+            }
+        });
+
+        const length = input.dataset.placeholder.length//input.getAttribute('placeholder').length
+        let width = Math.max(length * 15, 40)
+        width = Math.min(width, 500)
+        input.style.width = width + 'px'
+        // 设置placeholder
+        const wordLength = input.dataset.placeholder.split(" ").length
+        if (wordLength > 1) {
+            input.placeholder = wordLength
+        }
+
+        if (capital) {
+            input.click()
+        }
+    }
+
     // 创建对话项
     function createDialogItem(enText, cnText, index, length) {
         enText = enText.replace(/[#*<>`•]/g, "").replace(/\//g, " ").replace(/e\.g\.,/gi, "such-as").trim();
@@ -649,7 +912,7 @@
         header.className = "dialog-header";
         header.innerHTML = `
         <h2 style="margin-top:7px;">${index + 1}/${length}</h2>
-        <button class="copy-en" style="margin-left: 400px;width: 100px">Copy EN</button>
+        <button class="practice" style="margin-left: 400px;width: 100px">Practice</button>
         <button class="toggle-sentence" style="margin-left: 10px;">Show/Hide</button>
         <button class="reset-add" style="margin-left: 10px;">Reset</button>
       `;
@@ -692,13 +955,14 @@
         const wordDisplay = content.querySelector(".word-display");
         const enTextElement = content.querySelector(".en-text");
         const resetAdd = header.querySelector(".reset-add");
-        const btnCopyEN = header.querySelector(".copy-en")
+        const btnCopyEN = header.querySelector(".practice")
         btnCopyEN.addEventListener("click", () => {
-            navigator.clipboard.writeText(enText);
-            btnCopyEN.textContent = "Copied";
-            setTimeout(() => {
-                btnCopyEN.textContent = "Copy EN";
-            }, 500);
+            showDialog(enText)
+            // navigator.clipboard.writeText(enText);
+            // btnCopyEN.textContent = "Copied";
+            // setTimeout(() => {
+            //     btnCopyEN.textContent = "Copy EN";
+            // }, 500);
         })
         // 显示/隐藏对话
         header.querySelector(".toggle-sentence").addEventListener("click", () => {
@@ -783,14 +1047,17 @@
         let isRecording = false;
 
         controls.querySelector(".record-btn").addEventListener("click", async () => {
+            const recording = dialog1.querySelector("#recording")
             if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                 if (isRecording) {
                     // Stop recording
+                    recording.style.visibility = "hidden";
                     mediaRecorder.stop();
                     isRecording = false;
                     controls.querySelector(".record-btn").textContent = "Record";
                 } else {
                     // Start recording
+                    recording.style.visibility = "visible";
                     if (!audioStream) {
                         try {
                             audioStream = await navigator.mediaDevices.getUserMedia({audio: true});
