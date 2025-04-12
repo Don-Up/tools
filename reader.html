@@ -1113,17 +1113,17 @@
                 code.addEventListener('click', function (event) {
                     if(event.altKey) return
                     const codeText = text
-                        .replace(event.ctrlKey? /\/\/.*$/gm : /\/\//g, "")
+                        .replace(event.ctrlKey ? /\/\/.*$/gm : /\/\//g, "")
                         .replace(/\/\*\*[\s\S]*?\*\//g, "")
                         .replaceAll("args", "arguments")
-                        .replaceAll("...",  ", spread-")
+                        .replaceAll("...", ", spread-")
                         // 替换所有(任意长度字符) => 为"callback"
                         .replace(/(?<!\bit)\([^)]*\)\s*=>/g, "-callback-")
                         .replace(/!==?/g, ",not equal,")
-                        .replace(/==?=?/g, ",equal,")
                         .replace(/<==?/g, ",less or equal,")
                         .replace(/>==?/g, ",greater or equal,")
                         .replaceAll("=>", "-arrow-")
+                        .replace(/==?=?/g, ",equal,")
                         .replaceAll("console.", "")
                         // 过滤掉所有以import开头的语句
                         .replace(/import .* from '.*';/g, "")
