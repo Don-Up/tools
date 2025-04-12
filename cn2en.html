@@ -1045,19 +1045,22 @@
         let mediaRecorder;
         let audioChunks = [];
         let isRecording = false;
+        const btnRecord = controls.querySelector(".record-btn")
 
-        controls.querySelector(".record-btn").addEventListener("click", async () => {
+        btnRecord.addEventListener("click", async (event) => {
             const recording = dialog1.querySelector("#recording")
             if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                 if (isRecording) {
                     // Stop recording
-                    recording.style.visibility = "hidden";
+                    event.target.style.backgroundColor = "#1677ff";
+                    if(recording) recording.style.visibility = "hidden";
                     mediaRecorder.stop();
                     isRecording = false;
-                    controls.querySelector(".record-btn").textContent = "Record";
+                    btnRecord.textContent = "Record";
                 } else {
                     // Start recording
-                    recording.style.visibility = "visible";
+                    event.target.style.backgroundColor = "red";
+                    if(recording) recording.style.visibility = "visible";
                     if (!audioStream) {
                         try {
                             audioStream = await navigator.mediaDevices.getUserMedia({audio: true});
@@ -1083,7 +1086,7 @@
 
                     mediaRecorder.start();
                     isRecording = true;
-                    controls.querySelector(".record-btn").textContent = "Recording";
+                    btnRecord.textContent = "Recording";
                 }
             } else {
                 console.error("getUserMedia not supported on your browser.");
@@ -1099,7 +1102,7 @@
 
         const playback = controls.querySelector(".playback-btn")
         let currentAudio = null
-        playback.addEventListener("click", () => {
+        playback.addEventListener("click", (event) => {
             if (audioChunks.length > 0) {
                 if (playback.textContent === "Playback") {
                     const audioBlob = new Blob(audioChunks, {type: 'audio/wav'});
