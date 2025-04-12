@@ -684,7 +684,7 @@
     let currentDialogText = ""
 
     function showDialog(enText){
-        const inputValues = enText.split(" ")
+        // const inputValues = enText.split(" ")
         
         //1
         dialog1Bg.style.visibility = 'visible'
@@ -704,6 +704,17 @@
         // }
         currentDialogText = words.join(" ")
 
+        // 创建一个数字输入框(0-100)
+        const inputNumber = document.createElement('input')
+        inputNumber.type = 'number'
+        inputNumber.value = localStorage.getItem('dialog1Number') || 50
+        inputNumber.style.width = '60px'
+        inputNumber.style.marginLeft = '20px'
+        inputNumber.style.marginRight = '5px'
+        inputNumber.addEventListener('input', function () {
+            localStorage.setItem('dialog1Number', this.value)
+        })
+
         let html = ""
         words.forEach(word => {
             // 判断word最后一个字符是否是标点符号
@@ -719,21 +730,11 @@
             }
         })
         dialog1.innerHTML = html
-        // 创建一个数字输入框(0-100)
-        const inputNumber = document.createElement('input')
-        inputNumber.type = 'number'
-        inputNumber.value = localStorage.getItem('dialog1Number') || 50
-        inputNumber.style.width = '60px'
-        inputNumber.style.marginLeft = '20px'
-        inputNumber.style.marginRight = '5px'
-        inputNumber.addEventListener('input', function () {
-            localStorage.setItem('dialog1Number', this.value)
-        })
 
         // Word Length数字输入框
         const wordLenInput = document.createElement('input')
         wordLenInput.type = 'number'
-        wordLenInput.value = localStorage.getItem('wordLengthInput') || 5
+        wordLenInput.value = localStorage.getItem('wordLengthInput') || 0
         wordLenInput.style.width = '60px'
         wordLenInput.style.marginLeft = '20px'
         wordLenInput.style.marginRight = '5px'
@@ -781,8 +782,13 @@
         buttonRandom.addEventListener('click', function () {
             html = ""
             words.forEach(word => {
+                console.log(wordLengthValue)
                 if (word.length > 0 && word.charAt(word.length - 1).match(/[.,!?]/)) {
-                    html += `<input data-placeholder="${word.slice(0, -1)}" data-char-index="0" style="margin-right: 20px;margin-bottom: 10px;">`
+                    if (word.length-1 <= wordLengthValue || Math.random() * 100 <= inputNumber.value) {
+                        html += `<span style="margin-right: 20px;margin-bottom: 10px;">${word.slice(0, -1)}</span>`
+                    } else {
+                        html += `<input data-placeholder="${word.slice(0, -1)}" data-char-index="0" style="margin-right: 20px;margin-bottom: 10px;">`
+                    }
                     html += `<span style="margin-right: 20px;margin-bottom: 10px;">${word.charAt(word.length - 1)}</span>`
                 } else {
                     if (word.length <= wordLengthValue || Math.random() * 100 <= inputNumber.value) {
