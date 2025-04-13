@@ -957,7 +957,7 @@
         let isLooping = false;
         let wordIndex = 0;
         // 过滤序号1. 2. 3.
-        const words = enText.split(/\s+/);
+        const words = enText.replace(/^\w+:\s*/gm, "").split(/\s+/);
         const wordDisplay = content.querySelector(".word-display");
         const enTextElement = content.querySelector(".en-text");
         const resetAdd = header.querySelector(".reset-add");
@@ -1140,6 +1140,8 @@
     // 语音功能
     function speakText(text, element = null, loop = false) {
         if (!window.speechSynthesis) return;
+
+        text = text.replace(/^\w+:\s*/gm, "");
 
         const utterance = new SpeechSynthesisUtterance(text);
         if (dialogModeCheckbox.checked) {
