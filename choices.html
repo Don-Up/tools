@@ -187,10 +187,10 @@
 
         .popup {
             position: absolute;
-            width: 800px;
+            width: 600px;
             height: 500px;
             top: calc((100% - 500px) / 2);
-            right: 20px;
+            right: 10px;
             background-color: #262a2b;
             border-radius: 10px;
             visibility: hidden;
@@ -473,26 +473,32 @@
     const frontContent = document.getElementById("front-content")
     const codePre = document.getElementById("codePre")
     let codePreHeight = 0
+    const popup = document.querySelector(".popup")
 
     function preQuestion(event) {
         if (immersion) {
             event.preventDefault()
             if (currentIndex > 0) {
                 const children = choiceField.children
-                const questionText = children[currentIndex].querySelector(".questionText")
-                const answers = children[currentIndex].querySelectorAll(".answer")
-                questionText.style.visibility = 'hidden';
-                answers.forEach(answer => {
-                    answer.style.visibility = 'hidden'
-                })
+                // const questionText = children[currentIndex].querySelector(".questionText")
+                // const answers = children[currentIndex].querySelectorAll(".answer")
+                // questionText.style.visibility = 'hidden';
+                // answers.forEach(answer => {
+                //     answer.style.visibility = 'hidden'
+                // })
                 currentIndex--
+                if(children[currentIndex].querySelector(".questionText").textContent.includes("snippet") && popup.style.visibility !== "visible"){
+                    popup.style.visibility = "visible"
+                } else if(popup.style.visibility === "visible") {
+                    popup.style.visibility = "hidden"
+                }
                 localStorage.setItem('currentIndex', currentIndex)
                 children[currentIndex].style.visibility = "visible"
                 children[currentIndex].style.scale = "1.4"
                 if (priorityRead.value === 1) {
                     children[currentIndex].querySelector(".btnPlay").click() //111
                 } else {
-                    children[currentIndex].querySelector(".btnCopy").click()
+                    children[currentIndex].querySelector(".btnPlayQC").click()
                 }
                 children[currentIndex].scrollIntoView({behavior: "smooth", block: "center"})
                 for (let i = 0; i < children.length; i++) {
@@ -515,13 +521,18 @@
             event.preventDefault()
             if (currentIndex < choiceField.children.length - 1) {
                 const children = choiceField.children
-                const questionText = children[currentIndex].querySelector(".questionText")
-                const answers = children[currentIndex].querySelectorAll(".answer")
-                questionText.style.visibility = 'hidden';
-                answers.forEach(answer => {
-                    answer.style.visibility = 'hidden'
-                })
+                // const questionText = children[currentIndex].querySelector(".questionText")
+                // const answers = children[currentIndex].querySelectorAll(".answer")
+                // questionText.style.visibility = 'hidden';
+                // answers.forEach(answer => {
+                //     answer.style.visibility = 'hidden'
+                // })
                 currentIndex++
+                if(children[currentIndex].querySelector(".questionText").textContent.includes("snippet") && popup.style.visibility !== "visible"){
+                    popup.style.visibility = "visible"
+                } else if(popup.style.visibility === "visible") {
+                    popup.style.visibility = "hidden"
+                }
                 localStorage.setItem('currentIndex', currentIndex)
                 children[currentIndex].style.visibility = "visible"
                 children[currentIndex].style.scale = "1.4"
