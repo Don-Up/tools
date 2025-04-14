@@ -649,7 +649,7 @@
                 localStorage.setItem('currentIndex', currentIndex)
                 children[currentIndex].style.visibility = "visible"
                 children[currentIndex].style.scale = "1.4"
-                if (priorityRead.value === 1) {
+                if (priorityRead.value === 1 || answers.length === 2) {
                     children[currentIndex].querySelector(".btnPlay").click() //111
                 } else {
                     children[currentIndex].querySelector(".btnPlayQC").click()
@@ -696,7 +696,7 @@
                 localStorage.setItem('currentIndex', currentIndex)
                 children[currentIndex].style.visibility = "visible"
                 children[currentIndex].style.scale = "1.4"
-                if (priorityRead.value === "1") {
+                if (priorityRead.value === "1" || answers.length === 2) {
                     children[currentIndex].querySelector(".btnPlay").click() //111
                 } else {
                     children[currentIndex].querySelector(".btnPlayQC").click()
