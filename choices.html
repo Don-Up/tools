@@ -146,7 +146,9 @@
         .btnPlay,
         .btnCopy,
         .btnOption,
-        .btnHide {
+        .btnHide,
+        .btnExplain
+         {
             display: inline-block;
             margin-left: 8px;
             padding: 4px 8px; /* Reduced padding for a smaller button */
@@ -224,6 +226,10 @@
             <label for="hideCheckbox">Hide</label>
             <input type="checkbox" id="hideCheckbox" checked>
         </div>
+        <div class="hide-control">
+            <label for="hideAnswersCheckbox">Only Answers</label>
+            <input type="checkbox" id="hideAnswersCheckbox">
+        </div>
         <!--    <div class="hide-control">-->
         <!--        <label for="listenCheckbox">Listen</label>-->
         <!--        <input type="checkbox" id="listenCheckbox">-->
@@ -233,8 +239,6 @@
             <label for="loopCount">Loop:</label>
             <input type="number" id="loopCount" min="0" max="10" value="2"></input>
         </div>
-        <button id="copyHint" class="btnCopy">copy hint</button>
-        <input type="number" id="qCount" min="1" max="30" value="10" style="margin-left: 10px;"></input>
         <div class="hide-control">
             <label for="ctrlCheckbox">Ctrl</label>
             <input type="checkbox" id="ctrlCheckbox">
@@ -312,6 +316,12 @@
     const btnRead = document.getElementById('btnRead')
     const countInput = document.getElementById('countInput')
     let currentText = [];
+
+    const hideAnswersCheckbox = document.getElementById('hideAnswersCheckbox');
+    hideAnswersCheckbox.checked = localStorage.getItem('hideAnswersCheckbox') === 'true';
+    hideAnswersCheckbox.addEventListener('change', function () {
+        localStorage.setItem('hideAnswersCheckbox', hideAnswersCheckbox.checked);
+    });
 
     const imgBg = document.getElementById("imgBg");
 
@@ -454,13 +464,6 @@
             document.exitFullscreen();
             btnFullScreen.textContent = 'Full'
         }
-    })
-
-    const qCountInput = document.getElementById('qCount')
-    document.getElementById("copyHint").addEventListener("click", async function () {
-        // 获取剪贴板中的文本
-        const clipboardText = await navigator.clipboard.readText();
-        fallbackCopyText(`Elaborately construct ${qCountInput.value} different multiple choice questions for the topics below and put them into a single snippet (with code snippet at the bottom if needed): ${clipboardText ? "\n" + clipboardText : ""}`)
     })
 
     let currentIndex = 0
@@ -1162,14 +1165,18 @@
             hideButton.addEventListener('click', () => {
                 const answers = container.querySelectorAll(".answer")
                 // 隐藏组件
-                if (questionText.style.visibility === 'hidden') {
-                    questionText.style.visibility = 'visible';
+                if (answers[0].style.visibility === 'hidden') {
+                    if(!hideAnswersCheckbox.checked){
+                        questionText.style.visibility = 'visible';
+                    }
                     answers.forEach(answer => {
                         answer.style.visibility = 'visible'
                     })
                     hideButton.textContent = 'hide'
                 } else {
-                    questionText.style.visibility = 'hidden';
+                    if(!hideAnswersCheckbox.checked){
+                        questionText.style.visibility = 'hidden';
+                    }
                     answers.forEach(answer => {
                         answer.style.visibility = 'hidden'
                     })
@@ -1178,7 +1185,7 @@
             });
 
             const explainButton = document.createElement('button');
-            explainButton.className = 'btnHide';
+            explainButton.className = 'btnExplain';
             explainButton.textContent = 'explain';
             explainButton.addEventListener('click', () => {
                 play(block.explanation || "no explanation")
