@@ -741,6 +741,10 @@
                 event.preventDefault()
                 choiceField.children[currentIndex].querySelector(".btnPlay").click()
                 break
+            case 'KeyX':
+                event.preventDefault()
+                choiceField.children[currentIndex].querySelector(".btnExplain").click()
+                break
             case 'KeyE':
                 // 显示自定义弹窗
                 const style = document.querySelector(".popup").style
@@ -1166,7 +1170,6 @@
             const questionText = container.querySelector(".questionText")
             hideButton.addEventListener('click', () => {
                 const answers = container.querySelectorAll(".answer")
-                console.log(answers[0].textContent)
                 // 隐藏组件
                 if (answers[0].style.visibility === 'hidden') {
                     if(!hideAnswersCheckbox.checked){
@@ -1249,6 +1252,9 @@
                 const textToCopy = `${questionText}\n${answers.join("\n")}`;
                 fallbackCopyText(textToCopy);
                 copyButton.innerText = 'copied';
+                setTimeout(() => {
+                    copyButton.innerText = 'copy';
+                }, 1000);
             });
 
             if (hideCheckbox.checked) {
