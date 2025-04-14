@@ -609,11 +609,95 @@
         }
     }
 
+    let isRecording = false
+    let audioChunks = [];
+    let mediaRecorder;
+    let currentAudio = null;
+    let audioStream; // Store the stream globally
+    let isPlayback = false;
+
+    async function record() {
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            if (isRecording) {
+                // Stop recording
+                mediaRecorder.stop();
+                isRecording = false;
+
+            } else {
+                // Start recording
+                if (!audioStream) {
+                    try {
+                        audioStream = await navigator.mediaDevices.getUserMedia({audio: true});
+                    } catch (err) {
+                        console.error("Error accessing media devices.", err);
+                        return;
+                    }
+                }
+
+                const children = choiceField.children
+                const questionText = children[currentIndex].querySelector(".questionText")
+                const answers = children[currentIndex].querySelectorAll(".answer")
+                questionText.style.color = "#d93a49"
+                answers.forEach(answer => {
+                    answer.style.visibility = 'hidden'
+                })
+
+                mediaRecorder = new MediaRecorder(audioStream);
+
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks = []
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    questionText.style.color = "white"
+                    answers.forEach(answer => {
+                        answer.style.visibility = 'visible'
+                    })
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                // recordBtn.textContent = "Recording";
+                // if (currentP && hideTextCheckbox.checked) currentP.style.visibility = "hidden";
+            }
+        } else {
+            console.error("getUserMedia not supported on your browser.");
+        }
+    }
+
+    function playback() {
+        if (!isPlayback) {
+            isPlayback = true;
+            const audioBlob = new Blob(audioChunks, {type: 'audio/wav'});
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const audio = new Audio(audioUrl);
+            // 监听播放结束
+            audio.addEventListener('ended', () => {
+                isPlayback = false;
+            });
+            currentAudio = audio;
+            audio.play();
+        } else {
+            // 停止播放录音
+            currentAudio.pause();
+            isPlayback = false;
+        }
+    }
+
     // 监听space键
     document.addEventListener('keydown', function (event) {
         // console.log(event.code, event.key)
         switch (event.code) {
-            case 'KeyR':
+            case "KeyR":
+                event.preventDefault()
+                record()
+                break
+            case "KeyT":
+                event.preventDefault()
+                playback()
+                break
+            case 'KeyY':
                 // 获取当前选中的文本
                 const text = window.getSelection()
                 currentText = text || currentText

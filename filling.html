@@ -318,10 +318,6 @@
 
                 mediaRecorder.onstop = () => {
                     if (currentP && hideTextCheckbox.checked) currentP.style.visibility = "visible";
-                    // const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
-                    // const audioUrl = URL.createObjectURL(audioBlob);
-                    // const audio = new Audio(audioUrl);
-                    // audio.play(); // Play the recorded audio
                 };
 
                 mediaRecorder.start();
