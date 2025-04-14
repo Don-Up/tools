@@ -204,6 +204,117 @@
             position: absolute;
             top: 0;
         }
+
+        .dialog-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .dialog-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .dialog {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+            overflow: hidden;
+            //transform: translateY(20px);
+            //transition: transform 0.3s ease;
+        }
+
+        .dialog-overlay.active .dialog {
+            transform: translateY(0);
+        }
+
+        .dialog-header {
+            padding: 0 24px;
+            border-bottom: 1px solid #eaeef2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dialog-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .dialog-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #a0aec0;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .dialog-close:hover {
+            color: #718096;
+        }
+
+        .dialog-content {
+            padding: 24px;
+            line-height: 1.5;
+            color: #4a5568;
+        }
+
+        .dialog-footer {
+            padding: 16px 24px;
+            border-top: 1px solid #eaeef2;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-primary {
+            background-color: #4f46e5;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #4338ca;
+        }
+
+        .btn-secondary {
+            background-color: white;
+            color: #4f46e5;
+            border: 1px solid #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background-color: #f8fafc;
+        }
+
+        /* Animation for demo */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
     </style>
     <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
@@ -302,6 +413,22 @@
         </pre>
     <!--    <span class="close" id="closePopup">&times;</span>-->
 </div>
+
+<div class="dialog-overlay" id="dialogOverlay">
+    <div class="dialog">
+        <div class="dialog-header">
+            <h3 class="dialog-title">Explain</h3>
+            <button class="dialog-close" id="closeDialog">&times;</button>
+        </div>
+        <div class="dialog-content">
+            <p id="explanation">Are you sure you want to proceed with this action? This cannot be undone and may affect your system configuration.</p>
+        </div>
+        <div class="dialog-footer">
+            <button class="btn btn-secondary" id="cancelBtn">Cancel</button>
+            <button class="btn btn-primary" id="confirmBtn">Read</button>
+        </div>
+    </div>
+</div>
 <script>
     let immersion = false
     let voices = [];
@@ -321,6 +448,27 @@
     hideAnswersCheckbox.checked = localStorage.getItem('hideAnswersCheckbox') === 'true';
     hideAnswersCheckbox.addEventListener('change', function () {
         localStorage.setItem('hideAnswersCheckbox', hideAnswersCheckbox.checked);
+    });
+
+    const closeDialogBtn = document.getElementById('closeDialog');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const dialogOverlay = document.getElementById('dialogOverlay');
+    const explanationP = document.getElementById('explanation');
+    const confirmBtn = document.getElementById('confirmBtn');
+    confirmBtn.addEventListener('click', () => {
+        play(explanationP.textContent)
+    });
+
+    [closeDialogBtn, cancelBtn].forEach(btn => {
+        btn.addEventListener('click', () => {
+            dialogOverlay.classList.remove('active');
+        });
+    });
+
+    dialogOverlay.addEventListener('click', (e) => {
+        if (e.target === dialogOverlay) {
+            dialogOverlay.classList.remove('active');
+        }
     });
 
     const imgBg = document.getElementById("imgBg");
@@ -783,6 +931,10 @@
                 event.preventDefault()
                 choiceField.children[currentIndex].querySelector(".btnExplain").click()
                 break
+            case 'KeyC':
+                event.preventDefault()
+                confirmBtn.click()
+                break
             case 'KeyE':
                 // 显示自定义弹窗
                 const style = document.querySelector(".popup").style
@@ -1146,26 +1298,6 @@
                 play(optionContent)
             });
 
-            function play(textForReading) {
-                if (event.altKey) return
-                stop()
-                const text = textForReading.trim().replace(/[()#*<>`•__]/g, '').replace(/e\.g\.,/gi, 'such-as').replace(/\//g, ' '); // .replace(/^\d+\.\s*/gm, '')
-                if (!text) {
-                    alert('Please enter the English sentence to be played');
-                    return;
-                }
-
-                if (isPaused) {
-                    isPaused = false;
-                    speechSynthesis.resume();
-                } else if (speechSynthesis.speaking) {
-                    isPaused = true;
-                    speechSynthesis.pause();
-                } else {
-                    utteranceRef = speakText(text, false, utteranceRef);
-                }
-            }
-
             // 循环按钮
             const loopButton = document.createElement('button');
             loopButton.className = 'btnCopy';
@@ -1230,8 +1362,12 @@
             explainButton.className = 'btnExplain';
             explainButton.textContent = 'explain';
             explainButton.addEventListener('click', () => {
-                play(block.explanation || "no explanation")
-                alert(block.explanation || "no explanation")
+                if(dialogOverlay.classList.contains('active')){
+                    dialogOverlay.classList.remove('active');
+                } else {
+                    explanationP.textContent = block.explanation || "no explanation"
+                    dialogOverlay.classList.add('active');
+                }
             })
             container.appendChild(explainButton);
 
@@ -1340,6 +1476,26 @@
 
     if (localStorage.getItem('rawText')) {
         buildMultipleChoiceComponents(localStorage.getItem('rawText'));
+    }
+
+    function play(textForReading) {
+        if (event.altKey) return
+        stop()
+        const text = textForReading.trim().replace(/[()#*<>`•__]/g, '').replace(/e\.g\.,/gi, 'such-as').replace(/\//g, ' '); // .replace(/^\d+\.\s*/gm, '')
+        if (!text) {
+            alert('Please enter the English sentence to be played');
+            return;
+        }
+
+        if (isPaused) {
+            isPaused = false;
+            speechSynthesis.resume();
+        } else if (speechSynthesis.speaking) {
+            isPaused = true;
+            speechSynthesis.pause();
+        } else {
+            utteranceRef = speakText(text, false, utteranceRef);
+        }
     }
 
     // document.getElementById('btnInsertCode').addEventListener('click', () => {
