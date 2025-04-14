@@ -885,13 +885,20 @@
                 continue
             }
             const options = [];
-            // 收集选项：直到遇到只有一个数字的行（表示正确答案）
-            while (i < lines.length && !/^\d+$/.test(lines[i])) {
+            // 收集选项：直到遇到以"number-"为开始的行（表示正确答案）
+            while (i < lines.length && !/^\d+$/.test(lines[i]) && !/^\d+:/.test(lines[i])) {
                 options.push(lines[i++]);
             }
-            if (i < lines.length && /^\d+$/.test(lines[i])) {
-                const correctAnswer = lines[i++];
-                blocks.push({questionText, options, correctAnswer});
+            if (i < lines.length && (/^\d+$/.test(lines[i]) || /^\d+:/.test(lines[i]))) {
+                if(/^\d+:/.test(lines[i])){
+                    const correctAnswer = lines[i][0];
+                    const explanation = lines[i].slice(2).trim()
+                    i++
+                    blocks.push({questionText, options, correctAnswer, explanation});
+                } else {
+                    const correctAnswer = lines[i++];
+                    blocks.push({questionText, options, correctAnswer});
+                }
             } else {
                 // 格式错误：未找到答案行，退出
                 break;
@@ -1085,6 +1092,15 @@
                     hideButton.textContent = 'show'
                 }
             });
+
+            const explainButton = document.createElement('button');
+            explainButton.className = 'btnHide';
+            explainButton.textContent = 'explain';
+            explainButton.addEventListener('click', () => {
+                play(block.explanation || "no explanation")
+                alert(block.explanation || "no explanation")
+            })
+            container.appendChild(explainButton);
 
             // 根据随机顺序为每个选项重新分配编号（从 1 开始）
             let newCorrectNumber = '';
