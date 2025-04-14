@@ -1037,9 +1037,11 @@
             if (optionObjects.length === 0) return; // 无有效选项则跳过
 
             // 随机打乱选项顺序（Fisher-Yates 洗牌算法）
-            for (let j = optionObjects.length - 1; j > 0; j--) {
-                const k = Math.floor(Math.random() * (j + 1));
-                [optionObjects[j], optionObjects[k]] = [optionObjects[k], optionObjects[j]];
+            if(block.options.length > 2 ){
+                for (let j = optionObjects.length - 1; j > 0; j--) {
+                    const k = Math.floor(Math.random() * (j + 1));
+                    [optionObjects[j], optionObjects[k]] = [optionObjects[k], optionObjects[j]];
+                }
             }
 
             let optionContent = ""
@@ -1164,6 +1166,7 @@
             const questionText = container.querySelector(".questionText")
             hideButton.addEventListener('click', () => {
                 const answers = container.querySelectorAll(".answer")
+                console.log(answers[0].textContent)
                 // 隐藏组件
                 if (answers[0].style.visibility === 'hidden') {
                     if(!hideAnswersCheckbox.checked){
@@ -1174,9 +1177,6 @@
                     })
                     hideButton.textContent = 'hide'
                 } else {
-                    if(!hideAnswersCheckbox.checked){
-                        questionText.style.visibility = 'hidden';
-                    }
                     answers.forEach(answer => {
                         answer.style.visibility = 'hidden'
                     })
