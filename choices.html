@@ -480,14 +480,20 @@
             event.preventDefault()
             if (currentIndex > 0) {
                 const children = choiceField.children
-                // const questionText = children[currentIndex].querySelector(".questionText")
-                // const answers = children[currentIndex].querySelectorAll(".answer")
-                // questionText.style.visibility = 'hidden';
-                // answers.forEach(answer => {
-                //     answer.style.visibility = 'hidden'
-                // })
+                const questionText = children[currentIndex].querySelector(".questionText")
+                const answers = children[currentIndex].querySelectorAll(".answer")
+                questionText.style.visibility = 'hidden';
+                answers.forEach(answer => {
+                    answer.style.visibility = 'hidden'
+                })
                 currentIndex--
-                if(children[currentIndex].querySelector(".questionText").textContent.includes("snippet") && popup.style.visibility !== "visible"){
+                const currentQuestionText = children[currentIndex].querySelector(".questionText")
+                const currentAnswers = children[currentIndex].querySelectorAll(".answer")
+                currentQuestionText.style.visibility = (hideCheckbox.checked && !hideAnswersCheckbox.checked) ? 'hidden' : 'visible';
+                currentAnswers.forEach(answer => {
+                    answer.style.visibility = hideCheckbox.checked ? 'hidden' : 'visible'
+                })
+                if(currentQuestionText.textContent.includes("snippet") && popup.style.visibility !== "visible"){
                     popup.style.visibility = "visible"
                 } else if(popup.style.visibility === "visible") {
                     popup.style.visibility = "hidden"
@@ -521,13 +527,19 @@
             event.preventDefault()
             if (currentIndex < choiceField.children.length - 1) {
                 const children = choiceField.children
-                // const questionText = children[currentIndex].querySelector(".questionText")
-                // const answers = children[currentIndex].querySelectorAll(".answer")
-                // questionText.style.visibility = 'hidden';
-                // answers.forEach(answer => {
-                //     answer.style.visibility = 'hidden'
-                // })
+                const questionText = children[currentIndex].querySelector(".questionText")
+                const answers = children[currentIndex].querySelectorAll(".answer")
+                questionText.style.visibility = 'hidden';
+                answers.forEach(answer => {
+                    answer.style.visibility = 'hidden'
+                })
                 currentIndex++
+                const currentQuestionText = children[currentIndex].querySelector(".questionText")
+                const currentAnswers = children[currentIndex].querySelectorAll(".answer")
+                currentQuestionText.style.visibility = (hideCheckbox.checked && !hideAnswersCheckbox.checked) ? 'hidden' : 'visible';
+                currentAnswers.forEach(answer => {
+                    answer.style.visibility = hideCheckbox.checked ? 'hidden' : 'visible'
+                })
                 if(children[currentIndex].querySelector(".questionText").textContent.includes("snippet") && popup.style.visibility !== "visible"){
                     popup.style.visibility = "visible"
                 } else if(popup.style.visibility === "visible") {
@@ -593,9 +605,21 @@
                 children[i].style.visibility = "hidden"
             }
         }
+        const currentQuestionText = children[currentIndex].querySelector(".questionText")
+        const currentAnswers = children[currentIndex].querySelectorAll(".answer")
+        currentQuestionText.style.visibility = (hideCheckbox.checked && !hideAnswersCheckbox.checked) ? 'hidden' : 'visible';
+        currentAnswers.forEach(answer => {
+            answer.style.visibility = hideCheckbox.checked ? 'hidden' : 'visible'
+        })
+        if(currentQuestionText.textContent.includes("snippet")){
+            popup.style.visibility = "visible"
+        } else {
+            popup.style.visibility = "hidden"
+        }
     }
 
     function exitImmersion() {
+        popup.style.visibility = "hidden"
         imgBg.style.visibility = 'hidden'
         document.body.style.background = "#333"
         immersion = false
