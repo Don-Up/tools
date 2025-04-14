@@ -943,10 +943,16 @@
                 break
             case 'ArrowUp':
             case 'KeyW':
+                if(dialogOverlay.classList.contains('active')){
+                    dialogOverlay.classList.remove('active');
+                }
                 preQuestion(event)
                 break
             case 'ArrowDown':
             case 'KeyS':
+                if(dialogOverlay.classList.contains('active')){
+                    dialogOverlay.classList.remove('active');
+                }
                 nextQuestion(event)
                 break
             case 'KeyF':
