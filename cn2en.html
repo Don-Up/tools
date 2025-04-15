@@ -482,6 +482,9 @@
             case 'ArrowUp':
                 if (immersive) {
                     stopPlay(event)
+                    if(dialog1Bg.style.visibility === "visible"){
+                        dialog1Bg.style.visibility = "hidden"
+                    }
                     if (currentQuestion > 0) {
                         currentQuestion--
                         const children = dialogListElement.children;
@@ -500,6 +503,9 @@
                 if (immersive) {
                     event.preventDefault()
                     stopPlay(event)
+                    if(dialog1Bg.style.visibility === "visible"){
+                        dialog1Bg.style.visibility = "hidden"
+                    }
                     const children = dialogListElement.children;
                     if (currentQuestion < children.length - 1) {
                         currentQuestion++
@@ -684,7 +690,6 @@
 
     function showDialog(enText){
         let wordLengthValue = localStorage.getItem("wordLengthInput") || 0
-        console.log("word", wordLengthValue)
         // const inputValues = enText.split(" ")
         
         //1
@@ -1063,6 +1068,7 @@
                     mediaRecorder.stop();
                     isRecording = false;
                     btnRecord.textContent = "Record";
+
                 } else {
                     // Start recording
                     event.target.style.backgroundColor = "red";
@@ -1075,6 +1081,13 @@
                             return;
                         }
                     }
+                    if(dialog1Bg.style.visibility === "visible"){
+                        dialog1.querySelectorAll("input").forEach(input => {
+                            if(input.dataset.placeholder){
+                                input.value = input.dataset.placeholder.charAt(0)
+                            }
+                        })
+                    }
 
                     mediaRecorder = new MediaRecorder(audioStream);
 
@@ -1084,10 +1097,13 @@
                     };
 
                     mediaRecorder.onstop = () => {
-                        // const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
-                        // const audioUrl = URL.createObjectURL(audioBlob);
-                        // const audio = new Audio(audioUrl);
-                        // audio.play(); // Play the recorded audio
+                        if(dialog1Bg.style.visibility === "visible"){
+                            dialog1.querySelectorAll("input").forEach(input => {
+                                if(input.dataset.placeholder){
+                                    input.value = input.dataset.placeholder
+                                }
+                            })
+                        }
                     };
 
                     mediaRecorder.start();
