@@ -487,9 +487,9 @@
             transformed = true
             const newWords = []
             originalText = explanationP.textContent
-            const words = explanationP.textContent.split(" ")
+            const words = explanationP.textContent.replaceAll("`", "").split(" ")
             words.forEach(word => {
-                if(word.length <= 3){
+                if(word.length <= 4){
                     newWords.push(word)
                 } else {
                     // 将word转为字符数组
