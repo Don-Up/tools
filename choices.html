@@ -462,12 +462,20 @@
     const explanationP = document.getElementById('explanation');
     const confirmBtn = document.getElementById('confirmBtn');
     confirmBtn.addEventListener('click', () => {
-        play(explanationP.textContent)
+        play(transformed? originalText : explanationP.textContent)
     });
+
+    function dismissDialog() {
+        dialogOverlay.classList.remove('active');
+        if (transformed) {
+            explanationP.textContent = originalText
+            transformed = false
+        }
+    }
 
     [closeDialogBtn].forEach(btn => {
         btn.addEventListener('click', () => {
-            dialogOverlay.classList.remove('active');
+            dismissDialog()
         });
     });
 
@@ -487,7 +495,7 @@
                     // 将word转为字符数组
                     const chars = word.split("");
                     chars.forEach((char, index) => {
-                        if (index === 0) {
+                        if (index === 0 || !/[a-zA-Z]/.test(char)) {
                             newWords.push(char);
                         } else {
                             newWords.push("_");
@@ -505,6 +513,7 @@
     dialogOverlay.addEventListener('click', (e) => {
         if (e.target === dialogOverlay) {
             dialogOverlay.classList.remove('active');
+            dismissDialog()
         }
     });
 
@@ -986,6 +995,7 @@
             case 'KeyW':
                 if(dialogOverlay.classList.contains('active')){
                     dialogOverlay.classList.remove('active');
+                    dismissDialog()
                 }
                 preQuestion(event)
                 break
@@ -993,6 +1003,7 @@
             case 'KeyS':
                 if(dialogOverlay.classList.contains('active')){
                     dialogOverlay.classList.remove('active');
+                    dismissDialog()
                 }
                 nextQuestion(event)
                 break
@@ -1411,6 +1422,7 @@
             explainButton.addEventListener('click', () => {
                 if(dialogOverlay.classList.contains('active')){
                     dialogOverlay.classList.remove('active');
+                    dismissDialog()
                 } else {
                     explanationP.textContent = block.explanation || "no explanation"
                     dialogOverlay.classList.add('active');
