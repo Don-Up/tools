@@ -682,13 +682,13 @@
     // Listen to the rate slider changes
     const rateSlider = document.getElementById("rateSlider");
     const rateValue = document.getElementById("rateValue");
-    const rate = localStorage.getItem("rateValue") || 1.00
+    const rate = localStorage.getItem("rateValue1") || 1.00
     rateValue.textContent = rate;
     rateSlider.value = rate;
 
     rateSlider.addEventListener("input", function () {
         rateValue.textContent = Number(this.value).toFixed(2);
-        localStorage.setItem("rateValue", rateValue.textContent);
+        localStorage.setItem("rateValue1", rateValue.textContent);
     });
 
     let inLeft = false
