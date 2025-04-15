@@ -687,7 +687,7 @@
                 currentAnswers.forEach(answer => {
                     answer.style.visibility = hideCheckbox.checked ? 'hidden' : 'visible'
                 })
-                if(currentQuestionText.textContent.includes("snippet") && popup.style.visibility !== "visible"){
+                if(currentQuestionText.textContent.includes("snippet")){
                     popup.style.visibility = "visible"
                 } else if(popup.style.visibility === "visible") {
                     popup.style.visibility = "hidden"
@@ -734,7 +734,7 @@
                 currentAnswers.forEach(answer => {
                     answer.style.visibility = hideCheckbox.checked ? 'hidden' : 'visible'
                 })
-                if(children[currentIndex].querySelector(".questionText").textContent.includes("snippet") && popup.style.visibility !== "visible"){
+                if(children[currentIndex].querySelector(".questionText").textContent.includes("snippet")){
                     popup.style.visibility = "visible"
                 } else if(popup.style.visibility === "visible") {
                     popup.style.visibility = "hidden"
