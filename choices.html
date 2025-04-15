@@ -982,8 +982,9 @@
                 transformBtn.click()
                 break
             case 'KeyC':
-                event.preventDefault()
-                confirmBtn.click()
+                if(!event.ctrlKey){
+                    confirmBtn.click()
+                }
                 break
             case 'KeyE':
                 // 显示自定义弹窗
