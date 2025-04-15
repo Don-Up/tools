@@ -430,7 +430,7 @@
             <p id="explanation">Are you sure you want to proceed with this action? This cannot be undone and may affect your system configuration.</p>
         </div>
         <div class="dialog-footer">
-            <button class="btn btn-secondary" id="cancelBtn">Cancel</button>
+            <button class="btn btn-secondary" id="transformBtn">Transform</button>
             <button class="btn btn-primary" id="confirmBtn">Read</button>
         </div>
     </div>
@@ -457,7 +457,7 @@
     });
 
     const closeDialogBtn = document.getElementById('closeDialog');
-    const cancelBtn = document.getElementById('cancelBtn');
+    const transformBtn = document.getElementById('transformBtn');
     const dialogOverlay = document.getElementById('dialogOverlay');
     const explanationP = document.getElementById('explanation');
     const confirmBtn = document.getElementById('confirmBtn');
@@ -465,11 +465,42 @@
         play(explanationP.textContent)
     });
 
-    [closeDialogBtn, cancelBtn].forEach(btn => {
+    [closeDialogBtn].forEach(btn => {
         btn.addEventListener('click', () => {
             dialogOverlay.classList.remove('active');
         });
     });
+
+    let transformed = false
+    let originalText = ""
+
+    transformBtn.addEventListener("click",  () => {
+        if(!transformed){
+            transformed = true
+            const newWords = []
+            originalText = explanationP.textContent
+            const words = explanationP.textContent.split(" ")
+            words.forEach(word => {
+                if(word.length <= 3){
+                    newWords.push(word)
+                } else {
+                    // 将word转为字符数组
+                    const chars = word.split("");
+                    chars.forEach((char, index) => {
+                        if (index === 0) {
+                            newWords.push(char);
+                        } else {
+                            newWords.push("_");
+                        }
+                    });
+                }
+            })
+            explanationP.textContent = newWords.join(" ")
+        } else {
+            transformed = false
+            explanationP.textContent = originalText
+        }
+    })
 
     dialogOverlay.addEventListener('click', (e) => {
         if (e.target === dialogOverlay) {
@@ -936,6 +967,10 @@
             case 'KeyX':
                 event.preventDefault()
                 choiceField.children[currentIndex].querySelector(".btnExplain").click()
+                break
+            case 'KeyZ':
+                event.preventDefault()
+                transformBtn.click()
                 break
             case 'KeyC':
                 event.preventDefault()
