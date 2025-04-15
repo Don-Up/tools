@@ -857,7 +857,6 @@
                 // Stop recording
                 mediaRecorder.stop();
                 isRecording = false;
-
             } else {
                 // Start recording
                 if (!audioStream) {
@@ -927,6 +926,31 @@
             case "KeyR":
                 event.preventDefault()
                 record()
+                if(!transformed){
+                    transformed = true
+                    const newWords = []
+                    originalText = explanationP.textContent
+                    const words = explanationP.textContent.replaceAll("`", "").split(" ")
+                    words.forEach(word => {
+                        if(word.length <= 4){
+                            newWords.push(word)
+                        } else {
+                            // 将word转为字符数组
+                            const chars = word.split("");
+                            chars.forEach((char, index) => {
+                                if (index === 0 || !/[a-zA-Z]/.test(char)) {
+                                    newWords.push(char);
+                                } else {
+                                    newWords.push("_");
+                                }
+                            });
+                        }
+                    })
+                    explanationP.textContent = newWords.join(" ")
+                } else {
+                    transformed = false
+                    explanationP.textContent = originalText
+                }
                 break
             case "KeyT":
                 event.preventDefault()
