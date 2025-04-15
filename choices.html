@@ -930,6 +930,10 @@
                 break
             case "KeyT":
                 event.preventDefault()
+                if(transformed){
+                    explanationP.textContent = originalText
+                    transformed = false
+                }
                 playback()
                 break
             case 'KeyY':
