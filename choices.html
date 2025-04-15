@@ -493,6 +493,12 @@
                     newWords.push(word)
                 } else {
                     // 将word转为字符数组
+                    let isAdv = false
+                    console.log(word)
+                    // 去除标点符号
+                    if(word.replace(/[^\w\s]/gi, "").endsWith("ly")){
+                        isAdv = true
+                    }
                     const chars = word.split("");
                     chars.forEach((char, index) => {
                         if (index === 0 || !/[a-zA-Z]/.test(char)) {
@@ -501,6 +507,9 @@
                             newWords.push("_");
                         }
                     });
+                    if(isAdv){
+                        newWords.push("(adv)")
+                    }
                 }
             })
             explanationP.textContent = newWords.join(" ")
@@ -936,6 +945,13 @@
                             newWords.push(word)
                         } else {
                             // 将word转为字符数组
+                            // 将word转为字符数组
+                            let isAdv = false
+                            console.log(word)
+                            // 去除标点符号
+                            if(word.replace(/[^\w\s]/gi, "").endsWith("ly")){
+                                isAdv = true
+                            }
                             const chars = word.split("");
                             chars.forEach((char, index) => {
                                 if (index === 0 || !/[a-zA-Z]/.test(char)) {
@@ -944,6 +960,9 @@
                                     newWords.push("_");
                                 }
                             });
+                            if(isAdv){
+                                newWords.push("(adv)")
+                            }
                         }
                     })
                     explanationP.textContent = newWords.join(" ")
