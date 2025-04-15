@@ -1021,9 +1021,13 @@
                 break;
             case 'Digit1':
                 event.preventDefault()
+                console.log(event.ctrlKey, currentText)
                 if (currentText.length > 0) {
                     if (event.altKey) {
                         currentContainer[0].click()
+                    } else if(event.shiftKey) {
+                        const style = currentContainer[0].querySelector(".answer").style
+                        style.visibility = style.visibility === "visible" ? "hidden" : "visible"
                     } else {
                         stop()
                         speakText(event.ctrlKey ? `${currentText[0]} `.repeat(parseInt(inputCount.value)) : currentText[0])
@@ -1035,6 +1039,9 @@
                 if (currentText.length > 1) {
                     if (event.altKey) {
                         currentContainer[1].click()
+                    } else if(event.shiftKey) {
+                        const style = currentContainer[1].querySelector(".answer").style
+                        style.visibility = style.visibility === "visible" ? "hidden" : "visible"
                     } else {
                         stop()
                         speakText(event.ctrlKey ? `${currentText[1]} `.repeat(parseInt(inputCount.value)) : currentText[1])
@@ -1046,6 +1053,9 @@
                 if (currentText.length > 2) {
                     if (event.altKey) {
                         currentContainer[2].click()
+                    } else if(event.shiftKey) {
+                        const style = currentContainer[2].querySelector(".answer").style
+                        style.visibility = style.visibility === "visible" ? "hidden" : "visible"
                     } else {
                         stop()
                         speakText(event.ctrlKey ? `${currentText[2]} `.repeat(parseInt(inputCount.value)) : currentText[2])
@@ -1057,6 +1067,9 @@
                 if (currentText.length > 3) {
                     if (event.altKey) {
                         currentContainer[3].click()
+                    } else if(event.shiftKey) {
+                        const style = currentContainer[3].querySelector(".answer").style
+                        style.visibility = style.visibility === "visible" ? "hidden" : "visible"
                     } else {
                         stop()
                         speakText(event.ctrlKey ? `${currentText[3]} `.repeat(parseInt(inputCount.value)) : currentText[3])
