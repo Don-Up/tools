@@ -462,7 +462,7 @@
     const explanationP = document.getElementById('explanation');
     const confirmBtn = document.getElementById('confirmBtn');
     confirmBtn.addEventListener('click', () => {
-        play(transformed? originalText : explanationP.textContent)
+        play(transformed? originalText : explanationP.textContent, hiddenExplain)
     });
 
     function dismissDialog() {
@@ -931,10 +931,25 @@
         }
     }
 
+    let hiddenExplain = false
+
     // 监听space键
     document.addEventListener('keydown', function (event) {
         // console.log(event.code, event.key)
         switch (event.code) {
+            case "KeyH":
+                event.preventDefault()
+                hiddenExplain = localStorage.getItem("hiddenExplain") === "true"
+                if (hiddenExplain) {
+                    localStorage.setItem("hiddenExplain", "false")
+                    hiddenExplain = false
+                    alert("show explanation when reading")
+                } else {
+                    localStorage.setItem("hiddenExplain", "true")
+                    hiddenExplain = true
+                    alert("hide explanation when reading")
+                }
+                break
             case "KeyR":
                 event.preventDefault()
                 record()
@@ -1159,7 +1174,7 @@
     }
 
     // 文本转语音朗读
-    function speakText(text, loop = false, utteranceRef = null) {
+    function speakText(text, loop = false, utteranceRef = null, needActive = false) {
         if ('speechSynthesis' in window) {
             if (!utteranceRef) {
                 const utterance = new SpeechSynthesisUtterance(text);
@@ -1167,6 +1182,9 @@
                 utterance.rate = speechSpeed; // 使用当前语速
                 if (selectedVoice) {
                     utterance.voice = voices[selectedVoice];
+                }
+                utterance.onend = () => {
+                    if(needActive) dialogOverlay.classList.add('active')
                 }
                 if (loop) {
                     utterance.onend = () => speakText(text, true, utterance);
@@ -1177,6 +1195,7 @@
                 if (loop) {
                     utteranceRef.onend = () => speakText(text, true, utteranceRef);
                 }
+                console.log(11)
                 utteranceRef.rate = speechSpeed; // 更新语速
                 speechSynthesis.speak(utteranceRef);
                 return utteranceRef;
@@ -1537,7 +1556,11 @@
                         } else {
                             if(!choiceField.children[currentIndex].querySelector(".correct")){
                                 choiceField.children[currentIndex].querySelector(".btnExplain").click()
-                                dialogOverlay.classList.add('active');
+                                if(hiddenExplain){
+                                    dialogOverlay.classList.remove('active');
+                                } else {
+                                    dialogOverlay.classList.add('active');
+                                }
                                 confirmBtn.click()
                             }
                         }
@@ -1614,7 +1637,7 @@
         buildMultipleChoiceComponents(localStorage.getItem('rawText'));
     }
 
-    function play(textForReading) {
+    function play(textForReading, needActive = false) {
         if (event.altKey) return
         stop()
         const text = textForReading.trim().replace(/[()#*<>`•__]/g, '').replace(/e\.g\.,/gi, 'such-as').replace(/\//g, ' '); // .replace(/^\d+\.\s*/gm, '')
@@ -1630,7 +1653,7 @@
             isPaused = true;
             speechSynthesis.pause();
         } else {
-            utteranceRef = speakText(text, false, utteranceRef);
+            utteranceRef = speakText(text, false, utteranceRef, needActive);
         }
     }
 
