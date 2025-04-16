@@ -1535,9 +1535,11 @@
                             // console.log(repeatedText)
                             play(repeatedText)
                         } else {
-                            choiceField.children[currentIndex].querySelector(".btnExplain").click()
-                            dialogOverlay.classList.add('active');
-                            confirmBtn.click()
+                            if(!choiceField.children[currentIndex].querySelector(".correct")){
+                                choiceField.children[currentIndex].querySelector(".btnExplain").click()
+                                dialogOverlay.classList.add('active');
+                                confirmBtn.click()
+                            }
                         }
                     } else {
                         play(span.textContent)
