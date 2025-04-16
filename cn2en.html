@@ -544,7 +544,7 @@
         const voiceSelectRole1 = document.getElementById("voiceSelectRole1");
         const voiceSelectRole2 = document.getElementById("voiceSelectRole2");
         const voices = window.speechSynthesis.getVoices();
-        voicesCN = voices.filter(voice => voice.lang === "zh-CN")
+        voicesCN = voices.filter(voice => voice.lang === "zh-CN" && !voice.name.includes("PRC"))
         voiceSelect.innerHTML = voices
             .filter(voice => voice.lang === "en-US")
             .map(voice => `<option value="${voice.name}" ${voice.name === defaultVoiceName ? "selected" : ""}>${voice.name}</option>`)
@@ -944,7 +944,7 @@
       `;
 
         content.querySelector("#cn").addEventListener("click", function () {
-            speakText(cnText, this, false, true)
+            speakText(cnText.replace(/^[^：]+：/, ""), this, false, true)
         });
 
         // 控制按钮
