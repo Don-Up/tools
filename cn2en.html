@@ -533,12 +533,15 @@
         }
     })
 
+    let voicesCN = null
+
     // Function to populate the voice select dropdown
     function populateVoiceList() {
         const voiceSelect = document.getElementById("voiceSelect");
         const voiceSelectRole1 = document.getElementById("voiceSelectRole1");
         const voiceSelectRole2 = document.getElementById("voiceSelectRole2");
         const voices = window.speechSynthesis.getVoices();
+        voicesCN = voices.filter(voice => voice.lang === "zh-CN")
         voiceSelect.innerHTML = voices
             .filter(voice => voice.lang === "en-US")
             .map(voice => `<option value="${voice.name}" ${voice.name === defaultVoiceName ? "selected" : ""}>${voice.name}</option>`)
@@ -933,13 +936,13 @@
         content.className = "dialog-content";
         content.innerHTML = `
         <div class="en-text" style="display: none">${enText}</div>
-        <div class="cn-text" id="cn">${cnText}</div>
+        <div class="cn-text" id="cn" style="cursor: pointer">${cnText}</div>
         <div class="word-display"></div>
       `;
 
-        // content.querySelector("#cn").addEventListener("click", function () {
-        //     speakText(cnText, this, false)
-        // });
+        content.querySelector("#cn").addEventListener("click", function () {
+            speakText(cnText, this, false, true)
+        });
 
         // 控制按钮
         const controls = document.createElement("div");
@@ -1154,17 +1157,23 @@
     }
 
     // 语音功能
-    function speakText(text, element = null, loop = false) {
+    function speakText(text, element = null, loop = false, cn = false) {
         if (!window.speechSynthesis) return;
 
         text = text.replace(/^\w+:\s*/gm, "");
 
         const utterance = new SpeechSynthesisUtterance(text);
-        if (dialogModeCheckbox.checked) {
-            utterance.voice = currentQuestion % 2 === 0 ? selectedVoiceRole1 : selectedVoiceRole2;
+        if(cn){
+            // 随机选取一个voicesCN
+            utterance.voice = voicesCN[Math.floor(Math.random() * voicesCN.length)];
         } else {
-            utterance.voice = selectedVoice;
+            if (dialogModeCheckbox.checked) {
+                utterance.voice = currentQuestion % 2 === 0 ? selectedVoiceRole1 : selectedVoiceRole2;
+            } else {
+                utterance.voice = selectedVoice;
+            }
         }
+
         utterance.rate = document.getElementById("speedSlider").value;
 
         // Split text into words and wrap them in spans with data attributes
