@@ -1289,7 +1289,7 @@
             if (questionText.startsWith("#")) {
                 continue
             }
-            questionText = questionText.replaceAll("**", "");
+            // questionText = questionText.replaceAll("**", "");
             const options = [];
             // 收集选项：直到遇到以"number-"为开始的行（表示正确答案）
             while (i < lines.length && !/^\d+$/.test(lines[i]) && !/^\d+:/.test(lines[i])) {
