@@ -1073,7 +1073,6 @@
                 break;
             case 'Digit1':
                 event.preventDefault()
-                console.log(event.ctrlKey, currentText)
                 if (currentText.length > 0) {
                     if (event.altKey) {
                         currentContainer[0].click()
@@ -1522,7 +1521,12 @@
                 span.textContent = optionObj.answerContent;
                 label.appendChild(span);
                 // label点击事件
+                let isClicked = false;
                 label.addEventListener('click', (event) => {
+                    if(isClicked) return
+                    setTimeout(() => {
+                        isClicked = false
+                    }, 1000)
                     // 如果ctrl键已经按下, 则获取inputCount的值, 并将span.textContent重复对应的次数
                     if (event.ctrlKey || ctrlCheckBox.checked) {
                         const count = parseInt(inputCount.value);
@@ -1530,6 +1534,10 @@
                             const repeatedText = `${span.textContent} `.repeat(count);
                             // console.log(repeatedText)
                             play(repeatedText)
+                        } else {
+                            choiceField.children[currentIndex].querySelector(".btnExplain").click()
+                            dialogOverlay.classList.add('active');
+                            confirmBtn.click()
                         }
                     } else {
                         play(span.textContent)
