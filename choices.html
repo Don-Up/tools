@@ -1285,10 +1285,11 @@
         let i = 0;
         while (i < lines.length) {
             // 第一行为题目文本
-            const questionText = lines[i++];
+            let questionText = lines[i++];
             if (questionText.startsWith("#")) {
                 continue
             }
+            questionText = questionText.replaceAll("**", "");
             const options = [];
             // 收集选项：直到遇到以"number-"为开始的行（表示正确答案）
             while (i < lines.length && !/^\d+$/.test(lines[i]) && !/^\d+:/.test(lines[i])) {
