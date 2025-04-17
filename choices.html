@@ -943,11 +943,11 @@
                 if (hiddenExplain) {
                     localStorage.setItem("hiddenExplain", "false")
                     hiddenExplain = false
-                    alert("show explanation when reading")
+                    alert("show explanation when reading.")
                 } else {
                     localStorage.setItem("hiddenExplain", "true")
                     hiddenExplain = true
-                    alert("hide explanation when reading")
+                    alert("hide explanation when reading.")
                 }
                 break
             case "KeyR":
@@ -1195,7 +1195,6 @@
                 if (loop) {
                     utteranceRef.onend = () => speakText(text, true, utteranceRef);
                 }
-                console.log(11)
                 utteranceRef.rate = speechSpeed; // 更新语速
                 speechSynthesis.speak(utteranceRef);
                 return utteranceRef;
@@ -1551,7 +1550,6 @@
                         const count = parseInt(inputCount.value);
                         if(count > 0){
                             const repeatedText = `${span.textContent} `.repeat(count);
-                            // console.log(repeatedText)
                             play(repeatedText)
                         } else {
                             if(!choiceField.children[currentIndex].querySelector(".correct")){
