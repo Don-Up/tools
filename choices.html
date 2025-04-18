@@ -147,8 +147,7 @@
         .btnCopy,
         .btnOption,
         .btnHide,
-        .btnExplain
-         {
+        .btnExplain {
             display: inline-block;
             margin-left: 8px;
             padding: 4px 8px; /* Reduced padding for a smaller button */
@@ -312,8 +311,12 @@
 
         /* Animation for demo */
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
         }
 
         code {
@@ -427,7 +430,8 @@
             <button class="dialog-close" id="closeDialog">&times;</button>
         </div>
         <div class="dialog-content">
-            <p id="explanation">Are you sure you want to proceed with this action? This cannot be undone and may affect your system configuration.</p>
+            <p id="explanation">Are you sure you want to proceed with this action? This cannot be undone and may affect
+                your system configuration.</p>
         </div>
         <div class="dialog-footer">
             <button class="btn btn-secondary" id="transformBtn">Transform</button>
@@ -462,7 +466,7 @@
     const explanationP = document.getElementById('explanation');
     const confirmBtn = document.getElementById('confirmBtn');
     confirmBtn.addEventListener('click', () => {
-        play(transformed? originalText : explanationP.textContent, hiddenExplain)
+        play(transformed ? originalText : explanationP.textContent, hiddenExplain)
     });
 
     function dismissDialog() {
@@ -482,35 +486,36 @@
     let transformed = false
     let originalText = ""
 
-    transformBtn.addEventListener("click",  () => {
-        if(!transformed){
+    transformBtn.addEventListener("click", () => {
+        if (!transformed) {
             transformed = true
             const newWords = []
             originalText = explanationP.textContent
             const words = explanationP.textContent.replaceAll("`", "").split(" ")
             words.forEach(word => {
-                if(word.length <= 4){
+                if (word.length <= 4) {
                     newWords.push(word)
                 } else {
                     // 将word转为字符数组
                     let isAdv = false
                     // 去除标点符号
-                    if(word.replace(/[^\w\s]/gi, "").endsWith("ly")){
+                    if (word.replace(/[^\w\s]/gi, "").endsWith("ly")) {
                         isAdv = true
                     }
-                    if(word.startsWith("`")){
+                    if (word.startsWith("`")) {
                         newWords.push(word)
                     } else {
                         const chars = word.split("");
                         chars.forEach((char, index) => {
-                            if (index === 0 || !/[a-zA-Z]/.test(char)) {
+                            let middle = Math.floor(chars.length / 2)
+                            if (index <= middle || !/[a-zA-Z]/.test(char)) {
                                 newWords.push(char);
                             } else {
                                 newWords.push("_");
                             }
                         });
                     }
-                    if(isAdv){
+                    if (isAdv) {
                         newWords.push("(adv)")
                     }
                 }
@@ -538,8 +543,8 @@
 
         request.onupgradeneeded = function (event) {
             dbChoices = event.target.result;
-            const objectStore = dbChoices.createObjectStore('images', { keyPath: 'id' });
-            objectStore.createIndex('id', 'id', { unique: true });
+            const objectStore = dbChoices.createObjectStore('images', {keyPath: 'id'});
+            objectStore.createIndex('id', 'id', {unique: true});
         };
 
         request.onsuccess = function (event) {
@@ -593,7 +598,7 @@
 
                 const transaction = dbChoices.transaction(['images'], 'readwrite');
                 const objectStore = transaction.objectStore('images');
-                const request = objectStore.put({ id: 'backgroundImage', data: base64Image });
+                const request = objectStore.put({id: 'backgroundImage', data: base64Image});
 
                 request.onsuccess = function () {
                     console.log('Image saved successfully');
@@ -699,9 +704,9 @@
                 currentAnswers.forEach(answer => {
                     answer.style.visibility = hideCheckbox.checked ? 'hidden' : 'visible'
                 })
-                if(currentQuestionText.textContent.includes("snippet")){
+                if (currentQuestionText.textContent.includes("snippet")) {
                     popup.style.visibility = "visible"
-                } else if(popup.style.visibility === "visible") {
+                } else if (popup.style.visibility === "visible") {
                     popup.style.visibility = "hidden"
                 }
                 localStorage.setItem('currentIndex', currentIndex)
@@ -746,9 +751,9 @@
                 currentAnswers.forEach(answer => {
                     answer.style.visibility = hideCheckbox.checked ? 'hidden' : 'visible'
                 })
-                if(children[currentIndex].querySelector(".questionText").textContent.includes("snippet")){
+                if (children[currentIndex].querySelector(".questionText").textContent.includes("snippet")) {
                     popup.style.visibility = "visible"
-                } else if(popup.style.visibility === "visible") {
+                } else if (popup.style.visibility === "visible") {
                     popup.style.visibility = "hidden"
                 }
                 localStorage.setItem('currentIndex', currentIndex)
@@ -820,7 +825,7 @@
         currentAnswers.forEach(answer => {
             answer.style.visibility = hideCheckbox.checked ? 'hidden' : 'visible'
         })
-        if(currentQuestionText.textContent.includes("snippet")){
+        if (currentQuestionText.textContent.includes("snippet")) {
             popup.style.visibility = "visible"
         } else {
             popup.style.visibility = "hidden"
@@ -932,11 +937,22 @@
     }
 
     let hiddenExplain = false
+    let isPlaying = false
 
     // 监听space键
     document.addEventListener('keydown', function (event) {
         // console.log(event.code, event.key)
         switch (event.code) {
+            case "KeyV":
+                event.preventDefault()
+                if (!isPaused && isPlaying) {
+                    isPaused = true
+                    window.speechSynthesis.pause()
+                } else {
+                    isPaused = false
+                    window.speechSynthesis.resume()
+                }
+                break
             case "KeyH":
                 event.preventDefault()
                 hiddenExplain = localStorage.getItem("hiddenExplain") === "true"
@@ -953,22 +969,22 @@
             case "KeyR":
                 event.preventDefault()
                 record()
-                if(!transformed){
+                if (!transformed) {
                     transformed = true
                     const newWords = []
                     originalText = explanationP.textContent
                     const words = explanationP.textContent.split(" ")
                     words.forEach(word => {
-                        if(word.length <= 4){
+                        if (word.length <= 4) {
                             newWords.push(word)
                         } else {
                             // 将word转为字符数组
                             let isAdv = false
                             // 去除标点符号
-                            if(word.replace(/[^\w\s]/gi, "").endsWith("ly")){
+                            if (word.replace(/[^\w\s]/gi, "").endsWith("ly")) {
                                 isAdv = true
                             }
-                            if(word.startsWith("`")){
+                            if (word.startsWith("`")) {
                                 newWords.push(word)
                             } else {
                                 const chars = word.split("");
@@ -980,7 +996,7 @@
                                     }
                                 });
                             }
-                            if(isAdv){
+                            if (isAdv) {
                                 newWords.push("(adv)")
                             }
                         }
@@ -993,7 +1009,7 @@
                 break
             case "KeyT":
                 event.preventDefault()
-                if(transformed){
+                if (transformed) {
                     explanationP.textContent = originalText
                     transformed = false
                 }
@@ -1049,7 +1065,7 @@
                 transformBtn.click()
                 break
             case 'KeyC':
-                if(!event.ctrlKey){
+                if (!event.ctrlKey) {
                     confirmBtn.click()
                 }
                 break
@@ -1061,7 +1077,7 @@
                 break
             case 'ArrowUp':
             case 'KeyW':
-                if(dialogOverlay.classList.contains('active')){
+                if (dialogOverlay.classList.contains('active')) {
                     dialogOverlay.classList.remove('active');
                     dismissDialog()
                 }
@@ -1069,7 +1085,7 @@
                 break
             case 'ArrowDown':
             case 'KeyS':
-                if(dialogOverlay.classList.contains('active')){
+                if (dialogOverlay.classList.contains('active')) {
                     dialogOverlay.classList.remove('active');
                     dismissDialog()
                 }
@@ -1091,7 +1107,7 @@
                 if (currentText.length > 0) {
                     if (event.altKey) {
                         currentContainer[0].click()
-                    } else if(event.shiftKey) {
+                    } else if (event.shiftKey) {
                         const style = currentContainer[0].querySelector(".answer").style
                         style.visibility = style.visibility === "visible" ? "hidden" : "visible"
                     } else {
@@ -1105,7 +1121,7 @@
                 if (currentText.length > 1) {
                     if (event.altKey) {
                         currentContainer[1].click()
-                    } else if(event.shiftKey) {
+                    } else if (event.shiftKey) {
                         const style = currentContainer[1].querySelector(".answer").style
                         style.visibility = style.visibility === "visible" ? "hidden" : "visible"
                     } else {
@@ -1119,7 +1135,7 @@
                 if (currentText.length > 2) {
                     if (event.altKey) {
                         currentContainer[2].click()
-                    } else if(event.shiftKey) {
+                    } else if (event.shiftKey) {
                         const style = currentContainer[2].querySelector(".answer").style
                         style.visibility = style.visibility === "visible" ? "hidden" : "visible"
                     } else {
@@ -1133,7 +1149,7 @@
                 if (currentText.length > 3) {
                     if (event.altKey) {
                         currentContainer[3].click()
-                    } else if(event.shiftKey) {
+                    } else if (event.shiftKey) {
                         const style = currentContainer[3].querySelector(".answer").style
                         style.visibility = style.visibility === "visible" ? "hidden" : "visible"
                     } else {
@@ -1183,8 +1199,12 @@
                 if (selectedVoice) {
                     utterance.voice = voices[selectedVoice];
                 }
+                utterance.onstart = () => {
+                    isPlaying = true
+                }
                 utterance.onend = () => {
-                    if(needActive) dialogOverlay.classList.add('active')
+                    isPlaying = false
+                    if (needActive) dialogOverlay.classList.add('active')
                 }
                 if (loop) {
                     utterance.onend = () => speakText(text, true, utterance);
@@ -1313,7 +1333,7 @@
                 options.push(lines[i++]);
             }
             if (i < lines.length && (/^\d+$/.test(lines[i]) || /^\d+:/.test(lines[i]))) {
-                if(/^\d+:/.test(lines[i])){
+                if (/^\d+:/.test(lines[i])) {
                     const correctAnswer = lines[i][0];
                     const explanation = lines[i].slice(2).trim()
                     i++
@@ -1373,7 +1393,7 @@
             if (optionObjects.length === 0) return; // 无有效选项则跳过
 
             // 随机打乱选项顺序（Fisher-Yates 洗牌算法）
-            if(block.options.length > 2 ){
+            if (block.options.length > 2) {
                 for (let j = optionObjects.length - 1; j > 0; j--) {
                     const k = Math.floor(Math.random() * (j + 1));
                     [optionObjects[j], optionObjects[k]] = [optionObjects[k], optionObjects[j]];
@@ -1407,7 +1427,7 @@
 
             const divQ = document.createElement('div')
             divQ.className = 'btnCopy'
-            divQ.textContent = "Q" + (blockIndex + 1)+"/"+blocks.length
+            divQ.textContent = "Q" + (blockIndex + 1) + "/" + blocks.length
             divQ.addEventListener('click', () => {
                 currentIndex = blockIndex
             })
@@ -1490,7 +1510,7 @@
                     })
                     hideButton.textContent = 'hide'
                 } else {
-                    if(!hideAnswersCheckbox.checked){
+                    if (!hideAnswersCheckbox.checked) {
                         questionText.style.visibility = 'hidden';
                     }
                     answers.forEach(answer => {
@@ -1504,7 +1524,7 @@
             explainButton.className = 'btnExplain';
             explainButton.textContent = 'explain';
             explainButton.addEventListener('click', () => {
-                if(dialogOverlay.classList.contains('active')){
+                if (dialogOverlay.classList.contains('active')) {
                     dialogOverlay.classList.remove('active');
                     dismissDialog()
                 } else {
@@ -1541,20 +1561,20 @@
                 // label点击事件
                 let isClicked = false;
                 label.addEventListener('click', (event) => {
-                    if(isClicked) return
+                    if (isClicked) return
                     setTimeout(() => {
                         isClicked = false
                     }, 1000)
                     // 如果ctrl键已经按下, 则获取inputCount的值, 并将span.textContent重复对应的次数
                     if (event.ctrlKey || ctrlCheckBox.checked) {
                         const count = parseInt(inputCount.value);
-                        if(count > 0){
+                        if (count > 0) {
                             const repeatedText = `${span.textContent} `.repeat(count);
                             play(repeatedText)
                         } else {
-                            if(!choiceField.children[currentIndex].querySelector(".correct")){
+                            if (!choiceField.children[currentIndex].querySelector(".correct")) {
                                 choiceField.children[currentIndex].querySelector(".btnExplain").click()
-                                if(hiddenExplain){
+                                if (hiddenExplain) {
                                     dialogOverlay.classList.remove('active');
                                 } else {
                                     dialogOverlay.classList.add('active');
