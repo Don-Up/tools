@@ -826,7 +826,7 @@
     }
 
     function insertText() {
-        const input = document.createElement("textarea");
+        let input = document.createElement("textarea");
         input.placeholder = "Please enter text...";
         input.style.display = "block";
         document.body.appendChild(input);
@@ -845,8 +845,9 @@
 
         confirmBtn.onclick = () => {
             if (input.value.trim() === "") return;
-            localStorage.setItem("text", input.value);
-            processText(input.value);
+            const value = input.value.replace(/^[1-9]\.\s/gm, "")
+            localStorage.setItem("text", value);
+            processText(value);
             document.body.removeChild(input);
             document.body.removeChild(confirmBtn);
             highlightWords(rootElement);
