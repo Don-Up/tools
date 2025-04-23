@@ -469,7 +469,20 @@
             case 'KeyV':
                 event.preventDefault()
                 navigator.clipboard.readText().then(text => {
-                    inputText.value = text.replaceAll("------", "")
+                    if(event.shiftKey){
+                        text = text.replaceAll("------", "")
+                        // 相邻的奇数句子和偶数句子互换, 例如第一句变成第二句, 第二句变成第一句
+                        const array  = text.split("\n").filter(item => item.trim() !== "")
+                        for (let i = 0; i < array.length; i++) {
+                            if(i % 2 === 0){
+                                [array[i], array[i+1]] = [array[i+1], array[i]];
+                            }
+                        }
+                        inputText.value = array.join("\n")
+                        console.log(array)
+                    } else {
+                        inputText.value = text.replaceAll("------", "")
+                    }
                     saveMode = event.ctrlKey
                     document.getElementById("generateBtn").click()
                     currentQuestion = 0
@@ -944,7 +957,7 @@
       `;
 
         content.querySelector("#cn").addEventListener("click", function () {
-            speakText(cnText.replace(/^[^：]+：/, ""), this, false, true)
+            speakText(cnText, this, false, true) // .replace(/^[^：]+：/, "")
         });
 
         // 控制按钮
@@ -1177,7 +1190,7 @@
             }
         }
 
-        utterance.rate = document.getElementById("speedSlider").value;
+        utterance.rate = cn? 1.5 : document.getElementById("speedSlider").value;
 
         // Split text into words and wrap them in spans with data attributes
         const words = text.split(/\s+/);
