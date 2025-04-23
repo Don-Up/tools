@@ -825,7 +825,7 @@
         });
     }
 
-    function insertText() {
+    function insertText(event = null, divide = false) {
         let input = document.createElement("textarea");
         input.placeholder = "Please enter text...";
         input.style.display = "block";
@@ -845,7 +845,9 @@
 
         confirmBtn.onclick = () => {
             if (input.value.trim() === "") return;
-            const value = input.value.replace(/^[1-9]\.\s/gm, "")
+            const value = event && event.shiftKey?
+                input.value.replace(/([,.])\s+/g, "$1\n").trim():
+                input.value.replace(/^[1-9]\.\s/gm, "")
             localStorage.setItem("text", value);
             processText(value);
             document.body.removeChild(input);
@@ -1220,7 +1222,10 @@
                 }).join('');
             } else {
                 finalText = sentences.filter(sentence => !sentence.startsWith(">")).map(sentence => {
-                    return `${sentence} `.repeat(repeatCount)
+                    if(sentence.trim().match(/[0-9]+\.$/) && sentence.trim().startsWith("#"))
+                        return ""
+                    else
+                        return `${sentence} `.repeat(repeatCount)
                 }).join('');
             }
         } else {
@@ -1247,6 +1252,13 @@
                 clickedElement.style.visibility = "visible";
             }
         }
+        utterance.onboundary = (event) => {
+            // log the playing progress
+            // const { charIndex, elapsedTime } = event;
+            // const totalLength = finalText.length;
+            // const progress = ((charIndex / totalLength) * 100).toFixed(2);
+            // console.log(`Progress: ${progress}% | Char Index: ${charIndex} | Time Elapsed: ${elapsedTime}ms`);
+        };
         utterance.onstart = () => {
             if(!autoPlay.checked && hideReadCheckbox.checked && clickedElement){
                 clickedElement.style.visibility = "hidden";
@@ -1272,6 +1284,25 @@
     document.addEventListener("keydown", (event) => {
         // console.log("Keydown event:", event.code)
         switch (event.code) {
+            case "KeyT":
+                // const text = "我看得出来。您可以告诉我是怎么回事吗？"
+                // const url = "https://next-reader-psi.vercel.app/api/translate"
+                // const data = {
+                //     text: [text],
+                //     target_lang: "EN"
+                // }
+                // fetch(url, {
+                //     method: "POST",
+                //     headers: {
+                //         "Content-Type": "application/json",
+                //     },
+                //     body: JSON.stringify(data),
+                // }).then(response => response.json()).then(data => {
+                //     console.log(data)
+                // }).catch(error => {
+                //     console.error(error);
+                // })
+                break
             case "Space":
                 event.preventDefault()
                 stopText();
@@ -1284,7 +1315,7 @@
                 break;
             case "KeyV": // 打开或关闭Auto Play
                 // autoPlay.checked = !autoPlay.checked;
-                insertText()
+                insertText(event)
                 break;
             case "KeyD":
                 event.preventDefault()

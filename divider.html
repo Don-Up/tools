@@ -48,10 +48,45 @@
             <button onclick="processText3()">处理文本R</button>
             <button onclick="mergeText(true)">合并文本R</button>
             <button onclick="processText4()">处理文本E</button>
+            <button onclick="processText5()">处理文本K</button>
         </div>
         <div id="output" style="margin-left: 50px;overflow-y: auto;height: 90vh;"></div>
     </div>
     <script>
+
+        function processText5() {
+            let inputText = document.getElementById('inputText').value
+            // 移除所有空行
+            inputText = inputText.split('\n')
+                .filter(line => line.trim() !== '')
+                .join('\n');
+            let output = inputText.replace(/([,.—])\s+/g, "$1\n").trim();
+
+            let array = output.trim().split("\n")
+            const indexes = []
+            array = array.map((line, index) => {
+                if(line.startsWith("”")){
+                    line = line.replace("”", "")
+                    // line = line.replace("”“", "“")
+                    indexes.push(index-1)
+                }
+                return line
+            })
+            indexes.forEach(index => {
+                array[index] = array[index]+"”"
+            })
+            output = array.join("\n")
+            // 替换掉所有的"[插图]"
+            document.getElementById('output').textContent = output;
+            // 清空文本域
+            navigator.clipboard.writeText(output).then(() => {
+                document.getElementById('inputText').value = '';
+            }).catch((error) => {
+                alert("复制失败:', error")
+            });
+            // 返回顶部
+            document.getElementById('output').scrollTo(0, 0);
+        }
 
         function processText4() {
             let inputText = document.getElementById('inputText').value.replaceAll("\n", "");
