@@ -931,9 +931,17 @@
 
     // 创建对话项
     function createDialogItem(enText, cnText, index, length) {
-        enText = enText.replace(/[#*<>`•]/g, "").replace(/\//g, " ").replace(/e\.g\.,/gi, "such-as").trim();
-        enText = enText.replace(/^\d+\.\s*/gm, "")
-        cnText = cnText.replace(/^\d+\.\s*/gm, "").replace(/[-#*`•]/g, "").trim();
+        enText = enText
+            // .replace(/[#*<>`•]/g, "")
+            // .replace(/\//g, " ")
+            .replace(/e\.g\.,/gi, "such-as")
+            .trim();
+        enText = enText
+            .replace(/^\d+\.\s*/gm, "")
+        cnText = cnText
+            .replace(/^\d+\.\s*/gm, "")
+            // .replace(/[-#*`•]/g, "")
+            .trim();
         const dialogItem = document.createElement("div");
         dialogItem.className = "dialog-item";
 
