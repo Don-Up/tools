@@ -292,6 +292,33 @@
             cursor: pointer;
             border-radius: 5px;
         }
+
+
+        /* 定义pulse动画 */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* 主容器样式 */
+        .container-anim {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            height: 100vh; /* 使用视口高度代替100% */
+        }
+
+        /* 动画元素样式 */
+        .pulse-element {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        /* 文本样式 */
+        .centered-text {
+            text-align: center;
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+        }
     </style>
     <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
@@ -393,6 +420,13 @@
             </div>
         </div>
     </div>
+
+    <div class="container-anim">
+        <div class="pulse-element">
+            <div class="centered-text">translated...</div>
+        </div>
+    </div>
+
 </div>
 
 <img id="imgBg" src="img/bg.png" alt="background"
@@ -406,6 +440,7 @@
     let currentFont = localStorage.getItem("currentFont") || "Corbel";
     let bookName = null
 
+    const containerAnim = document.querySelector(".container-anim")
     const imgBg = document.getElementById("imgBg");
 
     // Load image from local storage if it exists
@@ -825,19 +860,27 @@
         });
     }
 
-    function insertText(event = null, divide = false) {
+    function insertText(event = null, text = "") {
         let input = document.createElement("textarea");
         input.placeholder = "Please enter text...";
         input.style.display = "block";
         document.body.appendChild(input);
         input.focus();
 
-        // 监听粘贴事件, 一旦粘贴, 自动触发确认按钮
-        input.addEventListener("paste", function (event) {
+
+        if(text){
+            input.value = text;
             setTimeout(() => {
                 confirmBtn.click();
             }, 500);
-        });
+        } else {
+            // 监听粘贴事件, 一旦粘贴, 自动触发确认按钮
+            input.addEventListener("paste", function (event) {
+                setTimeout(() => {
+                    confirmBtn.click();
+                }, 500);
+            });
+        }
 
         const confirmBtn = document.createElement("button");
         confirmBtn.textContent = "Confirm";
@@ -847,7 +890,8 @@
             if (input.value.trim() === "") return;
             const value = event && event.shiftKey?
                 input.value.replace(/([,.])\s+/g, "$1\n").trim():
-                input.value.replace(/^[1-9]\.\s/gm, "")
+                input.value
+                    // .replace(/^[1-9]\.\s/gm, "")
             localStorage.setItem("text", value);
             processText(value);
             document.body.removeChild(input);
@@ -1281,27 +1325,45 @@
     let isPaused = false;
 
     // 监听快捷键Space, 按下后调用stopText
-    document.addEventListener("keydown", (event) => {
+    document.addEventListener("keydown", async (event) => {
         // console.log("Keydown event:", event.code)
         switch (event.code) {
             case "KeyT":
-                // const text = "我看得出来。您可以告诉我是怎么回事吗？"
-                // const url = "https://next-reader-psi.vercel.app/api/translate"
-                // const data = {
-                //     text: [text],
-                //     target_lang: "EN"
-                // }
-                // fetch(url, {
-                //     method: "POST",
-                //     headers: {
-                //         "Content-Type": "application/json",
-                //     },
-                //     body: JSON.stringify(data),
-                // }).then(response => response.json()).then(data => {
-                //     console.log(data)
-                // }).catch(error => {
-                //     console.error(error);
-                // })
+                event.preventDefault()
+                containerAnim.style.display = "flex"
+                // get the text from the pasteboard
+                let text = await getClipboardText();
+                // [.,]
+                let textArray = text.trim().split(event.altKey?/(?<=\.|,)\s+/:/(?<=[，。])/).filter(s => s.trim())
+                text = textArray.join('\n')
+                const url = "https://next-reader-psi.vercel.app/api/translate"
+                const data = {
+                    text: `${text}`,
+                    targetLang: event.altKey ? "ZH" :"EN"
+                }
+                console.log("translating")
+                fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(data),
+                }).then(response => response.json()).then(data => {
+                    let result = []
+                    const translatedTextArray = data.text.split("\n")
+                    for (let i = 0; i < translatedTextArray.length; i++) {
+                        if(event.shiftKey){
+                            result.push(textArray[i] + "\n> " + translatedTextArray[i]+"\n")
+                        } else {
+                            result.push(translatedTextArray[i] + "\n> " + textArray[i]+"\n")
+                        }
+                    }
+                    containerAnim.style.display = "none"
+                    insertText(event, result.join("\n").trim())
+                }).catch(error => {
+                    containerAnim.style.display = "none"
+                    console.error(error);
+                })
                 break
             case "Space":
                 event.preventDefault()
