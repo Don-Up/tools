@@ -302,10 +302,14 @@
 
         /* 主容器样式 */
         .container-anim {
+            position: absolute;
             display: none;
             justify-content: center;
             align-items: center;
+            width: 100vw;
             height: 100vh; /* 使用视口高度代替100% */
+            z-index: 100;
+            top: 00px;
         }
 
         /* 动画元素样式 */
@@ -316,7 +320,8 @@
         /* 文本样式 */
         .centered-text {
             text-align: center;
-            font-size: 1.25rem;
+            font-style: italic;
+            font-size: 2.5rem;
             line-height: 1.75rem;
         }
     </style>
@@ -423,7 +428,7 @@
 
     <div class="container-anim">
         <div class="pulse-element">
-            <div class="centered-text">translated...</div>
+            <div class="centered-text">translating...</div>
         </div>
     </div>
 
@@ -1333,8 +1338,13 @@
                 containerAnim.style.display = "flex"
                 // get the text from the pasteboard
                 let text = await getClipboardText();
+                // 将所有"数字序号."转换为"数字序号:"
+                text = text.replace(/(\d+)\./g, '$1:').replaceAll("\n", "");
                 // [.,]
-                let textArray = text.trim().split(event.altKey?/(?<=\.|,)\s+/:/(?<=[，。])/).filter(s => s.trim())
+                let textArray = text.trim().split(event.altKey?/(?<=[.,?])\s+/:/(?<=[，。？])/).filter(s =>
+                    // s不为空且不是1. 2. 3. 之类的序号
+                    s.trim()
+                )
                 text = textArray.join('\n')
                 const url = "https://next-reader-psi.vercel.app/api/translate"
                 const data = {
