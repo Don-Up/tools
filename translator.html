@@ -387,13 +387,23 @@
         localStorage.setItem("timeoutInput", timeoutInput.value)
     })
 
+    let count = 0
+
     contentInput.addEventListener('click', (event) => {
         // 获取剪贴板文本
         navigator.clipboard.readText().then(text => {
+            if(text.trim() === contentInput.value.trim()){
+                return
+            }
             contentInput.value = text
             words.push(text)
             if(words.length > cacheSizeInput.value){
                 words.shift()
+                count++
+                if(count===Math.ceil(cacheSizeInput.value/2)){
+                    alert("It's time to review.")
+                    count = 0
+                }
             }
             spanCaches.textContent = `${words.length}/${cacheSizeInput.value}`
             speakText(`${contentInput.value}, `.repeat(6), true, null)
@@ -491,9 +501,11 @@
     document.querySelector('#updateBtn').addEventListener('click', () => {
         if(words.length === 0) return
         stop()
-        const review = words.join(", ")
-        contentInput.value = review
-        speakText(`${review}, `.repeat(2), true, null)
+        const review = words.map(word => {
+            return `${word}, `.repeat(2)
+        }).join("")
+        contentInput.value = words.join(", ")
+        speakText(review, true, null)
 
         // const text = document.querySelector('#playSentenceInput').value.trim().replace(/^\d+\.\s*/gm, '').replace("•", "").replace("(", " ").replace(")", " ");
         // if (!text) {
