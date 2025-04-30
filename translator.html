@@ -235,10 +235,12 @@
             <button id="playPauseBtn">Play</button>
             <button id="loopPauseBtn">Loop</button>
             <button id="stopBtn">Stop</button>
-            <button id="updateBtn">Update</button>
+            <button id="updateBtn">Review</button>
         </div>
     </div>
 
+    <div>Caches:<span id="spanCaches">0/3</span>    <span>Max Caches:</span><input type="number" style="width: 50px;margin-left: 10px;" id="cacheSizeInput"></div>
+    <div>Timeout(s):<input type="number" style="width: 50px;margin-left: 10px;" id="timeoutInput"></div>
 </div>
 
 <script>
@@ -365,12 +367,43 @@
         };
     }
 
+    const words = []
+    const cacheSizeInput = document.getElementById("cacheSizeInput")
+    cacheSizeInput.value = localStorage.getItem("cacheSizeInput") || 3
+    cacheSizeInput.addEventListener('input', debounce(() => {
+        localStorage.setItem("cacheSizeInput", cacheSizeInput.value)
+        while (words.length > cacheSizeInput.value){
+            words.shift()
+        }
+        spanCaches.textContent = `${words.length}/${cacheSizeInput.value}`
+    }))
+    const spanCaches = document.getElementById("spanCaches")
+    spanCaches.textContent = `${0}/${cacheSizeInput.value}`
+    let timerId = null
+
+    const timeoutInput = document.getElementById("timeoutInput")
+    timeoutInput.value = localStorage.getItem("timeoutInput") || 30
+    timeoutInput.addEventListener("change", () => {
+        localStorage.setItem("timeoutInput", timeoutInput.value)
+    })
+
     contentInput.addEventListener('click', (event) => {
         // 获取剪贴板文本
         navigator.clipboard.readText().then(text => {
             contentInput.value = text
+            words.push(text)
+            if(words.length > cacheSizeInput.value){
+                words.shift()
+            }
+            spanCaches.textContent = `${words.length}/${cacheSizeInput.value}`
             speakText(`${contentInput.value}, `.repeat(6), true, null)
             document.querySelector("textarea").style.color = "#e0e0e0"
+            if(timeoutInput.value > 0){
+                clearTimeout(timerId)
+                timerId = setTimeout(() => {
+                    stop()
+                }, timeoutInput.value*1000)
+            }
         }).catch(err => {
             console.error('Failed to read clipboard contents: ', err);
         });
@@ -392,12 +425,12 @@
         // }
     };
 
-    contentInput.addEventListener('input', debounce(handleInput, 300));
+    // contentInput.addEventListener('input', debounce(handleInput, 300));
 
     // 播放/暂停按钮
     document.querySelector('#playPauseBtn').addEventListener('click', () => {
         stop()
-        const text = content.trim().replace(/[()#*<>`•]/g, '').replace(/e\.g\.,/gi, 'such-as').replace(/\//g, ' '); // .replace(/^\d+\.\s*/gm, '')
+        const text = contentInput.value.trim().replace(/[()#*<>`•]/g, '').replace(/e\.g\.,/gi, 'such-as').replace(/\//g, ' '); // .replace(/^\d+\.\s*/gm, '')
         if (!text) {
             alert('Please enter the English sentence to be played');
             return;
@@ -417,7 +450,7 @@
 
     // 循环/暂停按钮
     document.querySelector('#loopPauseBtn').addEventListener('click', () => {
-        const text = content.trim().replace(/[()#*<>`•]/g, '').replace(/e\.g\.,/gi, 'such-as').replace(/\//g, ' '); //.replace(/^\d+\.\s*/gm, '')
+        const text = contentInput.value.trim().replace(/[()#*<>`•]/g, '').replace(/e\.g\.,/gi, 'such-as').replace(/\//g, ' '); //.replace(/^\d+\.\s*/gm, '')
         if (!text) {
             alert('Please enter the English sentence to be played');
             return;
@@ -456,18 +489,24 @@
 
     // 更新按钮
     document.querySelector('#updateBtn').addEventListener('click', () => {
-        const text = document.querySelector('#playSentenceInput').value.trim().replace(/^\d+\.\s*/gm, '').replace("•", "").replace("(", " ").replace(")", " ");
-        if (!text) {
-            alert('Please enter the English sentence to be played');
-            return;
-        }
-        stopSpeaking();
-        utteranceRef = new SpeechSynthesisUtterance(text);
-        if (selectedVoice) {
-            utteranceRef.voice = voices[selectedVoice];
-        }
-        utteranceRef.lang = 'en-US';
-        utteranceRef.rate = speechSpeed; // 更新语速
+        if(words.length === 0) return
+        stop()
+        const review = words.join(", ")
+        contentInput.value = review
+        speakText(`${review}, `.repeat(2), true, null)
+
+        // const text = document.querySelector('#playSentenceInput').value.trim().replace(/^\d+\.\s*/gm, '').replace("•", "").replace("(", " ").replace(")", " ");
+        // if (!text) {
+        //     alert('Please enter the English sentence to be played');
+        //     return;
+        // }
+        // stopSpeaking();
+        // utteranceRef = new SpeechSynthesisUtterance(text);
+        // if (selectedVoice) {
+        //     utteranceRef.voice = voices[selectedVoice];
+        // }
+        // utteranceRef.lang = 'en-US';
+        // utteranceRef.rate = speechSpeed; // 更新语速
     });
 
     // 监听语速滑块
