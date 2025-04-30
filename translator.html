@@ -207,7 +207,7 @@
 <body>
 <div class="container">
     <div class="header-section">
-        <h3>Translator</h3>
+        <h3>Speaker</h3>
 
         <select id="voiceSelect" class="voice-select">
             <option value="">Choose the speaker</option>
@@ -247,20 +247,32 @@
     let isLooping = false;
     let isPaused = false;
     let utteranceRef = null;
-    let speechSpeed = 1.0; // 默认语速
+    let speechSpeed = localStorage.getItem('speechSpeed') || 1.0; // 默认语速
 
-
+    // 监听快捷键
+    document.addEventListener('keydown', function (event) {
+        if (event.code === 'Space') {
+            stop()
+        }
+    });
 
     // 默认发音人名称
     const defaultVoiceName = "Microsoft Brian Online (Natural) - English (United States)";
 
     let voicesEn = []
 
+    const voicesOld = [
+        'Microsoft Mark - English (United States)',
+        'Microsoft Zira - English (United States)',
+        'Microsoft David - English (United States)'
+    ]
+
     // 加载发音人
     function loadVoices() {
         if (selectedVoice !== null) return
         voices = window.speechSynthesis.getVoices();
-        voicesEn = voices.filter(voice => voice.lang.includes('en'))
+        voicesEn = voices.filter(voice => voice.lang.includes('en')
+            && !voicesOld.includes(voice.name))
         const voiceSelect = document.querySelector('#voiceSelect');
         voiceSelect.innerHTML = '<option value="">选择发音人</option>'; // 清空并添加默认选项
         let defaultVoiceIndex = null;
@@ -354,21 +366,30 @@
     }
 
     contentInput.addEventListener('click', (event) => {
-        contentInput.value = ""
+        // 获取剪贴板文本
+        navigator.clipboard.readText().then(text => {
+            contentInput.value = text
+            speakText(`${contentInput.value}, `.repeat(6), true, null)
+            document.querySelector("textarea").style.color = "#e0e0e0"
+        }).catch(err => {
+            console.error('Failed to read clipboard contents: ', err);
+        });
+        // contentInput.value = ""
+        stop()
     })
 
     const handleInput = () => {
-        if (contentInput.value !== content) {
-            speakText(contentInput.value)
-            content = contentInput.value;
-            document.querySelector("textarea").style.color = "#e0e0e0"
-            // Copy the content to the clipboard.
-            navigator.clipboard.writeText(contentInput.value).then(() => {
-                // console.log('Content copied to clipboard');
-            }).catch(err => {
-                console.error('Failed to copy: ', err);
-            });
-        }
+        // if (contentInput.value !== content && contentInput.value.trim() !== "") {
+        //     speakText(`${contentInput.value}, `.repeat(6), true, null)
+        //     content = contentInput.value;
+        //     document.querySelector("textarea").style.color = "#e0e0e0"
+        //     // Copy the content to the clipboard.
+        //     navigator.clipboard.writeText(contentInput.value).then(() => {
+        //         // console.log('Content copied to clipboard');
+        //     }).catch(err => {
+        //         console.error('Failed to copy: ', err);
+        //     });
+        // }
     };
 
     contentInput.addEventListener('input', debounce(handleInput, 300));
@@ -450,9 +471,14 @@
     });
 
     // 监听语速滑块
-    document.querySelector('#speedRange').addEventListener('input', (event) => {
+    const speedRange = document.querySelector('#speedRange')
+    const speedValue = document.querySelector('#speedValue')
+    speedRange.value = speechSpeed;
+    speedValue.textContent = speechSpeed;
+    speedRange.addEventListener('input', (event) => {
         speechSpeed = parseFloat(event.target.value);
-        document.querySelector('#speedValue').textContent = speechSpeed.toFixed(1);
+        localStorage.setItem('speechSpeed', speechSpeed);
+        speedValue.textContent = speechSpeed;
     });
 
     // 监听发音人选择
