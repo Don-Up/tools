@@ -1336,11 +1336,19 @@
 
     let isPaused = false;
     let canSpeak = true;
+    let currentText = null
 
     // 监听快捷键Space, 按下后调用stopText
     document.addEventListener("keydown", async (event) => {
         // console.log("Keydown event:", event.code)
         switch (event.code) {
+            case "KeyY":
+                const selection = window.getSelection()
+                currentText = selection || currentText
+                if (currentText) {
+                    playText(`${currentText}, `.repeat(3), this)
+                }
+                break
             case "KeyQ":
                 // 发出音效
                 soundFX.play()
