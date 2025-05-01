@@ -500,6 +500,7 @@
     // 更新按钮
     document.querySelector('#updateBtn').addEventListener('click', () => {
         if(words.length === 0) return
+        clearTimeout(timerId)
         stop()
         const review = words.map(word => {
             return `${word}, `.repeat(2)

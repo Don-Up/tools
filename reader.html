@@ -437,6 +437,8 @@
 <img id="imgBg" src="img/bg.png" alt="background"
      style="object-fit: cover;position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;">
 
+<audio id="soundFX" src="mp3/bounce.mp3"></audio>
+
 <script>
     let isPlaying = false;
     let voices = [];
@@ -444,6 +446,8 @@
     let currentVoice = null;
     let currentFont = localStorage.getItem("currentFont") || "Corbel";
     let bookName = null
+
+    const soundFX = document.getElementById('soundFX');
 
     const containerAnim = document.querySelector(".container-anim")
     const imgBg = document.getElementById("imgBg");
@@ -1218,6 +1222,9 @@
 
     // Modified playText function for interleaved sentence repetition.
     function playText(originalText, clickedElement) {
+        if(!canSpeak){
+            return;
+        }
         // 判断ALT键是否处于按下状态, 如果是则取消播放。
         if (event.altKey) {
             isPlaying = false;
@@ -1328,11 +1335,17 @@
     }
 
     let isPaused = false;
+    let canSpeak = true;
 
     // 监听快捷键Space, 按下后调用stopText
     document.addEventListener("keydown", async (event) => {
         // console.log("Keydown event:", event.code)
         switch (event.code) {
+            case "KeyQ":
+                // 发出音效
+                soundFX.play()
+                canSpeak = !canSpeak
+                break
             case "KeyT":
                 event.preventDefault()
                 containerAnim.style.display = "flex"
