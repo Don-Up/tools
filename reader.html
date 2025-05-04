@@ -1342,6 +1342,38 @@
     document.addEventListener("keydown", async (event) => {
         // console.log("Keydown event:", event.code)
         switch (event.code) {
+            case "KeyC":
+                // get the text from the pasteboard
+                const comments = (await getClipboardText()).split("\n")
+                    .filter(t => t.trim() !== "" && t.trim().length > 20 && !t.trim().startsWith("@")).map(t =>
+                        t.trim().endsWith(".")?t:`${t.trim()}.`
+                    )
+                fetch("https://next-reader-psi.vercel.app/api/translate", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        text: `${comments.join("\n")}`,
+                        targetLang: event.altKey ? "EN" :"ZH"
+                    }),
+                }).then(response => response.json()).then(data => {
+                    let result = []
+                    const translatedTextArray = data.text.split("\n")
+                    for (let i = 0; i < translatedTextArray.length; i++) {
+                        if(event.shiftKey){
+                            result.push(comments[i] + "\n> " + translatedTextArray[i]+"\n")
+                        } else {
+                            result.push(translatedTextArray[i] + "\n> " + comments[i]+"\n")
+                        }
+                    }
+                    containerAnim.style.display = "none"
+                    insertText(event, result.join("\n").trim())
+                }).catch(error => {
+                    containerAnim.style.display = "none"
+                    console.error(error);
+                })
+                break
             case "KeyY":
                 const selection = window.getSelection()
                 currentText = selection || currentText
@@ -1372,7 +1404,6 @@
                     text: `${text}`,
                     targetLang: event.altKey ? "ZH" :"EN"
                 }
-                console.log("translating")
                 fetch(url, {
                     method: "POST",
                     headers: {

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Playground</title>
+    <style>
+        body {
+            padding: 20px;
+        }
+        textarea{
+            padding: 20px;
+            text-indent: 0;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <textarea
+                id="code"
+                cols="80"
+                rows="50"
+                placeholder="Enter your code here..."
+                itemid="ta"
+        >
+        </textarea>
+        <button onclick="convert()">Convert</button>
+    </div>
+<script>
+    const textarea = document.getElementById('code');
+    textarea.value = ""
+
+    function convert(){
+        const text = textarea.value
+        const textArray = text.split('\n')
+        let result = []
+        for (let i = 0; i < textArray.length; i++) {
+            const string = textArray[i]
+            if(string.includes("function") || i === textArray.length-1 || string.trim().startsWith('/') || string.trim().startsWith('*')){
+                result.push(string+"\n")
+            } else {
+                result.push("\n")
+            }
+        }
+        // textarea.value = result.join('')
+        // copy it to the clipboard
+        navigator.clipboard.writeText(result.join('').trim())
+    }
+</script>
+</body>
+</html>
