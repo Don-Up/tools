@@ -9,7 +9,7 @@
             margin-bottom: 10px;
             margin-top: 20px;
             cursor: pointer;
-            font-size: 18px;
+            font-size: 20px;
             font-family: "Corbel", 'Segoe UI', Tahoma, Verdana, sans-serif;
             color: #dfe1e5;
             font-weight: normal;
@@ -1398,6 +1398,18 @@
                     // s不为空且不是1. 2. 3. 之类的序号
                     s.trim()
                 )
+                // 遍历textArea, 找出单个单词的元素(trim后没有空格), 将它并入到上一个元素中:
+                for (let i = 0; i < textArray.length; i++) {
+                    const element = textArray[i];
+                    if (!element.trim().includes(' ')) {
+                        if (i > 0) {
+                            textArray[i - 1] += element;
+                            textArray.splice(i, 1);
+                            i--;
+                        }
+                    }
+                }
+
                 text = textArray.join('\n')
                 const url = "https://next-reader-psi.vercel.app/api/translate"
                 const data = {

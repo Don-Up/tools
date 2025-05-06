@@ -1331,7 +1331,7 @@
 
     // 解析输入文本，返回题目块数组
     function parseQuestionBlocks(rawText) {
-        let textList = rawText.split('\n')
+        let textList = rawText.split('\n').filter(text => text !== "---")
         const separateIndex = textList.findIndex(line => line.trim() === "------")
         if (separateIndex !== -1) {
             const codeSnippet = textList.slice(separateIndex + 2)
