@@ -1407,6 +1407,10 @@
                             textArray.splice(i, 1);
                             i--;
                         }
+                    } else if ( element.trim().includes("e.g.,")){
+                        textArray[i] += textArray[i+1];
+                        textArray.splice(i+1, 1);
+                        i++;
                     }
                 }
 
