@@ -1016,6 +1016,13 @@
                 table = []
             }
 
+            if (line.startsWith("- ")) {
+                isInList = true;
+                line = line.replace(/-/g, "");
+                list.push(line)
+                if (index !== lines.length - 1) return
+            }
+
             if (isInList) {
                 const ul = document.createElement("ul");
                 const originalTextList = []
@@ -1114,12 +1121,7 @@
             }
 
 
-            if (line.startsWith("- ")) {
-                isInList = true;
-                line = line.replace(/-/g, "");
-                list.push(line)
-                if (index !== lines.length - 1) return
-            }
+
 
             // 将line中, 将所有的<替换为$lt;, 将所有>替换为$gt, 最后将所有包含``的部分全都替换为<code></code>;
             // line = line.replace(/<|>/g, (match) => {
@@ -1249,6 +1251,8 @@
         const autoPlayEnabled = autoPlay.checked;
         if (autoPlayEnabled && clickedElement) {
             let next = clickedElement.nextElementSibling;
+            // if(clickedElement.tag)
+            console.log("next", clickedElement.innerHTML, next, clickedElement.nextSibling)
             while (next) {
                 if (next.dataset && next.dataset.originalText) {
                     const txt = next.dataset.originalText.trim();
@@ -1392,6 +1396,7 @@
                 // get the text from the pasteboard
                 let text = await getClipboardText();
                 // 将所有"数字序号."转换为"数字序号:"
+                text = text.split("\n").map(s => s.startsWith("- ")? s.substring(2) : s).join("\n")
                 text = text.replace(/(\d+)\./g, '$1:').replaceAll("\n", "");
                 // [.,]
                 let textArray = text.trim().split(event.altKey?/(?<=[.,?])\s+/:/(?<=[，。？])/).filter(s =>
