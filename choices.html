@@ -186,10 +186,10 @@
 
         .popup {
             position: absolute;
-            width: 600px;
+            width: 800px;
             height: 500px;
             top: calc((100% - 500px) / 2);
-            right: 10px;
+            right: calc((100% - 800px) / 2);
             background-color: #262a2b;
             border-radius: 10px;
             visibility: hidden;
@@ -322,7 +322,7 @@
 
         code {
             font-family: Consolas;
-            font-size: 12px;
+            font-size: 16px;
             line-height: 1.6;
         }
     </style>
@@ -1683,7 +1683,7 @@
     }
 
     function play(textForReading, needActive = false) {
-        if(textForReading === 'True' || textForReading === 'False') return
+        if(textForReading.startsWith("True") || textForReading.startsWith("False")) return
         if (event.altKey) return
         stop()
         const text = textForReading.trim().replace(/[()#*<>`•__]/g, '').replace(/e\.g\.,/gi, 'such-as').replace(/\//g, ' '); // .replace(/^\d+\.\s*/gm, '')
