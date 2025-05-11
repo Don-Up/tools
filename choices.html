@@ -469,9 +469,9 @@
     const copyBtn = document.getElementById("copyBtn")
     const confirmBtn = document.getElementById('confirmBtn');
     copyBtn.addEventListener("click", () => {
-        // const copyText = explanationP.textContent.replace(/([,.])\s+/g, "$1\n").trim();
+        // 将所有的e.g., 替换为such as
         // 1. 先分句（按逗号/句号+空格分割）
-        const sentences = explanationP.textContent.split(/([,.])\s+/g);
+        const sentences = explanationP.textContent.replaceAll("e.g.,", 'such as').split(/([,.])\s+/g);
 
         // 2. 重组句子并过滤空项
         let formattedText = '';
@@ -482,7 +482,7 @@
             }
         }
         copyBtn.textContent = "Copied"
-        navigator.clipboard.writeText(formattedText.trim()).then(() => {
+        navigator.clipboard.writeText(formattedText.trim()+" ").then(() => {
             setTimeout(() => {
                 copyBtn.textContent = "Copy"
             }, 500)
@@ -1683,6 +1683,7 @@
     }
 
     function play(textForReading, needActive = false) {
+        if(textForReading === 'True' || textForReading === 'False') return
         if (event.altKey) return
         stop()
         const text = textForReading.trim().replace(/[()#*<>`•__]/g, '').replace(/e\.g\.,/gi, 'such-as').replace(/\//g, ' '); // .replace(/^\d+\.\s*/gm, '')
