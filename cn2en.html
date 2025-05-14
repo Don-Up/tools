@@ -470,7 +470,9 @@
                 event.preventDefault()
                 navigator.clipboard.readText().then(text => {
                     if(event.shiftKey){
-                        text = text.replaceAll("------", "")
+                        text = text.replaceAll("------", "").replaceAll("---", "")
+                        // 将以### 为开头的句子替换掉
+                        text = text.replaceAll(/^###.*/gm, "")
                         // 相邻的奇数句子和偶数句子互换, 例如第一句变成第二句, 第二句变成第一句
                         const array  = text.split("\n").filter(item => item.trim() !== "")
                         for (let i = 0; i < array.length; i++) {
@@ -482,6 +484,7 @@
                         console.log(array)
                     } else {
                         inputText.value = text.replaceAll("------", "")
+                            .replaceAll("---", "").replaceAll(/^###.*/gm, "")
                     }
                     saveMode = event.ctrlKey
                     document.getElementById("generateBtn").click()
