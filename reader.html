@@ -1033,11 +1033,12 @@
                     originalTextList.push(li.textContent + (li.textContent.trim().endsWith(".") ? "" : ". "))
                     li.onclick = function () {
                         if (event.ctrlKey) {
-                            if (!textBlock.innerHTML.startsWith("👀")) {
-                                textBlock.innerHTML = "👀" + textBlock.innerHTML;
-                            } else {
-                                textBlock.innerHTML = textBlock.innerHTML.replace("👀", "");
-                            }
+                            // if (!textBlock.innerHTML.startsWith("👀")) {
+                            //     textBlock.innerHTML = "👀" + textBlock.innerHTML;
+                            // } else {
+                            //     textBlock.innerHTML = textBlock.innerHTML.replace("👀", "");
+                            // }
+                            playText(li.textContent, this, true);
                         } else {
                             playText(li.textContent, this);
                         }
@@ -1150,11 +1151,12 @@
             }
             textBlock.onclick = function () {
                 if (event.ctrlKey) {
-                    if (!textBlock.innerHTML.startsWith("👀")) {
-                        textBlock.innerHTML = "👀" + textBlock.innerHTML;
-                    } else {
-                        textBlock.innerHTML = textBlock.innerHTML.replace("👀", "");
-                    }
+                    playText(this.dataset.originalText, this, true);
+                    // if (!textBlock.innerHTML.startsWith("👀")) {
+                    //     textBlock.innerHTML = "👀" + textBlock.innerHTML;
+                    // } else {
+                    //     textBlock.innerHTML = textBlock.innerHTML.replace("👀", "");
+                    // }
                 } else {
                     playText(this.dataset.originalText, this);
                 }
@@ -1223,7 +1225,7 @@
     const ecCheckBox = document.getElementById("ecCheckBox")
 
     // Modified playText function for interleaved sentence repetition.
-    function playText(originalText, clickedElement) {
+    function playText(originalText, clickedElement, banContinuous = false) {
         if(!canSpeak){
             return;
         }
@@ -1249,10 +1251,9 @@
             sentences.push(originalText.trim());
         }
         const autoPlayEnabled = autoPlay.checked;
-        if (autoPlayEnabled && clickedElement) {
+        if (autoPlayEnabled && clickedElement && !banContinuous) {
             let next = clickedElement.nextElementSibling;
             // if(clickedElement.tag)
-            console.log("next", clickedElement.innerHTML, next, clickedElement.nextSibling)
             while (next) {
                 if (next.dataset && next.dataset.originalText) {
                     const txt = next.dataset.originalText.trim();
@@ -1266,7 +1267,7 @@
         const repeatCount = Math.max(1, parseInt(document.getElementById("repeatCount").value));
         let finalText = ''; // Ensure finalText is initialized
 
-        if (autoPlayEnabled) {//filter(sentence => !sentence.startsWith(">")).
+        if (autoPlayEnabled && !banContinuous) {//filter(sentence => !sentence.startsWith(">")).
             if (ecCheckBox.checked || eceCheckBox.checked) {
                 let tempSentence = ""
                 finalText = sentences.map((sentence, index) => {
@@ -1288,10 +1289,12 @@
                         return `${sentence} `.repeat(repeatCount)
                 }).join('');
             }
+            // console.log("Final Text1:", finalText)
         } else {
             if (repeatCount > 0 && sentences.length > 0) {
                 finalText = Array.from({length: repeatCount}, () => sentences.join(' ')).join(' ');
             }
+            // console.log("Final Text2:", finalText)
         }
 
         // 将所有<b>XX</b>替换为XX
@@ -1346,7 +1349,7 @@
     document.addEventListener("keydown", async (event) => {
         // console.log("Keydown event:", event.code)
         switch (event.code) {
-            case "KeyC":
+            case "KeyX":
                 // get the text from the pasteboard
                 const comments = (await getClipboardText()).split("\n")
                     .filter(t => t.trim() !== "" && t.trim().length > 20 && !t.trim().startsWith("@")).map(t =>
