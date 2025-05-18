@@ -481,12 +481,12 @@
         let formattedText = '';
         for (let i = 0; i < sentences.length; i += 2) {
             if (sentences[i]) {
-                const sentence = sentences[i] + (sentences[i+1] || '');
+                const sentence = sentences[i] + (sentences[i + 1] || '');
                 formattedText += `${sentence.trim()}\n`;// ${(i/2 + 1)}.
             }
         }
         copyBtn.textContent = "Copied"
-        navigator.clipboard.writeText(formattedText.trim()+" ").then(() => {
+        navigator.clipboard.writeText(formattedText.trim() + " ").then(() => {
             setTimeout(() => {
                 copyBtn.textContent = "Copy"
             }, 500)
@@ -1232,8 +1232,8 @@
     function speakText(text, loop = false, utteranceRef = null, needActive = false) {
         if ('speechSynthesis' in window) {
             if (!utteranceRef) {
-                if(doubleMode || tripleMode){
-                    text = text.replaceAll("—", ", ").replace(/([?!:;,.])\s+/g, "$1\n").trim().split("\n").map((line, index) => {
+                if (doubleMode || tripleMode) {
+                    text = text.replace(/^(\d+)\. /, '').replaceAll("—", ", ").replace(/([?!;,.])\s+/g, "$1\n").trim().split("\n").map((line, index) => {
                         return `${line} `.repeat(tripleMode ? 3 : 2)
                     }).join("").replaceAll(". ", ", ")
                 }
@@ -1700,7 +1700,7 @@
     }
 
     function play(textForReading, needActive = false) {
-        if(textForReading.startsWith("True") || textForReading.startsWith("False")) return
+        if (textForReading.startsWith("True") || textForReading.startsWith("False")) return
         if (event.altKey) return
         stop()
         const text = textForReading.trim().replace(/[()#*<>`•__]/g, '').replace(/e\.g\.,/gi, 'such-as').replace(/\//g, ' '); // .replace(/^\d+\.\s*/gm, '')
