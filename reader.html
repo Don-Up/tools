@@ -1018,9 +1018,9 @@
                 table = []
             }
 
-            if (line.startsWith("- ")) {
+            if (line.startsWith("- ") ||  line.startsWith("* ")) {
                 isInList = true;
-                line = line.replace(/-/g, "");
+                line = line.replace(/[-*]/g, "");
                 list.push(line)
                 if (index !== lines.length - 1) return
             }
@@ -1409,7 +1409,7 @@
                 // get the text from the pasteboard
                 let text = await getClipboardText();
                 // 将所有"数字序号."转换为"数字序号:"
-                text = text.split("\n").map(s => s.startsWith("- ")? s.substring(2) : s).join("\n")
+                text = text.split("\n").map(s => (s.startsWith("- ") || s.startsWith("* "))? s.substring(2) : s).join("\n")
                 text = text.replace(/(\d+)\./g, '$1:').replaceAll("\n", "");
                 // [.,]
                 console.log("Text:", text)
