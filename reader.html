@@ -1411,23 +1411,30 @@
                 text = text.split("\n").map(s => s.startsWith("- ")? s.substring(2) : s).join("\n")
                 text = text.replace(/(\d+)\./g, '$1:').replaceAll("\n", "");
                 // [.,]
+                console.log("Text:", text)
                 let textArray = text.trim().split(event.altKey?/(?<=[.,?])\s+/:/(?<=[，。？])/).filter(s =>
                     // s不为空且不是1. 2. 3. 之类的序号
                     s.trim()
                 )
+                if(!event.altKey){
+                    textArray = textArray.map(text => text.replace(/\r/g, ''))
+                    console.log(textArray)
+                }
                 // 遍历textArea, 找出单个单词的元素(trim后没有空格), 将它并入到上一个元素中:
-                for (let i = 0; i < textArray.length; i++) {
-                    const element = textArray[i];
-                    if (!element.trim().includes(' ')) {
-                        if (i > 0) {
-                            textArray[i - 1] += element;
-                            textArray.splice(i, 1);
-                            i--;
+                if(event.altKey){
+                    for (let i = 0; i < textArray.length; i++) {
+                        const element = textArray[i];
+                        if (!element.trim().includes(' ')) {
+                            if (i > 0) {
+                                textArray[i - 1] += element;
+                                textArray.splice(i, 1);
+                                i--;
+                            }
+                        } else if (element.trim().includes("e.g.,")){
+                            textArray[i] += textArray[i+1];
+                            textArray.splice(i+1, 1);
+                            i++;
                         }
-                    } else if ( element.trim().includes("e.g.,")){
-                        textArray[i] += textArray[i+1];
-                        textArray.splice(i+1, 1);
-                        i++;
                     }
                 }
 
