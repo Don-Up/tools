@@ -296,8 +296,12 @@
 
         /* 定义pulse动画 */
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
         }
 
         /* 主容器样式 */
@@ -340,10 +344,11 @@
 
     <div class="controls" id="toggleElement">
         <button id="insertBtn" onclick="insertText()" style="display: none">Insert</button>
-        <button onclick="openModal()">Open</button>
+        <!--        <button onclick="openModal()">Open</button>-->
         <select id="voiceSelect"></select>
         <input id="repeatCount" type="number" min="1" value="1" placeholder="count">
-        <button id="fullscreenBtn" style="width: 60px">Full</button>
+        <input id="repeatCount1" type="number" min="3" value="3" placeholder="count">
+        <button id="fullscreenBtn" style="width: 60px;display: none">Full</button>
         <span style="margin-left: 10px;">Speed</span>
         <input id="rateSlider" type="range" min="0.5" max="2" step="0.05" value="1.00" title="语速">
         <span id="rateValue">1.00</span>
@@ -681,7 +686,7 @@
     let inLeft = false
     const fullscreenBtn = document.getElementById("fullscreenBtn");
     fullscreenBtn.addEventListener("click", function () {
-        if(!inLeft){
+        if (!inLeft) {
             container.style.marginLeft = "0px"
             inLeft = true
         } else {
@@ -879,7 +884,7 @@
         input.focus();
 
 
-        if(text){
+        if (text) {
             input.value = text;
             setTimeout(() => {
                 confirmBtn.click();
@@ -899,10 +904,10 @@
 
         confirmBtn.onclick = () => {
             if (input.value.trim() === "") return;
-            const value = event && event.shiftKey?
-                input.value.replace(/([,.])\s+/g, "$1\n").trim():
+            const value = event && event.shiftKey ?
+                input.value.replace(/([,.])\s+/g, "$1\n").trim() :
                 input.value
-                    // .replace(/^[1-9]\.\s/gm, "")
+            // .replace(/^[1-9]\.\s/gm, "")
             localStorage.setItem("text", value);
             processText(value);
             document.body.removeChild(input);
@@ -1018,7 +1023,7 @@
                 table = []
             }
 
-            if (line.startsWith("- ") ||  line.startsWith("* ")) {
+            if (line.startsWith("- ") || line.startsWith("* ")) {
                 isInList = true;
                 line = line.replace(/[-*]/g, "");
                 list.push(line)
@@ -1124,8 +1129,6 @@
             }
 
 
-
-
             // 将line中, 将所有的<替换为$lt;, 将所有>替换为$gt, 最后将所有包含``的部分全都替换为<code></code>;
             // line = line.replace(/<|>/g, (match) => {
             //     if (match === '<') {
@@ -1226,6 +1229,20 @@
     const eceCheckBox = document.getElementById("eceCheckBox")
     const ecCheckBox = document.getElementById("ecCheckBox")
 
+    const inputRepeatCount = document.getElementById("repeatCount")
+    const inputRepeatCount1 = document.getElementById("repeatCount1")
+
+    inputRepeatCount.value = localStorage.getItem("repeatCountReader") || 1;
+    inputRepeatCount1.value = localStorage.getItem("repeatCountReader1") || 3;
+
+    inputRepeatCount.addEventListener("change", (event) => {
+        localStorage.setItem("repeatCountReader", event.target.value);
+    })
+
+    inputRepeatCount1.addEventListener("change", (event) => {
+        localStorage.setItem("repeatCountReader1", event.target.value);
+    })
+
     // Modified playText function for interleaved sentence repetition.
     function playText(originalText, clickedElement, banContinuous = false) {
         // 判断ALT键是否处于按下状态, 如果是则取消播放。
@@ -1262,8 +1279,9 @@
             }
         }
 
-        // Build the final text by interleaving the sentences.
-        const repeatCount = Math.max(1, parseInt(document.getElementById("repeatCount").value));
+        const repeatCount = parseInt(inputRepeatCount.value)
+
+
         let finalText = ''; // Ensure finalText is initialized
 
         if (autoPlayEnabled && !banContinuous) {//filter(sentence => !sentence.startsWith(">")).
@@ -1282,7 +1300,7 @@
                 }).join('');
             } else {
                 finalText = sentences.filter(sentence => !sentence.startsWith(">")).map(sentence => {
-                    if(sentence.trim().match(/[0-9]+\.$/) && sentence.trim().startsWith("#"))
+                    if (sentence.trim().match(/[0-9]+\.$/) && sentence.trim().startsWith("#"))
                         return ""
                     else
                         return `${sentence} `.repeat(repeatCount)
@@ -1304,7 +1322,7 @@
         // 将列表序号1. 2. 3.修改为1, 2, 3,
         finalText = finalText.replace(/(\d+)\./g, '$1, ');
 
-        if(doubleMode || tripleMode){
+        if (doubleMode || tripleMode) {
             finalText = finalText.replaceAll("—", ", ").replace(/([?!:;,.])\s+/g, "$1\n").trim().split("\n").map((line, index) => {
                 return `${line} `.repeat(tripleMode ? 3 : 2)
             }).join("").replaceAll(". ", ", ")
@@ -1317,7 +1335,7 @@
         utterance.rate = parseFloat(rateSlider.value);
         utterance.onend = () => {
             isPlaying = false;
-            if(!autoPlay.checked && hideReadCheckbox.checked && clickedElement){
+            if (!autoPlay.checked && hideReadCheckbox.checked && clickedElement) {
                 clickedElement.style.visibility = "visible";
             }
         }
@@ -1329,7 +1347,7 @@
             // console.log(`Progress: ${progress}% | Char Index: ${charIndex} | Time Elapsed: ${elapsedTime}ms`);
         };
         utterance.onstart = () => {
-            if(!autoPlay.checked && hideReadCheckbox.checked && clickedElement){
+            if (!autoPlay.checked && hideReadCheckbox.checked && clickedElement) {
                 clickedElement.style.visibility = "hidden";
             }
         };
@@ -1352,13 +1370,13 @@
     let selectionMode = false
 
     document.addEventListener("keyup", (event) => {
-        if(event.code === "KeyQ" || event.code === "KeyA"){
+        if (event.code === "KeyQ" || event.code === "KeyA" || event.code === "KeyS") {
             selectionMode = false
-            if(event.code === "KeyQ"){
+            if (event.code === "KeyA" || event.code === "KeyS") {
                 const selection = window.getSelection()
                 currentText = selection || currentText
                 if (currentText) {
-                    playText(`${currentText}, `.repeat(3), this)
+                    playText(`${currentText}, `.repeat(inputRepeatCount1.value), this)
                 }
             }
         }
@@ -1370,13 +1388,14 @@
         switch (event.code) {
             case "KeyA":
             case "KeyQ":
+            case "KeyS":
                 selectionMode = true
                 break
             case "KeyX":
                 // get the text from the pasteboard
                 const comments = (await getClipboardText()).split("\n")
                     .filter(t => t.trim() !== "" && t.trim().length > 20 && !t.trim().startsWith("@")).map(t =>
-                        t.trim().endsWith(".")?t:`${t.trim()}.`
+                        t.trim().endsWith(".") ? t : `${t.trim()}.`
                     )
                 containerAnim.style.display = "flex"
                 fetch("https://next-reader-psi.vercel.app/api/translate", {
@@ -1386,16 +1405,16 @@
                     },
                     body: JSON.stringify({
                         text: `${comments.join("\n")}`,
-                        targetLang: event.altKey ? "EN" :"ZH"
+                        targetLang: event.altKey ? "EN" : "ZH"
                     }),
                 }).then(response => response.json()).then(data => {
                     let result = []
                     const translatedTextArray = data.text.split("\n")
                     for (let i = 0; i < translatedTextArray.length; i++) {
-                        if(!event.shiftKey){
-                            result.push(comments[i] + "\n> " + translatedTextArray[i]+"\n")
+                        if (!event.shiftKey) {
+                            result.push(comments[i] + "\n> " + translatedTextArray[i] + "\n")
                         } else {
-                            result.push(translatedTextArray[i] + "\n> " + comments[i]+"\n")
+                            result.push(translatedTextArray[i] + "\n> " + comments[i] + "\n")
                         }
                     }
                     containerAnim.style.display = "none"
@@ -1418,19 +1437,19 @@
                 // get the text from the pasteboard
                 let text = await getClipboardText();
                 // 将所有"数字序号."转换为"数字序号:"
-                text = text.split("\n").map(s => (s.startsWith("- ") || s.startsWith("* "))? s.substring(2) : s).join("\n")
+                text = text.split("\n").map(s => (s.startsWith("- ") || s.startsWith("* ")) ? s.substring(2) : s).join("\n")
                 text = text.replace(/(\d+)\./g, '$1:').replaceAll("\n", "");
                 // [.,]
                 console.log("Text:", text)
-                let textArray = text.trim().split(!event.altKey?/(?<=[.,?])\s+/:/(?<=[，。？])/).filter(s =>
+                let textArray = text.trim().split(!event.altKey ? /(?<=[.,?])\s+/ : /(?<=[，。？])/).filter(s =>
                     // s不为空且不是1. 2. 3. 之类的序号
                     s.trim()
                 )
-                if(event.altKey){
+                if (event.altKey) {
                     textArray = textArray.map(text => text.replace(/\r/g, ''))
                 }
                 // 遍历textArea, 找出单个单词的元素(trim后没有空格), 将它并入到上一个元素中:
-                if(!event.altKey){
+                if (!event.altKey) {
                     for (let i = 0; i < textArray.length; i++) {
                         const element = textArray[i];
                         if (!element.trim().includes(' ')) {
@@ -1439,9 +1458,9 @@
                                 textArray.splice(i, 1);
                                 i--;
                             }
-                        } else if (element.trim().includes("e.g.,")){
-                            textArray[i] += textArray[i+1];
-                            textArray.splice(i+1, 1);
+                        } else if (element.trim().includes("e.g.,")) {
+                            textArray[i] += textArray[i + 1];
+                            textArray.splice(i + 1, 1);
                             i++;
                         }
                     }
@@ -1451,7 +1470,7 @@
                 const url = "https://next-reader-psi.vercel.app/api/translate"
                 const data = {
                     text: `${text}`,
-                    targetLang: !event.altKey ? "ZH" :"EN"
+                    targetLang: !event.altKey ? "ZH" : "EN"
                 }
                 fetch(url, {
                     method: "POST",
@@ -1463,10 +1482,10 @@
                     let result = []
                     const translatedTextArray = data.text.split("\n")
                     for (let i = 0; i < translatedTextArray.length; i++) {
-                        if(!event.shiftKey){
-                            result.push(textArray[i] + "\n> " + translatedTextArray[i]+"\n")
+                        if (!event.shiftKey) {
+                            result.push(textArray[i] + "\n> " + translatedTextArray[i] + "\n")
                         } else {
-                            result.push(translatedTextArray[i] + "\n> " + textArray[i]+"\n")
+                            result.push(translatedTextArray[i] + "\n> " + textArray[i] + "\n")
                         }
                     }
                     containerAnim.style.display = "none"
