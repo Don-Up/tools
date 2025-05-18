@@ -440,6 +440,7 @@
             <button class="btn btn-primary" id="confirmBtn">Read</button>
         </div>
     </div>
+    <audio id="soundFX" src="mp3/bounce.mp3"></audio>
 </div>
 <script>
     let immersion = false
@@ -455,6 +456,9 @@
     const btnRead = document.getElementById('btnRead')
     const countInput = document.getElementById('countInput')
     let currentText = [];
+    let doubleMode = false
+    let tripleMode = false
+    const soundFX = document.getElementById('soundFX');
 
     const hideAnswersCheckbox = document.getElementById('hideAnswersCheckbox');
     hideAnswersCheckbox.checked = localStorage.getItem('hideAnswersCheckbox') === 'true';
@@ -1185,6 +1189,14 @@
                     }
                 }
                 break
+            case "Digit5":
+                doubleMode = !doubleMode
+                soundFX.play()
+                break
+            case "Digit6":
+                tripleMode = !tripleMode
+                soundFX.play()
+                break
         }
     });
 
@@ -1220,6 +1232,11 @@
     function speakText(text, loop = false, utteranceRef = null, needActive = false) {
         if ('speechSynthesis' in window) {
             if (!utteranceRef) {
+                if(doubleMode || tripleMode){
+                    text = text.replaceAll("—", ", ").replace(/([?!:;,.])\s+/g, "$1\n").trim().split("\n").map((line, index) => {
+                        return `${line} `.repeat(tripleMode ? 3 : 2)
+                    }).join("").replaceAll(". ", ", ")
+                }
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'en-US';
                 utterance.rate = speechSpeed; // 使用当前语速

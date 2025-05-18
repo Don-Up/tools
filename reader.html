@@ -446,6 +446,8 @@
     let currentVoice = null;
     let currentFont = localStorage.getItem("currentFont") || "Corbel";
     let bookName = null
+    let doubleMode = false
+    let tripleMode = false
 
     const soundFX = document.getElementById('soundFX');
 
@@ -1193,7 +1195,7 @@
                         .replaceAll(" - ", "-minus-")
                         .replaceAll(" * ", "-multiply-")
                         .replaceAll(" / ", "-divide-")
-                    playText(codeText)
+                    // playText(codeText)
                 })
 
                 const button = document.createElement('button')
@@ -1304,6 +1306,13 @@
         finalText = finalText.replace(/[()#*<>`•\/🔹✅🚀🧠🔎❌]/g, " ").trim() + " ";
         // 将列表序号1. 2. 3.修改为1, 2, 3,
         finalText = finalText.replace(/(\d+)\./g, '$1, ');
+
+        if(doubleMode || tripleMode){
+            finalText = finalText.replaceAll("—", ", ").replace(/([?!:;,.])\s+/g, "$1\n").trim().split("\n").map((line, index) => {
+                return `${line} `.repeat(tripleMode ? 3 : 2)
+            }).join("").replaceAll(". ", ", ")
+        }
+
         // console.log("Final Text:", finalText)
         const utterance = new SpeechSynthesisUtterance(finalText);
         utterance.voice = currentVoice;
@@ -1478,6 +1487,14 @@
             case "KeyA":
                 event.preventDefault()
                 autoPlay.checked = !autoPlay.checked;
+                break
+            case "Digit2":
+                doubleMode = !doubleMode
+                soundFX.play()
+                break
+            case "Digit3":
+                tripleMode = !tripleMode
+                soundFX.play()
                 break
         }
     });
