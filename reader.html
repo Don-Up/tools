@@ -255,7 +255,7 @@
             font-family: 'Consolas', monospace;
             font-size: 14px;
             line-height: 1.5;
-            cursor: pointer;
+            //cursor: pointer;
         }
 
         /* 遮罩层（背景半透明） */
@@ -1172,31 +1172,31 @@
                 const code = pre.querySelector("code")
                 const text = code.innerText
                 // 转义所有的<和>
-                code.addEventListener('click', function (event) {
-                    if(event.altKey) return
-                    const codeText = text
-                        .replace(event.ctrlKey ? /\/\/.*$/gm : /\/\//g, "")
-                        .replace(/\/\*\*[\s\S]*?\*\//g, "")
-                        .replaceAll("args", "arguments")
-                        .replaceAll("...", ", spread-")
-                        // 替换所有(任意长度字符) => 为"callback"
-                        .replace(/(?<!\bit)\([^)]*\)\s*=>/g, "-callback-")
-                        .replace(/!==?/g, ",not equal,")
-                        .replace(/<==?/g, ",less or equal,")
-                        .replace(/>==?/g, ",greater or equal,")
-                        .replaceAll("=>", "-arrow-")
-                        .replace(/==?=?/g, ",equal,")
-                        .replaceAll("console.", "")
-                        // 过滤掉所有以import开头的语句
-                        .replace(/import .* from '.*';/g, "")
-                        .replaceAll(" < ", ",less,")
-                        .replaceAll(" > ", ",greater,")
-                        .replaceAll(" + ", "-plus-")
-                        .replaceAll(" - ", "-minus-")
-                        .replaceAll(" * ", "-multiply-")
-                        .replaceAll(" / ", "-divide-")
-                    // playText(codeText)
-                })
+                // code.addEventListener('click', function (event) {
+                //     if(event.altKey) return
+                //     const codeText = text
+                //         .replace(event.ctrlKey ? /\/\/.*$/gm : /\/\//g, "")
+                //         .replace(/\/\*\*[\s\S]*?\*\//g, "")
+                //         .replaceAll("args", "arguments")
+                //         .replaceAll("...", ", spread-")
+                //         // 替换所有(任意长度字符) => 为"callback"
+                //         .replace(/(?<!\bit)\([^)]*\)\s*=>/g, "-callback-")
+                //         .replace(/!==?/g, ",not equal,")
+                //         .replace(/<==?/g, ",less or equal,")
+                //         .replace(/>==?/g, ",greater or equal,")
+                //         .replaceAll("=>", "-arrow-")
+                //         .replace(/==?=?/g, ",equal,")
+                //         .replaceAll("console.", "")
+                //         // 过滤掉所有以import开头的语句
+                //         .replace(/import .* from '.*';/g, "")
+                //         .replaceAll(" < ", ",less,")
+                //         .replaceAll(" > ", ",greater,")
+                //         .replaceAll(" + ", "-plus-")
+                //         .replaceAll(" - ", "-minus-")
+                //         .replaceAll(" * ", "-multiply-")
+                //         .replaceAll(" / ", "-divide-")
+                //     playText(codeText)
+                // })
 
                 const button = document.createElement('button')
                 button.style.position = 'absolute'  // Add this
@@ -1418,7 +1418,6 @@
                 )
                 if(!event.altKey){
                     textArray = textArray.map(text => text.replace(/\r/g, ''))
-                    console.log(textArray)
                 }
                 // 遍历textArea, 找出单个单词的元素(trim后没有空格), 将它并入到上一个元素中:
                 if(event.altKey){
