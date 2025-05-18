@@ -1364,6 +1364,7 @@
                     .filter(t => t.trim() !== "" && t.trim().length > 20 && !t.trim().startsWith("@")).map(t =>
                         t.trim().endsWith(".")?t:`${t.trim()}.`
                     )
+                containerAnim.style.display = "flex"
                 fetch("https://next-reader-psi.vercel.app/api/translate", {
                     method: "POST",
                     headers: {
@@ -1377,7 +1378,7 @@
                     let result = []
                     const translatedTextArray = data.text.split("\n")
                     for (let i = 0; i < translatedTextArray.length; i++) {
-                        if(event.shiftKey){
+                        if(!event.shiftKey){
                             result.push(comments[i] + "\n> " + translatedTextArray[i]+"\n")
                         } else {
                             result.push(translatedTextArray[i] + "\n> " + comments[i]+"\n")
@@ -1412,15 +1413,15 @@
                 text = text.replace(/(\d+)\./g, '$1:').replaceAll("\n", "");
                 // [.,]
                 console.log("Text:", text)
-                let textArray = text.trim().split(event.altKey?/(?<=[.,?])\s+/:/(?<=[，。？])/).filter(s =>
+                let textArray = text.trim().split(!event.altKey?/(?<=[.,?])\s+/:/(?<=[，。？])/).filter(s =>
                     // s不为空且不是1. 2. 3. 之类的序号
                     s.trim()
                 )
-                if(!event.altKey){
+                if(event.altKey){
                     textArray = textArray.map(text => text.replace(/\r/g, ''))
                 }
                 // 遍历textArea, 找出单个单词的元素(trim后没有空格), 将它并入到上一个元素中:
-                if(event.altKey){
+                if(!event.altKey){
                     for (let i = 0; i < textArray.length; i++) {
                         const element = textArray[i];
                         if (!element.trim().includes(' ')) {
@@ -1441,7 +1442,7 @@
                 const url = "https://next-reader-psi.vercel.app/api/translate"
                 const data = {
                     text: `${text}`,
-                    targetLang: event.altKey ? "ZH" :"EN"
+                    targetLang: !event.altKey ? "ZH" :"EN"
                 }
                 fetch(url, {
                     method: "POST",
@@ -1453,7 +1454,7 @@
                     let result = []
                     const translatedTextArray = data.text.split("\n")
                     for (let i = 0; i < translatedTextArray.length; i++) {
-                        if(event.shiftKey){
+                        if(!event.shiftKey){
                             result.push(textArray[i] + "\n> " + translatedTextArray[i]+"\n")
                         } else {
                             result.push(translatedTextArray[i] + "\n> " + textArray[i]+"\n")
