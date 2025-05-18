@@ -1228,11 +1228,8 @@
 
     // Modified playText function for interleaved sentence repetition.
     function playText(originalText, clickedElement, banContinuous = false) {
-        if(!canSpeak){
-            return;
-        }
         // 判断ALT键是否处于按下状态, 如果是则取消播放。
-        if (event.altKey) {
+        if (selectionMode) {
             isPlaying = false;
             return;
         }
@@ -1351,13 +1348,30 @@
     }
 
     let isPaused = false;
-    let canSpeak = true;
     let currentText = null
+    let selectionMode = false
+
+    document.addEventListener("keyup", (event) => {
+        if(event.code === "KeyQ" || event.code === "KeyA"){
+            selectionMode = false
+            if(event.code === "KeyQ"){
+                const selection = window.getSelection()
+                currentText = selection || currentText
+                if (currentText) {
+                    playText(`${currentText}, `.repeat(3), this)
+                }
+            }
+        }
+    })
 
     // 监听快捷键Space, 按下后调用stopText
     document.addEventListener("keydown", async (event) => {
         // console.log("Keydown event:", event.code)
         switch (event.code) {
+            case "KeyA":
+            case "KeyQ":
+                selectionMode = true
+                break
             case "KeyX":
                 // get the text from the pasteboard
                 const comments = (await getClipboardText()).split("\n")
@@ -1397,11 +1411,6 @@
                 if (currentText) {
                     playText(`${currentText}, `.repeat(3), this)
                 }
-                break
-            case "KeyQ":
-                // 发出音效
-                soundFX.play()
-                canSpeak = !canSpeak
                 break
             case "KeyT":
                 event.preventDefault()
@@ -1490,10 +1499,6 @@
                     isPaused = false
                     window.speechSynthesis.resume()
                 }
-                break
-            case "KeyA":
-                event.preventDefault()
-                autoPlay.checked = !autoPlay.checked;
                 break
             case "Digit2":
                 doubleMode = !doubleMode
