@@ -466,6 +466,15 @@
                     speakText(`${currentText}, `.repeat(inputRepeatCount.value))
                 }
                 break
+            case 'KeyB':
+                event.preventDefault()
+                const inputText1 = localStorage.getItem("inputText1")
+                if(inputText1){
+                    inputText.value = inputText1;
+                    saveMode = false
+                    document.getElementById("generateBtn").click()
+                }
+                break
             case 'KeyV':
                 event.preventDefault()
                 navigator.clipboard.readText().then(text => {
@@ -485,6 +494,8 @@
                     } else {
                         inputText.value = text.replaceAll("------", "")
                             .replaceAll("---", "").replaceAll(/^###.*/gm, "")
+                            // 将所有以Dialogue为开头的部分去除掉
+                            .replaceAll(/^Dialogue.*/gm, "")
                     }
                     saveMode = event.ctrlKey
                     document.getElementById("generateBtn").click()
@@ -1265,6 +1276,8 @@
         if (!inputTextValue) return
         if (saveMode) {
             localStorage.setItem("inputText", inputTextValue);
+        } else {
+            localStorage.setItem("inputText1", inputTextValue);
         }
         const dialogs = parseDialog(inputTextValue);
         dialogListElement.innerHTML = "";
