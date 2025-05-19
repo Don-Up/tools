@@ -978,7 +978,7 @@
       `;
 
         content.querySelector("#cn").addEventListener("click", function () {
-            speakText(cnText, this, false, true) // .replace(/^[^：]+：/, "")
+            speakText(cnText, this, false, true, false) // .replace(/^[^：]+：/, "")
         });
 
         // 控制按钮
@@ -1073,7 +1073,7 @@
             speechSynthesis.cancel();
             isLooping = false;
             enTextElement.style.display = 'none';
-            controls.querySelector(".loop-btn").textContent = "Loop";
+            controls.querySelector(".loop-btn").textContent = "Loop";大大是
         });
 
         // 逐词显示
@@ -1194,7 +1194,7 @@
     }
 
     // 语音功能
-    function speakText(text, element = null, loop = false, cn = false) {
+    function speakText(text, element = null, loop = false, cn = false, highlight = true) {
         if (!window.speechSynthesis) return;
 
         text = text.replace(/^\w+:\s*/gm, "");
@@ -1229,21 +1229,26 @@
 
         if (element) {
             // Highlight current word on boundary event
-            utterance.addEventListener('boundary', (event) => {
-                if (event.name === 'word') {
-                    const charIndex = event.charIndex;
-                    const spans = element.querySelectorAll('span');
-                    spans.forEach(span => {
-                        const start = parseInt(span.dataset.start);
-                        const end = parseInt(span.dataset.end);
-                        span.classList.toggle('highlight', charIndex >= start && charIndex < end);
-                    });
-                }
-            });
+            if(highlight){
+                utterance.addEventListener('boundary', (event) => {
+                    if (event.name === 'word') {
+                        const charIndex = event.charIndex;
+                        const spans = element.querySelectorAll('span');
+                        spans.forEach(span => {
+                            const start = parseInt(span.dataset.start);
+                            const end = parseInt(span.dataset.end);
+                            span.classList.toggle('highlight', charIndex >= start && charIndex < end);
+                        });
+                    }
+                });
+
+            }
 
             // Remove highlights when speech ends
             utterance.addEventListener('end', () => {
-                element.querySelectorAll('span').forEach(span => span.classList.remove('highlight'));
+                if(highlight){
+                    element.querySelectorAll('span').forEach(span => span.classList.remove('highlight'));
+                }
                 if (loop) {
                     speakText(text, element, true); // Loop if enabled
                 }
