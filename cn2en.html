@@ -961,9 +961,19 @@
         // 内容区域
         const content = document.createElement("div");
         content.className = "dialog-content";
+        let textArray = enText.trim().split( /(?<=[.?:])\s+/).filter(s =>
+            // s不为空且不是1. 2. 3. 之类的序号
+            s.trim()
+        ).map(s => {
+            const array = s.split(" ")
+            return array[0] + (" →")
+        })
+
+        const complement = textArray.join("  ").replace(": →", ":")
         content.innerHTML = `
         <div class="en-text" style="display: none">${enText}</div>
         <div class="cn-text" id="cn" style="cursor: pointer">${cnText}</div>
+        <div class="cn-text" id="complement" style="cursor: pointer">${complement}</div>
         <div class="word-display"></div>
       `;
 
