@@ -983,14 +983,14 @@
         const complement = textArray.join("  ").replace(": →", ":")
         content.innerHTML = `
         <div class="en-text" style="display: none">${enText}</div>
-        <div class="cn-text" id="cn" style="cursor: pointer">${cnText}</div>
+        <div class="cn-text" id="cn">${cnText}</div>
         <div class="cn-text" id="complement" style="cursor: pointer">${complement}</div>
         <div class="word-display"></div>
       `;
 
-        content.querySelector("#cn").addEventListener("click", function () {
-            speakText(cnText, this, false, true, false) // .replace(/^[^：]+：/, "")
-        });
+        // content.querySelector("#cn").addEventListener("click", function () {
+        //     speakText(cnText, this, false, true, false) // .replace(/^[^：]+：/, "")
+        // });
 
         // 控制按钮
         const controls = document.createElement("div");
