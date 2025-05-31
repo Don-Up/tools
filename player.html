@@ -1189,7 +1189,8 @@
                 rel: 0,
                 loop: 1,
                 cc_load_policy: 1,      // ✅ 启用字幕
-                cc_lang_pref: "en" // ✅ 可选：设置字幕语言（简体中文）
+                cc_lang_pref: "en",// ✅ 可选：设置字幕语言（简体中文）
+                hl: 'en'               // 界面语言为英文
             },
             events: {
                 onStateChange: onPlayerStateChange,
@@ -1198,6 +1199,27 @@
             },
         });
     }
+
+    document.addEventListener("keydown", (e) => {
+        if (!player || !player.getCurrentTime) return;
+
+        const currentTime = player.getCurrentTime();
+
+        if (e.key === "ArrowLeft") {
+            player.seekTo(Math.max(currentTime - 2, 0), true);
+        } else if (e.key === "ArrowRight") {
+            player.seekTo(currentTime + 2, true);
+        } else if (e.key === "ArrowUp") {
+            e.preventDefault()
+            // 上一个视频
+            document.getElementById("prevButton").click();
+        } else if (e.key === "ArrowDown") {
+            e.preventDefault()
+            // 下一个视频
+            document.getElementById("nextButton").click();
+        }
+    });
+
 
     function onPlayerStateChange(event) {
         if (event.data === YT.PlayerState.ENDED) {
