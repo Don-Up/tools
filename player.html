@@ -110,7 +110,7 @@
     <label><input type="radio" name="playMode" value="sequential">顺序循环</label>
     <label><input type="radio" name="playMode" value="single">单个循环</label>
     <a id="currentLink" href="#" target="_blank" style="margin-left: 10px; color: #0af; text-decoration: underline;">
-        🔗 当前视频链接
+        🔗 Link
     </a>
 </div>
 
@@ -1131,18 +1131,18 @@
     inputContent.value = localStorage.getItem("inputContent") || "z"
     const confirm = document.getElementById("confirm")
 
-    let  result = []
+    let result = new Set();
     const content = inputContent.value || "z"
-    if(content.includes("z")){
-        result.push(...youtubeLinks)
+    if (/a|z/.test(content)) {
+        youtubeLinks.forEach(link => result.add(link));
     }
-    if(content.includes("05") || content.includes("530")){
-        result.push(...arr530)
+    if (/a|05|530/.test(content)) {
+        arr530.forEach(link => result.add(link));
     }
-    if(content.includes("05") || content.includes("531")){
-        result.push(...arr531)
+    if (/a|05|531/.test(content)) {
+        arr531.forEach(link => result.add(link));
     }
-    let youtubeIDs = result.map(link => new URL(link).pathname.split("/shorts/")[1]);
+    let youtubeIDs = Array.from(result).map(link => new URL(link).pathname.split("/shorts/")[1]);
     let historyQueue = [];
 
     confirm.addEventListener("click", function () {
@@ -1170,7 +1170,6 @@
     function updateCurrentLink() {
         const currentVideoId = youtubeIDs[currentIndex];
         currentLink.href = `https://www.youtube.com/shorts/${currentVideoId}`;
-        currentLink.textContent = `🔗 当前视频链接`;
     }
 
     function onPlayerReady(event) {
