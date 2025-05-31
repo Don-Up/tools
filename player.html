@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>随机循环播放 YouTube 视频</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            height: 100vh;
+            background: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+
+        #player {
+            width: 720px;
+            height: 1280px;
+        }
+
+        #modeSelector, #controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+
+        #modeSelector {
+            margin-top: 10px;
+        }
+
+        #controls {
+            margin-top: 0px;
+        }
+
+        label {
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        input[type="radio"] {
+            margin-right: 8px;
+            cursor: pointer;
+        }
+
+        button {
+            padding: 4px 8px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #007BFF;
+            color: white;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #progressContainer {
+            width: 80%;
+            cursor: pointer;
+        }
+
+        #progressBar {
+            width: 100%;
+            height: 5px;
+            background: #444;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        #progressBar::-webkit-progress-bar {
+            background-color: #444;
+        }
+
+        #progressBar::-webkit-progress-value {
+            background-color: #00aaff;
+        }
+
+        @media (max-width: 768px) {
+            #player {
+                width: 100%;
+                height: calc(100vw * 16 / 9);
+            }
+
+            button {
+                font-size: 14px;
+                padding: 4px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div id="player"></div>
+
+<div id="progressContainer">
+    <progress id="progressBar" value="0" max="100"></progress>
+    <div id="timeDisplay">00:00 / 00:00</div> <!-- 新增 -->
+</div>
+
+<div id="modeSelector">
+    <label><input type="radio" name="playMode" value="random" checked>随机循环</label>
+    <label><input type="radio" name="playMode" value="sequential">顺序循环</label>
+    <label><input type="radio" name="playMode" value="single">单个循环</label>
+    <a id="currentLink" href="#" target="_blank" style="margin-left: 10px; color: #0af; text-decoration: underline;">
+        🔗 当前视频链接
+    </a>
+</div>
+
+<div id="controls">
+    <button id="prevButton">上一个</button>
+    <button id="nextButton">下一个</button>
+    <input id="inputContent">
+    <button id="confirm">Confirm</button>
+</div>
+
+
+<script>
+    const youtubeLinks = [
+        "https://www.youtube.com/shorts/qAYSrC_2Qos",
+        "https://www.youtube.com/shorts/HvaXcZAVpB8",
+        "https://www.youtube.com/shorts/GsPPbx6xWEc",
+        "https://www.youtube.com/shorts/k6wN_XTF6TI",
+        "https://www.youtube.com/shorts/SIj4DZmJuk4",
+        "https://www.youtube.com/shorts/I22DE7Hw8fY",
+        "https://www.youtube.com/shorts/FI9nc9TyfS8",
+        "https://www.youtube.com/shorts/8mX982Wk1FE",
+        "https://www.youtube.com/shorts/T5q_A4YISR0",
+        "https://www.youtube.com/shorts/wQENgjxSM38",
+        "https://www.youtube.com/shorts/Xq7tn86Xra0",
+        "https://www.youtube.com/shorts/ILBCph7xehk",
+        "https://www.youtube.com/shorts/DKbbcQN9AO0",
+        "https://www.youtube.com/shorts/s3q_SI831QQ",
+        "https://www.youtube.com/shorts/trt4-DfOfCs",
+        "https://www.youtube.com/shorts/GPsxgw37jPc",
+        "https://www.youtube.com/shorts/meEy3Jg4INM",
+        "https://www.youtube.com/shorts/Y4wwwfC2CNg",
+        "https://www.youtube.com/shorts/gMVs1bZUh0I",
+        "https://www.youtube.com/shorts/l_BCZJrQgYI",
+        "https://www.youtube.com/shorts/zpCkH9yPuHY",
+        "https://www.youtube.com/shorts/41Rv1qMmfdQ",
+        "https://www.youtube.com/shorts/i8-YZWlSJFk",
+        "https://www.youtube.com/shorts/8ndvEi1-YZo",
+        "https://www.youtube.com/shorts/VIrOj6_mdZY",
+        "https://www.youtube.com/shorts/XOzGOwRS1ME",
+        "https://www.youtube.com/shorts/cLvLHiV2H4Y",
+        "https://www.youtube.com/shorts/BClROvJTuks",
+        "https://www.youtube.com/shorts/ryVRXmk_TE4",
+        "https://www.youtube.com/shorts/YujITZMJRIc",
+        "https://www.youtube.com/shorts/olWnxXKWzeg",
+        "https://www.youtube.com/shorts/DPycWvLAWXM",
+        "https://www.youtube.com/shorts/Z2qYwTLu39w",
+        "https://www.youtube.com/shorts/Oe3xJYhjBfk",
+        "https://www.youtube.com/shorts/UT8-UBfnhg8",
+        "https://www.youtube.com/shorts/wUWuhmvibfs",
+        "https://www.youtube.com/shorts/Ye8qq945wlU",
+        "https://www.youtube.com/shorts/rhZNj7EMXmA",
+        "https://www.youtube.com/shorts/13JCQtzMGqQ",
+        "https://www.youtube.com/shorts/wLaM_GLdZto",
+        "https://www.youtube.com/shorts/iCW96ykQFyc",
+        "https://www.youtube.com/shorts/OUf4gf2xi2M",
+        "https://www.youtube.com/shorts/wJBqhrHZm9s",
+        "https://www.youtube.com/shorts/Nm46bnx7Sq0",
+        "https://www.youtube.com/shorts/m75wKF80vAc",
+        "https://www.youtube.com/shorts/8GSOSQ04Dmo",
+        "https://www.youtube.com/shorts/OkxXprN3LUI",
+        "https://www.youtube.com/shorts/0sRt43-8LMI",
+        "https://www.youtube.com/shorts/OIewqbEw3zA",
+        "https://www.youtube.com/shorts/abrpHwC4jjM",
+        "https://www.youtube.com/shorts/Uf2zt6-6b4Y",
+        "https://www.youtube.com/shorts/rNr8Wa4c9RU",
+        "https://www.youtube.com/shorts/OuMZJcjbtDQ",
+        "https://www.youtube.com/shorts/8e857gkpY3I",
+        "https://www.youtube.com/shorts/7cOoR-s-Pf0",
+        "https://www.youtube.com/shorts/zuFcXqpozZc",
+        "https://www.youtube.com/shorts/Q5AyOO1QbOU",
+        "https://www.youtube.com/shorts/z8lNJxlSeWo",
+        "https://www.youtube.com/shorts/FZBnAiInyc0",
+        "https://www.youtube.com/shorts/o3j8dHCWQIM",
+        "https://www.youtube.com/shorts/sbMD-NDiEqY",
+        "https://www.youtube.com/shorts/KMmBmxYiNRI",
+        "https://www.youtube.com/shorts/CRFYg1Jlnew",
+        "https://www.youtube.com/shorts/5sLRf7wDNqs",
+        "https://www.youtube.com/shorts/hVGUmZaEUIE",
+        "https://www.youtube.com/shorts/RPOS9GHCNmE",
+        "https://www.youtube.com/shorts/R1BBbWUC55s",
+        "https://www.youtube.com/shorts/oBMUC8qi_Jw",
+        "https://www.youtube.com/shorts/SjUEqLDIySE",
+        "https://www.youtube.com/shorts/rKW5kUS7ySA",
+        "https://www.youtube.com/shorts/ST85oieQLbM",
+        "https://www.youtube.com/shorts/NtrUJIBHKyk",
+        "https://www.youtube.com/shorts/R32-btdQZyQ",
+        "https://www.youtube.com/shorts/R8jENUiOk_E",
+        "https://www.youtube.com/shorts/MlEci6ZSRYM",
+        "https://www.youtube.com/shorts/viCxisyTxQk",
+        "https://www.youtube.com/shorts/ekYdC09lVF0",
+        "https://www.youtube.com/shorts/Oh3aNv6cLHM",
+        "https://www.youtube.com/shorts/hhST9u69c2w",
+        "https://www.youtube.com/shorts/lUOYs0wpJj0",
+        "https://www.youtube.com/shorts/g6pPQZCss14",
+        "https://www.youtube.com/shorts/m7gcYk29C0E",
+        "https://www.youtube.com/shorts/vRvAQ1xnpNk",
+        "https://www.youtube.com/shorts/OKHkF19c93A",
+        "https://www.youtube.com/shorts/Mkr5zG4EEgw",
+        "https://www.youtube.com/shorts/KcTmswLZyiE",
+        "https://www.youtube.com/shorts/74q4FQnDupk",
+        "https://www.youtube.com/shorts/8ESVuRzlig8",
+        "https://www.youtube.com/shorts/-KHMBXsHeZ4",
+        "https://www.youtube.com/shorts/0VyJ-PGRf-0",
+        "https://www.youtube.com/shorts/yPBu0OKSPsY",
+        "https://www.youtube.com/shorts/Y5Wsnc0gM4g",
+        "https://www.youtube.com/shorts/TnbAy1IRQsE",
+        "https://www.youtube.com/shorts/wDXmLes1hHE",
+        "https://www.youtube.com/shorts/s6x5ZjjX8E0",
+        "https://www.youtube.com/shorts/cpMuFTJX8t8",
+        "https://www.youtube.com/shorts/a0P568ldsYk",
+        "https://www.youtube.com/shorts/X8PJUs4DUHE",
+        "https://www.youtube.com/shorts/UbG5Ddusjq8",
+        "https://www.youtube.com/shorts/e2SouYF-DeI",
+        "https://www.youtube.com/shorts/m_9ZCnheyEI",
+        "https://www.youtube.com/shorts/PHTrMqEnFXc",
+        "https://www.youtube.com/shorts/PyyzhxyC0Sk",
+        "https://www.youtube.com/shorts/cjFm2kAJNvk",
+        "https://www.youtube.com/shorts/yj-Ny8jM4cw",
+        "https://www.youtube.com/shorts/g8mrmSEHv_0",
+        "https://www.youtube.com/shorts/mFo0ixKJZcM",
+        "https://www.youtube.com/shorts/4e58WEigka0",
+        "https://www.youtube.com/shorts/6chtVrIH-oY",
+        "https://www.youtube.com/shorts/UH0KXSVCVLY",
+        "https://www.youtube.com/shorts/rh2ISaUhab4",
+        "https://www.youtube.com/shorts/Fb7MVEs3sS0",
+        "https://www.youtube.com/shorts/Ue37pTItwB0",
+        "https://www.youtube.com/shorts/HizCe6q5o8E",
+        "https://www.youtube.com/shorts/r9Wn4tkuLiA",
+        "https://www.youtube.com/shorts/1w9aPEG9kzY",
+        "https://www.youtube.com/shorts/0FnBozdvWg8",
+        "https://www.youtube.com/shorts/o7cll0t6Dnk",
+        "https://www.youtube.com/shorts/g7PtKlMGyTk",
+        "https://www.youtube.com/shorts/buaY7apndIQ",
+        "https://www.youtube.com/shorts/dJzOVeTbY1Y",
+        "https://www.youtube.com/shorts/g2NWf7CVy3U",
+        "https://www.youtube.com/shorts/phjrrclGZWw",
+        "https://www.youtube.com/shorts/J4qr2nidgh8",
+        "https://www.youtube.com/shorts/gDN_4x_FrtM",
+        "https://www.youtube.com/shorts/k5zO6e7vhm8",
+        "https://www.youtube.com/shorts/wl8jiDpHLHE",
+        "https://www.youtube.com/shorts/clWjEl6WCl0",
+        "https://www.youtube.com/shorts/uVL3CX6PWXA",
+        "https://www.youtube.com/shorts/vQXfJhb8e-A",
+        "https://www.youtube.com/shorts/3MzP49gG-rk",
+        "https://www.youtube.com/shorts/VmscNhW26ZI",
+        "https://www.youtube.com/shorts/CCK3a80c3hY",
+        "https://www.youtube.com/shorts/K8W4Kaj8_bs",
+        "https://www.youtube.com/shorts/vVunQxTfVpA",
+        "https://www.youtube.com/shorts/nPshqhbGQkM",
+        "https://www.youtube.com/shorts/DGw12DXIYVM",
+        "https://www.youtube.com/shorts/bglJj94wGdk",
+        "https://www.youtube.com/shorts/AEVZE3qMkcg",
+        "https://www.youtube.com/shorts/HulyTN9CeHY",
+        "https://www.youtube.com/shorts/BnnBuWHfkTs",
+        "https://www.youtube.com/shorts/EWWv1T6YQf4",
+        "https://www.youtube.com/shorts/PoztaxTh_X4",
+        "https://www.youtube.com/shorts/pdELTKEwfss",
+        "https://www.youtube.com/shorts/PNFketTyRwk",
+        "https://www.youtube.com/shorts/rI_oO5DKQwM",
+        "https://www.youtube.com/shorts/RG-Pyj8dG1I",
+        "https://www.youtube.com/shorts/eOunKIiALx4",
+        "https://www.youtube.com/shorts/eSD9cJEGuls",
+        "https://www.youtube.com/shorts/jU6Yf7cqkv8",
+        "https://www.youtube.com/shorts/SUGniooLuwQ",
+        "https://www.youtube.com/shorts/h_t8QHSWexE",
+        "https://www.youtube.com/shorts/J_V0iamiHfI",
+        "https://www.youtube.com/shorts/dokRENjq_D0",
+        "https://www.youtube.com/shorts/gXqX3eIa8l8",
+        "https://www.youtube.com/shorts/7aQcmHW3XsY",
+        "https://www.youtube.com/shorts/F8VhsOkg_sg",
+        "https://www.youtube.com/shorts/5POcKUD7gKc",
+        "https://www.youtube.com/shorts/bzakH_nudd8",
+        "https://www.youtube.com/shorts/w7sR4MRIg3M",
+        "https://www.youtube.com/shorts/_e04CiGpiNc",
+        "https://www.youtube.com/shorts/vVxxTCGSI9Q",
+        "https://www.youtube.com/shorts/HMW5_oIirkc",
+        "https://www.youtube.com/shorts/Zt_YsKjCR-0",
+        "https://www.youtube.com/shorts/LuNMuBFjQCE",
+        "https://www.youtube.com/shorts/g3AmfN_9W1I",
+        "https://www.youtube.com/shorts/IZDSK-QRBII",
+        "https://www.youtube.com/shorts/tH4-WYbuOaU",
+        "https://www.youtube.com/shorts/ixtWRjbwOl0",
+        "https://www.youtube.com/shorts/Pizw48LiWj4",
+        "https://www.youtube.com/shorts/9FkbgbdV3Hg",
+        "https://www.youtube.com/shorts/BUbepQOfO78",
+        "https://www.youtube.com/shorts/NAOFgdF4n3k",
+        "https://www.youtube.com/shorts/Udpo2iMQARc",
+        "https://www.youtube.com/shorts/qhDHBm1CCXY",
+        "https://www.youtube.com/shorts/1kSuxDACR5A",
+        "https://www.youtube.com/shorts/OZ7nrIwtR9E",
+        "https://www.youtube.com/shorts/24MFoiqclds",
+        "https://www.youtube.com/shorts/iWzMhi0hmGU",
+        "https://www.youtube.com/shorts/BYbTRARSpjw",
+        "https://www.youtube.com/shorts/YsU13yDVN08",
+        "https://www.youtube.com/shorts/JguNdKxbTHI",
+        "https://www.youtube.com/shorts/WWSIwYEGxeI",
+        "https://www.youtube.com/shorts/NjwSUOoWCAA",
+        "https://www.youtube.com/shorts/WxtLPyl99Do",
+        "https://www.youtube.com/shorts/r7XEXOBZ6SQ",
+        "https://www.youtube.com/shorts/8wiA0fpnivE",
+        "https://www.youtube.com/shorts/hq1YaBwEcMc",
+        "https://www.youtube.com/shorts/-54BheRGmK0",
+        "https://www.youtube.com/shorts/SGP2loSlYKY",
+        "https://www.youtube.com/shorts/37TYI5Qdh8Q",
+        "https://www.youtube.com/shorts/iDHdQ00i1kw",
+        "https://www.youtube.com/shorts/Bn_5IEprUEY",
+        "https://www.youtube.com/shorts/vrl8pdtb7MI",
+        "https://www.youtube.com/shorts/YdKMQhNvfYw",
+        "https://www.youtube.com/shorts/eRYUUJdtmro",
+        "https://www.youtube.com/shorts/b_91iefwRy4",
+        "https://www.youtube.com/shorts/nlBmUMkziyQ",
+        "https://www.youtube.com/shorts/lPLF_uapgjs",
+        "https://www.youtube.com/shorts/ZydlOyhog14",
+        "https://www.youtube.com/shorts/3J_AaxgT8KQ",
+        "https://www.youtube.com/shorts/Jibj7Og6dG8",
+        "https://www.youtube.com/shorts/AvfPgvhAUIA",
+        "https://www.youtube.com/shorts/-lGmUiZ0Z_o",
+        "https://www.youtube.com/shorts/ZMRBVvxS6Ss",
+        "https://www.youtube.com/shorts/fxzUZI9cy_8",
+        "https://www.youtube.com/shorts/cxwYQgtIULM",
+        "https://www.youtube.com/shorts/ghxXzW2A1E8",
+        "https://www.youtube.com/shorts/aF5mx3sFXmw",
+        "https://www.youtube.com/shorts/thtjDZiOs0g",
+        "https://www.youtube.com/shorts/9JlDsyAfX7E",
+        "https://www.youtube.com/shorts/kT08ewV1REY",
+        "https://www.youtube.com/shorts/ssoFlMtSAME",
+        "https://www.youtube.com/shorts/LTWBoE2HnGs",
+        "https://www.youtube.com/shorts/F_LpIj8SJVk",
+        "https://www.youtube.com/shorts/smmhXDkkAuY",
+        "https://www.youtube.com/shorts/NRvWdn9CPIk",
+        "https://www.youtube.com/shorts/mmSDSUqm4O0",
+        "https://www.youtube.com/shorts/aUWpSAwQKj4",
+        "https://www.youtube.com/shorts/htOE01nKPV0",
+        "https://www.youtube.com/shorts/DsawyHUFLSA",
+        "https://www.youtube.com/shorts/LV5NnHPsioY",
+        "https://www.youtube.com/shorts/wszIpuKIV_g",
+        "https://www.youtube.com/shorts/PA3N2uIgBrU",
+        "https://www.youtube.com/shorts/gEV8kjtn5QA",
+        "https://www.youtube.com/shorts/ZrKDvaKQDWg",
+        "https://www.youtube.com/shorts/tXfQ6cFf9Ek",
+        "https://www.youtube.com/shorts/EUAVwE58af0",
+        "https://www.youtube.com/shorts/X4PcG_Kqn_o",
+        "https://www.youtube.com/shorts/ZvzL0e0OCiA",
+        "https://www.youtube.com/shorts/NsqCcIIp-4I",
+        "https://www.youtube.com/shorts/TohFgSLFqgg",
+        "https://www.youtube.com/shorts/e7KPtKAQZ2E",
+        "https://www.youtube.com/shorts/dzTnkEaoIBI",
+        "https://www.youtube.com/shorts/VIi6w_MbS0Q",
+        "https://www.youtube.com/shorts/wz7AsR3vMr0",
+        "https://www.youtube.com/shorts/BA7H0eCCK-0",
+        "https://www.youtube.com/shorts/68BLMVACF5I",
+        "https://www.youtube.com/shorts/CfgFUQXy-u8",
+        "https://www.youtube.com/shorts/fnrfWMcERT4",
+        "https://www.youtube.com/shorts/30WIZnV9Y4A",
+        "https://www.youtube.com/shorts/jyFApVCNJHw",
+        "https://www.youtube.com/shorts/5Uq_jkwL_cQ",
+        "https://www.youtube.com/shorts/hNjjgFEg3DI",
+        "https://www.youtube.com/shorts/l-hnusXCqlw",
+        "https://www.youtube.com/shorts/V5W2YQ5Hy-A",
+        "https://www.youtube.com/shorts/06jI5BD04j4",
+        "https://www.youtube.com/shorts/umhwyxUJbWE",
+        "https://www.youtube.com/shorts/TklgRr77_7E",
+        "https://www.youtube.com/shorts/FihyOtTO4EM",
+        "https://www.youtube.com/shorts/qfuRTz7Ae-E",
+        "https://www.youtube.com/shorts/u0NXGhtKbwY",
+        "https://www.youtube.com/shorts/anCaQ3I2TCg",
+        "https://www.youtube.com/shorts/yza5PWoleSM",
+        "https://www.youtube.com/shorts/Mfezzuk46xE",
+        "https://www.youtube.com/shorts/Y5U5Rn-UvEs",
+        "https://www.youtube.com/shorts/ShSD_fAzcGE",
+        "https://www.youtube.com/shorts/e9yUI3d9grk",
+        "https://www.youtube.com/shorts/JqEAkwBQfMk",
+        "https://www.youtube.com/shorts/xuSBHlSBxEU",
+        "https://www.youtube.com/shorts/fyjmjcVRiXY",
+        "https://www.youtube.com/shorts/0T5vUPRHn14",
+        "https://www.youtube.com/shorts/N3cAVsH5pW4",
+        "https://www.youtube.com/shorts/nE8M9sz7NCo",
+        "https://www.youtube.com/shorts/cwL-dMS3QeA",
+        "https://www.youtube.com/shorts/UYTD6DafKk0",
+
+        "https://www.youtube.com/shorts/W8pHRvGwELw",
+        "https://www.youtube.com/shorts/VATZwfvkyDI",
+        "https://www.youtube.com/shorts/uLBiwIPkp_U",
+        "https://www.youtube.com/shorts/o8jKFze6tH0",
+        "https://www.youtube.com/shorts/3KozKn-DWb4",
+        "https://www.youtube.com/shorts/44TCORZG6fo",
+        "https://www.youtube.com/shorts/GHtjWbIS_og",
+        "https://www.youtube.com/shorts/TqiKwyos6RM",
+        "https://www.youtube.com/shorts/abdytecMqxY",
+        "https://www.youtube.com/shorts/2znu-bCGadw",
+        "https://www.youtube.com/shorts/ymIyZPEgFwE",
+        "https://www.youtube.com/shorts/HRtglVNPs5A",
+        "https://www.youtube.com/shorts/EH3Iwffb3BY",
+        "https://www.youtube.com/shorts/EH3Iwffb3BY",
+        "https://www.youtube.com/shorts/6oCRv9IVmew",
+        "https://www.youtube.com/shorts/-Yr1QFtDjKQ",
+        "https://www.youtube.com/shorts/8pHGfvpGR9I",
+        "https://www.youtube.com/shorts/zYxe8DKvuNs",
+        "https://www.youtube.com/shorts/qEjnRSOIhAQ",
+        "https://www.youtube.com/shorts/zJNohjKMiVA",
+        "https://www.youtube.com/shorts/k9-yhUYjnAA",
+        "https://www.youtube.com/shorts/B17Vh5AJSjU",
+        "https://www.youtube.com/shorts/KV8mtlIwTNw",
+        "https://www.youtube.com/shorts/sHVZPOwBhc4",
+        "https://www.youtube.com/shorts/DGBMKswF-OQ",
+        "https://www.youtube.com/shorts/6nvyvVX2F2o",
+        "https://www.youtube.com/shorts/TX6Q2h6xM34",
+        "https://www.youtube.com/shorts/e1gGRfsY8dY",
+        "https://www.youtube.com/shorts/jSQZHbYOL5M",
+        "https://www.youtube.com/shorts/jSQZHbYOL5M",
+        "https://www.youtube.com/shorts/S2bMfH759sM",
+        "https://www.youtube.com/shorts/BTcW47QyyI4",
+        "https://www.youtube.com/shorts/Er3CKik6o6I",
+        "https://www.youtube.com/shorts/kv09k7D09Ok",
+        "https://www.youtube.com/shorts/pw6cnq34BKA",
+        "https://www.youtube.com/shorts/eo4w_b8cSoY",
+        "https://www.youtube.com/shorts/bIBm0JPMd-I",
+        "https://www.youtube.com/shorts/_WJNQoFXLXY",
+        "https://www.youtube.com/shorts/0svUtvKmHVU",
+        "https://www.youtube.com/shorts/h1VXKx5CC5M",
+        "https://www.youtube.com/shorts/VKI_B6qC-jA",
+        "https://www.youtube.com/shorts/sjxXR5kpopI",
+        "https://www.youtube.com/shorts/CNhwCEgBMY8",
+        "https://www.youtube.com/shorts/6LkrnotBiME",
+        "https://www.youtube.com/shorts/u3TKZF0_TGI",
+        "https://www.youtube.com/shorts/yc6k_dzdFdk",
+        "https://www.youtube.com/shorts/mJlziCd0sBU",
+        "https://www.youtube.com/shorts/B1k7pCkcWgA",
+        "https://www.youtube.com/shorts/YT9flil_zAk",
+        "https://www.youtube.com/shorts/9vhymQKqOTg",
+        "https://www.youtube.com/shorts/MDCklgvP-dI",
+        "https://www.youtube.com/shorts/OMnw5R_YyKE",
+        "https://www.youtube.com/shorts/uARppMXZGfM",
+        "https://www.youtube.com/shorts/4F25ykHWY9k",
+        "https://www.youtube.com/shorts/ceJ9zE34UAY",
+        "https://www.youtube.com/shorts/6rrb_Gdymgo",
+        "https://www.youtube.com/shorts/lYK0435xby8",
+        "https://www.youtube.com/shorts/3fe7iXa2hP4",
+        "https://www.youtube.com/shorts/1v-ju4MjM5o",
+        "https://www.youtube.com/shorts/qEU5XLCCOq4",
+        "https://www.youtube.com/shorts/cUBoMPtOXmw",
+        "https://www.youtube.com/shorts/TVIfQA_YddE",
+        "https://www.youtube.com/shorts/SHH3xh4ItFo",
+        "https://www.youtube.com/shorts/vje551gSnvc",
+        "https://www.youtube.com/shorts/6vK-On9oniQ",
+        "https://www.youtube.com/shorts/RUnJFMUYEm4",
+        "https://www.youtube.com/shorts/x-j5uBYRpKQ",
+        "https://www.youtube.com/shorts/cIug38vsOBk",
+        "https://www.youtube.com/shorts/U40xSR0rrdQ",
+        "https://www.youtube.com/shorts/NYsbLs8ANgg",
+        "https://www.youtube.com/shorts/7bAcAgzCscE",
+        "https://www.youtube.com/shorts/qq2lJsPLokY",
+        "https://www.youtube.com/shorts/siPZ-dBdOrU",
+        "https://www.youtube.com/shorts/MY6asj8CUYA",
+        "https://www.youtube.com/shorts/86z8-cKp5yo",
+        "https://www.youtube.com/shorts/3c1sjLnzO1M",
+        "https://www.youtube.com/shorts/FABuUVDIKR4",
+        "https://www.youtube.com/shorts/0Gt2biZ17Ko",
+        "https://www.youtube.com/shorts/8QZphsDBu28",
+        "https://www.youtube.com/shorts/gsyYYr3d9Xs",
+        "https://www.youtube.com/shorts/ClwtTpA4Oto",
+        "https://www.youtube.com/shorts/W-TXNxdwLno",
+        "https://www.youtube.com/shorts/VoBm0PRL5-Y",
+        "https://www.youtube.com/shorts/ZB9EMffyoUE",
+        "https://www.youtube.com/shorts/j3CeqSmUKj8",
+        "https://www.youtube.com/shorts/CT2tUWqzy2M",
+        "https://www.youtube.com/shorts/fHAVaZvL8Sw",
+        "https://www.youtube.com/shorts/fmZfphacPPQ",
+        "https://www.youtube.com/shorts/Ysul4snJpuA",
+        "https://www.youtube.com/shorts/8Qzx94SNGoY",
+        "https://www.youtube.com/shorts/uY2sENEWg0Y",
+        "https://www.youtube.com/shorts/ADwvGlTDiLI",
+        "https://www.youtube.com/shorts/wNAmTd9_epo",
+        "https://www.youtube.com/shorts/c6LI_DXeUTY",
+        "https://www.youtube.com/shorts/4cLCmlYtGEo",
+        "https://www.youtube.com/shorts/XivINgKvSwg",
+        "https://www.youtube.com/shorts/nn6rA7HfymA",
+        "https://www.youtube.com/shorts/lyE1veqMdzI",
+        "https://www.youtube.com/shorts/SngTPilNY30",
+        "https://www.youtube.com/shorts/y05nBoT-3BE",
+        "https://www.youtube.com/shorts/8w2lRQveZ0Q",
+        "https://www.youtube.com/shorts/wvXFVWBVEm8",
+        "https://www.youtube.com/shorts/LqK0ZKc2lsk",
+        "https://www.youtube.com/shorts/jGIkKWbcT9Y",
+        "https://www.youtube.com/shorts/Gf9ZFBu4mR4",
+        "https://www.youtube.com/shorts/RJ4WmjLqBaI",
+        "https://www.youtube.com/shorts/hbQusLCTu7s",
+        "https://www.youtube.com/shorts/Qudqp4u93UU",
+        "https://www.youtube.com/shorts/o4InIGxIKUM",
+        "https://www.youtube.com/shorts/S35HNNbhA4I",
+        "https://www.youtube.com/shorts/1quinatqtNQ",
+        "https://www.youtube.com/shorts/cn3gtHfOjZE",
+        "https://www.youtube.com/shorts/0nQUKqsAxIk",
+        "https://www.youtube.com/shorts/-eeKIao8TDM",
+        "https://www.youtube.com/shorts/Y_v4dx0UoXo",
+        "https://www.youtube.com/shorts/SgQU1dSAPuI",
+        "https://www.youtube.com/shorts/fps0sNktUaw",
+        "https://www.youtube.com/shorts/EVw1ZTZr3cA",
+        "https://www.youtube.com/shorts/5edhxt2A5lE",
+        "https://www.youtube.com/shorts/vmzG3o77_UQ",
+        "https://www.youtube.com/shorts/XRlfQZiXuLU",
+        "https://www.youtube.com/shorts/gd2DUygbtOE",
+        "https://www.youtube.com/shorts/ONDMMEwTB2g",
+        "https://www.youtube.com/shorts/G6LVZY4NZLA",
+        "https://www.youtube.com/shorts/pqXqrJ1r_8o",
+        "https://www.youtube.com/shorts/dG8-EK8CuZo",
+        "https://www.youtube.com/shorts/1Q4qRv-9D9E",
+        "https://www.youtube.com/shorts/jsf_N6FoIq4",
+        "https://www.youtube.com/shorts/XkpNdbfUcj0",
+        "https://www.youtube.com/shorts/gGKeLkM2n6s",
+        "https://www.youtube.com/shorts/HVF4QllAEUg",
+        "https://www.youtube.com/shorts/VECht2jhYvk",
+        "https://www.youtube.com/shorts/n2Z3wuA7NiU",
+        "https://www.youtube.com/shorts/K1r6-AtvjxM",
+        "https://www.youtube.com/shorts/rfWeAvTY05Q",
+        "https://www.youtube.com/shorts/MftMY99sEcM",
+        "https://www.youtube.com/shorts/sNxw53HJl94",
+        "https://www.youtube.com/shorts/O_2bvETPFLA",
+        "https://www.youtube.com/shorts/wtuBQ10VvVc",
+        "https://www.youtube.com/shorts/yzheCVfL8To",
+        "https://www.youtube.com/shorts/QzTypxchkNk",
+        "https://www.youtube.com/shorts/OhHaFc1Kuhc",
+        "https://www.youtube.com/shorts/HOJ13JRq0dA",
+        "https://www.youtube.com/shorts/vMyyJ4Ab9Uw",
+        "https://www.youtube.com/shorts/-jFMPBCovjw",
+        "https://www.youtube.com/shorts/YOtAYm8pW8c",
+        "https://www.youtube.com/shorts/onCuhJPTAs4",
+        "https://www.youtube.com/shorts/kTnLZa7QjaU",
+        "https://www.youtube.com/shorts/QheFSAx4dUA",
+        "https://www.youtube.com/shorts/1FC5iREdOH0",
+        "https://www.youtube.com/shorts/bU22z0UiN6k",
+        "https://www.youtube.com/shorts/hXF6AnOGvik",
+        "https://www.youtube.com/shorts/dzwszU_uWPw",
+        "https://www.youtube.com/shorts/wNCzcM5ZPpc",
+        "https://www.youtube.com/shorts/zpUMcXHW8ls",
+        "https://www.youtube.com/shorts/e9GD2AOCF1o",
+        "https://www.youtube.com/shorts/FJIag1YumzQ",
+        "https://www.youtube.com/shorts/W6idkuhTh-A",
+        "https://www.youtube.com/shorts/4EsqFH3iWXc",
+        "https://www.youtube.com/shorts/yUrLM2m0bAU",
+        "https://www.youtube.com/shorts/Qy58vbvqwPw",
+        "https://www.youtube.com/shorts/KgVHD48B6Jw",
+        "https://www.youtube.com/shorts/c95WAp-waZY",
+        "https://www.youtube.com/shorts/PdRyp7amhyQ",
+        "https://www.youtube.com/shorts/0F3S6BGwoZ8",
+        "https://www.youtube.com/shorts/BmLRCRuRu_E",
+        "https://www.youtube.com/shorts/oXNw-p9Z8F8",
+        "https://www.youtube.com/shorts/zOVlWNpldrc",
+        "https://www.youtube.com/shorts/XikcJEIM-yE",
+        "https://www.youtube.com/shorts/CICqMkeMaFE",
+        "https://www.youtube.com/shorts/3XwyeswW8y8",
+        "https://www.youtube.com/shorts/URrtUz_E5PQ",
+        "https://www.youtube.com/shorts/l8y3BunHgJA",
+        "https://www.youtube.com/shorts/JOyxXjHn5DY",
+        "https://www.youtube.com/shorts/sae5uPhVUmk",
+        "https://www.youtube.com/shorts/j6N3CyTUBM8",
+        "https://www.youtube.com/shorts/7bpMjT0V3Y0",
+        "https://www.youtube.com/shorts/lVpaeBjYODQ",
+        "https://www.youtube.com/shorts/40snzfM6b_Q",
+        "https://www.youtube.com/shorts/hCb54pEa628",
+        "https://www.youtube.com/shorts/H37JFn5z9iY",
+        "https://www.youtube.com/shorts/md2GHHSxYjU",
+        "https://www.youtube.com/shorts/Sh_4Nn5bPRo",
+        "https://www.youtube.com/shorts/PZ3EInK8eRU",
+        "https://www.youtube.com/shorts/333L3DOWAE4",
+        "https://www.youtube.com/shorts/QtmBa5b__2o",
+        "https://www.youtube.com/shorts/ZUFCYydr9ro",
+        "https://www.youtube.com/shorts/9sa8q3PfJ1E",
+        "https://www.youtube.com/shorts/Mg65qmNp-OM",
+        "https://www.youtube.com/shorts/zNaoKrU6vyc",
+        "https://www.youtube.com/shorts/1F0Ih-WcrCk",
+        "https://www.youtube.com/shorts/hX8Tab-mxCs",
+        "https://www.youtube.com/shorts/OsDhgguGM7M",
+        "https://www.youtube.com/shorts/BzL85JkrVa8",
+        "https://www.youtube.com/shorts/T0OU2d9kmWQ",
+        "https://www.youtube.com/shorts/3eI_iXeVWx4",
+        "https://www.youtube.com/shorts/QyJOfCSdXGM",
+        "https://www.youtube.com/shorts/k3UckWUlGHk",
+        "https://www.youtube.com/shorts/RLoZ9UimZ2c",
+        "https://www.youtube.com/shorts/9vPLv3UAKnY",
+        "https://www.youtube.com/shorts/Rj2YbGyuWUA",
+        "https://www.youtube.com/shorts/JaPjdfSQ6zQ",
+        "https://www.youtube.com/shorts/c2QZSYSYDe0",
+        "https://www.youtube.com/shorts/V6bPomtNnis",
+        "https://www.youtube.com/shorts/Hcj4TqzQWao",
+        "https://www.youtube.com/shorts/2VtxgTlqeMM",
+        "https://www.youtube.com/shorts/rstvmLgnCwk",
+        "https://www.youtube.com/shorts/uHeFtm0lBRg",
+        "https://www.youtube.com/shorts/IfmbjXJ-n50",
+        "https://www.youtube.com/shorts/qnj4P9-ihuk",
+        "https://www.youtube.com/shorts/Ig76Gr0tOpo",
+        "https://www.youtube.com/shorts/XsYtVF34bXA",
+        "https://www.youtube.com/shorts/WN4xvB4REII",
+        "https://www.youtube.com/shorts/Zyiaomta0YM",
+        "https://www.youtube.com/shorts/t-_stySStzc",
+        "https://www.youtube.com/shorts/_v35JXa-d5Y",
+        "https://www.youtube.com/shorts/9yAGenqG2dQ",
+        "https://www.youtube.com/shorts/QtgNA3iMpKs",
+        "https://www.youtube.com/shorts/hCf7jNvaL-k",
+        "https://www.youtube.com/shorts/hFZzZX6jomI",
+        "https://www.youtube.com/shorts/swoG7L8ocQY",
+        "https://www.youtube.com/shorts/XIwwaAiVU7Q",
+        "https://www.youtube.com/shorts/1opsoopxuHs",
+        "https://www.youtube.com/shorts/RyI7TBjkUPg",
+        "https://www.youtube.com/shorts/aq8YEWSLVZA",
+        "https://www.youtube.com/shorts/UPYf-o60UI0",
+        "https://www.youtube.com/shorts/GDGKRPYzWpo",
+        "https://www.youtube.com/shorts/uB4pML7VPlc",
+        "https://www.youtube.com/shorts/S_JvAapiQls",
+        "https://www.youtube.com/shorts/41hzYEvgIwc",
+
+        "https://www.youtube.com/shorts/7gmzY84Jnhs",
+        "https://www.youtube.com/shorts/6ORN-UvP5fM",
+        "https://www.youtube.com/shorts/_dTo6uzwXZ8",
+        "https://www.youtube.com/shorts/U20RR3HrmoQ",
+        "https://www.youtube.com/shorts/0gASceRnltg",
+        "https://www.youtube.com/shorts/pBm3arZfMGc",
+        "https://www.youtube.com/shorts/UoKm3h_t4Cw",
+        "https://www.youtube.com/shorts/IOl2vbksY-s",
+        "https://www.youtube.com/shorts/zDXwiNl2fpw",
+        "https://www.youtube.com/shorts/DpUB7WBRaKQ",
+        "https://www.youtube.com/shorts/01AdApv_I9w",
+        "https://www.youtube.com/shorts/hNfW3EsWiYs",
+        "https://www.youtube.com/shorts/vZ8QFbcE4Ps",
+        "https://www.youtube.com/shorts/bpFbpZQvLvY",
+        "https://www.youtube.com/shorts/wrFkOiimS2c",
+        "https://www.youtube.com/shorts/rS7HDvSKxZM",
+        "https://www.youtube.com/shorts/D7PypFRkJjc",
+        "https://www.youtube.com/shorts/JI1dKjngiks",
+        "https://www.youtube.com/shorts/KOVkI9FE3Pk",
+        "https://www.youtube.com/shorts/83cF6oQMUPE",
+        "https://www.youtube.com/shorts/R1mFUgwTjrU",
+        "https://www.youtube.com/shorts/MMi3RI1EXiM",
+        "https://www.youtube.com/shorts/npFShzn7-Ds",
+        "https://www.youtube.com/shorts/blQPrfY68IA",
+        "https://www.youtube.com/shorts/TqITFKmyN_U",
+        "https://www.youtube.com/shorts/cEz-vF4j8jQ",
+        "https://www.youtube.com/shorts/r87tq4VcbFY",
+        "https://www.youtube.com/shorts/4smPHt2ShmM",
+        "https://www.youtube.com/shorts/0ic7HXyFxaA",
+        "https://www.youtube.com/shorts/rQ30NZDYrAY",
+        "https://www.youtube.com/shorts/tJWb4lKfgBY",
+        "https://www.youtube.com/shorts/EpqYt9nPRXY",
+        "https://www.youtube.com/shorts/Kc4w7oeUU1s",
+        "https://www.youtube.com/shorts/hdnudSLeHgA",
+        "https://www.youtube.com/shorts/zLfyVJGPK8U",
+        "https://www.youtube.com/shorts/QhNcd49XPew",
+        "https://www.youtube.com/shorts/6b6Ph59BOeo",
+        "https://www.youtube.com/shorts/nE5okcTg2K8",
+        "https://www.youtube.com/shorts/FIcYTmq0kOc",
+        "https://www.youtube.com/shorts/caunTArglvQ",
+        "https://www.youtube.com/shorts/rF-oyDJzqfc",
+        "https://www.youtube.com/shorts/TCjY0_9G-pU",
+        "https://www.youtube.com/shorts/Ylbns4NVcGI",
+        "https://www.youtube.com/shorts/33v2vOf_mc8",
+        "https://www.youtube.com/shorts/w6Wgsbbhh9c",
+
+        "https://www.youtube.com/shorts/2VdbQjMNLpk",
+        "https://www.youtube.com/shorts/ZnfjE8z2gSw",
+        "https://www.youtube.com/shorts/--jz7k19d90",
+        "https://www.youtube.com/shorts/DFsluDJMDwE",
+        "https://www.youtube.com/shorts/8rdUjC7D2Ec",
+        "https://www.youtube.com/shorts/IUpT8UejFnk",
+        "https://www.youtube.com/shorts/N0wSBqUAsM8",
+        "https://www.youtube.com/shorts/qM0HS5A6sys",
+        "https://www.youtube.com/shorts/PdzqgYU3MVU",
+        "https://www.youtube.com/shorts/7IBFKdM3w0Q",
+        "https://www.youtube.com/shorts/kOYindmBOY0",
+        "https://www.youtube.com/shorts/-Uyx1JZu0LA",
+        "https://www.youtube.com/shorts/Eu-AnclGX7Q",
+        "https://www.youtube.com/shorts/WpC-HUuacdg",
+        "https://www.youtube.com/shorts/-x8hwCN6dUk",
+        "https://www.youtube.com/shorts/dOn3rgeW1Jg",
+        "https://www.youtube.com/shorts/Fl4YRo9kZ9k",
+        "https://www.youtube.com/shorts/Ms0ArBRK15M",
+        "https://www.youtube.com/shorts/2YhOtXqhbLc",
+        "https://www.youtube.com/shorts/OeYnAimE_p0",
+        "https://www.youtube.com/shorts/SCc4R7AJ-mg",
+        "https://www.youtube.com/shorts/WMukDDgUQSI",
+        "https://www.youtube.com/shorts/g9AB1_tCO5M",
+        "https://www.youtube.com/shorts/gEle5eGPvh0",
+        "https://www.youtube.com/shorts/aHMojH94JF4",
+        "https://www.youtube.com/shorts/1x-mlykDPRo",
+        "https://www.youtube.com/shorts/NIdSQ9QdCbQ",
+        "https://www.youtube.com/shorts/Sewtl89nxHQ",
+        "https://www.youtube.com/shorts/EKbsfF8uo54",
+        "https://www.youtube.com/shorts/JG4iKWM0YLM",
+        "https://www.youtube.com/shorts/bwK1DuWBBG0",
+        "https://www.youtube.com/shorts/yaELC0FnPKc",
+        "https://www.youtube.com/shorts/QILZe170M0Q",
+        "https://www.youtube.com/shorts/KnuFujfu9Bw",
+        "https://www.youtube.com/shorts/QlxA4p88dNc",
+        "https://www.youtube.com/shorts/8JM1AQY3Fn8",
+        "https://www.youtube.com/shorts/bcWMo1VMKRM",
+        "https://www.youtube.com/shorts/4QGQhaRv4Dw",
+        "https://www.youtube.com/shorts/5lh_uxieDos",
+        "https://www.youtube.com/shorts/PVrR4Gqa1OM",
+        "https://www.youtube.com/shorts/vkSJ-YR7_io",
+        "https://www.youtube.com/shorts/IwPkBYF5L60",
+        "https://www.youtube.com/shorts/o8kumEKIzEs",
+        "https://www.youtube.com/shorts/gKWaF786dAc",
+        "https://www.youtube.com/shorts/VYYAmgOmpTc",
+        "https://www.youtube.com/shorts/m4pQ-4M-Urw",
+        "https://www.youtube.com/shorts/6cdnqZh4ypI",
+        "https://www.youtube.com/shorts/HCVJHJBL28E",
+        "https://www.youtube.com/shorts/DJXIX8m2XTg",
+        "https://www.youtube.com/shorts/I-GQ4gmvIE0",
+        "https://www.youtube.com/shorts/D6QsnmpatWg",
+        "https://www.youtube.com/shorts/v6sRdZUnJ7s",
+        "https://www.youtube.com/shorts/F4H74b5hOH8",
+        "https://www.youtube.com/shorts/uFCuYpX3E-I",
+        "https://www.youtube.com/shorts/baPzCBpLVrE",
+        "https://www.youtube.com/shorts/Uh_7F2Yvc3k",
+        "https://www.youtube.com/shorts/qVVbGuH_5Yw",
+        "https://www.youtube.com/shorts/qUph7W4C98Y",
+        "https://www.youtube.com/shorts/3ijSagPdGDI",
+        "https://www.youtube.com/shorts/SYlMucHx9L8",
+        "https://www.youtube.com/shorts/p48BmL6d-xk",
+        "https://www.youtube.com/shorts/KuCIRuIw1as",
+        "https://www.youtube.com/shorts/urfxbhJlc00",
+        "https://www.youtube.com/shorts/XJ4OTSX3tYM",
+        "https://www.youtube.com/shorts/LguFRWf4nRs",
+        "https://www.youtube.com/shorts/1JrbtU8TE2c",
+        "https://www.youtube.com/shorts/MLPCPGfLIDM",
+        "https://www.youtube.com/shorts/Boz9G1xbYNg",
+        "https://www.youtube.com/shorts/CHhpBoFGRx4",
+        "https://www.youtube.com/shorts/wPtKHhqnsL0",
+        "https://www.youtube.com/shorts/fhfLcR2gYL0",
+        "https://www.youtube.com/shorts/MLIUBOYBiX4",
+        "https://www.youtube.com/shorts/K96XcV7z4FA",
+        "https://www.youtube.com/shorts/2HgkubOfvKE",
+        "https://www.youtube.com/shorts/M4wJsRk9m-Y",
+        "https://www.youtube.com/shorts/2rYp0M_kNGY",
+        "https://www.youtube.com/shorts/4-8nVOOR2LY",
+        "https://www.youtube.com/shorts/oZeepFjhQhM",
+        "https://www.youtube.com/shorts/GxKxfLFt-zY",
+        "https://www.youtube.com/shorts/y77boW8MbNI",
+        "https://www.youtube.com/shorts/x7Qi4mmoLZs",
+        "https://www.youtube.com/shorts/_UjYwfoXDaM",
+        "https://www.youtube.com/shorts/0AV2_VLY7I8",
+        "https://www.youtube.com/shorts/11Orj8pY9AM",
+        "https://www.youtube.com/shorts/KloG4RLSVkY",
+        "https://www.youtube.com/shorts/yCQJkA0Dfg0",
+        "https://www.youtube.com/shorts/Ig1RiINPTnc",
+        "https://www.youtube.com/shorts/6kDyZ8sRzDY",
+        "https://www.youtube.com/shorts/jwS4m-iV3T4",
+        "https://www.youtube.com/shorts/3iv1W4oedNA",
+        "https://www.youtube.com/shorts/JlMNio-852c",
+        "https://www.youtube.com/shorts/IAUPvEpJMvY",
+        "https://www.youtube.com/shorts/1O3Xs1faCUA",
+        "https://www.youtube.com/shorts/7K9mTbmcfp4",
+        "https://www.youtube.com/shorts/QOwWyJyaLzc",
+        "https://www.youtube.com/shorts/VDVkjTVA87s",
+        "https://www.youtube.com/shorts/J4bGo09NSgE",
+        "https://www.youtube.com/shorts/K6XSpw54FKk",
+        "https://www.youtube.com/shorts/R-wRqtlpeBs",
+        "https://www.youtube.com/shorts/FE8ZmMEvpwg",
+        "https://www.youtube.com/shorts/JnBSEil1SsU",
+        "https://www.youtube.com/shorts/HdIwM_6H9oQ",
+        "https://www.youtube.com/shorts/IqYdMqnyjE8",
+        "https://www.youtube.com/shorts/fQ7aK9uxyWs",
+        "https://www.youtube.com/shorts/15UcdsKoKK4",
+        "https://www.youtube.com/shorts/ExVUZoMcpqM",
+        "https://www.youtube.com/shorts/c7nAzKMoqjk",
+        "https://www.youtube.com/shorts/EAOCZ7KAWpo",
+        "https://www.youtube.com/shorts/13Pj7JwxSPE",
+        "https://www.youtube.com/shorts/2WGfZctuBpE",
+        "https://www.youtube.com/shorts/Fl6Lauam1IU",
+        "https://www.youtube.com/shorts/wUNxJ3wmiv4",
+        "https://www.youtube.com/shorts/D3rAQdzrQ-I",
+        "https://www.youtube.com/shorts/sCyJwyaKanI",
+        "https://www.youtube.com/shorts/VQoANnmfUhQ",
+        "https://www.youtube.com/shorts/HSKxwUeILXw",
+        "https://www.youtube.com/shorts/FFoOWu6dBzU",
+        "https://www.youtube.com/shorts/w4e-3_a-f0Q",
+        "https://www.youtube.com/shorts/VtA_dVlT9AU",
+        "https://www.youtube.com/shorts/_xTzN462RT8",
+        "https://www.youtube.com/shorts/R5YYmrPdxdE",
+        "https://www.youtube.com/shorts/eulG1i95JPM",
+        "https://www.youtube.com/shorts/IK_Zhyp0ZQA",
+        "https://www.youtube.com/shorts/V8cgotji7DE",
+        "https://www.youtube.com/shorts/mIq39g6hpQI",
+        "https://www.youtube.com/shorts/h6BRb7lU3yc",
+        "https://www.youtube.com/shorts/YX0H0ODnEQE",
+        "https://www.youtube.com/shorts/79dzM0Uz_2s",
+        "https://www.youtube.com/shorts/N66oMQ6oyh0",
+        "https://www.youtube.com/shorts/kpWJe1UzeC4",
+        "https://www.youtube.com/shorts/JgWhM-FEs18",
+        "https://www.youtube.com/shorts/PmVSuud6o08",
+        "https://www.youtube.com/shorts/XeAjg3X2oc0",
+        "https://www.youtube.com/shorts/2M8svNK50ls",
+        "https://www.youtube.com/shorts/an7HYFUd8xI",
+        "https://www.youtube.com/shorts/pIxDnj4T8VQ",
+        "https://www.youtube.com/shorts/ADmAzluq9us",
+        "https://www.youtube.com/shorts/ank0AG1j7nM",
+        "https://www.youtube.com/shorts/dOKAMvlWASY",
+        "https://www.youtube.com/shorts/09QrHGE-L74",
+        "https://www.youtube.com/shorts/dq8xGCBSBcE",
+        "https://www.youtube.com/shorts/IWcbh9RBPrE",
+        "https://www.youtube.com/shorts/ZbGOq1KrrMA",
+        "https://www.youtube.com/shorts/Jlo_zyMkwLs",
+        "https://www.youtube.com/shorts/CbKkAwOa9NQ",
+        "https://www.youtube.com/shorts/sWsqneTtzTo",
+        "https://www.youtube.com/shorts/GV1yGTEHwX8",
+        "https://www.youtube.com/shorts/6SZ2NhCjXVY",
+        "https://www.youtube.com/shorts/-Q92Eft15kU",
+        "https://www.youtube.com/shorts/mmOfGdJrACc",
+        "https://www.youtube.com/shorts/_2DqlDQrkkg",
+        "https://www.youtube.com/shorts/T4QpMK_FpKQ",
+        "https://www.youtube.com/shorts/lxdBVOq0jNE",
+        "https://www.youtube.com/shorts/L8_AmLKcMbs",
+        "https://www.youtube.com/shorts/7HS2II8hpFg",
+        "https://www.youtube.com/shorts/hlwzP-JqBn8",
+        "https://www.youtube.com/shorts/dhVgttvww6c",
+        "https://www.youtube.com/shorts/lfErr9NSI1Q",
+        "https://www.youtube.com/shorts/aSn3bHTvlKQ",
+        "https://www.youtube.com/shorts/ItYz39N6RjA",
+        "https://www.youtube.com/shorts/og9NT4Nfqxo",
+        "https://www.youtube.com/shorts/MW4wfzjbkOU",
+        "https://www.youtube.com/shorts/bcZ6qRPuayw",
+        "https://www.youtube.com/shorts/6ccIbqvQEYs",
+        "https://www.youtube.com/shorts/rL6ijrFFWuY",
+        "https://www.youtube.com/shorts/ZqEoYHw6YdY",
+        "https://www.youtube.com/shorts/AzW46PjDPPQ",
+        "https://www.youtube.com/shorts/btfzx2ASgnY",
+        "https://www.youtube.com/shorts/n8PGwt9dy0w",
+        "https://www.youtube.com/shorts/6bzyWUrJYEY",
+        "https://www.youtube.com/shorts/xpoAlrMo04k",
+        "https://www.youtube.com/shorts/ZtVfmhhZrkg",
+        "https://www.youtube.com/shorts/oedVwJMacjs",
+        "https://www.youtube.com/shorts/UMCQC9gDgSs",
+        "https://www.youtube.com/shorts/VVecmysOm90",
+        "https://www.youtube.com/shorts/X5AJm8Moe-g",
+        "https://www.youtube.com/shorts/7vEryDo7QYE",
+        "https://www.youtube.com/shorts/8bkXUkZW370",
+        "https://www.youtube.com/shorts/dDR3RALI004",
+        "https://www.youtube.com/shorts/o6XRvViYlug",
+        "https://www.youtube.com/shorts/-PiFoyubaH8",
+        "https://www.youtube.com/shorts/4BKALd3z-yc",
+        "https://www.youtube.com/shorts/lX3RbBEjlqU",
+        "https://www.youtube.com/shorts/f0z8ENmigoQ",
+        "https://www.youtube.com/shorts/uE2N9sqM4pQ",
+        "https://www.youtube.com/shorts/_KkLrAVLfOY",
+        "https://www.youtube.com/shorts/Nyhl1I_qyUc",
+        "https://www.youtube.com/shorts/cxOhJ9UnUqM",
+        "https://www.youtube.com/shorts/FIBhy-m41oc",
+        "https://www.youtube.com/shorts/11MJRIElo8A",
+        "https://www.youtube.com/shorts/b7Q8Rrds56k",
+        "https://www.youtube.com/shorts/Bt7zgl3Ia1w",
+        "https://www.youtube.com/shorts/Q5M-zZK_E1E",
+        "https://www.youtube.com/shorts/-MohyNaIDgg",
+        "https://www.youtube.com/shorts/8YGQMOYCFDs",
+        "https://www.youtube.com/shorts/OK8_1KGzt5U",
+        "https://www.youtube.com/shorts/dv7oHrm2aug",
+        "https://www.youtube.com/shorts/iIRjIYfXECE",
+        "https://www.youtube.com/shorts/4t-v1Fev5A8",
+        "https://www.youtube.com/shorts/T-fZaWliS0I",
+        "https://www.youtube.com/shorts/bnyhksycXY4",
+        "https://www.youtube.com/shorts/yezgIjS8Q8I",
+        "https://www.youtube.com/shorts/oUeScywg7r8",
+        "https://www.youtube.com/shorts/zXvBrQ1gKDA",
+        "https://www.youtube.com/shorts/lN33EJQmUWY",
+        "https://www.youtube.com/shorts/_QWmCTF1eYg",
+        "https://www.youtube.com/shorts/r2gJI-mjkpY",
+        "https://www.youtube.com/shorts/i6wdMQHw2-s",
+        "https://www.youtube.com/shorts/MMJOwBBF_54",
+        "https://www.youtube.com/shorts/-eR56LiKLcw",
+        "https://www.youtube.com/shorts/kN-79T4JTc4",
+        "https://www.youtube.com/shorts/1om3rLX5oYI",
+        "https://www.youtube.com/shorts/by1eEGc8BWc",
+        "https://www.youtube.com/shorts/ZHp7uUqm218",
+        "https://www.youtube.com/shorts/I32w7-6lznQ",
+        "https://www.youtube.com/shorts/rz_IpdnNJJM",
+        "https://www.youtube.com/shorts/k5DVfFF2-Q8",
+        "https://www.youtube.com/shorts/TScGjT7pkdA",
+        "https://www.youtube.com/shorts/9EAnhWKe_rM",
+        "https://www.youtube.com/shorts/lnR-GgDoLAs",
+        "https://www.youtube.com/shorts/VoR91BCfPms",
+        "https://www.youtube.com/shorts/Qy6HD_4zmwc",
+        "https://www.youtube.com/shorts/qlHPFAcL_KY",
+        "https://www.youtube.com/shorts/BLoPP4bcSTU",
+        "https://www.youtube.com/shorts/WEOoqX9c3Nk",
+        "https://www.youtube.com/shorts/eJx-j6SpEgI",
+        "https://www.youtube.com/shorts/Ce1HyxbKEDQ",
+        "https://www.youtube.com/shorts/4ipdUqSWh8M",
+        "https://www.youtube.com/shorts/1FzBb-cY2Go",
+        "https://www.youtube.com/shorts/wY8Psn1TboA",
+        "https://www.youtube.com/shorts/NphZOIDZAf8",
+        "https://www.youtube.com/shorts/2b0CJYbwN_o",
+        "https://www.youtube.com/shorts/aTVitDNyjqQ",
+        "https://www.youtube.com/shorts/Zdf8fmCX4v0",
+        "https://www.youtube.com/shorts/LJnjV1-zDg8",
+        "https://www.youtube.com/shorts/P9CmLkNygPo",
+        "https://www.youtube.com/shorts/hKSJVAU6JLk",
+        "https://www.youtube.com/shorts/V9hAegQwFmo",
+        "https://www.youtube.com/shorts/gPXRXpj57fs",
+        "https://www.youtube.com/shorts/IAOWz4yee3g",
+        "https://www.youtube.com/shorts/WQXlwMtIiq0",
+        "https://www.youtube.com/shorts/LH_I9GbSs4M",
+        "https://www.youtube.com/shorts/ejFp3i0jJF0",
+        "https://www.youtube.com/shorts/nuxPXKvqUv8",
+        "https://www.youtube.com/shorts/358mao2qGFI",
+        "https://www.youtube.com/shorts/iFvbjT8xYqo",
+        "https://www.youtube.com/shorts/PVHtF745QYY",
+        "https://www.youtube.com/shorts/eo1gbciYkyE",
+        "https://www.youtube.com/shorts/uS0BQrq9bgU",
+        "https://www.youtube.com/shorts/AaKf4T7Hk7g",
+        "https://www.youtube.com/shorts/UwhX1601s1A",
+        "https://www.youtube.com/shorts/UFv-JCQqWqo",
+        "https://www.youtube.com/shorts/wjU9yAvjQBc",
+        "https://www.youtube.com/shorts/_9p-_tMlfjQ",
+        "https://www.youtube.com/shorts/VMdzlaewRAg",
+        "https://www.youtube.com/shorts/a6co7If_exo",
+        "https://www.youtube.com/shorts/IUOapZgpOnM",
+        "https://www.youtube.com/shorts/MJEDjbTW7sM",
+        "https://www.youtube.com/shorts/_K4f9y4owAc",
+        "https://www.youtube.com/shorts/Y7HisAnSRI8",
+        "https://www.youtube.com/shorts/T3IN6UsHNCg",
+        "https://www.youtube.com/shorts/9n4DPaEAOxo",
+        "https://www.youtube.com/shorts/F-bT-Rr76e8",
+        "https://www.youtube.com/shorts/kK_3DvLztKY",
+        "https://www.youtube.com/shorts/Cyp0NlPyVT0",
+        "https://www.youtube.com/shorts/jXsk0Akc3Tw",
+        "https://www.youtube.com/shorts/cu61ElxVFlo",
+        "https://www.youtube.com/shorts/lpWC6K2wTy4",
+        "https://www.youtube.com/shorts/Vk6x8mWBUhw",
+        "https://www.youtube.com/shorts/MR5F2wafYEA",
+        "https://www.youtube.com/shorts/uMxR4rB4X14",
+        "https://www.youtube.com/shorts/I2LEBHDCnSc",
+        "https://www.youtube.com/shorts/cVFThhaMDL8",
+        "https://www.youtube.com/shorts/Q4hEXT2Y5YQ",
+        "https://www.youtube.com/shorts/YsjqPWKCIoI",
+        "https://www.youtube.com/shorts/vwefrGbBV78",
+        "https://www.youtube.com/shorts/Qf2f5lVRtaU",
+        "https://www.youtube.com/shorts/R9aHi3m0wY4",
+        "https://www.youtube.com/shorts/CAF7YMcaFQw",
+        "https://www.youtube.com/shorts/OqodD3msmCw",
+        "https://www.youtube.com/shorts/w0iRnyMyiQQ",
+        "https://www.youtube.com/shorts/nojxwtzCN4g",
+        "https://www.youtube.com/shorts/DBeHmTAMLYA",
+        "https://www.youtube.com/shorts/e0KCbT-G2Uo",
+        "https://www.youtube.com/shorts/UvmOOvMN9l8",
+        "https://www.youtube.com/shorts/RIkbKpw-5e4",
+        "https://www.youtube.com/shorts/0E7gSVBW31g",
+        "https://www.youtube.com/shorts/qmjySqVLtCc",
+        "https://www.youtube.com/shorts/XgqNtYf59-8",
+        "https://www.youtube.com/shorts/JY11V32G0kQ",
+        "https://www.youtube.com/shorts/0V2wHOZvPPA",
+        "https://www.youtube.com/shorts/MdmEgVFtMlI",
+        "https://www.youtube.com/shorts/l7aoth4L-hA",
+        "https://www.youtube.com/shorts/0e4n7I_83CU",
+        "https://www.youtube.com/shorts/3jSeUsOMO3Q",
+        "https://www.youtube.com/shorts/KG6pxno-jDo",
+        "https://www.youtube.com/shorts/bYCcB2FrsHE",
+        "https://www.youtube.com/shorts/5dOyYTuvYq0",
+        "https://www.youtube.com/shorts/jZOyaXfCQ6Q",
+        "https://www.youtube.com/shorts/pqKy2zqsk4E",
+        "https://www.youtube.com/shorts/WSgnaM-6Z6I",
+        "https://www.youtube.com/shorts/l8aO5shP7o0",
+        "https://www.youtube.com/shorts/ufPFLu-xc-4",
+        "https://www.youtube.com/shorts/tvhGkYiTB80",
+        "https://www.youtube.com/shorts/TciQ1iOKBkA",
+        "https://www.youtube.com/shorts/r6FmKDVKm5k",
+        "https://www.youtube.com/shorts/OfPmQAPCD6E",
+        "https://www.youtube.com/shorts/jYszrSLXLvo",
+        "https://www.youtube.com/shorts/2gSKVbL1N3g",
+        "https://www.youtube.com/shorts/fB-rmuxxnpw",
+        "https://www.youtube.com/shorts/oUZI0OmabZk",
+        "https://www.youtube.com/shorts/VGdE5Jojqvg",
+        "https://www.youtube.com/shorts/cViuPoMjOV0",
+        "https://www.youtube.com/shorts/hBiMvvdaE8I",
+        "https://www.youtube.com/shorts/BzZZRthVvG0",
+        "https://www.youtube.com/shorts/qxvmEN8KQsg",
+        "https://www.youtube.com/shorts/JaTCu70CNAw",
+        "https://www.youtube.com/shorts/gbs9quUuRwc",
+        "https://www.youtube.com/shorts/YqP_sCxBLgY",
+        "https://www.youtube.com/shorts/B7Vr-a5I4dE",
+        "https://www.youtube.com/shorts/T0qS4bRouTI",
+        "https://www.youtube.com/shorts/il67tH1RVfA",
+        "https://www.youtube.com/shorts/Ia_Qwke1gEc",
+        "https://www.youtube.com/shorts/N_l422xCo3Y",
+        "https://www.youtube.com/shorts/74GaIzpqrn8",
+        "https://www.youtube.com/shorts/qZ94_8UQ2FA",
+        "https://www.youtube.com/shorts/nNGLL2PHxcY",
+        "https://www.youtube.com/shorts/Vvc5OojABBU",
+        "https://www.youtube.com/shorts/NuRwN2euRnA",
+        "https://www.youtube.com/shorts/xNWv4QLwseo",
+        "https://www.youtube.com/shorts/OtM2LsHaPbY",
+        "https://www.youtube.com/shorts/Vnsmo-F73Ws",
+        "https://www.youtube.com/shorts/27ZNF8Ej56I",
+        "https://www.youtube.com/shorts/-VQo3f8ZPSA",
+        "https://www.youtube.com/shorts/H7lK8Iprhww",
+        "https://www.youtube.com/shorts/sL-oQcdhPxQ",
+        "https://www.youtube.com/shorts/KwmgCMNVK0I",
+        "https://www.youtube.com/shorts/FIJpt9eHXis",
+        "https://www.youtube.com/shorts/xLccN8V8hII",
+        "https://www.youtube.com/shorts/PWJcrvBcLzo",
+        "https://www.youtube.com/shorts/NrV8oOV64tI",
+        "https://www.youtube.com/shorts/LyspcR7-rUU",
+        "https://www.youtube.com/shorts/CO9qSYtosmc",
+        "https://www.youtube.com/shorts/6UpWUJG7kEk",
+        "https://www.youtube.com/shorts/-TcrJrDT6V8",
+        "https://www.youtube.com/shorts/o51Cv6Zv-ww",
+        "https://www.youtube.com/shorts/qYiIcqEyMh8",
+        "https://www.youtube.com/shorts/hkQHmXU5k1U",
+        "https://www.youtube.com/shorts/9GKquxMrVYE",
+        "https://www.youtube.com/shorts/lpquxPkwvno",
+        "https://www.youtube.com/shorts/GlXd15iUe4M",
+        "https://www.youtube.com/shorts/jCslJpDARdc",
+        "https://www.youtube.com/shorts/vrM-WPticV8",
+        "https://www.youtube.com/shorts/E56SjqUk7iU",
+        "https://www.youtube.com/shorts/jhx3-h848IU",
+        "https://www.youtube.com/shorts/jBZqhynec5g",
+        "https://www.youtube.com/shorts/gJN5IcmwyJU",
+        "https://www.youtube.com/shorts/iZhIcevcIxw",
+        "https://www.youtube.com/shorts/blIpTvoClzo",
+        "https://www.youtube.com/shorts/xBBJgx7ujrU",
+        "https://www.youtube.com/shorts/kF6szkTavxc",
+        "https://www.youtube.com/shorts/EtBUE4qKoy8",
+        "https://www.youtube.com/shorts/ydJ6MmcaUiw",
+        "https://www.youtube.com/shorts/77XHh_tVZ9w",
+        "https://www.youtube.com/shorts/ciIAcD4eXsI",
+        "https://www.youtube.com/shorts/CLDn6S0vkjU",
+        "https://www.youtube.com/shorts/uz6d8Aivffg",
+        "https://www.youtube.com/shorts/bCrzLDn-9fo",
+        "https://www.youtube.com/shorts/0KU_sVVsel8",
+        "https://www.youtube.com/shorts/rxj2kUrTeRk",
+        "https://www.youtube.com/shorts/WmKkXxY9cXw",
+        "https://www.youtube.com/shorts/DaYvv4Syx54",
+        "https://www.youtube.com/shorts/v_XDNTD2w4I",
+        "https://www.youtube.com/shorts/02bWvojZU_A",
+        "https://www.youtube.com/shorts/ZPGdcnzdzgc",
+        "https://www.youtube.com/shorts/b2-kf9JkLtg",
+        "https://www.youtube.com/shorts/e3uRN-xccYE",
+        "https://www.youtube.com/shorts/pqt4gL1Ixzs",
+        "https://www.youtube.com/shorts/6RlyqrM7KR8",
+        "https://www.youtube.com/shorts/vXdez2NSg5o",
+        "https://www.youtube.com/shorts/vuv9vkWTBy0",
+        "https://www.youtube.com/shorts/BiWhAT_Z-bw",
+        "https://www.youtube.com/shorts/phl3cShCOxM",
+        "https://www.youtube.com/shorts/ilY3xqB-930",
+        "https://www.youtube.com/shorts/70usAsXiZf8",
+        "https://www.youtube.com/shorts/OKr5jSXbPPs",
+        "https://www.youtube.com/shorts/yGW1-5U9GfM",
+        "https://www.youtube.com/shorts/pMCOyPPiA5Y",
+        "https://www.youtube.com/shorts/YuTHHKljbgs",
+        "https://www.youtube.com/shorts/8tTSqwrx6bs",
+        "https://www.youtube.com/shorts/kAW-bU01R3I",
+        "https://www.youtube.com/shorts/Ppw2GE3fLpQ",
+        "https://www.youtube.com/shorts/rhXbywahYmQ",
+        "https://www.youtube.com/shorts/Av06qUAz958",
+        "https://www.youtube.com/shorts/tVMDqRvL5-U",
+        "https://www.youtube.com/shorts/RsMj3mVq2nc",
+        "https://www.youtube.com/shorts/w7PGmnhNUMY",
+        "https://www.youtube.com/shorts/gQJIHZP-F6c",
+        "https://www.youtube.com/shorts/AXbYnBJN1x0",
+        "https://www.youtube.com/shorts/GdWACAchclU",
+        "https://www.youtube.com/shorts/ShRYxQcVQwU",
+        "https://www.youtube.com/shorts/KH7xDQaFgCE",
+        "https://www.youtube.com/shorts/OZygnVXyo3o",
+        "https://www.youtube.com/shorts/OJqArhMPQT4",
+        "https://www.youtube.com/shorts/IH17jG7WJWA",
+        "https://www.youtube.com/shorts/hDMTLtpEYQ4",
+        "https://www.youtube.com/shorts/xOVs_HjVdDU",
+        "https://www.youtube.com/shorts/b6z0zKNrHRs",
+        "https://www.youtube.com/shorts/LudaG3X75Ns",
+        "https://www.youtube.com/shorts/p1Bs8GhCjxQ",
+        "https://www.youtube.com/shorts/ttpaCc22iWc",
+        "https://www.youtube.com/shorts/ngFnSJd8B1g",
+        "https://www.youtube.com/shorts/KXqjIF9PNV0",
+        "https://www.youtube.com/shorts/7D-zAvGxRnY",
+        "https://www.youtube.com/shorts/CcfRTC5E2CM",
+        "https://www.youtube.com/shorts/61aNUQIhK2E",
+        "https://www.youtube.com/shorts/kbTT8LYoZro",
+        "https://www.youtube.com/shorts/ARX17BoD9Ek",
+        "https://www.youtube.com/shorts/iM39Cp0oXsM",
+        "https://www.youtube.com/shorts/LlVGLSmSboU"
+    ];
+
+    const arr530 = [
+        "https://www.youtube.com/shorts/SIj4DZmJuk4",
+        "https://www.youtube.com/shorts/I22DE7Hw8fY",
+        "https://www.youtube.com/shorts/FI9nc9TyfS8",
+        "https://www.youtube.com/shorts/8mX982Wk1FE",
+        "https://www.youtube.com/shorts/w6Ch406Phug",
+        "https://www.youtube.com/shorts/i1UT4y4ys_s",
+        "https://www.youtube.com/shorts/KU5zxfoW4t0",
+        "https://www.youtube.com/shorts/bLTubkWctjk",
+        "https://www.youtube.com/shorts/5JXzZpt1Grw",
+        "https://www.youtube.com/shorts/4z3taiDC_P0",
+        "https://www.youtube.com/shorts/feFN3MXEt6E",
+        "https://www.youtube.com/shorts/oA_quWKCwaQ",
+        "https://www.youtube.com/shorts/v3-fZ3IcBx4",
+        "https://www.youtube.com/shorts/0_hdd_FQKGg",
+        "https://www.youtube.com/shorts/DQTAhB1RkBE",
+        "https://www.youtube.com/shorts/ZCNx4GUlzIo",
+        "https://www.youtube.com/shorts/8y6-1IQMmX4",
+        "https://www.youtube.com/shorts/M14JhNVb3PQ",
+        "https://www.youtube.com/shorts/4SAWsOy0Ei4",
+    ]
+
+    const arr531 = [
+        "https://www.youtube.com/shorts/qAYSrC_2Qos",
+        "https://www.youtube.com/shorts/HvaXcZAVpB8",
+        "https://www.youtube.com/shorts/GsPPbx6xWEc",
+        "https://www.youtube.com/shorts/k6wN_XTF6TI",
+        "https://www.youtube.com/shorts/UbTFAmHqYkc",
+        "https://www.youtube.com/shorts/i7X89zS-FBo",
+        "https://www.youtube.com/shorts/Jumaqw4laFU",
+        "https://www.youtube.com/shorts/khdo0qDEids",
+        "https://www.youtube.com/shorts/nasXUw6TbG4",
+        "https://www.youtube.com/shorts/Z1K53rvsRW0",
+        "https://www.youtube.com/shorts/ceVRqe3NAnM",
+        "https://www.youtube.com/shorts/2Utpxt2_hX0",
+    ]
+
+    const inputContent = document.getElementById("inputContent")
+    inputContent.value = localStorage.getItem("inputContent") || "z"
+    const confirm = document.getElementById("confirm")
+
+    let  result = []
+    const content = inputContent.value || "z"
+    if(content.includes("z")){
+        result.push(...youtubeLinks)
+    }
+    if(content.includes("05") || content.includes("530")){
+        result.push(...arr530)
+    }
+    if(content.includes("05") || content.includes("531")){
+        result.push(...arr531)
+    }
+    let youtubeIDs = result.map(link => new URL(link).pathname.split("/shorts/")[1]);
+    let historyQueue = [];
+
+    confirm.addEventListener("click", function () {
+        localStorage.setItem("inputContent", inputContent.value)
+        // 刷新页面
+        location.reload();
+    })
+    let currentIndex = 0;
+    let player;
+    let playMode = "random";
+    let progressInterval;
+
+    const tag = document.createElement("script");
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.body.appendChild(tag);
+
+    const currentLink = document.getElementById("currentLink");
+
+    currentLink.addEventListener("click", () => {
+        if (player && player.pauseVideo) {
+            player.pauseVideo();
+        }
+    });
+
+    function updateCurrentLink() {
+        const currentVideoId = youtubeIDs[currentIndex];
+        currentLink.href = `https://www.youtube.com/shorts/${currentVideoId}`;
+        currentLink.textContent = `🔗 当前视频链接`;
+    }
+
+    function onPlayerReady(event) {
+        updateCurrentLink();
+        startProgressBar();
+    }
+
+
+    function onYouTubeIframeAPIReady() {
+        player = new YT.Player("player", {
+            height: "960",
+            width: "540",
+            videoId: youtubeIDs[currentIndex],
+            playerVars: {
+                autoplay: 1,
+                controls: 0,
+                rel: 0,
+                loop: 1,
+                cc_load_policy: 1,      // ✅ 启用字幕
+                cc_lang_pref: "en" // ✅ 可选：设置字幕语言（简体中文）
+            },
+            events: {
+                onStateChange: onPlayerStateChange,
+                // onReady: startProgressBar,
+                onReady: () => onPlayerReady, // 初次加载时更新链接
+            },
+        });
+    }
+
+    function onPlayerStateChange(event) {
+        if (event.data === YT.PlayerState.ENDED) {
+            if (playMode === "random") playRandomVideo();
+            else if (playMode === "sequential") playNextVideo();
+            else if (playMode === "single") replayCurrentVideo();
+        } else if (event.data === YT.PlayerState.PLAYING) {
+            startProgressBar();
+        } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.BUFFERING) {
+            clearInterval(progressInterval);
+        }
+    }
+
+    function loadVideo(index) {
+        currentIndex = index;
+        player.loadVideoById(youtubeIDs[currentIndex]);
+        updateCurrentLink(); // ← 加这里
+    }
+
+    function playRandomVideo() {
+        let randomIndex;
+        do {
+            randomIndex = Math.floor(Math.random() * youtubeIDs.length);
+        } while (randomIndex === currentIndex || historyQueue.includes(randomIndex));
+        historyQueue.push(randomIndex);
+        if (historyQueue.length > 2) historyQueue.shift();
+        loadVideo(randomIndex);
+    }
+
+    function playNextVideo() {
+        currentIndex = (currentIndex + 1) % youtubeIDs.length;
+        loadVideo(currentIndex);
+    }
+
+    function playPreviousVideo() {
+        currentIndex = (currentIndex - 1 + youtubeIDs.length) % youtubeIDs.length;
+        loadVideo(currentIndex);
+    }
+
+    function replayCurrentVideo() {
+        loadVideo(currentIndex);
+    }
+
+    document.querySelectorAll('input[name="playMode"]').forEach(radio => {
+        radio.addEventListener("change", event => (playMode = event.target.value));
+    });
+
+    document.getElementById("prevButton").addEventListener("click", () => {
+        if (playMode === "random") {
+            if (historyQueue.length > 1) {
+                historyQueue.pop();
+                loadVideo(historyQueue[historyQueue.length - 1]);
+            } else alert("没有更多的历史记录！");
+        } else playPreviousVideo();
+    });
+
+    document.getElementById("nextButton").addEventListener("click", () => {
+        if (playMode === "random" || playMode === "single") playRandomVideo();
+        else playNextVideo();
+    });
+
+    // ==============================
+    // 进度条逻辑
+    // ==============================
+    const progressBar = document.getElementById("progressBar");
+    const progressContainer = document.getElementById("progressContainer");
+
+    // 新增格式化函数
+    function formatTime(seconds) {
+        const m = Math.floor(seconds / 60);
+        const s = Math.floor(seconds % 60);
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+
+    // 在 startProgressBar 中更新 timeDisplay
+    const timeDisplay = document.getElementById("timeDisplay");
+
+    function startProgressBar() {
+        clearInterval(progressInterval);
+        progressInterval = setInterval(() => {
+            if (player && player.getDuration && player.getCurrentTime) {
+                const duration = player.getDuration();
+                const currentTime = player.getCurrentTime();
+                const progress = (currentTime / duration) * 100;
+                progressBar.value = progress;
+
+                timeDisplay.textContent = `${formatTime(currentTime)} / ${formatTime(duration)}`;
+            }
+        }, 500);
+    }
+
+
+    progressContainer.addEventListener("click", function (e) {
+        if (player && player.seekTo) {
+            const rect = progressBar.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const percent = clickX / rect.width;
+            const duration = player.getDuration();
+            const seekTo = percent * duration;
+            player.seekTo(seekTo, true);
+        }
+    });
+</script>
+</body>
+</html>
