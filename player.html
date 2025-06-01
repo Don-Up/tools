@@ -124,6 +124,10 @@
 
 <script>
     const youtubeLinks = [
+        "https://www.youtube.com/shorts/blfylv8MzA4",
+        "https://www.youtube.com/shorts/l7wTWzHBK-E",
+        "https://www.youtube.com/shorts/cKzobFcg-rI",
+        "https://www.youtube.com/shorts/vjfOLYg0TZk",
         "https://www.youtube.com/shorts/qAYSrC_2Qos",
         "https://www.youtube.com/shorts/HvaXcZAVpB8",
         "https://www.youtube.com/shorts/GsPPbx6xWEc",
@@ -1127,6 +1131,23 @@
         "https://www.youtube.com/shorts/2Utpxt2_hX0",
     ]
 
+    const arr61 =[
+        "https://www.youtube.com/shorts/blfylv8MzA4",
+        "https://www.youtube.com/shorts/l7wTWzHBK-E",
+        "https://www.youtube.com/shorts/cKzobFcg-rI",
+        "https://www.youtube.com/shorts/vjfOLYg0TZk",
+        "https://www.youtube.com/shorts/WiGymjPJ_bg",
+        "https://www.youtube.com/shorts/kxS8RnFQguw",
+        "https://www.youtube.com/shorts/s9FsuvtjH5U",
+        "https://www.youtube.com/shorts/O8TYGgde4oo",
+        "https://www.youtube.com/shorts/zZf7i5a3Ld0",
+        "https://www.youtube.com/shorts/uPxZh7hb8t8",
+        "https://www.youtube.com/shorts/zBoJfgp64CY",
+        "https://www.youtube.com/shorts/yDqG0Y3T8X8",
+        "https://www.youtube.com/shorts/I6Lhcvid4V4",
+        "https://www.youtube.com/shorts/Xbc4jbGAXRg",
+    ]
+
     const inputContent = document.getElementById("inputContent")
     inputContent.value = localStorage.getItem("inputContent") || "z"
     const confirm = document.getElementById("confirm")
@@ -1141,6 +1162,9 @@
     }
     if (/a|05|531/.test(content)) {
         arr531.forEach(link => result.add(link));
+    }
+    if (/a|06|61/.test(content)) {
+        arr61.forEach(link => result.add(link));
     }
     let youtubeIDs = Array.from(result).map(link => new URL(link).pathname.split("/shorts/")[1]);
     let historyQueue = [];
