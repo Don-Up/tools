@@ -1269,7 +1269,7 @@
             randomIndex = Math.floor(Math.random() * youtubeIDs.length);
         } while (randomIndex === currentIndex || historyQueue.includes(randomIndex));
         historyQueue.push(randomIndex);
-        if (historyQueue.length > 2) historyQueue.shift();
+        if (historyQueue.length > 2 && youtubeIDs.length < 100) historyQueue.shift();
         loadVideo(randomIndex);
     }
 
