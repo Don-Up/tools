@@ -123,7 +123,11 @@
 
 
 <script>
-    const youtubeLinks = [
+    const zack = [
+        "https://www.youtube.com/shorts/SrL72LPS7lg",
+        "https://www.youtube.com/shorts/Jb3FgqXnmY0",
+        "https://www.youtube.com/shorts/9W_iDb0Ezb0",
+        "https://www.youtube.com/shorts/Pa92GwV2td8",
         "https://www.youtube.com/shorts/blfylv8MzA4",
         "https://www.youtube.com/shorts/l7wTWzHBK-E",
         "https://www.youtube.com/shorts/cKzobFcg-rI",
@@ -1653,6 +1657,26 @@
         "https://www.youtube.com/shorts/Xbc4jbGAXRg",
     ]
 
+    const arr62 = [
+        "https://www.youtube.com/shorts/SrL72LPS7lg",
+        "https://www.youtube.com/shorts/Jb3FgqXnmY0",
+        "https://www.youtube.com/shorts/9W_iDb0Ezb0",
+        "https://www.youtube.com/shorts/Pa92GwV2td8",
+        "https://www.youtube.com/shorts/Mjbgt19RUzA",
+        "https://www.youtube.com/shorts/dxCmq_cOi94",
+        "https://www.youtube.com/shorts/xFrBU35RYww",
+        "https://www.youtube.com/shorts/dVv2RkzWoDI",
+        "https://www.youtube.com/shorts/gCKW5ee_nPg",
+        "https://www.youtube.com/shorts/gN31oMFwg9c",
+        "https://www.youtube.com/shorts/fePZFwD438s",
+        "https://www.youtube.com/shorts/dB3IS7OkMQQ",
+        "https://www.youtube.com/shorts/fHj3hcPGRNI",
+        "https://www.youtube.com/shorts/jqsvA1fJA9s",
+        "https://www.youtube.com/shorts/JqyNwqQrSug",
+        "https://www.youtube.com/shorts/negkgN-Qfus",
+        "https://www.youtube.com/shorts/n8fk7rWgWd0",
+    ]
+
     const inputContent = document.getElementById("inputContent")
     inputContent.value = localStorage.getItem("inputContent") || "z"
     const confirm = document.getElementById("confirm")
@@ -1660,7 +1684,7 @@
     let result = new Set();
     const content = inputContent.value || "z"
     if (/a|z/.test(content)) {
-        youtubeLinks.forEach(link => result.add(link));
+        zack.forEach(link => result.add(link));
     }
     if (/a|05|530/.test(content)) {
         arr530.forEach(link => result.add(link));
@@ -1670,6 +1694,9 @@
     }
     if (/a|06|61/.test(content)) {
         arr61.forEach(link => result.add(link));
+    }
+    if (/a|06|62/.test(content)) {
+        arr62.forEach(link => result.add(link));
     }
     let youtubeIDs = Array.from(result).map(link => new URL(link).pathname.split("/shorts/")[1]);
     let historyQueue = [];
@@ -1774,7 +1801,7 @@
             randomIndex = Math.floor(Math.random() * youtubeIDs.length);
         } while (randomIndex === currentIndex || historyQueue.includes(randomIndex));
         historyQueue.push(randomIndex);
-        if (historyQueue.length > 2 && youtubeIDs.length < 100) historyQueue.shift();
+        if (youtubeIDs.length < 100 && historyQueue.length > Math.floor(youtubeIDs.length / 2)) historyQueue.shift();
         loadVideo(randomIndex);
     }
 
