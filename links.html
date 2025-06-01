@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Quote and Add Comma</title>
+    <script>
+        function processText() {
+            const input = document.getElementById('inputText').value;
+            const lines = input.split('\n');
+            const processedLines = lines.map(line => `"${line}",`);
+            const result = processedLines.join('\n');
+
+            // Set the result in the output textarea
+            const output = document.getElementById('outputText');
+            output.value = result;
+
+            // Copy result to clipboard
+            output.select();
+            output.setSelectionRange(0, 99999); // For mobile devices
+            document.execCommand("copy");
+        }
+    </script>
+</head>
+<body>
+    <h1>Add Quotes and Commas, Then Copy</h1>
+    <textarea id="inputText" rows="10" cols="50" placeholder="Enter your text here..."></textarea><br><br>
+    <button onclick="processText()">Process Text</button><br><br>
+    <textarea id="outputText" rows="10" cols="50" readonly placeholder="Processed text will appear here..."></textarea>
+</body>
+</html>
