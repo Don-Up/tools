@@ -124,6 +124,9 @@
 
 <script>
     const zack = [
+        "https://www.youtube.com/shorts/cCu8b4RHC8A",
+        "https://www.youtube.com/shorts/sI-HzbEU1OQ",
+        "https://www.youtube.com/shorts/lVSQ1hoNwDA",
         "https://www.youtube.com/shorts/SrL72LPS7lg",
         "https://www.youtube.com/shorts/Jb3FgqXnmY0",
         "https://www.youtube.com/shorts/9W_iDb0Ezb0",
@@ -1677,6 +1680,36 @@
         "https://www.youtube.com/shorts/n8fk7rWgWd0",
     ]
 
+    const arr64 = [
+        "https://www.youtube.com/shorts/cCu8b4RHC8A",
+        "https://www.youtube.com/shorts/sI-HzbEU1OQ",
+        "https://www.youtube.com/shorts/lVSQ1hoNwDA",
+        "https://www.youtube.com/shorts/ejTym9cWCw8",
+        "https://www.youtube.com/shorts/G1lhhNrLioE",
+        "https://www.youtube.com/shorts/qnVxRkUcHQI",
+        "https://www.youtube.com/shorts/wR70PKKnwZA",
+        "https://www.youtube.com/shorts/jGpN--zvA04",
+        "https://www.youtube.com/shorts/J8kp3K0CIaY",
+        "https://www.youtube.com/shorts/RkfaKLBvm-c",
+        "https://www.youtube.com/shorts/UnvELJV2p0U",
+        "https://www.youtube.com/shorts/wYdZjLo_ZZE",
+        "https://www.youtube.com/shorts/gN31oMFwg9c",
+        "https://www.youtube.com/shorts/K_nWGM4duIE",
+        "https://www.youtube.com/shorts/UiDz26TeSLs",
+        "https://www.youtube.com/shorts/ptRYbiVW_Yo",
+        "https://www.youtube.com/shorts/JrsEgh18vAY",
+        "https://www.youtube.com/shorts/wst8HlyHIAc",
+        "https://www.youtube.com/shorts/cqwGgwgVRiQ",
+        "https://www.youtube.com/shorts/Jaqb5dsThA4",
+        "https://www.youtube.com/shorts/AAEo5y4mznU",
+        "https://www.youtube.com/shorts/NBJabJBxWik",
+        "https://www.youtube.com/shorts/MHuqsZ9n1eI",
+        "https://www.youtube.com/shorts/ddrBWgKZxOs",
+        "https://www.youtube.com/shorts/CSFdReLSUOE",
+        "https://www.youtube.com/shorts/_YwWr5W2C8c",
+        "https://www.youtube.com/shorts/zRfZoX2c4Ec",
+    ]
+
     const inputContent = document.getElementById("inputContent")
     inputContent.value = localStorage.getItem("inputContent") || "z"
     const confirm = document.getElementById("confirm")
@@ -1697,6 +1730,9 @@
     }
     if (/a|06|62/.test(content)) {
         arr62.forEach(link => result.add(link));
+    }
+    if (/a|06|64/.test(content)) {
+        arr64.forEach(link => result.add(link));
     }
     let youtubeIDs = Array.from(result).map(link => new URL(link).pathname.split("/shorts/")[1]);
     let historyQueue = [];
@@ -1762,9 +1798,9 @@
         const currentTime = player.getCurrentTime();
 
         if (e.key === "ArrowLeft") {
-            player.seekTo(Math.max(currentTime - 3, 0), true);
+            player.seekTo(Math.max(currentTime - 2.5, 0), true);
         } else if (e.key === "ArrowRight") {
-            player.seekTo(currentTime + 3, true);
+            player.seekTo(currentTime + 2.5, true);
         } else if (e.key === "ArrowUp") {
             e.preventDefault()
             // 上一个视频
