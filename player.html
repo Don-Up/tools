@@ -105,20 +105,22 @@
     <div id="timeDisplay">00:00 / 00:00</div> <!-- 新增 -->
 </div>
 
-<div id="modeSelector">
-    <label><input type="radio" name="playMode" value="random" checked>随机循环</label>
-    <label><input type="radio" name="playMode" value="sequential">顺序循环</label>
-    <label><input type="radio" name="playMode" value="single">单个循环</label>
-    <a id="currentLink" href="#" target="_blank" style="margin-left: 10px; color: #0af; text-decoration: underline;">
-        🔗 Link
-    </a>
-</div>
+<div style="position: absolute;bottom: 35px;right: 20px">
+    <div id="modeSelector">
+        <label><input type="radio" name="playMode" value="random" checked>Random</label>
+        <label><input type="radio" name="playMode" value="sequential">Seq</label>
+        <label><input type="radio" name="playMode" value="single">Single</label>
+        <a id="currentLink" href="#" target="_blank" style="margin-left: 10px; color: #0af; text-decoration: underline;">
+            🔗 Link
+        </a>
+    </div>
 
-<div id="controls">
-    <button id="prevButton">上一个</button>
-    <button id="nextButton">下一个</button>
-    <input id="inputContent">
-    <button id="confirm">Confirm</button>
+    <div id="controls">
+        <button id="prevButton">Prev</button>
+        <button id="nextButton">Next</button>
+        <input id="inputContent">
+        <button id="confirm">Confirm</button>
+    </div>
 </div>
 
 
@@ -3035,16 +3037,15 @@
         if (!player || !player.getCurrentTime) return;
 
         const currentTime = player.getCurrentTime();
-
-        if (e.key === "ArrowLeft") {
+        if (e.key === "ArrowLeft" || e.key === "a") {
             player.seekTo(Math.max(currentTime - 2.5, 0), true);
-        } else if (e.key === "ArrowRight") {
+        } else if (e.key === "ArrowRight" || e.key === "d") {
             player.seekTo(currentTime + 2.5, true);
-        } else if (e.key === "ArrowUp") {
+        } else if (e.key === "ArrowUp" || e.key === "w") {
             e.preventDefault()
             // 上一个视频
             document.getElementById("prevButton").click();
-        } else if (e.key === "ArrowDown") {
+        } else if (e.key === "ArrowDown" || e.key === "s") {
             e.preventDefault()
             // 下一个视频
             document.getElementById("nextButton").click();
@@ -3076,7 +3077,6 @@
             randomIndex = Math.floor(Math.random() * youtubeIDs.length);
         } while (randomIndex === currentIndex || historyQueue.includes(randomIndex));
         historyQueue.push(randomIndex);
-        console.log(historyQueue)
         if (youtubeIDs.length < 100 && historyQueue.length > Math.floor(youtubeIDs.length / 2)) historyQueue.shift();
         loadVideo(randomIndex);
     }
