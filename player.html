@@ -108,7 +108,7 @@
 <div style="position: absolute;bottom: 35px;right: 20px">
     <div>Total: <span id="total"></span></div>
     <div style="right: 0">
-        <div>Range: <input type="number" id="from" value="0" style="width: 50px"> to <input type="number" id="to" value="0" style="width: 50px"> <button id="slice">slice</button></div>
+        <div>Range: <input type="number" id="from" value="1" style="width: 50px"> to <input type="number" id="to" value="1" style="width: 50px"> <button id="slice">slice</button></div>
     </div>
     <div id="modeSelector">
         <label><input type="radio" name="playMode" value="random" checked>Random</label>
@@ -4076,10 +4076,10 @@
     const from = document.getElementById("from")
     const to = document.getElementById("to")
     slice.addEventListener("click", () => {
-        const fromValue = Math.min(from.value || 0, result.length-1)
-        const toValue = Math.min(to.value || 0, result.length-1)
+        const fromValue = Math.min(from.value || 1, result.length)
+        const toValue = Math.min(to.value || 1, result.length)
         if(toValue <= fromValue) return
-        youtubeIDs = allIds.slice(fromValue, toValue)
+        youtubeIDs = allIds.slice(fromValue-1, toValue)
     })
 
     let result = [];
