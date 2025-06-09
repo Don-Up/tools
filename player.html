@@ -4181,7 +4181,6 @@
 
     document.addEventListener("keydown", (e) => {
         if (!player || !player.getCurrentTime) return;
-
         const currentTime = player.getCurrentTime();
         if (e.key === "ArrowLeft" || e.key === "a") {
             player.seekTo(Math.max(currentTime - 2.5, 0), true);
@@ -4195,6 +4194,18 @@
             e.preventDefault()
             // 下一个视频
             document.getElementById("nextButton").click();
+        } else if (e.key === "1") {
+            e.preventDefault()
+            // 暂停播放
+            if (player.getPlayerState() === YT.PlayerState.PLAYING) {
+                player.pauseVideo();
+            } else {
+                player.playVideo();
+            }
+        } else if (e.key === "2") {
+            e.preventDefault()
+            // 播放暂停
+            currentLink.click()
         }
     });
 
