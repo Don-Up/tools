@@ -106,6 +106,10 @@
 </div>
 
 <div style="position: absolute;bottom: 35px;right: 20px">
+    <div>Total: <span id="total"></span></div>
+    <div style="right: 0">
+        <div>Range: <input type="number" id="from" value="0" style="width: 50px"> to <input type="number" id="to" value="0" style="width: 50px"> <button id="slice">slice</button></div>
+    </div>
     <div id="modeSelector">
         <label><input type="radio" name="playMode" value="random" checked>Random</label>
         <label><input type="radio" name="playMode" value="sequential">Seq</label>
@@ -126,6 +130,19 @@
 
 <script>
     const zack = [
+        "https://www.youtube.com/shorts/7uNNPX8Uv-8",
+        "https://www.youtube.com/shorts/rN2PlDLdAqE",
+        "https://www.youtube.com/shorts/x_PgSVA8Guc",
+        "https://www.youtube.com/shorts/-qzgoWek_AI",
+        "https://www.youtube.com/shorts/t-rDUq6FPt0",
+        "https://www.youtube.com/shorts/VbOD_n9cpos",
+        "https://www.youtube.com/shorts/2M9pT4nG8ac",
+        "https://www.youtube.com/shorts/fJ8CbyFPQD4",
+        "https://www.youtube.com/shorts/4CXWZVWrl6Y",
+        "https://www.youtube.com/shorts/jtUUzpqcmoE",
+        "https://www.youtube.com/shorts/auC3QEcfvrU",
+        "https://www.youtube.com/shorts/On-LhJmv7so",
+        "https://www.youtube.com/shorts/6rML2-eC8RM",
         "https://www.youtube.com/shorts/SZzmGuvDvrw",
         "https://www.youtube.com/shorts/IjO0fn6QXGc",
         "https://www.youtube.com/shorts/LkMdTnAFz-k",
@@ -1617,6 +1634,9 @@
     ];
 
     const insight = [
+        "https://www.youtube.com/shorts/xL5zytBr5SY",
+        "https://www.youtube.com/shorts/IiTY_K5xbKo",
+        "https://www.youtube.com/shorts/OsCwNFt01Ts",
         "https://www.youtube.com/shorts/AQEOZGaf4uE",
         "https://www.youtube.com/shorts/-MyGPKv51Fo",
         "https://www.youtube.com/shorts/ejTym9cWCw8",
@@ -4052,6 +4072,15 @@
     const inputContent = document.getElementById("inputContent")
     inputContent.value = localStorage.getItem("inputContent") || "z"
     const confirm = document.getElementById("confirm")
+    const slice = document.getElementById("slice")
+    const from = document.getElementById("from")
+    const to = document.getElementById("to")
+    slice.addEventListener("click", () => {
+        const fromValue = Math.min(from.value || 0, result.length-1)
+        const toValue = Math.min(to.value || 0, result.length-1)
+        if(toValue <= fromValue) return
+        youtubeIDs = allIds.slice(fromValue, toValue)
+    })
 
     let result = [];
     const content = inputContent.value || "a"
@@ -4089,7 +4118,10 @@
         result.push(...kobi)
     }
 
+    document.getElementById("total").textContent = result.length+""
+
     let youtubeIDs = result.map(link => new URL(link).pathname.split("/shorts/")[1]);
+    const allIds = youtubeIDs
     let historyQueue = [];
 
     confirm.addEventListener("click", function () {
@@ -4186,7 +4218,9 @@
     }
 
     function playRandomVideo() {
+
         let randomIndex;
+
         do {
             randomIndex = Math.floor(Math.random() * youtubeIDs.length);
         } while (randomIndex === currentIndex || historyQueue.includes(randomIndex));
