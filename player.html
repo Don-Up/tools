@@ -130,6 +130,10 @@
 
 <script>
     const zack = [
+        "https://www.youtube.com/shorts/OFLJPNb1EVM",
+        "https://www.youtube.com/shorts/fmzAVZ5cbcg",
+        "https://www.youtube.com/shorts/uMOLousxPl0",
+        "https://www.youtube.com/shorts/_aR9zJOfL98",
         "https://www.youtube.com/shorts/Rg4aInePpRI",
         "https://www.youtube.com/shorts/NRe_3-n15BA",
         "https://www.youtube.com/shorts/ay7PPTlS_Bk",
@@ -4084,7 +4088,7 @@
         const fromValue = Math.min(from.value || 1, result.length)
         const toValue = Math.min(to.value || 1, result.length)
         if(toValue <= fromValue) return
-        youtubeIDs = allIds.slice(fromValue-1, toValue)
+        youtubeIDs = allIds.slice(fromValue-1, toValue+1)
     })
 
     let result = [];
