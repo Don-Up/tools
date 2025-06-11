@@ -545,11 +545,11 @@
             let html = ""
             words.forEach(word => {
                 // 判断word最后一个字符是否是标点符号
-                if (word.length > 0 && word.charAt(word.length - 1).match(/[.,!?]/)) {
+                if (word && word.length > 0 && word.charAt(word.length - 1).match(/[.,!?]/)) {
                     html += `<input data-placeholder="${word.slice(0, -1)}" data-char-index="0" style="margin-right: 20px;margin-bottom: 10px;">`
                     html += `<span style="margin-right: 20px;margin-bottom: 10px;">${word.charAt(word.length - 1)}</span>`
                 } else {
-                    if (word.length <= wordLengthInput.value) {
+                    if (word && word.length <= wordLengthInput.value) {
                         html += `<span style="margin-right: 20px;margin-bottom: 10px;">${word}</span>`
                     } else {
                         html += `<input data-placeholder="${word}" data-char-index="0" style="margin-right: 20px;margin-bottom: 10px;">`
