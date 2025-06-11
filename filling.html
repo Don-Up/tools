@@ -621,7 +621,7 @@
             buttonRandom.addEventListener('click', function () {
                 html = ""
                 words.forEach(word => {
-                    if (word.length > 0 && word.charAt(word.length - 1).match(/[.,!?]/)) {
+                    if (word && word.length > 0 && word.charAt(word.length - 1).match(/[.,!?]/)) {
                         if (word.length - 1 <= wordLengthInput.value || Math.random() * 100 <= inputNumber.value) {
                             html += `<span style="margin-right: 20px;margin-bottom: 10px;">${word.slice(0, -1)}</span>`
                         } else {
@@ -629,7 +629,7 @@
                         }
                         html += `<span style="margin-right: 20px;margin-bottom: 10px;">${word.charAt(word.length - 1)}</span>`
                     } else {
-                        if (word.length <= wordLengthInput.value || Math.random() * 100 <= inputNumber.value) {
+                        if (word && word.length <= wordLengthInput.value || Math.random() * 100 <= inputNumber.value) {
                             html += `<span style="margin-right: 20px;margin-bottom: 10px;">${word}</span>`
                         } else {
                             html += `<input data-placeholder="${word}" data-char-index="0" style="margin-right: 20px;margin-bottom: 10px;">`
