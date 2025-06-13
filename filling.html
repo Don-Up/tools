@@ -608,6 +608,13 @@
             const span2 = document.createElement("span")
             span2.innerText = 'len'
 
+            const buttonPlay = document.createElement('button')
+            buttonPlay.innerText = 'Play'
+            buttonPlay.style.marginLeft = '20px'
+            buttonPlay.addEventListener('click', function () {
+                playText(p.innerText)
+            })
+
             const buttonRandom = document.createElement('button')
             buttonRandom.innerText = 'random'
 
@@ -649,6 +656,7 @@
                 dialog1.appendChild(buttonCapital)
                 dialog1.appendChild(wordLenInput)
                 dialog1.appendChild(span2)
+                dialog1.appendChild(buttonPlay)
                 dialog1.appendChild(recording)
             })
             dialog1.appendChild(document.createElement('br'))
@@ -659,6 +667,7 @@
             dialog1.appendChild(buttonCapital)
             dialog1.appendChild(wordLenInput)
             dialog1.appendChild(span2)
+            dialog1.appendChild(buttonPlay)
             dialog1.appendChild(recording)
             dialog1.querySelectorAll('input').forEach(input => {
                 if (input.type !== "number") {
@@ -842,6 +851,11 @@
     document.addEventListener("keydown", (event) => {
         // console.log("Keydown event:", event.code)
         switch (event.code) {
+            case "KeyH":
+                event.preventDefault()
+                document.querySelectorAll("p p").forEach(p => {
+                    p.style.opacity = p.style.opacity === "0" ? "1" : "0"
+                })
             case "KeyF":
                 event.preventDefault()
                 if (currentDialogText) {
