@@ -697,27 +697,33 @@
         // console.log("Keydown event:", event.code)
         switch (event.code) {
             case "KeyP":
-                const selection = window.getSelection()
-                currentSelectedP.innerText = selection.toString().trim()
-                showDialog(currentSelectedP)
+                if (event.altKey){
+                    const selection = window.getSelection()
+                    currentSelectedP.innerText = selection.toString().trim()
+                    showDialog(currentSelectedP)
+                }
                 break;
             case "KeyH":
-                event.preventDefault()
-                document.querySelectorAll("p p").forEach(p => {
-                    p.style.opacity = p.style.opacity === "0" ? "1" : "0"
-                })
+                if(event.altKey){
+                    document.querySelectorAll("p p").forEach(p => {
+                        p.style.opacity = p.style.opacity === "0" ? "1" : "0"
+                    })
+                }
             case "KeyF":
-                event.preventDefault()
-                if (currentDialogText) {
+                if (event.altKey && currentDialogText) {
                     playText(currentDialogText)
                 }
                 break
             case "KeyR":
-                event.preventDefault()
-                record()
+                if(event.altKey){
+                    event.preventDefault()
+                    record()
+                }
                 break
             case "KeyT":
-                playback()
+                if(event.altKey){
+                    playback()
+                }
                 break;
             case "Space":
                 event.preventDefault()
@@ -728,17 +734,18 @@
                 }
                 break;
             case "KeyD":
-                event.preventDefault()
-                if (!isPaused && isPlaying) {
-                    isPaused = true
-                    window.speechSynthesis.pause()
-                } else {
-                    isPaused = false
-                    window.speechSynthesis.resume()
+                if(event.altKey){
+                    if (!isPaused && isPlaying) {
+                        isPaused = true
+                        window.speechSynthesis.pause()
+                    } else {
+                        isPaused = false
+                        window.speechSynthesis.resume()
+                    }
                 }
+
                 break
             case "KeyV":
-                event.preventDefault()
                 if (event.ctrlKey) {
                     // 从剪贴板获取文本
                     navigator.clipboard.readText().then(text => {
