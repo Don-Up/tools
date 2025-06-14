@@ -697,7 +697,7 @@
         switch (event.code) {
             case "KeyP":
                 const selection = window.getSelection()
-                currentSelectedP.innerText = selection.toString()
+                currentSelectedP.innerText = selection.toString().trim()
                 showDialog(currentSelectedP)
                 break;
             case "KeyH":

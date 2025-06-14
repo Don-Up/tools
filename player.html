@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>随机循环播放 YouTube 视频</title>
     <style>
@@ -108,13 +108,18 @@
 <div style="position: absolute;bottom: 35px;right: 20px">
     <div>Total: <span id="total"></span></div>
     <div style="right: 0">
-        <div>Range: <input type="number" id="from" value="1" style="width: 50px"> to <input type="number" id="to" value="1" style="width: 50px"> <button id="slice">slice</button></div>
+        <div>Range: <input type="number" id="from" value="1" style="width: 50px"> to <input type="number" id="to"
+                                                                                            value="1"
+                                                                                            style="width: 50px">
+            <button id="slice">slice</button>
+        </div>
     </div>
     <div id="modeSelector">
         <label><input type="radio" name="playMode" value="random" checked>Random</label>
         <label><input type="radio" name="playMode" value="sequential">Seq</label>
         <label><input type="radio" name="playMode" value="single">Single</label>
-        <a id="currentLink" href="#" target="_blank" style="margin-left: 10px; color: #0af; text-decoration: underline;">
+        <a id="currentLink" href="#" target="_blank"
+           style="margin-left: 10px; color: #0af; text-decoration: underline;">
             🔗 Link
         </a>
     </div>
@@ -130,6 +135,18 @@
 
 <script>
     const zack = [
+        "https://www.youtube.com/shorts/FB4RK8zCcAA",
+        "https://www.youtube.com/shorts/r8HJyBLYGZw",
+        "https://www.youtube.com/shorts/aGdUNAmMV6s",
+        "https://www.youtube.com/shorts/M1ACIVJSn8A",
+        "https://www.youtube.com/shorts/H8sXj3PLQ3c",
+        "https://www.youtube.com/shorts/3so3LTpF3t4",
+        "https://www.youtube.com/shorts/oCary3dC6Ds",
+        "https://www.youtube.com/shorts/-EwfDoNcfMc",
+        "https://www.youtube.com/shorts/wd7py3OU3jU",
+        "https://www.youtube.com/shorts/VzhGz_mTVhs",
+        "https://www.youtube.com/shorts/MvobhFKndtA",
+        "https://www.youtube.com/shorts/c7spmCvEttg",
         "https://www.youtube.com/shorts/OFLJPNb1EVM",
         "https://www.youtube.com/shorts/fmzAVZ5cbcg",
         "https://www.youtube.com/shorts/uMOLousxPl0",
@@ -1642,6 +1659,11 @@
     ];
 
     const insight = [
+        "https://www.youtube.com/shorts/ca2aOa5H5y0",
+        "https://www.youtube.com/shorts/VL5gQ7cl8Dc",
+        "https://www.youtube.com/shorts/l591eXYHigM",
+        "https://www.youtube.com/shorts/NTokw5nEypY",
+        "https://www.youtube.com/shorts/-GGVfjLd2uo",
         "https://www.youtube.com/shorts/-GGVfjLd2uo",
         "https://www.youtube.com/shorts/xL5zytBr5SY",
         "https://www.youtube.com/shorts/IiTY_K5xbKo",
@@ -1953,6 +1975,13 @@
     ]
 
     const kube = [
+        "https://www.youtube.com/shorts/3OLvXb5kYUc",
+        "https://www.youtube.com/shorts/GLGlhF0_uro",
+        "https://www.youtube.com/shorts/WpWydLVH3Bg",
+        "https://www.youtube.com/shorts/JEDrMHYTv5w",
+        "https://www.youtube.com/shorts/VriyQor49Ok",
+        "https://www.youtube.com/shorts/oQasntNjaOM",
+        "https://www.youtube.com/shorts/r3offBTbLDQ",
         "https://www.youtube.com/shorts/Zu_IQmpvkOY",
         "https://www.youtube.com/shorts/MaEtmNwhnWs",
         "https://www.youtube.com/shorts/qnVxRkUcHQI",
@@ -2227,6 +2256,23 @@
     ]
 
     const theArtOfWar = [
+        "https://www.youtube.com/shorts/BhlqJn6-BHA",
+        "https://www.youtube.com/shorts/Lc9mnIts1jE",
+        "https://www.youtube.com/shorts/PBHQqQKiGSY",
+        "https://www.youtube.com/shorts/Gl43Wtlp-ko",
+        "https://www.youtube.com/shorts/0i5GSvmAX08",
+        "https://www.youtube.com/shorts/l4KjOYAJ8oA",
+        "https://www.youtube.com/shorts/evan_yHhdHk",
+        "https://www.youtube.com/shorts/bATs3yav0cc",
+        "https://www.youtube.com/shorts/3_as4doF_mo",
+        "https://www.youtube.com/shorts/Q_vsZRudsZ4",
+        "https://www.youtube.com/shorts/1_Fdka21cao",
+        "https://www.youtube.com/shorts/MtChY9ZmSac",
+        "https://www.youtube.com/shorts/CTdV4DMyJcM",
+        "https://www.youtube.com/shorts/idG-KAG9XME",
+        "https://www.youtube.com/shorts/CnzPjkjsEbM",
+        "https://www.youtube.com/shorts/tKv1e-5UK5s",
+        "https://www.youtube.com/shorts/PX_yih3xs64",
         "https://www.youtube.com/shorts/4X-olAF9cjg",
         "https://www.youtube.com/shorts/wH6I6rQVv4Y",
         "https://www.youtube.com/shorts/SJ8dP3KvYFE",
@@ -2327,6 +2373,9 @@
     ]
 
     const sean = [
+        "https://www.youtube.com/shorts/eGzUC8Uslp0",
+        "https://www.youtube.com/shorts/Dnv5kK5KmyQ",
+        "https://www.youtube.com/shorts/u3d_i3VfRr4",
         "https://www.youtube.com/shorts/NBJabJBxWik",
         "https://www.youtube.com/shorts/I6Lhcvid4V4",
         "https://www.youtube.com/shorts/oA_quWKCwaQ",
@@ -2762,6 +2811,7 @@
     ]
 
     const terra = [
+        "https://www.youtube.com/shorts/2R_-hh1BlEM",
         "https://www.youtube.com/shorts/8HBJxjhyFLc",
         "https://www.youtube.com/shorts/hIiKQ-lRpQU",
         "https://www.youtube.com/shorts/S7CYoPH2tf0",
@@ -2814,6 +2864,8 @@
     ]
 
     const scienceverse = [
+        "https://www.youtube.com/shorts/JA7chI8MsM4",
+        "https://www.youtube.com/shorts/mhuFcMcQV30",
         "https://www.youtube.com/shorts/6gGORb7ZLQY",
         "https://www.youtube.com/shorts/8k3-DafAahc",
         "https://www.youtube.com/shorts/34YU_BFACpE",
@@ -2978,75 +3030,14 @@
         "https://www.youtube.com/shorts/W5csaZsN38E",
     ]
 
-    const kurzgesagt = [
-        "https://www.youtube.com/shorts/o7aXV_PV4ss",
-        "https://www.youtube.com/shorts/kYOkrswU1KE",
-        "https://www.youtube.com/shorts/MDZ2iWN0ZSI",
-        "https://www.youtube.com/shorts/UjAJ2jKH_QM",
-        "https://www.youtube.com/shorts/eGU9Bvl7VvQ",
-        "https://www.youtube.com/shorts/PHI07XtbfVA",
-        "https://www.youtube.com/shorts/joYJahY4FUI",
-        "https://www.youtube.com/shorts/FPZuklD9eRg",
-        "https://www.youtube.com/shorts/XQQkHLW8b3Y",
-        "https://www.youtube.com/shorts/KmgRBiRMmAU",
-        "https://www.youtube.com/shorts/RLEvo3I5C6w",
-        "https://www.youtube.com/shorts/UyUm3KEnZxE",
-        "https://www.youtube.com/shorts/oR3Q7RntqEw",
-        "https://www.youtube.com/shorts/0pyGPK3fG4U",
-        "https://www.youtube.com/shorts/mCAm38dSD78",
-        "https://www.youtube.com/shorts/Pkbhn8sIWuw",
-        "https://www.youtube.com/shorts/vC9BeyIlcYo",
-        "https://www.youtube.com/shorts/ecIwfilIkTY",
-        "https://www.youtube.com/shorts/v6WMAD5wNKs",
-        "https://www.youtube.com/shorts/tDStIeOWc40",
-        "https://www.youtube.com/shorts/dIpttD7b8B4",
-        "https://www.youtube.com/shorts/_kelDJFjhOo",
-        "https://www.youtube.com/shorts/49ApsH6lzk0",
-        "https://www.youtube.com/shorts/W-x9d-nhal4",
-        "https://www.youtube.com/shorts/hX_acKX1G2Y",
-        "https://www.youtube.com/shorts/xswF0mRay_8",
-        "https://www.youtube.com/shorts/92Y7SCDgCLg",
-        "https://www.youtube.com/shorts/n2sn4kkkGQM",
-        "https://www.youtube.com/shorts/_z7DkeP5WNg",
-        "https://www.youtube.com/shorts/fcIWyctZVTM",
-        "https://www.youtube.com/shorts/J8imlz6Lki8",
-        "https://www.youtube.com/shorts/BLW4hCFwSXE",
-        "https://www.youtube.com/shorts/i8wAjC69ZuY",
-        "https://www.youtube.com/shorts/W6-BGkuA2Gc",
-        "https://www.youtube.com/shorts/BNAgDOZCydY",
-        "https://www.youtube.com/shorts/S-gRXjKUnVs",
-        "https://www.youtube.com/shorts/LFfFlYQfXh0",
-        "https://www.youtube.com/shorts/DRjmRNsPl1M",
-        "https://www.youtube.com/shorts/cUD8Nt0JDlw",
-        "https://www.youtube.com/shorts/8ILQMRr1-8M",
-        "https://www.youtube.com/shorts/i981tDgvhPg",
-        "https://www.youtube.com/shorts/Oj_OwYR9jGQ",
-        "https://www.youtube.com/shorts/Pj20omaP7WI",
-        "https://www.youtube.com/shorts/W1Qyv6EI2hE",
-        "https://www.youtube.com/shorts/ld4K5nw9gsk",
-        "https://www.youtube.com/shorts/8_cAY_rQpzM",
-        "https://www.youtube.com/shorts/6AWYgNArZZw",
-        "https://www.youtube.com/shorts/Chh2lgGe2YE",
-        "https://www.youtube.com/shorts/qP65siuTLFc",
-        "https://www.youtube.com/shorts/BxXzzAEEhCA",
-        "https://www.youtube.com/shorts/28T91fgkpkA",
-        "https://www.youtube.com/shorts/4TlyzKBm5yw",
-        "https://www.youtube.com/shorts/kblSnj0p6bE",
-        "https://www.youtube.com/shorts/FPKRFw2jrnU",
-        "https://www.youtube.com/shorts/8Ey3_9N089k",
-        "https://www.youtube.com/shorts/_arb8Fu3LXo",
-        "https://www.youtube.com/shorts/XFM4tCakAXY",
-        "https://www.youtube.com/shorts/BNvL_uZhTsY",
-        "https://www.youtube.com/shorts/RzwaiFvyN6s",
-        "https://www.youtube.com/shorts/LNv4y3wPQA0",
-        "https://www.youtube.com/shorts/hvmIZAvt3jE",
-        "https://www.youtube.com/shorts/IayvE_jFgrc",
-        "https://www.youtube.com/shorts/o2afhMs0aUg",
-        "https://www.youtube.com/shorts/UKOxj8oP59w",
-        "https://www.youtube.com/shorts/pb9g6osg2aY",
-    ]
-
     const outerliners = [
+        "https://www.youtube.com/shorts/HoPSyF7TJPk",
+        "https://www.youtube.com/shorts/mYO8O1VIEyk",
+        "https://www.youtube.com/shorts/VbsBMK1C_uI",
+        "https://www.youtube.com/shorts/mV41MZ4kaeI",
+        "https://www.youtube.com/shorts/qY80_gYX0z8",
+        "https://www.youtube.com/shorts/sP2TSwhJPIQ",
+        "https://www.youtube.com/shorts/-4QHiAggV1M",
         "https://www.youtube.com/shorts/3OuYkD9yzg4",
         "https://www.youtube.com/shorts/ZNCsTFzJdZQ",
         "https://www.youtube.com/shorts/wYdZjLo_ZZE",
@@ -3297,6 +3288,14 @@
     ]
 
     const nash = [
+        "https://www.youtube.com/shorts/GD_XXDSyCNc",
+        "https://www.youtube.com/shorts/IqJXi3gHNQY",
+        "https://www.youtube.com/shorts/ehR1itQdE58",
+        "https://www.youtube.com/shorts/ZSu65mufhzk",
+        "https://www.youtube.com/shorts/P6dnSsWdmn8",
+        "https://www.youtube.com/shorts/-ugqdxcKLt4",
+        "https://www.youtube.com/shorts/-6HgUOvTjZI",
+        "https://www.youtube.com/shorts/O2ZeQFDtQ84",
         "https://www.youtube.com/shorts/ct-rDM609RM",
         "https://www.youtube.com/shorts/P5n-_tOjwt0",
         "https://www.youtube.com/shorts/K_nWGM4duIE",
@@ -3429,6 +3428,12 @@
     ]
 
     const kobi = [
+        "https://www.youtube.com/shorts/-w8BQfYas1I",
+        "https://www.youtube.com/shorts/TF1Z6Wv4peY",
+        "https://www.youtube.com/shorts/LmtONXHMxYA",
+        "https://www.youtube.com/shorts/0K-eICKKH_Q",
+        "https://www.youtube.com/shorts/guAapCq9DbA",
+        "https://www.youtube.com/shorts/5RbSEj0dXe4",
         "https://www.youtube.com/shorts/xmbr4I5Zd5o",
         "https://www.youtube.com/shorts/M14JhNVb3PQ",
         "https://www.youtube.com/shorts/wvQ_TaARLoQ",
@@ -4078,6 +4083,74 @@
         // "https://www.youtube.com/shorts/5wqjSQJDElg",
     ]
 
+    const kurzgesagt = [
+        "https://www.youtube.com/shorts/o7aXV_PV4ss",
+        "https://www.youtube.com/shorts/kYOkrswU1KE",
+        "https://www.youtube.com/shorts/MDZ2iWN0ZSI",
+        "https://www.youtube.com/shorts/UjAJ2jKH_QM",
+        "https://www.youtube.com/shorts/eGU9Bvl7VvQ",
+        "https://www.youtube.com/shorts/PHI07XtbfVA",
+        "https://www.youtube.com/shorts/joYJahY4FUI",
+        "https://www.youtube.com/shorts/FPZuklD9eRg",
+        "https://www.youtube.com/shorts/XQQkHLW8b3Y",
+        "https://www.youtube.com/shorts/KmgRBiRMmAU",
+        "https://www.youtube.com/shorts/RLEvo3I5C6w",
+        "https://www.youtube.com/shorts/UyUm3KEnZxE",
+        "https://www.youtube.com/shorts/oR3Q7RntqEw",
+        "https://www.youtube.com/shorts/0pyGPK3fG4U",
+        "https://www.youtube.com/shorts/mCAm38dSD78",
+        "https://www.youtube.com/shorts/Pkbhn8sIWuw",
+        "https://www.youtube.com/shorts/vC9BeyIlcYo",
+        "https://www.youtube.com/shorts/ecIwfilIkTY",
+        "https://www.youtube.com/shorts/v6WMAD5wNKs",
+        "https://www.youtube.com/shorts/tDStIeOWc40",
+        "https://www.youtube.com/shorts/dIpttD7b8B4",
+        "https://www.youtube.com/shorts/_kelDJFjhOo",
+        "https://www.youtube.com/shorts/49ApsH6lzk0",
+        "https://www.youtube.com/shorts/W-x9d-nhal4",
+        "https://www.youtube.com/shorts/hX_acKX1G2Y",
+        "https://www.youtube.com/shorts/xswF0mRay_8",
+        "https://www.youtube.com/shorts/92Y7SCDgCLg",
+        "https://www.youtube.com/shorts/n2sn4kkkGQM",
+        "https://www.youtube.com/shorts/_z7DkeP5WNg",
+        "https://www.youtube.com/shorts/fcIWyctZVTM",
+        "https://www.youtube.com/shorts/J8imlz6Lki8",
+        "https://www.youtube.com/shorts/BLW4hCFwSXE",
+        "https://www.youtube.com/shorts/i8wAjC69ZuY",
+        "https://www.youtube.com/shorts/W6-BGkuA2Gc",
+        "https://www.youtube.com/shorts/BNAgDOZCydY",
+        "https://www.youtube.com/shorts/S-gRXjKUnVs",
+        "https://www.youtube.com/shorts/LFfFlYQfXh0",
+        "https://www.youtube.com/shorts/DRjmRNsPl1M",
+        "https://www.youtube.com/shorts/cUD8Nt0JDlw",
+        "https://www.youtube.com/shorts/8ILQMRr1-8M",
+        "https://www.youtube.com/shorts/i981tDgvhPg",
+        "https://www.youtube.com/shorts/Oj_OwYR9jGQ",
+        "https://www.youtube.com/shorts/Pj20omaP7WI",
+        "https://www.youtube.com/shorts/W1Qyv6EI2hE",
+        "https://www.youtube.com/shorts/ld4K5nw9gsk",
+        "https://www.youtube.com/shorts/8_cAY_rQpzM",
+        "https://www.youtube.com/shorts/6AWYgNArZZw",
+        "https://www.youtube.com/shorts/Chh2lgGe2YE",
+        "https://www.youtube.com/shorts/qP65siuTLFc",
+        "https://www.youtube.com/shorts/BxXzzAEEhCA",
+        "https://www.youtube.com/shorts/28T91fgkpkA",
+        "https://www.youtube.com/shorts/4TlyzKBm5yw",
+        "https://www.youtube.com/shorts/kblSnj0p6bE",
+        "https://www.youtube.com/shorts/FPKRFw2jrnU",
+        "https://www.youtube.com/shorts/8Ey3_9N089k",
+        "https://www.youtube.com/shorts/_arb8Fu3LXo",
+        "https://www.youtube.com/shorts/XFM4tCakAXY",
+        "https://www.youtube.com/shorts/BNvL_uZhTsY",
+        "https://www.youtube.com/shorts/RzwaiFvyN6s",
+        "https://www.youtube.com/shorts/LNv4y3wPQA0",
+        "https://www.youtube.com/shorts/hvmIZAvt3jE",
+        "https://www.youtube.com/shorts/IayvE_jFgrc",
+        "https://www.youtube.com/shorts/o2afhMs0aUg",
+        "https://www.youtube.com/shorts/UKOxj8oP59w",
+        "https://www.youtube.com/shorts/pb9g6osg2aY",
+    ]
+
     const inputContent = document.getElementById("inputContent")
     inputContent.value = localStorage.getItem("inputContent") || "z"
     const confirm = document.getElementById("confirm")
@@ -4087,8 +4160,8 @@
     slice.addEventListener("click", () => {
         const fromValue = Math.min(from.value || 1, result.length)
         const toValue = Math.min(to.value || 1, result.length)
-        if(toValue <= fromValue) return
-        youtubeIDs = allIds.slice(fromValue-1, toValue+1)
+        if (toValue <= fromValue) return
+        youtubeIDs = allIds.slice(fromValue - 1, toValue + 1)
     })
 
     let result = [];
@@ -4114,20 +4187,20 @@
     if (/a|sc/.test(content)) {
         result.push(...scienceverse)
     }
-    if(/a|ku/.test(content)){
+    if (/a|ku/.test(content)) {
         result.push(...kurzgesagt)
     }
-    if(/a|o/.test(content)){
+    if (/a|o/.test(content)) {
         result.push(...outerliners)
     }
-    if(/a|n/.test(content)){
+    if (/a|n/.test(content)) {
         result.push(...nash)
     }
-    if (/a|ko/.test(content)){
+    if (/a|ko/.test(content)) {
         result.push(...kobi)
     }
 
-    document.getElementById("total").textContent = result.length+""
+    document.getElementById("total").textContent = result.length + ""
 
     let youtubeIDs = result.map(link => new URL(link).pathname.split("/shorts/")[1]);
     const allIds = youtubeIDs
