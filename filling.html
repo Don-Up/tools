@@ -742,7 +742,9 @@
                 if (event.ctrlKey) {
                     // 从剪贴板获取文本
                     navigator.clipboard.readText().then(text => {
-                        let indentedCode = text.trim().replaceAll("`<", "`&lt;").replaceAll(">`", "&gt;`") // autoIndent(text);
+                        let indentedCode = text.trim()
+                            .replaceAll("`", "")
+                            .replaceAll("`<", "`&lt;").replaceAll(">`", "&gt;`") // autoIndent(text);
                         if (!indentedCode.startsWith("<p>")) {
                             if (indentedCode.includes("\n")) {
                                 indentedCode = indentedCode.split("\n").map(line => `<p>${line.trim()}</p>`).join(" ")
@@ -791,14 +793,14 @@
         words.forEach(word => {
             // 判断word最后一个字符是否是标点符号
             if (word && word.length > 0 && word.charAt(word.length - 1).match(/[.,!?]/)) {
-                if(word.length <= wordLengthInput.value){
+                if(word.length <= wordLengthInput.value || word.includes("e.g.")){
                     html  += `<span style="margin-bottom: 10px;">${word.slice(0, -1)}</span>`
                 } else {
                     html += `<input data-placeholder="${word.slice(0, -1)}" data-char-index="0" style="margin-right: 20px;margin-bottom: 10px;">`
                 }
                 html += `<span style="margin-right: 20px;margin-bottom: 10px;">${word.charAt(word.length - 1)}</span>`
             } else {
-                if (word && word.length <= wordLengthInput.value) {
+                if (word && word.length <= wordLengthInput.value || word.includes("e.g.")) {
                     html += `<span style="margin-right: 20px;margin-bottom: 10px;">${word}</span>`
                 } else {
                     html += `<input data-placeholder="${word}" data-char-index="0" style="margin-right: 20px;margin-bottom: 10px;">`
@@ -878,14 +880,14 @@
             html = ""
             words.forEach(word => {
                 if (word && word.length > 0 && word.charAt(word.length - 1).match(/[.,!?]/)) {
-                    if (word.length - 1 <= wordLengthInput.value || Math.random() * 100 <= inputNumber.value) {
+                    if (word.length - 1 <= wordLengthInput.value || Math.random() * 100 <= inputNumber.value || word.includes("e.g.")) {
                         html += `<span style="margin-bottom: 10px;">${word.slice(0, -1)}</span>`
                     } else {
                         html += `<input data-placeholder="${word.slice(0, -1)}" data-char-index="0" style="margin-right: 20px;margin-bottom: 10px;">`
                     }
                     html += `<span style="margin-right: 20px;margin-bottom: 10px;">${word.charAt(word.length - 1)}</span>`
                 } else {
-                    if (word && word.length <= wordLengthInput.value || Math.random() * 100 <= inputNumber.value) {
+                    if (word && word.length <= wordLengthInput.value || Math.random() * 100 <= inputNumber.value || word.includes("e.g.")) {
                         html += `<span style="margin-right: 20px;margin-bottom: 10px;">${word}</span>`
                     } else {
                         html += `<input data-placeholder="${word}" data-char-index="0" style="margin-right: 20px;margin-bottom: 10px;">`
