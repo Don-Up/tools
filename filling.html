@@ -33,6 +33,7 @@
             padding: 2px;
             font-size: 20px;
             text-align: center;
+            user-select: none;
         }
 
         input::placeholder {
@@ -141,14 +142,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
 </head>
 <body>
-<div style="display: inline-block;position: fixed;margin-left: 10px;margin-top: 20px;">
-    <select id="voiceSelect" class="voice-select">
+<div style="display: inline-block;position: fixed;margin-left: 10px;margin-top: 20px;user-select: none">
+    <select id="voiceSelect" class="voice-select" style="user-select: none">
         <option value="">Choose the speaker</option>
     </select>
     <div>
         <label for="rateSlider">Speed:</label>
         <input id="rateSlider" type="range" min="0.5" max="2" step="0.05" value="1.00" title="语速"
-               style="margin-bottom: 10px;">
+               style="margin-bottom: 10px">
         <span id="rateValue">1.00</span>
     </div>
     <div>
@@ -741,7 +742,7 @@
                 if (event.ctrlKey) {
                     // 从剪贴板获取文本
                     navigator.clipboard.readText().then(text => {
-                        let indentedCode = text.replaceAll("`<", "`&lt;").replaceAll(">`", "&gt;`") // autoIndent(text);
+                        let indentedCode = text.trim().replaceAll("`<", "`&lt;").replaceAll(">`", "&gt;`") // autoIndent(text);
                         if (!indentedCode.startsWith("<p>")) {
                             if (indentedCode.includes("\n")) {
                                 indentedCode = indentedCode.split("\n").map(line => `<p>${line.trim()}</p>`).join(" ")
