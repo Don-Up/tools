@@ -373,7 +373,7 @@
 
     // Add keyboard shortcut handler
     document.addEventListener('keydown', (e) => {
-        if (e.key.toLowerCase() === 'o' && document.getElementById('dialog').style.display !== 'block') {
+        if (e.altKey && e.key.toLowerCase() === 'o' && document.getElementById('dialog').style.display !== 'block') {
             openDialog();
             e.preventDefault();
         }
