@@ -805,7 +805,8 @@
                 } else {
                     html += `<input data-placeholder="${word.slice(0, -1)}" data-char-index="0" style="margin-right: 20px;margin-bottom: 10px;">`
                 }
-                html += `<span style="margin-right: 20px;margin-bottom: 10px;">${word.charAt(word.length - 1)}</span>`
+                let dot = word.charAt(word.length - 1)
+                html += `<span style="margin-right: 20px;margin-bottom: 10px;">${dot}</span><br>${dot===","?"<hr>":""}`
             } else {
                 if (word && word.length <= wordLengthInput.value || word.includes("e.g.")) {
                     html += `<span style="margin-right: 20px;margin-bottom: 10px;">${word}</span>`
@@ -892,7 +893,8 @@
                     } else {
                         html += `<input data-placeholder="${word.slice(0, -1)}" data-char-index="0" style="margin-right: 20px;margin-bottom: 10px;">`
                     }
-                    html += `<span style="margin-right: 20px;margin-bottom: 10px;">${word.charAt(word.length - 1)}</span>`
+                    let dot = word.charAt(word.length - 1)
+                    html += `<span style="margin-right: 20px;margin-bottom: 10px;">${dot}</span><br>${dot===","?"<hr>":""}`
                 } else {
                     if (word && word.length <= wordLengthInput.value || Math.random() * 100 <= inputNumber.value || word.includes("e.g.")) {
                         html += `<span style="margin-right: 20px;margin-bottom: 10px;">${word}</span>`
