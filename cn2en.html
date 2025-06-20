@@ -434,6 +434,7 @@
                 utterance.voice = selectedVoice
                 window.speechSynthesis.speak(utterance);
                 break
+            case 'Digit5':
             case 'Numpad5':
                 if (currentWord) {
                     const utterance = new SpeechSynthesisUtterance(currentWord);
