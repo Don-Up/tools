@@ -135,6 +135,25 @@
 
 <script>
     const zack = [
+        "https://www.youtube.com/shorts/uFSg3t34RqA",
+        "https://www.youtube.com/shorts/Yp-VEsfiqKA",
+        "https://www.youtube.com/shorts/DCfIq_FtpbE",
+        "https://www.youtube.com/shorts/VYiOwPMb6W8",
+        "https://www.youtube.com/shorts/xzLgRMkrj2A",
+        "https://www.youtube.com/shorts/Mw6eN6C65E0",
+        "https://www.youtube.com/shorts/r2-uVYk7p0A",
+        "https://www.youtube.com/shorts/1zAdPownNQ4",
+        "https://www.youtube.com/shorts/C7kqlJJD5dw",
+        "https://www.youtube.com/shorts/1ND5OAqTZ2U",
+        "https://www.youtube.com/shorts/yZK9RDpNTVY",
+        "https://www.youtube.com/shorts/ZpV5zOPtLpM",
+        "https://www.youtube.com/shorts/s6lVSCv9tho",
+        "https://www.youtube.com/shorts/TMSm4rAHQh4",
+        "https://www.youtube.com/shorts/a4-hZAhVLUo",
+        "https://www.youtube.com/shorts/Qn7dXEnH2QU",
+        "https://www.youtube.com/shorts/y9fzdnXLm3I",
+        "https://www.youtube.com/shorts/LA_hTvu0MgE",
+        "https://www.youtube.com/shorts/t1U1g0bOA8g",
         "https://www.youtube.com/shorts/GMsGKwbj9Ys",
         "https://www.youtube.com/shorts/femipknv51Y",
         "https://www.youtube.com/shorts/uEoReOFg2b8",
@@ -1693,20 +1712,35 @@
         "https://www.youtube.com/shorts/S_Jz1DOVneg",
         "https://www.youtube.com/shorts/UVxDndTd3tk",
         "https://www.youtube.com/shorts/yJkrAQ6SSsw",
-        "https://www.youtube.com/shorts/GNCFMontiCA",
-        "https://www.youtube.com/shorts/KpB_yOJcsmg",
-        "https://www.youtube.com/shorts/MMaQpXnMaDk",
+        // "https://www.youtube.com/shorts/GNCFMontiCA",
+        // "https://www.youtube.com/shorts/KpB_yOJcsmg",
+        // "https://www.youtube.com/shorts/MMaQpXnMaDk",
         "https://www.youtube.com/shorts/JEUlSDAXlXU",
         "https://www.youtube.com/shorts/t0ezeZ4Iag4",
         "https://www.youtube.com/shorts/dEkugqcKW50",
-        "https://www.youtube.com/shorts/7vwjyVLcAU8",
-        "https://www.youtube.com/shorts/1t4493BFQNs",
-        "https://www.youtube.com/shorts/IrmAqCMEPbA",
-        "https://www.youtube.com/shorts/28tsWUtJP7U",
+        // "https://www.youtube.com/shorts/7vwjyVLcAU8",
+        // "https://www.youtube.com/shorts/1t4493BFQNs",
+        // "https://www.youtube.com/shorts/IrmAqCMEPbA",
+        // "https://www.youtube.com/shorts/28tsWUtJP7U",
         "https://www.youtube.com/shorts/qKP5dQVvCfA",
     ];
 
     const insight = [
+        "https://www.youtube.com/shorts/a26_X6fgWL8",
+        "https://www.youtube.com/shorts/2HQluBF-ot8",
+        "https://www.youtube.com/shorts/H6WsCIjRdv0",
+        "https://www.youtube.com/shorts/55quilDewnc",
+        "https://www.youtube.com/shorts/MBEnRb5sruE",
+        "https://www.youtube.com/shorts/mPQVDv3ezj4",
+        "https://www.youtube.com/shorts/xcbjQ3wObMg",
+        "https://www.youtube.com/shorts/2Kc_KzlxW-o",
+        "https://www.youtube.com/shorts/sJSpSvQEQnU",
+        "https://www.youtube.com/shorts/jH-yGKngO0U",
+        "https://www.youtube.com/shorts/JrqxL5cvTj4",
+        "https://www.youtube.com/shorts/Sy18PRUZ_s0",
+        "https://www.youtube.com/shorts/i9rzeT8dzBI",
+        "https://www.youtube.com/shorts/otNqHLGK8xg",
+        "https://www.youtube.com/shorts/gz7Rl3MEftI",
         "https://www.youtube.com/shorts/ca2aOa5H5y0",
         "https://www.youtube.com/shorts/VL5gQ7cl8Dc",
         "https://www.youtube.com/shorts/l591eXYHigM",
@@ -4324,7 +4358,7 @@
             e.preventDefault()
             // 下一个视频
             document.getElementById("nextButton").click();
-        } else if (e.key === "1") {
+        } else if (e.key === "p") {
             e.preventDefault()
             // 暂停播放
             if (player.getPlayerState() === YT.PlayerState.PLAYING) {
@@ -4332,9 +4366,8 @@
             } else {
                 player.playVideo();
             }
-        } else if (e.key === "2") {
+        } else if (e.key === "l") {
             e.preventDefault()
-            // 播放暂停
             currentLink.click()
         }
     });
