@@ -35,10 +35,12 @@
             text-align: center;
             user-select: none;
             border-radius: 3px;
+            background-color: #3b3b3b;
+            color: #eee;
         }
 
         input::placeholder {
-            //color: transparent;
+            color: #eee;
         }
 
         hr {
@@ -113,15 +115,26 @@
             text-align: center;
         }
 
+        h3 {
+            color: #00aaff;
+            margin-bottom: -40px;
+        }
+
+        label {
+            color: #fff
+        }
+
         p {
             margin-bottom: 0;
             margin-top: 0;
             // 覆盖显示鼠标指针
             cursor: pointer;
+            color: #eee;
+            line-height: 1.8;
         }
 
         .voice-select {
-            width: 320px;
+            width: 300px;
             padding: 5px;
             font-size: 14px;
             background-color: #2c2c2c;
@@ -759,7 +772,10 @@
                             .replaceAll("`<", "`&lt;").replaceAll(">`", "&gt;`") // autoIndent(text);
                         if (!indentedCode.startsWith("<p>")) {
                             if (indentedCode.includes("\n")) {
-                                indentedCode = indentedCode.split("\n").map(line => `<p>${line.trim()}</p>`).join(" ")
+                                indentedCode = indentedCode.split("\n").map(line => {
+                                    console.log("line", line)
+                                    return line.trimStart().startsWith("###") ? `<h3>${line.trim().replace("### ", "")}</h3>` : `<p>${line.trim()}</p>`
+                                }).join(" ")
                             } else {
                                 indentedCode = `<p>${indentedCode}</p>`
                             }
