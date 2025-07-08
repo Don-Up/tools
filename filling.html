@@ -117,7 +117,7 @@
 
         h3 {
             color: #00aaff;
-            margin-bottom: -40px;
+            margin-bottom: -20px;
         }
 
         label {
@@ -131,6 +131,13 @@
             cursor: pointer;
             color: #eee;
             line-height: 1.8;
+        }
+
+        blockquote {
+            margin-bottom: -30px;
+            margin-top: 0;
+            color: #eee;
+            font-size: 16px;
         }
 
         .voice-select {
@@ -654,7 +661,7 @@
             // 使用正则表达式将 <input {动态长度字符串}> 替换为 what
             let inputIndex = 0
             while (htmlText.includes('<input')) {
-                htmlText = htmlText.replace(/<input (.*?)>/, inputs[inputIndex].value ? inputs[inputIndex].value : inputs[inputIndex].dataset.placeholder);
+                htmlText = htmlText.replace(/<input (.*?)>/, inputs[inputIndex].dataset.placeholder);
                 inputIndex += 1
             }
 
@@ -773,8 +780,19 @@
                         if (!indentedCode.startsWith("<p>")) {
                             if (indentedCode.includes("\n")) {
                                 indentedCode = indentedCode.split("\n").map(line => {
-                                    console.log("line", line)
-                                    return line.trimStart().startsWith("###") ? `<h3>${line.trim().replace("### ", "")}</h3>` : `<p>${line.trim()}</p>`
+                                    line = line.trim()
+                                    if(line.startsWith("###")){
+                                        return `<h3>${line.trim().replace("### ", "")}</h3>`
+                                    } else if(line.startsWith("##")){
+                                        return `<h2>${line.trim().replace("## ", "")}</h2>`
+                                    } else if(line.startsWith("#")){
+                                        return `<h1>${line.trim().replace("# ", "")}</h1>`
+                                    } else if(line.startsWith("-") || line.startsWith("*")){
+                                        return `<p>${line.trim().replace("- ", "").replace("* ", "")}</p>`
+                                    } else if(line.startsWith(">")){
+                                        return `<blockquote>${line.trim().replace("> ", "")}</blockquote>`
+                                    }
+                                    return `<p>${line.trim()}</p>`
                                 }).join(" ")
                             } else {
                                 indentedCode = `<p>${indentedCode}</p>`
