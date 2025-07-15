@@ -112,6 +112,7 @@
                                                                                             value="1"
                                                                                             style="width: 50px">
             <button id="slice">slice</button>
+            <button id="slice1">slice1</button>
         </div>
     </div>
     <div id="modeSelector">
@@ -4414,6 +4415,7 @@
     inputContent.value = localStorage.getItem("inputContent") || "z"
     const confirm = document.getElementById("confirm")
     const slice = document.getElementById("slice")
+    const slice1 = document.getElementById("slice1")
     const from = document.getElementById("from")
     const to = document.getElementById("to")
     slice.addEventListener("click", () => {
@@ -4421,6 +4423,16 @@
         const toValue = Math.min(to.value || 1, result.length)
         if (toValue <= fromValue) return
         youtubeIDs = allIds.slice(fromValue - 1, toValue)
+    })
+    slice1.addEventListener("click", () => {
+        const fromValue = Math.min(from.value || 1, result.length)
+        const toValue = Math.min(to.value || 1, result.length)
+        let sliceResult = []
+        sliceResult.push(...(zack.slice(fromValue - 1, toValue)))
+        sliceResult.push(...(insight.slice(fromValue - 1, Math.floor(toValue/2))))
+        sliceResult.push(...(kube.slice(fromValue - 1, Math.floor(toValue/2))))
+        sliceResult.push(...(theArtOfWar.slice(fromValue - 1, Math.floor(toValue/2))))
+        youtubeIDs = sliceResult.map(link => new URL(link).pathname.split("/shorts/")[1])
     })
 
     let result = [];
