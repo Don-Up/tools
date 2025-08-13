@@ -1079,7 +1079,9 @@
                 btnPlay.textContent = "Resume";
             } else {
                 btnPlay.textContent = "Pause";
-                enTextElement.style.display = 'block'; // Show the English text
+                if(!codeModeCheckbox.checked){
+                    enTextElement.style.display = 'block'; // Show the English text
+                }
                 currentUtterance = speakText(enText, enTextElement);
                 currentUtterance.onend = () => {
                     btnPlay.textContent = "Speak";
@@ -1098,7 +1100,9 @@
         controls.querySelector(".loop-btn").addEventListener("click", (event) => {
             isLooping = loopBtn.textContent === "Loop";
             if (isLooping) {
-                enTextElement.style.display = 'block'; // Show the English text
+                if(!codeModeCheckbox.checked){
+                    enTextElement.style.display = 'block'; // Show the English text
+                }
                 currentUtterance = speakText(enText, enTextElement, true);
                 loopBtn.textContent = "Stop Looping";
             } else {
