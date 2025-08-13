@@ -409,12 +409,14 @@
         child.querySelector(".loop-btn").textContent = "Loop"
         child.querySelector(".playback-btn").textContent = "Playback"
         child.querySelector(".play-btn").textContent = "Speak"
-        child.querySelector(".en-text").style.display = "none"
         child.querySelector(".word-display").style.display = "none"
         if (codeModeCheckbox.checked) {
+            child.querySelector(".en-text").style.display = "block"
             child.querySelectorAll(".cn-text").forEach(element => {
                 element.style.display = "block"
             })
+        } else {
+            child.querySelector(".en-text").style.display = "none"
         }
         if (child.querySelector(".word-display").style.display === "block") {
             child.querySelector(".reset-add").click()
@@ -1088,6 +1090,7 @@
                 btnPlay.textContent = "Pause";
                 if (!codeModeCheckbox.checked) {
                     enTextElement.style.display = 'block'; // Show the English text
+                    enTextElement.style.display = 'none';
                 } else {
                     cnTextElements.forEach(element => {
                         element.style.display = 'none';
@@ -1108,12 +1111,13 @@
 
         const loopBtn = controls.querySelector(".loop-btn")
 
-        controls.querySelector(".loop-btn").addEventListener("click", (event) => {
+        loopBtn.addEventListener("click", (event) => {
             isLooping = loopBtn.textContent === "Loop";
             if (isLooping) {
                 if (!codeModeCheckbox.checked) {
                     enTextElement.style.display = 'block'; // Show the English text
                 } else {
+                    enTextElement.style.display = 'none';
                     cnTextElements.forEach(element => {
                         element.style.display = 'none';
                     })
