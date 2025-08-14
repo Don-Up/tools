@@ -239,7 +239,7 @@
         </div>
     </div>
 
-    <div>Caches:<span id="spanCaches">0/3</span>    <span>Max Caches:</span><input type="number" style="width: 50px;margin-left: 10px;" id="cacheSizeInput"></div>
+    <div>Caches:<span id="spanCaches">0/100</span>    <span>Max Caches:</span><input type="number" style="width: 50px;margin-left: 10px;" id="cacheSizeInput"></div>
     <div>Timeout(s):<input type="number" style="width: 50px;margin-left: 10px;" id="timeoutInput"></div>
 </div>
 
@@ -369,7 +369,7 @@
 
     const words = []
     const cacheSizeInput = document.getElementById("cacheSizeInput")
-    cacheSizeInput.value = localStorage.getItem("cacheSizeInput") || 3
+    cacheSizeInput.value = localStorage.getItem("cacheSizeInput") || 100
     cacheSizeInput.addEventListener('input', debounce(() => {
         localStorage.setItem("cacheSizeInput", cacheSizeInput.value)
         while (words.length > cacheSizeInput.value){
@@ -406,7 +406,7 @@
                 }
             }
             spanCaches.textContent = `${words.length}/${cacheSizeInput.value}`
-            speakText(`${contentInput.value}, `.repeat(6), true, null)
+            speakText(`${contentInput.value}, `.repeat(2), true, null)
             document.querySelector("textarea").style.color = "#e0e0e0"
             if(timeoutInput.value > 0){
                 clearTimeout(timerId)
