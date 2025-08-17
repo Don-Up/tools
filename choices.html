@@ -99,7 +99,7 @@
         }
 
         .voice-select {
-            width: 450px;
+            width: 360px;
             padding: 5px;
             font-size: 14px;
             background-color: #2c2c2c;
@@ -381,6 +381,8 @@
                 <option value="2">Q & choices</option>
             </select>
         </div>
+        <button class="btnCopy" id="btnErrors">Errors</button>
+        <button class="btnCopy" id="btnClearErrors">Clear</button>
     </div>
 </div>
 <div class="container">
@@ -459,6 +461,24 @@
     let doubleMode = false
     let tripleMode = false
     const soundFX = document.getElementById('soundFX');
+
+    const btnErrors = document.getElementById('btnErrors');
+    const btnClearErrors = document.getElementById('btnClearErrors');
+    btnErrors.addEventListener('click', function () {
+        const errors = localStorage.getItem('error-records');
+        if (errors) {
+            const errorMessages = JSON.parse(errors).map(error => `${error.timestamp}\n${error.question}\nF: ${error.answer}\nT: ${error.correctAnswer}\n`);
+            const errorMessage = errorMessages.join('\n');
+            alert(errorMessage);
+        } else {
+            alert('No errors found.');
+        }
+    });
+
+    btnClearErrors.addEventListener('click', function () {
+        localStorage.removeItem('errors');
+        alert('All errors cleared.');
+    });
 
     const hideAnswersCheckbox = document.getElementById('hideAnswersCheckbox');
     hideAnswersCheckbox.checked = localStorage.getItem('hideAnswersCheckbox') === 'true';
@@ -1340,6 +1360,16 @@
             selectedRadio.parentNode.classList.add('correct');
         } else {
             selectedRadio.parentNode.classList.add('incorrect');
+            const errorRecords = JSON.parse(localStorage.getItem("error-records")) || [];
+            const answers = component.querySelectorAll(".answer")
+            const errorRecord = {
+                question: component.querySelector('.questionText').textContent,
+                answer: answers[answer-1].textContent,
+                correctAnswer: answers[correctAnswer-1].textContent,
+                timestamp: new Date().toLocaleString()
+            };
+            errorRecords.push(errorRecord);
+            localStorage.setItem("error-records", JSON.stringify(errorRecords));
             // 标记正确答案
             const correctRadio = Array.from(radios).find(radio =>
                 radio.nextSibling.textContent.trim().startsWith(correctAnswer + '.')
