@@ -708,7 +708,8 @@
         }
     })
 
-    let currentIndex = 0
+    let currentIndex = localStorage.getItem('currentIndex') || 0
+
     const inputPanel = document.querySelector(".input-panel")
     const outputPanel = document.querySelector(".output-panel")
     const choiceField = document.getElementById('choiceField')
@@ -729,6 +730,7 @@
                     answer.style.visibility = 'hidden'
                 })
                 currentIndex--
+                localStorage.setItem('currentIndex', currentIndex)
                 const currentQuestionText = children[currentIndex].querySelector(".questionText")
                 const currentAnswers = children[currentIndex].querySelectorAll(".answer")
                 currentQuestionText.style.visibility = (hideCheckbox.checked && !hideAnswersCheckbox.checked) ? 'hidden' : 'visible';
@@ -776,6 +778,7 @@
                     answer.style.visibility = 'hidden'
                 })
                 currentIndex++
+                localStorage.setItem('currentIndex', currentIndex)
                 const currentQuestionText = children[currentIndex].querySelector(".questionText")
                 const currentAnswers = children[currentIndex].querySelectorAll(".answer")
                 currentQuestionText.style.visibility = (hideCheckbox.checked && !hideAnswersCheckbox.checked) ? 'hidden' : 'visible';
@@ -1061,6 +1064,7 @@
                     navigator.clipboard.readText().then(text => {
                         // 将文本内容替换到input中
                         currentIndex = 0
+                        localStorage.setItem('currentIndex', currentIndex)
                         document.getElementById('choiceInput').value = text
                         document.getElementById('btnConfirm').click()
                         if (immersion) {
@@ -1474,6 +1478,7 @@
             divQ.textContent = "Q" + (blockIndex + 1) + "/" + blocks.length
             divQ.addEventListener('click', () => {
                 currentIndex = blockIndex
+                localStorage.setItem('currentIndex', currentIndex)
             })
             container.appendChild(divQ)
 
@@ -1659,6 +1664,7 @@
 
             playButton.addEventListener('click', () => {
                 currentIndex = blockIndex
+                localStorage.setItem('currentIndex', currentIndex)
                 play(readText)
                 const items = optionContent.split(/\d+\.\s/);
                 const result = items.filter(item => item.trim() !== '');
@@ -1671,6 +1677,7 @@
 
             playButton1.addEventListener('click', () => {
                 currentIndex = blockIndex
+                localStorage.setItem('currentIndex', currentIndex)
                 play(block.questionText)
                 const items = optionContent.split(/\d+\.\s/);
                 const result = items.filter(item => item.trim() !== '');
@@ -1718,6 +1725,10 @@
         } else {
             utteranceRef = speakText(text, false, utteranceRef, needActive);
         }
+    }
+
+    if(currentIndex !== 0){
+        goToImmersion()
     }
 
     // document.getElementById('btnInsertCode').addEventListener('click', () => {
