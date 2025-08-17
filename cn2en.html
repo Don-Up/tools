@@ -396,7 +396,7 @@
     inputRepeatCount.addEventListener("input", function () {
         localStorage.setItem('repeatCount', this.value)
     });
-    let currentQuestion = 0;
+    let currentQuestion = localStorage.getItem('currentQuestion') || 0;
     const dialogListElement = document.getElementById("dialogList");
 
     let saveMode = true
@@ -514,7 +514,6 @@
                             }
                         }
                         inputText.value = array.join("\n")
-                        console.log(array)
                     } else {
                         inputText.value = text.replaceAll("------", "")
                             .replaceAll("---", "").replaceAll(/^###.*/gm, "")
@@ -524,6 +523,8 @@
                     saveMode = event.ctrlKey
                     document.getElementById("generateBtn").click()
                     currentQuestion = 0
+                    localStorage.setItem("currentQuestion", currentQuestion)
+
                     if (immersive) {
                         leaveImmersion()
                         goToImmersion()
@@ -539,6 +540,7 @@
                     }
                     if (currentQuestion > 0) {
                         currentQuestion--
+                        localStorage.setItem("currentQuestion", currentQuestion)
                         const children = dialogListElement.children;
                         children[currentQuestion].style.visibility = "visible"
                         children[currentQuestion].style.scale = "1.4"
@@ -562,6 +564,7 @@
                     const children = dialogListElement.children;
                     if (currentQuestion < children.length - 1) {
                         currentQuestion++
+                        localStorage.setItem("currentQuestion", currentQuestion)
                         children[currentQuestion].style.visibility = "visible"
                         children[currentQuestion].style.scale = "1.4"
                         children[currentQuestion].scrollIntoView({behavior: "smooth", block: "center"})
@@ -1339,6 +1342,7 @@
             dialogItem.addEventListener("click", () => {
                 dialogItem.querySelector("h2").style.color = "gold";
                 currentQuestion = index
+                localStorage.setItem("currentQuestion", currentQuestion);
             })
             dialogListElement.appendChild(dialogItem);
         });
@@ -1350,6 +1354,12 @@
     if (localStorage.getItem("inputText")) {
         inputText.value = localStorage.getItem("inputText");
         document.getElementById("generateBtn").click()
+        setTimeout(() => {
+            dialogListElement.children[currentQuestion].click()
+            goToImmersion()
+            // hide the scrollbar
+            document.body.style.overflow = "hidden"
+        }, 500)
     }
 
     // 重置按钮事件
@@ -1358,6 +1368,7 @@
         document.getElementById("dialogList").innerHTML = "";
         window.speechSynthesis.cancel();
     });
+
 </script>
 </body>
 </html>
