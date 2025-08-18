@@ -415,7 +415,7 @@
         </div>
     </div>
 </div>
-<img id="imgBg" src="img/bg.png" alt="background"
+<img id="imgBg" src="img/bg0.png" alt="background"
      style="visibility: hidden;object-fit: cover;position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;">
 
 <!--弹窗-->
@@ -798,6 +798,9 @@
                     answer.style.visibility = 'hidden'
                 })
                 currentIndex++
+                if(localStorage.getItem("isRandomImgBg") === "true"){
+                    imgBg.src = `img/bg${Math.random() * 27 | 0}.png`
+                }
                 localStorage.setItem('currentIndex', currentIndex)
                 const currentQuestionText = children[currentIndex].querySelector(".questionText")
                 const currentAnswers = children[currentIndex].querySelectorAll(".answer")
@@ -997,6 +1000,11 @@
     document.addEventListener('keydown', function (event) {
         // console.log(event.code, event.key)
         switch (event.code) {
+            case "KeyI":
+                const isRandomImgBg = localStorage.getItem("isRandomImgBg")
+                localStorage.setItem("isRandomImgBg", isRandomImgBg === "false" || isRandomImgBg === "" ? "true" : "false")
+                alert("随即图片背景："+localStorage.getItem("isRandomImgBg"))
+                break
             case "KeyB":
                 event.preventDefault()
                 if (!isPaused && isPlaying) {
