@@ -1782,7 +1782,7 @@
 
     // 当页面失去焦点后停止播放
     window.addEventListener("blur", () => {
-        if (localStorage.getItem("blurStop")) {
+        if ((isLooping || isPlaying) && localStorage.getItem("blurStop")) {
             stop()
         }
     })
