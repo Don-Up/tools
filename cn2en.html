@@ -402,7 +402,9 @@
     let saveMode = true
 
     function stopPlay(event) {
-        event.preventDefault()
+        if(event){
+            event.preventDefault()
+        }
         window.speechSynthesis.cancel()
         const children = dialogListElement.children;
         const child = children[currentQuestion]
@@ -503,6 +505,12 @@
                     saveMode = false
                     document.getElementById("generateBtn").click()
                 }
+                break
+            case 'KeyU':
+                const blurStop = localStorage.getItem("blurStop")
+                const newValue = blurStop === "" ? "true" : ""
+                localStorage.setItem("blurStop", newValue)
+                alert(`失去焦点后停止播放: ${(newValue === "true")}`)
                 break
             case 'KeyV':
                 event.preventDefault()
@@ -1257,7 +1265,7 @@
                     playback.textContent = "Stop"
                     enTextElement.style.display = "block";
                 } else {
-                    // 停止播放录音
+                    // 停止播放录音1
                     currentAudio.pause();
                     playback.textContent = "Playback"
                     enTextElement.style.display = "none";
@@ -1379,6 +1387,12 @@
         window.speechSynthesis.cancel();
     });
 
+    // 当页面失去焦点后停止播放
+    window.addEventListener("blur", () => {
+        if (localStorage.getItem("blurStop")) {
+            stopPlay()
+        }
+    })
 </script>
 </body>
 </html>

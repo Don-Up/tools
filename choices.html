@@ -1085,6 +1085,12 @@
                     speakText(`${currentText}, `.repeat(countInput.value))
                 }
                 break
+            case 'KeyU':
+                const blurStop = localStorage.getItem("blurStop")
+                const newValue = blurStop === "" ? "true" : ""
+                localStorage.setItem("blurStop", newValue)
+                alert(`失去焦点后停止播放: ${(newValue === "true")}`)
+                break
             case 'KeyV':
                 event.preventDefault()
                 if (event.ctrlKey) {
@@ -1772,6 +1778,14 @@
         btnQ.click()
         goToImmersion()
     }
+
+
+    // 当页面失去焦点后停止播放
+    window.addEventListener("blur", () => {
+        if (localStorage.getItem("blurStop")) {
+            stop()
+        }
+    })
 
     // setTimeout(() => {
     //
