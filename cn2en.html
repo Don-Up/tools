@@ -1389,12 +1389,10 @@
 
     // 当页面失去焦点后停止播放
     window.addEventListener("blur", () => {
-        if ((isLooping || isPlaying) && localStorage.getItem("blurStop")) {
+        // 判断TTS是否处于播放状态
+        const isPlaying = window.speechSynthesis.speaking;
+        if (isPlaying && localStorage.getItem("blurStop")) {
             stopPlay()
-        }
-        if(isRecording){
-            mediaRecorder.stop();
-            isRecording = false;
         }
     })
 </script>
