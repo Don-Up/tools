@@ -409,6 +409,7 @@
         const children = dialogListElement.children;
         const child = children[currentQuestion]
         child.querySelector(".loop-btn").textContent = "Loop"
+        child.querySelector(".loop-btn1").textContent = "Loop"
         child.querySelector(".playback-btn").textContent = "Playback"
         child.querySelector(".play-btn").textContent = "Speak"
         child.querySelector(".word-display").style.display = "none"
@@ -609,6 +610,7 @@
     })
 
     let voicesCN = null
+    let voiceInd = null
 
     // Function to populate the voice select dropdown
     function populateVoiceList() {
@@ -617,6 +619,7 @@
         const voiceSelectRole2 = document.getElementById("voiceSelectRole2");
         const voices = window.speechSynthesis.getVoices();
         voicesCN = voices.filter(voice => voice.lang === "zh-CN" && !voice.name.includes("PRC"))
+        voiceInd = voices.find(voice => voice.name === "Microsoft Prabhat Online (Natural) - English (India)")
         voiceSelect.innerHTML = voices
             .filter(voice => voice.lang === "en-US")
             .map(voice => `<option value="${voice.name}" ${voice.name === defaultVoiceName ? "selected" : ""}>${voice.name}</option>`)
@@ -713,7 +716,7 @@
         if (!dialogList.length) return;
 
         isLooping = !isLooping;
-        this.textContent = isLooping ? "Stop Looping" : "Loop Dialogue";
+        this.textContent = isLooping ? "Stop" : "Loop Dialogue";
         if (isLooping) {
             currentIndex = 0;
             playNext();
@@ -1022,6 +1025,7 @@
         header.innerHTML = `
         <h2 style="margin-top:7px;">${index + 1}/${length}</h2>
         <button class="practice" style="margin-left: 400px;width: 100px">Practice</button>
+        <button class="loop-btn1" style="margin-left: 10px;width: 100px;">Loop</button>
         <button class="toggle-sentence" style="margin-left: 10px;">Show/Hide</button>
         <button class="reset-add" style="margin-left: 10px;">Reset</button>
       `;
@@ -1131,6 +1135,8 @@
         });
 
         const loopBtn = controls.querySelector(".loop-btn")
+        const loopBtn1 = header.querySelector(".loop-btn1")
+
 
         loopBtn.addEventListener("click", (event) => {
             isLooping = loopBtn.textContent === "Loop";
@@ -1144,7 +1150,31 @@
                     })
                 }
                 currentUtterance = speakText(enText, enTextElement, true);
-                loopBtn.textContent = "Stop Looping";
+                loopBtn.textContent = "Stop";
+                loopBtn1.textContent = "Stop";
+            } else {
+                // speechSynthesis.cancel();
+                // enTextElement.style.display = 'none'; // Show the English text
+                // loopBtn.textContent = "Loop";
+                stopPlay(event)
+            }
+        });
+
+        loopBtn1.addEventListener("click", (event) => {
+            isLooping = loopBtn.textContent === "Loop";
+            if (isLooping) {
+                if (!codeModeCheckbox.checked) {
+                    enTextElement.style.display = 'block'; // Show the English text
+                } else {
+                    enTextElement.style.display = 'none';
+                    cnTextElements.forEach(element => {
+                        element.style.display = 'none';
+                    })
+                }
+                // text, element = null, loop = false, cn = false, highlight = true, isIndian = false
+                currentUtterance = speakText(enText, enTextElement, true, false, true, true);
+                loopBtn.textContent = "Stop";
+                loopBtn1.textContent = "Stop";
             } else {
                 // speechSynthesis.cancel();
                 // enTextElement.style.display = 'none'; // Show the English text
@@ -1158,7 +1188,7 @@
             isLooping = false;
             enTextElement.style.display = 'none';
             controls.querySelector(".loop-btn").textContent = "Loop";
-            大大是
+            controls.querySelector(".loop-btn1").textContent = "Loop";
         });
 
         // 逐词显示
@@ -1279,13 +1309,15 @@
     }
 
     // 语音功能
-    function speakText(text, element = null, loop = false, cn = false, highlight = true) {
+    function speakText(text, element = null, loop = false, cn = false, highlight = true, isIndian = false) {
         if (!window.speechSynthesis) return;
 
         text = text.replace(/^\w+:\s*/gm, "");
 
         const utterance = new SpeechSynthesisUtterance(text);
-        if (cn) {
+        if(isIndian){
+            utterance.voice = voiceInd
+        } else if (cn) {
             // 随机选取一个voicesCN
             utterance.voice = voicesCN[Math.floor(Math.random() * voicesCN.length)];
         } else {
