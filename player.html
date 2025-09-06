@@ -106,8 +106,8 @@
 </div>
 
 <div style="position: absolute;bottom: 35px;right: 20px">
-    <div>Total: <span id="total"></span></div>
-    <div style="right: 0">
+    <div>Total: <span id="total"></span>  Current: <span id="current">1</span>  <button id="jump">jump</button></div>
+    <div style="right: 0;margin-top: 3px;">
         <div>Range: <input type="number" id="from" value="1" style="width: 50px"> to <input type="number" id="to"
                                                                                             value="1"
                                                                                             style="width: 50px">
@@ -136,6 +136,48 @@
 
 <script>
     const zack = [
+        "https://www.youtube.com/shorts/YwpPkGc8EdA",
+        "https://www.youtube.com/shorts/tMumncYGcmI",
+        "https://www.youtube.com/shorts/KNOvhRNjZtw",
+        "https://www.youtube.com/shorts/LXjDab8sGo0",
+        "https://www.youtube.com/shorts/6Dc4N7EzHmI",
+        "https://www.youtube.com/shorts/ZpBL5drHBG0",
+        "https://www.youtube.com/shorts/NOEB46yBf2o",
+        "https://www.youtube.com/shorts/Jt4D0EJPnPE",
+        "https://www.youtube.com/shorts/YY-sL_RNkDU",
+        "https://www.youtube.com/shorts/R3yjPJ4Jjxo",
+        "https://www.youtube.com/shorts/LUvuUF8cXIs",
+        "https://www.youtube.com/shorts/pw8z_YnuGxg",
+        "https://www.youtube.com/shorts/1DxAWMrN-N0",
+        "https://www.youtube.com/shorts/vBuOEMRxatg",
+        "https://www.youtube.com/shorts/WVaE7Si9g0M",
+        "https://www.youtube.com/shorts/S7uZEbo0y-w",
+        "https://www.youtube.com/shorts/COQ5V3Imumw",
+        "https://www.youtube.com/shorts/_-PCbbTrrOo",
+        "https://www.youtube.com/shorts/-qkpLpTsKK4",
+        "https://www.youtube.com/shorts/bgCZm4x1nzc",
+        "https://www.youtube.com/shorts/L_BCFJPZOl8",
+        "https://www.youtube.com/shorts/lZUZ5UJ_5tM",
+        "https://www.youtube.com/shorts/MpxCph6R4n0",
+        "https://www.youtube.com/shorts/Dgc6Pvnu0ZQ",
+        "https://www.youtube.com/shorts/38OyrX2lVTk",
+        "https://www.youtube.com/shorts/8rOQSDHQv2w",
+        "https://www.youtube.com/shorts/hKs314crXyw",
+        "https://www.youtube.com/shorts/Cg8PN0Mwwi8",
+        "https://www.youtube.com/shorts/wYazLbJxeEk",
+        "https://www.youtube.com/shorts/LVg1uE-RE3o",
+        "https://www.youtube.com/shorts/EDZr8sI5j6U",
+        "https://www.youtube.com/shorts/HiczXJ-Ak4c",
+        "https://www.youtube.com/shorts/i3BwyAGa8BE",
+        "https://www.youtube.com/shorts/R98enHQLbLQ",
+        "https://www.youtube.com/shorts/ixcqmMFPyRA",
+        "https://www.youtube.com/shorts/Hb4EBWuY008",
+        "https://www.youtube.com/shorts/oBUIDXBaHwM",
+        "https://www.youtube.com/shorts/UFBjFnCtx_g",
+        "https://www.youtube.com/shorts/EnkL5-sgNR8",
+        "https://www.youtube.com/shorts/fm3uDFbJXAY",
+        "https://www.youtube.com/shorts/b365qXJbOvY",
+        "https://www.youtube.com/shorts/_Ge_CR3Rtsc",
         "https://www.youtube.com/shorts/YfXeRHMy7k0",
         "https://www.youtube.com/shorts/AWwB00SRxjc",
         "https://www.youtube.com/shorts/taJo75jyWzs",
@@ -4622,6 +4664,13 @@
     const slice1 = document.getElementById("slice1")
     const from = document.getElementById("from")
     const to = document.getElementById("to")
+
+    const jump = document.getElementById("jump")
+
+    jump.addEventListener("click", () => {
+        loadVideo(Number(from.value)-1)
+    })
+
     slice.addEventListener("click", () => {
         const fromValue = Math.min(from.value || 1, result.length)
         const toValue = Math.min(to.value || 1, result.length)
@@ -4690,6 +4739,8 @@
     let player;
     let playMode = "random";
     let progressInterval;
+
+    const current = document.getElementById("current");
 
     const tag = document.createElement("script");
     tag.src = "https://www.youtube.com/iframe_api";
@@ -4780,6 +4831,7 @@
 
     function loadVideo(index) {
         currentIndex = index;
+        current.textContent = `${Number(currentIndex) + 1}`;
         player.loadVideoById(youtubeIDs[currentIndex]);
         updateCurrentLink(); // ← 加这里
     }
@@ -4798,11 +4850,13 @@
 
     function playNextVideo() {
         currentIndex = (currentIndex + 1) % youtubeIDs.length;
+        current.textContent = `${currentIndex + 1}`;
         loadVideo(currentIndex);
     }
 
     function playPreviousVideo() {
         currentIndex = (currentIndex - 1 + youtubeIDs.length) % youtubeIDs.length;
+        current.textContent = `${currentIndex + 1}`;
         loadVideo(currentIndex);
     }
 
