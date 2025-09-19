@@ -238,9 +238,6 @@
             <button id="updateBtn">Review</button>
         </div>
     </div>
-
-    <div>Caches:<span id="spanCaches">0/100</span>    <span>Max Caches:</span><input type="number" style="width: 50px;margin-left: 10px;" id="cacheSizeInput"></div>
-    <div>Timeout(s):<input type="number" style="width: 50px;margin-left: 10px;" id="timeoutInput"></div>
 </div>
 
 <script>
@@ -368,26 +365,6 @@
     }
 
     const words = []
-    const cacheSizeInput = document.getElementById("cacheSizeInput")
-    cacheSizeInput.value = localStorage.getItem("cacheSizeInput") || 100
-    cacheSizeInput.addEventListener('input', debounce(() => {
-        localStorage.setItem("cacheSizeInput", cacheSizeInput.value)
-        while (words.length > cacheSizeInput.value){
-            words.shift()
-        }
-        spanCaches.textContent = `${words.length}/${cacheSizeInput.value}`
-    }))
-    const spanCaches = document.getElementById("spanCaches")
-    spanCaches.textContent = `${0}/${cacheSizeInput.value}`
-    let timerId = null
-
-    const timeoutInput = document.getElementById("timeoutInput")
-    timeoutInput.value = localStorage.getItem("timeoutInput") || 30
-    timeoutInput.addEventListener("change", () => {
-        localStorage.setItem("timeoutInput", timeoutInput.value)
-    })
-
-    let count = 0
 
     contentInput.addEventListener('click', (event) => {
         // 获取剪贴板文本
@@ -397,45 +374,14 @@
             }
             contentInput.value = text
             words.push(text)
-            if(words.length > cacheSizeInput.value){
-                words.shift()
-                count++
-                if(count===Math.ceil(cacheSizeInput.value/2)){
-                    alert("It's time to review.")
-                    count = 0
-                }
-            }
-            spanCaches.textContent = `${words.length}/${cacheSizeInput.value}`
-            speakText(`${contentInput.value}, `.repeat(2), true, null)
+            speakText(`${contentInput.value}, `, false, null)
             document.querySelector("textarea").style.color = "#e0e0e0"
-            if(timeoutInput.value > 0){
-                clearTimeout(timerId)
-                timerId = setTimeout(() => {
-                    stop()
-                }, timeoutInput.value*1000)
-            }
         }).catch(err => {
             console.error('Failed to read clipboard contents: ', err);
         });
         // contentInput.value = ""
         stop()
     })
-
-    const handleInput = () => {
-        // if (contentInput.value !== content && contentInput.value.trim() !== "") {
-        //     speakText(`${contentInput.value}, `.repeat(6), true, null)
-        //     content = contentInput.value;
-        //     document.querySelector("textarea").style.color = "#e0e0e0"
-        //     // Copy the content to the clipboard.
-        //     navigator.clipboard.writeText(contentInput.value).then(() => {
-        //         // console.log('Content copied to clipboard');
-        //     }).catch(err => {
-        //         console.error('Failed to copy: ', err);
-        //     });
-        // }
-    };
-
-    // contentInput.addEventListener('input', debounce(handleInput, 300));
 
     // 播放/暂停按钮
     document.querySelector('#playPauseBtn').addEventListener('click', () => {
@@ -500,26 +446,12 @@
     // 更新按钮
     document.querySelector('#updateBtn').addEventListener('click', () => {
         if(words.length === 0) return
-        clearTimeout(timerId)
         stop()
         const review = words.map(word => {
             return `${word}, `.repeat(2)
         }).join("")
         contentInput.value = words.join(", ")
         speakText(review, true, null)
-
-        // const text = document.querySelector('#playSentenceInput').value.trim().replace(/^\d+\.\s*/gm, '').replace("•", "").replace("(", " ").replace(")", " ");
-        // if (!text) {
-        //     alert('Please enter the English sentence to be played');
-        //     return;
-        // }
-        // stopSpeaking();
-        // utteranceRef = new SpeechSynthesisUtterance(text);
-        // if (selectedVoice) {
-        //     utteranceRef.voice = voices[selectedVoice];
-        // }
-        // utteranceRef.lang = 'en-US';
-        // utteranceRef.rate = speechSpeed; // 更新语速
     });
 
     // 监听语速滑块
