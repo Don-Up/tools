@@ -445,13 +445,25 @@
 
     // 更新按钮
     document.querySelector('#updateBtn').addEventListener('click', () => {
-        if(words.length === 0) return
+        // if(words.length === 0) return
+        // stop()
+        // const review = words.map(word => {
+        //     return `${word}, `.repeat(2)
+        // }).join("")
+        // contentInput.value = words.join(", ")
+        // speakText(review, true, null)
+        navigator.clipboard.readText().then(text => {
+            if(text.trim() === contentInput.value.trim()){
+                return
+            }
+            contentInput.value = text.replaceAll("\n", "")
+            speakText(`${contentInput.value.replaceAll("\n", "").replace(/\(.*?\)/g, '')}, `, false, null)
+            document.querySelector("textarea").style.color = "#e0e0e0"
+        }).catch(err => {
+            console.error('Failed to read clipboard contents: ', err);
+        });
+        // contentInput.value = ""
         stop()
-        const review = words.map(word => {
-            return `${word}, `.repeat(2)
-        }).join("")
-        contentInput.value = words.join(", ")
-        speakText(review, true, null)
     });
 
     // 监听语速滑块
