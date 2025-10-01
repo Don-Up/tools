@@ -458,7 +458,7 @@
             }
             let nextText = text.split("\n").filter(it => !it.includes("[")).join("\n")
             contentInput.value = nextText
-            speakText(contentInput.value.replaceAll("\n", "").replace(/\(.*?\)/g, ''), false, null)
+            speakText(contentInput.value.replaceAll("\n", "").replace(/\(.*?\)/g, '').replaceAll(".", ". "), false, null)
             document.querySelector("textarea").style.color = "#e0e0e0"
         }).catch(err => {
             console.error('Failed to read clipboard contents: ', err);
