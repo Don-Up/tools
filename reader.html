@@ -908,8 +908,8 @@
                 input.value.replace(/([,.])\s+/g, "$1\n").trim() :
                 input.value
             // .replace(/^[1-9]\.\s/gm, "")
-            localStorage.setItem("text", value);
-            processText(value);
+            localStorage.setItem("text", value.replace(/\[(.*?)\]\(.*?\)/g, '$1'));
+            processText(value.replace(/\[(.*?)\]\(.*?\)/g, '$1'));
             document.body.removeChild(input);
             document.body.removeChild(confirmBtn);
             highlightWords(rootElement);
