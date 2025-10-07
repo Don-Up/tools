@@ -1,0 +1,42 @@
+<div id="back">
+    <div style="font-size:25px;line-height:1.2" class="mask-container">
+        {{Back}}
+    </div>
+    <div>{{Explain}}</div>
+    <div id="present" style="font-size:12px;line-height:1.1" onclick="copy()">{{Present}}</div>
+    <button id="btnCopy">copy</button>
+</div>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism-themes/1.9.0/prism-a11y-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.js"></script>
+
+<!-- 引入语言组件 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-tsx.min.js"></script>
+
+<script>
+    async function copy() {
+        try {
+            const textToCopy = document.getElementById("present").textContent;
+            await navigator.clipboard.writeText(textToCopy);
+        } catch (err) {
+            // Fallback for Anki or restricted environments
+            fallbackCopyTextToClipboard();
+        }
+    }
+
+    function fallbackCopyTextToClipboard() {
+        const textToCopy = document.getElementById("present").textContent;
+        const textArea = document.createElement("textarea");
+        textArea.value = textToCopy;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+        } catch (err) {
+            console.error('Fallback copy failed: ', err);
+        }
+        document.body.removeChild(textArea);
+    }
+</script>
