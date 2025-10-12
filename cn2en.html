@@ -1045,7 +1045,7 @@
         content.innerHTML = `
         <div class="code-text" id="code">${codeText}</div>
         <div class="en-text" style="display: none">${enText}</div>
-        <div class="cn-text" id="cn">${cnText}</div>
+        <div class="cn-text" id="cn" onclick="speakText(this.innerText, null, false, true)" style="cursor: pointer">${cnText}</div>
         <div class="cn-text" id="complement" style="cursor: pointer">${complement}</div>
         <div class="word-display"></div>
       `;
@@ -1191,6 +1191,9 @@
             controls.querySelector(".loop-btn1").textContent = "Loop";
         });
 
+        const simpleWords = ["the", "that", "this", "a", "an"]
+        const preps = ["to", "of", "in", "on", "at", "by", "for", "with", "about", "into", "through", "during", "before", "after", "above", "below", "between", "among", "along", "across", "behind", "beyond", "inside", "outside", "under", "over", "upon", "within", "without", "from", "as"];
+
         // 逐词显示
         controls.querySelector(".show-word").addEventListener("click", () => {
             if (wordIndex === words.length) {
@@ -1202,8 +1205,27 @@
                 currentWord = words[wordIndex];
                 // speakText(words[wordIndex]);
                 wordIndex++;
+                if(words[wordIndex-1].length > 5){
+                    speakText(words[wordIndex-1])
+                }
                 if (wordIndex === words.length) {
+                    speakText(wordDisplay.textContent)
                     wordDisplay.textContent += " (Done)";
+                } else {
+                    if(simpleWords.includes(words[wordIndex])){
+                        if(preps.includes(words[wordIndex+1])){
+                            wordDisplay.textContent += " "+words[wordIndex]+" (v)";
+                        } else {
+                            wordDisplay.textContent += " "+words[wordIndex]+" "+words[wordIndex+1][0]+words[wordIndex+1].length;
+                        }
+                        wordIndex++;
+                    } else {
+                        if(preps.includes(words[wordIndex])){
+                            wordDisplay.textContent += " (v)";
+                        } else {
+                            wordDisplay.textContent += " "+words[wordIndex][0]+words[wordIndex].length;
+                        }
+                    }
                 }
             }
         });
@@ -1311,6 +1333,7 @@
     // 语音功能
     function speakText(text, element = null, loop = false, cn = false, highlight = true, isIndian = false) {
         if (!window.speechSynthesis) return;
+        if(window.speechSynthesis.speaking) window.speechSynthesis.cancel();
 
         text = text.replace(/^\w+:\s*/gm, "");
 
