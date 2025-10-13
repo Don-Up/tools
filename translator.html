@@ -275,7 +275,6 @@
         const voiceSelect = document.querySelector('#voiceSelect');
         voiceSelect.innerHTML = '<option value="">选择发音人</option>'; // 清空并添加默认选项
         let defaultVoiceIndex = null;
-
         voices.forEach((voice, index) => {
             const option = document.createElement('option');
             option.textContent = `${voice.name} (${voice.lang})`;
