@@ -29,8 +29,6 @@ html {
     font-size: 18px;
     -webkit-font-smoothing: antialiased;
     background: #2c2c2c;
-    padding: 0;
-    margin: 0;
 }
 
 .card {
@@ -1317,4 +1315,9 @@ a {
 body {
     margin: 0;
     padding: 0;
+}
+
+html {
+    padding: 0;
+    margin: 0;
 }
