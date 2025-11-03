@@ -31,11 +31,6 @@ html {
     background: #2c2c2c;
 }
 
-body {
-    padding-left: 40px;
-    padding-right: 40px;
-}
-
 .card {
     -webkit-text-size-adjust: 100%;
     -ms-text-size-adjust: 100%;
@@ -1315,4 +1310,9 @@ small::after{
 
 a {
     color:#decb00
+}
+
+body {
+    margin: 0;
+    padding: 0;
 }
