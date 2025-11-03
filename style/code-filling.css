@@ -1204,7 +1204,6 @@ code {
     padding: 2px 4px;
     font-size: 15px;
     font-weight: bold;
-    line-height: 2;
 }
 .comment {
     color: grey; /* 视觉友好的灰色 */
