@@ -128,7 +128,22 @@
             const clipboardText = navigator.clipboard.readText()
 
             clipboardText.then(text => {
-                code.innerHTML = text;
+                // Escape HTML special characters before setting innerHTML
+                const escapedText = text.replace(/<input\b[^>]*>|[&<>]/g, match => {
+                    // 如果是 <input> 标签，就原样返回
+                    if (match.startsWith('<input')) return match;
+
+                    // 否则进行 HTML 实体转义
+                    switch (match) {
+                        case '&': return '&amp;';
+                        case '<': return '&lt;';
+                        case '>': return '&gt;';
+                        default: return match;
+                    }
+                });
+
+
+                code.innerHTML = escapedText;
                 highlight()
                 setUpCode()
             })
@@ -167,7 +182,7 @@
             html = html.replace(/__COMMENT_(\d+)__/g, (_, i) => commentTags[i]);
             html = html.replace(/__INPUT_(\d+)__/g, (_, i) => inputTags[i]);
 
-            block.innerHTML = html;
+            block.innerHTML = html
         })
     }
 
@@ -214,7 +229,7 @@
             input.placeholder = input.placeholder.trim();
 
             const length = input.placeholder.length//input.getAttribute('placeholder').length
-            let width = Math.max(length * 10, 40)
+            let width = Math.max(length * 12, 40)
             width = Math.min(width, 500)
             input.style.width = width + 'px'
 
