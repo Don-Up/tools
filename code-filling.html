@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="style/code-filling.css"></link>
+    <title>Code Filling</title>
+</head>
+<body>
+<div id="front-content">
+    <h2 style="text-align:center">Code Filling</h2>
+    <div>
+        <pre><code id="code"></code></pre>
+    </div>
+</div>
+
+<script>
+
+    // 定义监听函数（必须保留引用，方便移除）
+    function onKeydown(event) {
+        if (event.key === 'F3') {
+            const comments = document.querySelectorAll(".comment");
+            comments.forEach(element => {
+                element.style.visibility =
+                    (element.style.visibility !== 'hidden') ? 'hidden' : 'visible';
+            });
+        }
+    }
+
+    // 给当前卡片绑定事件
+    function bindKeyEvent() {
+        document.removeEventListener("keydown", onKeydown); // 先清理，避免重复绑定
+        document.addEventListener("keydown", onKeydown);
+    }
+
+    // 监听卡片 DOM 变化
+    const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+            if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
+                // 发现新卡片被插入
+                bindKeyEvent();
+            }
+        }
+    });
+
+    // 监听整个 body 下的 DOM 变化
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // 初始绑定一次
+    bindKeyEvent();
+</script>
+
+<script>
+    // 朗读指定文本
+    function speakText(text) {
+        if (!text) return;
+
+        // 停止当前播放（防止堆积）
+        window.speechSynthesis.cancel();
+
+        const filteredText = filterText(text);
+        const utterance = new SpeechSynthesisUtterance(filteredText);
+        utterance.rate = 1;
+
+        function findVoice() {
+            const voices = window.speechSynthesis.getVoices();
+            return voices.find(v =>
+                v.name === "Microsoft Aria Online (Natural) - English (United States)" &&
+                v.lang === "en-US"
+            );
+        }
+
+        // 尝试找到指定语音
+        let voice = findVoice();
+        if (voice) {
+            utterance.voice = voice;
+            window.speechSynthesis.speak(utterance);
+        } else {
+            // 等待语音加载
+            window.speechSynthesis.onvoiceschanged = () => {
+                voice = findVoice();
+                utterance.voice = voice || null;
+                utterance.lang = voice ? voice.lang : "zh-CN";
+                window.speechSynthesis.speak(utterance);
+                // 移除监听器，防止多次触发
+                window.speechSynthesis.onvoiceschanged = null;
+            };
+        }
+    }
+
+    // 过滤文本函数
+    function filterText(text) {
+        // let filtered = text.split('。')[0];
+        // filtered = filtered.replace(/[\(\[\{〈《「『【].*?[\)\]\}〉》」』】]/g, '');
+        // return filtered.trim();
+        return text;
+    }
+
+    function setupTTS() {
+        // 获取文本内容
+        const front = document.querySelector("#read");
+        if (front) {
+            const title = front.innerText || front.textContent;
+            speakText(title);
+        }
+    }
+
+    // ✅ 保证每次显示新卡时都重新朗读
+    if (typeof ankiDeckObserverAttached === "undefined") {
+        document.addEventListener("anki-show", setupTTS);
+        window.ankiDeckObserverAttached = true;
+    }
+
+    // 立即执行一次（用于首张卡片）
+    setupTTS();
+</script>
+
+
+<script>
+
+    const code = document.getElementById("code")
+
+    window.addEventListener('keydown', (event) => {
+        if(event.key === "v" && event.ctrlKey){
+            const clipboardText = navigator.clipboard.readText()
+
+            clipboardText.then(text => {
+                code.innerHTML = text;
+                highlight()
+                setUpCode()
+            })
+        }
+    })
+
+    function highlight() {
+        const blocks = document.querySelectorAll('pre code');
+        if (!blocks) return;
+
+        blocks.forEach(block => {
+            let html = block.innerHTML;
+
+            const inputTags = [];
+            html = html.replace(/<input[^>]*>/g, (m) => {
+                inputTags.push(m);
+                return `__INPUT_${inputTags.length - 1}__`;
+            });
+
+            const commentTags = [];
+            html = html.replace(/\/\*[\s\S]*?\*\//g, (m) => {
+                commentTags.push(`<span class="comment1">${m}</span>`);
+                return `__COMMENT_${commentTags.length - 1}__`;
+            });
+            html = html.replace(/(\/\/.*?$)/gm, (m) => {
+                commentTags.push(`<span class="comment" onclick="speakText('${m.replace("//", "")}')" style="cursor: pointer">${m}</span>`);
+                return `__COMMENT_${commentTags.length - 1}__`;
+            });
+
+            const keywords = ['function', 'var', 'let', 'const', 'return'];
+            html = html.replace(new RegExp(`\\b(${keywords.join('|')})\\b`, 'g'), '<span class="keyword">$1</span>');
+
+            const keywords1 = ['for', 'while', 'if', 'else', 'null', 'true', 'false', 'this', 'constructor'];
+            html = html.replace(new RegExp(`\\b(${keywords1.join('|')})\\b`, 'g'), '<span class="keyword1">$1</span>');
+
+            html = html.replace(/__COMMENT_(\d+)__/g, (_, i) => commentTags[i]);
+            html = html.replace(/__INPUT_(\d+)__/g, (_, i) => inputTags[i]);
+
+            block.innerHTML = html;
+        })
+    }
+
+    function setUpCode(){
+        var initialInputLength = 0
+
+        function isFuzzyPrefix(userInput, target) {
+            const u = userInput.replaceAll(" ", "").toLowerCase();
+            const t = target.replaceAll(" ", "").toLowerCase();
+
+            let i = 0, j = 0;
+            while (i < u.length && j < t.length) {
+                if (u[i] === t[j]) {
+                    // 普通字符匹配
+                    i++; j++;
+                } else if ((u[i] === ')' && u[i-1] === '(') || (u[i] === ']' && u[i-1] === '[')) {
+                    // 特判: 用户输入了 () 或 []，跳过目标里括号/中括号内容
+                    const closing = u[i]; // ')' 或 ']'
+                    while (j < t.length && t[j] !== closing) j++;
+                    if (j < t.length && t[j] === closing) {
+                        i++; j++; // 同时跳过右括号/中括号
+                    } else {
+                        return false;
+                    }
+                } else if ((u[i] === ')' && t[j] !== ')') || (u[i] === ']' && t[j] !== ']')) {
+                    // 新增规则: 用户多打了 ) 或 ]，直接跳过
+                    i++;
+                } else {
+                    return false;
+                }
+            }
+
+            // 如果用户还有剩余输入，允许它只包含多余的 ) 或 ]
+            while (i < u.length) {
+                if (u[i] !== ')' && u[i] !== ']') return false;
+                i++;
+            }
+
+            return true; // 能走到这里都算前缀
+        }
+
+
+        document.querySelectorAll('input').forEach((input, index) => {
+            input.placeholder = input.placeholder.trim();
+
+            const length = input.placeholder.length//input.getAttribute('placeholder').length
+            let width = Math.max(length * 10, 40)
+            width = Math.min(width, 500)
+            input.style.width = width + 'px'
+
+            input.dataset.charIndex = 0; // 初始化字符索引为0
+            input.value = input.placeholder.substring(0, initialInputLength)
+            input.dataset.charIndex = input.value.length;
+            if (index === 0) {
+                input.focus()
+            }
+            // 监听输入事件
+            input.addEventListener('input', () => {
+                const targetString = input.placeholder.toLowerCase(); // 使用 placeholder 作为目标字符串
+                const userInput = input.value.toLowerCase();
+
+                // 更新字符索引为当前输入字符数
+                input.dataset.charIndex = userInput.length;
+
+                // 只有当 placeholder 存在时才进行颜色变换
+                if (userInput.replaceAll(" ", "").toLowerCase() === targetString.replaceAll(" ", "").toLowerCase()) {
+                    input.className = 'orange'; // 完全正确
+                } else if (isFuzzyPrefix(userInput, targetString)) {
+                    input.className = 'green'; // 前缀正确/容错通过
+                } else {
+                    input.className = 'red'; // 错误
+                }
+
+            });
+
+            // 监听获取焦点事件
+            input.addEventListener('focus', () => {
+                input.dataset.charIndex = input.value.length; // 设置charIndex为当前输入字符数
+                const length = input.value.length;
+                input.setSelectionRange(length, length);
+            });
+
+            // 处理双击事件
+            input.addEventListener('click', (event) => {
+                event.preventDefault();
+                const placeholderValue = input.placeholder;
+                if(event.shiftKey && event.ctrlKey){
+                    document.querySelectorAll("input").forEach(input => {
+                        input.value = "";
+                        input.dataset.charIndex = 0;
+                    })
+                } else if(event.shiftKey){
+                    document.querySelectorAll("input").forEach(input => {
+                        input.value = input.placeholder;
+                        input.dataset.charIndex = input.placeholder.length; // 更新字符索引为placeholder的长度
+                        input.className = 'orange';
+                    })
+                } else if(event.altKey){
+                    input.value = placeholderValue; // 显示完整的placeholder值
+                    input.dataset.charIndex = placeholderValue.length; // 更新字符索引为placeholder的长度
+                    input.className = 'orange';
+                } else if(event.ctrlKey) {
+                    input.value = "";
+                    input.dataset.charIndex = 0;
+                } else {
+                    let charIndex = parseInt(input.dataset.charIndex, 10); // 获取当前字符索引
+
+                    if (placeholderValue && charIndex < placeholderValue.length) {
+                        input.value += placeholderValue.charAt(charIndex); // 添加当前字符
+                        charIndex++; // 更新字符索引
+                        input.dataset.charIndex = charIndex; // 存储新的索引
+                        if (charIndex === input.placeholder.length) {
+                            input.className = 'orange';
+                        }
+                    }
+                }
+            });
+
+            input.addEventListener('keydown', (event) => {
+                if (document.activeElement === input) {
+                    if (event.key === '`') {
+                        event.preventDefault();
+                        let charIndex = parseInt(input.dataset.charIndex, 10); // 获取当前字符索引
+
+                        if (input.placeholder && charIndex < input.placeholder.length) {
+                            input.value += input.placeholder.charAt(charIndex); // 添加当前字符
+                            charIndex++; // 更新字符索引
+                            input.dataset.charIndex = charIndex; // 存储新的索引
+                            if (charIndex === input.placeholder.length) {
+                                input.className = 'orange';
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 处理长按显示完整的 placeholder
+            let longPressTimeout;
+
+            input.addEventListener('mousedown', () => {
+                longPressTimeout = setTimeout(() => {
+                    const placeholderValue = input.placeholder;
+                    input.value = placeholderValue; // 显示完整的placeholder值
+                    input.dataset.charIndex = placeholderValue.length; // 更新字符索引为placeholder的长度
+                    input.className = 'orange';
+                }, 600); // 设置长按时间，例如600毫秒
+            });
+
+            input.addEventListener('mouseup', () => {
+                clearTimeout(longPressTimeout); // 取消长按显示操作
+            });
+
+            input.addEventListener('mouseleave', () => {
+                clearTimeout(longPressTimeout); // 取消长按显示操作
+            });
+
+        });
+    }
+</script>
+
+</body>
+</html>
