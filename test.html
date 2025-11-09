@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSS Grid Auto-flow Demo</title>
+    <style>
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: min-content auto;
+            grid-auto-rows: 150px;
+            grid-auto-columns: 100px;
+            grid-auto-flow: row dense;
+            gap: 10px;
+            background-color: #f0f0f0;
+            padding: 10px;
+            margin: 20px;
+        }
+
+        .grid-item {
+            background-color: #4CAF50;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            border-radius: 4px;
+            padding: 10px;
+        }
+
+        /* Specific items for demonstration */
+        .grid-item:nth-child(1) { background-color: #FF5722; grid-column: span 2; }
+        .grid-item:nth-child(2) { background-color: #E91E63; }
+        .grid-item:nth-child(3) { background-color: #9C27B0; height: 80px; }
+        .grid-item:nth-child(4) { background-color: #3F51B5; }
+        .grid-item:nth-child(5) { background-color: #2196F3; grid-row: span 2; }
+        .grid-item:nth-child(6) { background-color: #00BCD4; }
+        .grid-item:nth-child(7) { background-color: #4CAF50; }
+        .grid-item:nth-child(8) { background-color: #8BC34A; }
+        .grid-item:nth-child(9) { background-color: #CDDC39; }
+        .grid-item:nth-child(10) { background-color: #FF9800; }
+        .grid-item:nth-child(11) { background-color: #795548; }
+        .grid-item:nth-child(12) { background-color: #607D8B; }
+        .grid-item:nth-child(13) { background-color: #9E9E9E; }
+        .grid-item:nth-child(14) { background-color: #F44336; }
+    </style>
+</head>
+<body>
+<h2>CSS Grid with Auto-flow Dense</h2>
+<div class="grid">
+    <div class="grid-item">1 (span 2 cols)</div>
+    <div class="grid-item">2</div>
+    <div class="grid-item">3 (80px height)</div>
+    <div class="grid-item">4</div>
+    <div class="grid-item">5 (span 2 rows)</div>
+    <div class="grid-item">6</div>
+    <div class="grid-item">7</div>
+    <div class="grid-item">8</div>
+    <div class="grid-item">9</div>
+    <div class="grid-item">10</div>
+    <div class="grid-item">11</div>
+    <div class="grid-item">12</div>
+    <div class="grid-item">13</div>
+    <div class="grid-item">14</div>
+</div>
+</body>
+</html>

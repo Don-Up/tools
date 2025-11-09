@@ -1,0 +1,107 @@
+<script>
+    document.querySelectorAll('.options').forEach(container => {
+        if (container.dataset.processed === 'true') return;
+        container.dataset.processed = 'true';
+
+        const originalAnswer = Number(container.dataset.answer);
+        if (isNaN(originalAnswer) || originalAnswer < 1) return;
+
+        const children = Array.from(container.children);
+        if (children.length < 2) return;
+
+        const question = children[0];
+        let optionElements = children.slice(1);
+
+        // === Step 1: 标记原始索引 ===
+        optionElements.forEach((opt, i) => {
+            opt.dataset.origIndex = i; // 原始位置 0,1,2,...
+            // 清除旧前缀
+            opt.textContent = opt.textContent.replace(/^\d+\.\s*/, '').trim();
+        });
+
+        // === Step 2: 是否乱序？===
+        const shouldShuffle = container.dataset.shuffle !== 'false';
+
+        if (shouldShuffle) {
+            // Fisher-Yates 洗牌
+            for (let i = optionElements.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [optionElements[i], optionElements[j]] = [optionElements[j], optionElements[i]];
+            }
+
+            // 重新插入 DOM
+            optionElements.forEach(opt => container.appendChild(opt));
+        }
+
+        // === Step 3: 重新获取当前显示的选项（顺序已定）===
+        const displayOptions = Array.from(container.children).slice(1);
+
+        // === Step 4: 重新计算正确答案在新顺序中的位置 ===
+        const correctOrigIndex = originalAnswer - 1;
+        const newAnswerIndex = displayOptions.findIndex(opt =>
+            Number(opt.dataset.origIndex) === correctOrigIndex
+        ) + 1; // 1-based
+
+        // === Step 5: 更新 data-answer ===
+        container.dataset.answer = String(newAnswerIndex);
+
+        // === Step 6: 统一添加 1. 2. 3. 4. 前缀（关键！）===
+        displayOptions.forEach((opt, i) => {
+            const cleanText = opt.textContent.trim();
+            opt.textContent = `${i + 1}. ${cleanText}`;
+        });
+
+        // === 样式与交互 ===
+        question.style.fontWeight = 'bold';
+        question.style.margin = '30px 0 8px 0';
+        question.style.cursor = 'pointer';
+        question.style.fontSize = '18px';
+        question.addEventListener('click', () => {
+            document.querySelectorAll('.options').forEach(container => {
+                const options = Array.from(container.children).slice(1);
+                options.forEach(opt => {
+                    opt.style.backgroundColor = '';
+                    opt.style.color = '';
+                });
+            });
+        });
+
+        displayOptions.forEach((opt, displayIdx) => {
+            opt.style.padding = '8px 12px';
+            opt.style.margin = '8px 0';
+            opt.style.border = '1px solid #ddd';
+            opt.style.borderRadius = '6px';
+            opt.style.cursor = 'pointer';
+            opt.style.transition = 'all 0.3s';
+            opt.style.userSelect = 'none';
+            opt.style.backgroundColor = 'transparent';
+            opt.style.maxWidth = '70vw';
+
+            opt.addEventListener('click', () => {
+                // 重置本题
+                displayOptions.forEach(o => {
+                    o.style.backgroundColor = '';
+                    o.style.color = '';
+                });
+
+                const currentAnswer = Number(container.dataset.answer);
+                const isCorrect = (displayIdx + 1) === currentAnswer;
+
+                if (isCorrect) {
+                    opt.style.backgroundColor = '#66ff66';
+                    opt.style.color = '#155724';
+                } else {
+                    opt.style.backgroundColor = '#ff6666';
+                    opt.style.color = '#721c24';
+                    // 高亮正确项
+                    const correctOpt = displayOptions[currentAnswer - 1];
+                    if (correctOpt) {
+                        correctOpt.style.backgroundColor = '#66ff66';
+                        correctOpt.style.color = '#155724';
+                    }
+                }
+            });
+        });
+    });
+
+</script>
