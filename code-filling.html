@@ -7,13 +7,12 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <link rel="stylesheet" href="style/code-filling.css"></link>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/normalize.css@8.0.1/normalize.min.css">
-
 </head>
 <body>
 <div id="front-content">
     <div style="font-weight: bold;text-align:center;position: fixed;background: #333333;width: 100vw;z-index: 100;font-size: 30px;padding: 10px 0">CODE FILLING</div>
-    <div style="position:absolute;margin-top: 50px; padding-left: 40px;padding-right: 40px;">
-        <pre><code id="code" style="line-height: 1.5;"></code></pre>
+    <div style="position:absolute;margin-top: 70px; padding-left: 25%;padding-right: 25%;">
+        <pre><code id="code" style="line-height: 1.5;max-width: 50%;width: 50%;white-space: pre-wrap;word-break: break-word"></code></pre>
     </div>
 </div>
 
@@ -122,6 +121,7 @@
 <script>
 
     const code = document.getElementById("code")
+    code.style.fontSize = "15px"
 
     window.addEventListener('keydown', (event) => {
         if(event.key === "v" && event.ctrlKey){
@@ -146,6 +146,8 @@
                 code.innerHTML = escapedText;
                 highlight()
                 setUpCode()
+                // 回到顶部
+                window.scrollTo(0, 0);
             })
         }
     })
@@ -156,6 +158,8 @@
 
         blocks.forEach(block => {
             let html = block.innerHTML;
+
+            html = html.replace(/^###\s*(.*)$/gm, '<h3>$1</h3>');
 
             const inputTags = [];
             html = html.replace(/<input[^>]*>/g, (m) => {
@@ -173,14 +177,16 @@
                 return `__COMMENT_${commentTags.length - 1}__`;
             });
 
-            const keywords = ['function', 'var', 'let', 'const', 'return'];
+            const keywords = ['function', 'var', 'let', 'const', 'return', 'class', 'async', 'await', 'log', 'get',  'set'];
             html = html.replace(new RegExp(`\\b(${keywords.join('|')})\\b`, 'g'), '<span class="keyword">$1</span>');
 
-            const keywords1 = ['for', 'while', 'if', 'else', 'null', 'true', 'false', 'this', 'constructor'];
+            const keywords1 = ['for', 'while', 'if', 'else', 'null', 'true', 'false', 'this', 'constructor', 'new', 'try', 'catch', 'implements', 'export', 'import', 'from'];
             html = html.replace(new RegExp(`\\b(${keywords1.join('|')})\\b`, 'g'), '<span class="keyword1">$1</span>');
 
             html = html.replace(/__COMMENT_(\d+)__/g, (_, i) => commentTags[i]);
             html = html.replace(/__INPUT_(\d+)__/g, (_, i) => inputTags[i]);
+
+
 
             block.innerHTML = html
         })
