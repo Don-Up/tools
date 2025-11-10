@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Options</title>
+
+    <!-- Prism 暗黑主题 -->
+    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+
+    <style>
+        body {
+            font-family: "Segoe UI", sans-serif;
+            background: #121212;
+            color: #e0e0e0;
+            padding: 0 25%;
+        }
+
+        h2 {
+            text-align: center;
+            color: #90caf9;
+            font-size: 40px;
+        }
+
+        .paste-hint {
+            text-align: center;
+            color: #aaa;
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+
+        .options {
+            background: #1e1e1e;
+            padding: 16px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+            margin-bottom: 30px;
+            transition: background 0.3s;
+        }
+
+        .options:hover {
+            background: #252525;
+        }
+
+        pre {
+            background: #1e1e1e;
+            border-radius: 4px;
+            padding: 12px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+
+<h2>🌙 Options</h2>
+<div id="content"></div>
+
+<!-- Prism Core -->
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+
+<!-- Prism Language Packs -->
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markup.min.js"></script> <!-- HTML -->
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-css.min.js"></script>    <!-- CSS -->
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script> <!-- JS -->
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script> <!-- TS -->
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-jsx.min.js"></script>  <!-- JSX -->
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-tsx.min.js"></script>  <!-- TSX -->
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+
+
+<script>
+    document.addEventListener('paste', e => {
+        const htmlData = e.clipboardData.getData('text/html') || e.clipboardData.getData('text/plain');
+        if (!htmlData) return;
+
+        const container = document.getElementById('content');
+        container.innerHTML = '';
+        container.innerHTML = htmlData.trim();
+
+        initializeQuestions();
+        document.querySelectorAll('pre code').forEach(code => {
+            code.textContent = code.textContent.replace(/^\s*\n/, '');
+        });
+        Prism.highlightAll();
+    });
+
+    function initializeQuestions() {
+        document.querySelectorAll('.options').forEach(container => {
+            if (container.dataset.processed === 'true') return;
+            container.dataset.processed = 'true';
+
+            container.style.marginTop = "30px"
+
+            const originalAnswer = Number(container.dataset.answer);
+            if (isNaN(originalAnswer) || originalAnswer < 1) return;
+
+            const children = Array.from(container.children);
+            if (children.length < 2) return;
+
+            const question = children[0];
+            let optionElements = children.slice(1);
+
+            optionElements.forEach((opt, i) => {
+                opt.dataset.origIndex = i;
+                opt.textContent = opt.textContent.replace(/^\d+\.\s*/, '').trim();
+            });
+
+            const shouldShuffle = container.dataset.shuffle !== 'false';
+            if (shouldShuffle) {
+                for (let i = optionElements.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [optionElements[i], optionElements[j]] = [optionElements[j], optionElements[i]];
+                }
+                optionElements.forEach(opt => container.appendChild(opt));
+            }
+
+            const displayOptions = Array.from(container.children).slice(1);
+            const correctOrigIndex = originalAnswer - 1;
+            const newAnswerIndex = displayOptions.findIndex(opt =>
+                Number(opt.dataset.origIndex) === correctOrigIndex
+            ) + 1;
+            container.dataset.answer = String(newAnswerIndex);
+
+            displayOptions.forEach((opt, i) => {
+                const cleanText = opt.textContent.trim();
+                opt.textContent = `${i + 1}. ${cleanText}`;
+            });
+
+            question.style.fontWeight = 'bold';
+            question.style.margin = '5px 0px 15px 0';
+            question.style.color = '#bbdefb';
+            question.style.fontSize = '25px';
+            question.style.cursor = 'pointer';
+            question.addEventListener("click", () => {
+                // 复制问题和选项
+                const questionText = question.textContent.trim();
+                const optionsText = displayOptions.map((opt, displayIdx) => {
+                    const cleanText = opt.textContent.trim();
+                    return `${cleanText}`;// ${displayIdx + 1}.
+                }).join('\n');
+                const textToCopy = `${questionText}\n${optionsText}`;
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                }).catch(err => {
+                    alert("Failed to copy: " + err)
+                });
+            })
+
+            displayOptions.forEach((opt, displayIdx) => {
+                opt.style.padding = '8px 12px';
+                opt.style.margin = '4px 0';
+                opt.style.border = '1px solid #333';
+                opt.style.borderRadius = '6px';
+                opt.style.cursor = 'pointer';
+                opt.style.transition = 'all 0.3s';
+                opt.style.userSelect = 'none';
+                opt.style.backgroundColor = '#1e1e1e';
+                opt.style.color = '#e0e0e0';
+                opt.dataset.selected = "false";
+
+                // Hover 效果：仅在未被选中时生效
+                opt.addEventListener('mouseenter', () => {
+                    if (opt.dataset.selected === "false") {
+                        opt.style.backgroundColor = '#2c2c2c';
+                    }
+                });
+                opt.addEventListener('mouseleave', () => {
+                    if (opt.dataset.selected === "false") {
+                        opt.style.backgroundColor = '#1e1e1e';
+                    }
+                });
+
+                // 点击选项
+                opt.addEventListener('click', () => {
+                    displayOptions.forEach(o => {
+                        o.style.backgroundColor = '#1e1e1e';
+                        o.style.color = '#e0e0e0';
+                        o.dataset.selected = "false";
+                    });
+
+                    const currentAnswer = Number(container.dataset.answer);
+                    const isCorrect = (displayIdx + 1) === currentAnswer;
+
+                    if (isCorrect) {
+                        opt.style.backgroundColor = '#1b5e20';
+                        opt.style.color = '#a5d6a7';
+                    } else {
+                        opt.style.backgroundColor = '#b71c1c';
+                        opt.style.color = '#ffcccb';
+                        const correctOpt = displayOptions[currentAnswer - 1];
+                        if (correctOpt) {
+                            correctOpt.style.backgroundColor = '#1b5e20';
+                            correctOpt.style.color = '#a5d6a7';
+                            correctOpt.dataset.selected = "true";
+                        }
+                    }
+
+                    opt.dataset.selected = "true"; // 标记被选中
+                });
+            });
+
+        });
+    }
+
+    function reset(){
+        document.querySelectorAll('.options').forEach(container => {
+            const options = Array.from(container.children).slice(1);
+            options.forEach(opt => {
+                opt.style.backgroundColor = '';
+                opt.style.color = '';
+            });
+        });
+    }
+</script>
+
+</body>
+</html>
