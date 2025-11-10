@@ -12,7 +12,7 @@
             font-family: "Segoe UI", sans-serif;
             background: #121212;
             color: #e0e0e0;
-            padding: 0 25%;
+            padding: 0 25% 30px;
         }
 
         h2 {
@@ -47,11 +47,116 @@
             padding: 12px;
             overflow-x: auto;
         }
+
+        select {
+            background-color: #1e1e1e; /* Dark background */
+            color: #e0e0e0;           /* Light text */
+            border: 1px solid #333;   /* Subtle border */
+            border-radius: 4px;       /* Slightly rounded corners */
+            padding: 5px;             /* Internal spacing */
+        }
+        /* Optionally, style the options within the dropdown if needed */
+        /* Note: Styling options can be limited in some browsers */
+        select option {
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+        }
+
+        #rate-slider {
+            width: 100%;
+            margin-top: 10px;
+            margin-bottom: 20px;
+            /* Basic dark theme styles for range input */
+            background-color: #121212; /* Background of the track */
+        }
+
+        #rate-slider::-webkit-slider-runnable-track { /* Chrome, Safari, Opera */
+            background: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 4px;
+            height: 8px;
+        }
+        #rate-slider::-moz-range-track { /* Firefox */
+            background: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 4px;
+            height: 8px;
+        }
+
+        #rate-slider::-webkit-slider-thumb { /* Chrome, Safari, Opera */
+            -webkit-appearance: none;
+            appearance: none;
+            background: #90caf9; /* Blue thumb */
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            margin-top: -5px; /* Center vertically */
+        }
+        #rate-slider::-moz-range-thumb { /* Firefox */
+            background: #90caf9; /* Blue thumb */
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            border: none;
+        }
+
+        #rate-value {
+            margin-left: 10px;
+            color: #90caf9;
+        }
+
+        button { /* Or a more specific selector like #content button if needed */
+            margin-left: 10px;
+            background-color: #66afe9;
+            color: white;
+            border: none;
+            width: 40px;
+            height: 22px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+
+        /* Style for copy buttons inside pre elements */
+        pre {
+            position: relative; /* Ensure parent has relative positioning */
+        }
+
+        .copy-button {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: #66afe9;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            width: 55px;
+            height: 22px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+
+        .copy-button:hover {
+            background-color: #4d9fe0; /* Slightly darker on hover */
+        }
+
+
     </style>
 </head>
 <body>
 
 <h2>🌙 Options</h2>
+<div style="display: flex;height: 30px;align-items: center;">
+    <select id="voice-select">
+    </select>
+    <div style="margin-left: 20px; display: flex;margin-top: 10px;">
+        <label for="rate-slider">Speed:</label>
+        <input type="range" id="rate-slider" min="0.5" max="2" step="0.1" value="1" style="margin-left: 10px;">
+        <span id="rate-value">1.0</span>
+    </div>
+</div>
 <div id="content"></div>
 
 <!-- Prism Core -->
@@ -68,6 +173,9 @@
 
 
 <script>
+    // 默认发音人名称
+    const defaultVoiceName = localStorage.getItem('selectedVoice') || "Microsoft Brian Online (Natural) - English (United States)";
+
     document.addEventListener('paste', e => {
         const htmlData = e.clipboardData.getData('text/html') || e.clipboardData.getData('text/plain');
         if (!htmlData) return;
@@ -77,11 +185,91 @@
         container.innerHTML = htmlData.trim();
 
         initializeQuestions();
-        document.querySelectorAll('pre code').forEach(code => {
-            code.textContent = code.textContent.replace(/^\s*\n/, '');
-        });
+        // document.querySelectorAll('pre code').forEach(code => {
+        //     code.textContent = code.textContent.replace(/^\s*\n/, '');
+        // });
         Prism.highlightAll();
+        // 回到顶部
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     });
+
+    let isSpeaking = false;
+    const select = document.getElementById('voice-select');
+    select.innerHTML = '<option value="">Loading...</option>';
+    // Event listener for when the user manually selects a voice from the dropdown
+    select.addEventListener('change', () => {
+        const selectedVoiceName = select.value;
+        localStorage.setItem('selectedVoice', selectedVoiceName);
+        const voices = window.speechSynthesis.getVoices();
+        const voice = voices.find(voice => voice.name === selectedVoiceName);
+        if (voice) {
+            selectVoice = voice;
+        }
+    });
+
+    document.addEventListener("keydown",  (e) => {
+        console.log(e.key)
+        if (e.keyCode === 32) {
+            e.preventDefault();
+            window.speechSynthesis.cancel();
+            isSpeaking = false;
+        } else if (e.key === 'd'){
+            e.preventDefault();
+            // 暂停/继续
+            if (!isSpeaking) {
+                isSpeaking = true;
+                window.speechSynthesis.resume();
+            } else {
+                isSpeaking = false;
+                window.speechSynthesis.pause();
+            }
+        }
+    })
+
+    let selectVoice = null
+    let currentRate = parseFloat(localStorage.getItem('speechRate')) || 1.0; // Load saved rate or default to 1.0
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const rateSlider = document.getElementById('rate-slider');
+        const rateValueSpan = document.getElementById('rate-value');
+
+        if (rateSlider && rateValueSpan) {
+            rateSlider.value = currentRate;
+            rateValueSpan.textContent = currentRate.toFixed(1);
+
+            rateSlider.addEventListener('input', () => {
+                currentRate = parseFloat(rateSlider.value);
+                rateValueSpan.textContent = currentRate.toFixed(1);
+                localStorage.setItem('speechRate', currentRate); // Save the preference
+            });
+        }
+    });
+
+    window.speechSynthesis.onvoiceschanged = () => {
+        const voices = window.speechSynthesis.getVoices();
+
+        // Clear any existing options (like the "Loading..." one)
+        select.innerHTML = '';
+
+        // Populate the select element with available voices
+        voices.forEach(voice => {
+            const option = document.createElement('option');
+            option.value = voice.name;
+            option.textContent = voice.name; // Or voice.name + ' (' + voice.lang + ')'
+            select.appendChild(option);
+
+            // Check if this is the default voice and store it
+            if (voice.name === defaultVoiceName) {
+                selectVoice = voice;
+            }
+        });
+
+        // Set the default selected option in the dropdown if the default voice was found
+        if (selectVoice) {
+            select.value = selectVoice.name;
+        }
+    };
+
 
     function initializeQuestions() {
         document.querySelectorAll('.options').forEach(container => {
@@ -130,19 +318,46 @@
             question.style.color = '#bbdefb';
             question.style.fontSize = '25px';
             question.style.cursor = 'pointer';
-            question.addEventListener("click", () => {
+            question.style.display = 'flex'
+            question.style.alignItems = 'center';
+
+            question.addEventListener("click", reset)
+
+            // 创建一个button
+            const copyButton = document.createElement('button');
+            copyButton.textContent = 'Copy';
+            const questionText = question.textContent.trim();
+            const optionsText = displayOptions.map((opt, displayIdx) => {
+                const cleanText = opt.textContent.trim();
+                return `${cleanText}`;// ${displayIdx + 1}.
+            }).join('\n');
+            const textToCopy = `${questionText}\n${optionsText}`;
+            copyButton.addEventListener("click", () => {
                 // 复制问题和选项
-                const questionText = question.textContent.trim();
-                const optionsText = displayOptions.map((opt, displayIdx) => {
-                    const cleanText = opt.textContent.trim();
-                    return `${cleanText}`;// ${displayIdx + 1}.
-                }).join('\n');
-                const textToCopy = `${questionText}\n${optionsText}`;
                 navigator.clipboard.writeText(textToCopy).then(() => {
                 }).catch(err => {
                     alert("Failed to copy: " + err)
                 });
             })
+            question.appendChild(copyButton);
+
+            const playButton = document.createElement('button');
+            playButton.textContent = 'Play';
+            playButton.addEventListener("click", () => {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(textToCopy);
+                utterance.lang = 'en-US';
+                utterance.rate = currentRate; // 使用当前语速
+                utterance.voice = selectVoice;
+                utterance.onstart = () => {
+                    isSpeaking = true;
+                };
+                utterance.onend = () => {
+                    isSpeaking = false;
+                }
+                speechSynthesis.speak(utterance);
+            })
+            question.appendChild(playButton);
 
             displayOptions.forEach((opt, displayIdx) => {
                 opt.style.padding = '8px 12px';
@@ -198,6 +413,36 @@
             });
 
         });
+        document.querySelectorAll('code').forEach(code => {
+            // Ensure the parent 'pre' element has position: relative for absolute positioning of the button
+            const pre = code.parentElement;
+            if (pre && pre.tagName.toLowerCase() === 'pre') {
+                pre.style.position = 'relative';
+
+                // Create the copy button
+                const copyButton = document.createElement('button');
+                copyButton.textContent = 'Copy';
+                copyButton.className = 'copy-button'; // Optional: for easier CSS targeting
+
+                // Add click event to copy code content
+                copyButton.addEventListener('click', () => {
+                    const textToCopy = code.textContent;
+                    navigator.clipboard.writeText(textToCopy).then(() => {
+                        // Optional: Provide feedback (e.g., change button text temporarily)
+                        const originalText = copyButton.textContent;
+                        copyButton.textContent = 'Copied';
+                        setTimeout(() => { copyButton.textContent = originalText; }, 1000);
+                    }).catch(err => {
+                        console.error('Failed to copy code: ', err);
+                        alert('Failed to copy code.');
+                    });
+                });
+
+                // Append the button to the 'pre' element
+                pre.appendChild(copyButton);
+            }
+        });
+
     }
 
     function reset(){
@@ -209,6 +454,7 @@
             });
         });
     }
+
 </script>
 
 </body>
