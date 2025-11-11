@@ -323,6 +323,7 @@
 
             if (explainDiv) {
                 // explainDiv.style.fontStyle = "italic"
+                explainDiv.style.fontFamily = "Corbel"
                 container.appendChild(explainDiv);
             }
 
@@ -381,7 +382,7 @@
 
             displayOptions.forEach((opt, displayIdx) => {
                 opt.style.padding = '8px 12px';
-                opt.style.margin = '4px 0';
+                opt.style.margin = opt.className === "explain"? "15px 4px 0 0"  : '4px 0';
                 opt.style.border = '1px solid #333';
                 opt.style.borderRadius = '6px';
                 opt.style.cursor = 'pointer';
