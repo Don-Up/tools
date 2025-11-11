@@ -272,7 +272,7 @@
 
 
     function initializeQuestions() {
-        document.querySelectorAll('.options').forEach(container => {
+        document.querySelectorAll('.options').forEach((container, qIndex) => {
             if (container.dataset.processed === 'true') return;
             container.dataset.processed = 'true';
 
@@ -285,8 +285,13 @@
             if (children.length < 2) return;
 
             const question = children[0];
-            let optionElements = children.slice(1);
 
+            const explainDiv = container.querySelector(".explain")
+            if(explainDiv){
+                explainDiv.style.display = "none"
+            }
+
+            let optionElements = children.filter(child => !child.classList.contains('explain')).slice(1);
             optionElements.forEach((opt, i) => {
                 opt.dataset.origIndex = i;
                 opt.textContent = opt.textContent.replace(/^\d+\.\s*/, '').trim();
@@ -301,7 +306,13 @@
                 optionElements.forEach(opt => container.appendChild(opt));
             }
 
+            if (explainDiv) {
+                // explainDiv.style.fontStyle = "italic"
+                container.appendChild(explainDiv);
+            }
+
             const displayOptions = Array.from(container.children).slice(1);
+
             const correctOrigIndex = originalAnswer - 1;
             const newAnswerIndex = displayOptions.findIndex(opt =>
                 Number(opt.dataset.origIndex) === correctOrigIndex
@@ -310,7 +321,7 @@
 
             displayOptions.forEach((opt, i) => {
                 const cleanText = opt.textContent.trim();
-                opt.textContent = `${i + 1}. ${cleanText}`;
+                opt.textContent = opt.className === 'explain' ? cleanText : `${i + 1}. ${cleanText}`;
             });
 
             question.style.fontWeight = 'bold';
@@ -332,7 +343,11 @@
                 return `${cleanText}`;// ${displayIdx + 1}.
             }).join('\n');
             const textToCopy = `${questionText}\n${optionsText}`;
-            copyButton.addEventListener("click", () => {
+
+            question.textContent = `${qIndex+1}. ${questionText}`;
+
+            copyButton.addEventListener("click", (event) => {
+                event.stopPropagation();
                 // 复制问题和选项
                 navigator.clipboard.writeText(textToCopy).then(() => {
                 }).catch(err => {
@@ -343,7 +358,8 @@
 
             const playButton = document.createElement('button');
             playButton.textContent = 'Play';
-            playButton.addEventListener("click", () => {
+            playButton.addEventListener("click", (event) => {
+                event.stopPropagation();
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(textToCopy);
                 utterance.lang = 'en-US';
@@ -409,6 +425,7 @@
                     }
 
                     opt.dataset.selected = "true"; // 标记被选中
+                    explainDiv.style.display = 'block';
                 });
             });
 
