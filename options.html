@@ -46,6 +46,7 @@
             border-radius: 4px;
             padding: 12px;
             overflow-x: auto;
+            position: relative; /* Ensure parent has relative positioning */
         }
 
         select {
@@ -118,11 +119,6 @@
             font-size: 12px;
         }
 
-        /* Style for copy buttons inside pre elements */
-        pre {
-            position: relative; /* Ensure parent has relative positioning */
-        }
-
         .copy-button {
             position: absolute;
             top: 5px;
@@ -148,7 +144,7 @@
 </head>
 <body>
 
-<h2>🌙 Options</h2>
+<h2 onclick="reset()" style="cursor: pointer">🌙 Options</h2>
 <div style="display: flex;height: 30px;align-items: center;">
     <select id="voice-select">
     </select>
@@ -375,13 +371,23 @@
             })
             question.appendChild(copyButton);
 
-            const resetButton = document.createElement('button');
-            resetButton.textContent = 'Reset';
-            resetButton.addEventListener("click", (event) => {
+            const exportButton = document.createElement('button');
+            exportButton.textContent = 'Export';
+            exportButton.addEventListener("click", (event) => {
                 event.stopPropagation();
-                reset()
+                let result = `${questionText}</div>|${container.dataset.answer}|`
+                displayOptions.forEach((opt, displayIdx) => {
+                    if(opt.className !== "explain"){
+                        result += `<div class="option">${opt.textContent.trim()}</div>`
+                    }
+                })
+                result += `|${explainDiv.textContent.trim()}`
+                navigator.clipboard.writeText(result).then(() => {
+                }).catch(err => {
+                    alert("Failed to copy: " + err)
+                });
             })
-            question.appendChild(resetButton);
+            question.appendChild(exportButton);
 
             displayOptions.forEach((opt, displayIdx) => {
                 opt.style.padding = '8px 12px';
@@ -430,7 +436,7 @@
                         opt.style.color = '#a5d6a7';
                         // 判断text是否只由字母, 数字，逗号,句号, -, 空格组成
                         const lastContent = displayOptions[displayOptions.length-1].textContent
-                        if (/^[a-zA-Z0-9,.()’+\-\s]+$/.test(lastContent)) {
+                        if (/^[a-zA-Z0-9,.()’+@"':/;`→、\[\]\-\s]+$/.test(lastContent)) {
                             speak(lastContent)
                         }
                     } else {
@@ -442,9 +448,9 @@
                             correctOpt.style.color = '#a5d6a7';
                             correctOpt.dataset.selected = "true";
                         }
-                        if(/^[a-zA-Z0-9,.()‘+\-\s]+$/.test(correctOpt.textContent)){
+                        if(/^[a-zA-Z0-9,.()‘+@"':/;`→\[\]\-\s]+$/.test(correctOpt.textContent)){
                             const lastContent = displayOptions[displayOptions.length-1].textContent
-                            if (/^[a-zA-Z0-9,.()’+\-\s]+$/.test(lastContent)) {
+                            if (/^[a-zA-Z0-9,.()’+@"':/;`→\[\]\-\s]+$/.test(lastContent)) {
                                 speak("The correct answer is "+ correctOpt.textContent.slice(2)+". "+lastContent)
                             } else {
                                 speak("The correct answer is "+ correctOpt.textContent.slice(2))

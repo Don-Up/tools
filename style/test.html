@@ -1,107 +1,166 @@
+<div>
+    <div id="question">
+        {{Front}}
+    </div>
+    <div id="options">
+        {{Options}}
+    </div>
+    <div class="explain">
+        {{Explain}}
+    </div>
+    <div id="answer" style="display:none">{{Answer}}</div>
+</div>
 <script>
-    document.querySelectorAll('.options').forEach(container => {
-        if (container.dataset.processed === 'true') return;
-        container.dataset.processed = 'true';
+    function init(){
+        let originalAnswer = parseInt(document.getElementById("answer").textContent.trim(), 10);
+        const question = document.getElementById("question");
+        const explainDiv = document.querySelector(".explain");
+        let optionElements = Array.from(document.querySelectorAll(".option"));
 
-        const originalAnswer = Number(container.dataset.answer);
-        if (isNaN(originalAnswer) || originalAnswer < 1) return;
-
-        const children = Array.from(container.children);
-        if (children.length < 2) return;
-
-        const question = children[0];
-        let optionElements = children.slice(1);
-
-        // === Step 1: 标记原始索引 ===
+        // 清理并存储原始文本
         optionElements.forEach((opt, i) => {
-            opt.dataset.origIndex = i; // 原始位置 0,1,2,...
-            // 清除旧前缀
+            opt.dataset.origIndex = String(i + 1);
             opt.textContent = opt.textContent.replace(/^\d+\.\s*/, '').trim();
         });
 
-        // === Step 2: 是否乱序？===
-        const shouldShuffle = container.dataset.shuffle !== 'false';
-
-        if (shouldShuffle) {
-            // Fisher-Yates 洗牌
-            for (let i = optionElements.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [optionElements[i], optionElements[j]] = [optionElements[j], optionElements[i]];
-            }
-
-            // 重新插入 DOM
-            optionElements.forEach(opt => container.appendChild(opt));
+        // Fisher-Yates shuffle
+        for (let i = optionElements.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [optionElements[i], optionElements[j]] = [optionElements[j], optionElements[i]];
         }
 
-        // === Step 3: 重新获取当前显示的选项（顺序已定）===
-        const displayOptions = Array.from(container.children).slice(1);
+        // 重新插入到 DOM
+        const optionsContainer = document.getElementById("options");
+        optionsContainer.innerHTML = '';
+        optionElements.forEach(opt => optionsContainer.appendChild(opt));
 
-        // === Step 4: 重新计算正确答案在新顺序中的位置 ===
-        const correctOrigIndex = originalAnswer - 1;
-        const newAnswerIndex = displayOptions.findIndex(opt =>
-            Number(opt.dataset.origIndex) === correctOrigIndex
-        ) + 1; // 1-based
+        // 更新 originalAnswer 为正确选项在打乱后对应的显示位置 (1-based)
+        const correctOrigIndex = originalAnswer;
+        const shuffledCorrectOpt = optionElements.find(opt => parseInt(opt.dataset.origIndex, 10) === correctOrigIndex);
+        originalAnswer = optionElements.indexOf(shuffledCorrectOpt) + 1;
 
-        // === Step 5: 更新 data-answer ===
-        container.dataset.answer = String(newAnswerIndex);
-
-        // === Step 6: 统一添加 1. 2. 3. 4. 前缀（关键！）===
-        displayOptions.forEach((opt, i) => {
-            const cleanText = opt.textContent.trim();
-            opt.textContent = `${i + 1}. ${cleanText}`;
-        });
-
-        // === 样式与交互 ===
-        question.style.fontWeight = 'bold';
-        question.style.margin = '30px 0 8px 0';
-        question.style.cursor = 'pointer';
-        question.style.fontSize = '18px';
-        question.addEventListener('click', () => {
-            document.querySelectorAll('.options').forEach(container => {
-                const options = Array.from(container.children).slice(1);
-                options.forEach(opt => {
-                    opt.style.backgroundColor = '';
-                    opt.style.color = '';
-                });
-            });
-        });
-
+        const displayOptions = optionElements;
         displayOptions.forEach((opt, displayIdx) => {
-            opt.style.padding = '8px 12px';
-            opt.style.margin = '8px 0';
-            opt.style.border = '1px solid #ddd';
-            opt.style.borderRadius = '6px';
-            opt.style.cursor = 'pointer';
-            opt.style.transition = 'all 0.3s';
-            opt.style.userSelect = 'none';
-            opt.style.backgroundColor = 'transparent';
-            opt.style.maxWidth = '70vw';
-
-            opt.addEventListener('click', () => {
-                // 重置本题
-                displayOptions.forEach(o => {
-                    o.style.backgroundColor = '';
-                    o.style.color = '';
-                });
-
-                const currentAnswer = Number(container.dataset.answer);
-                const isCorrect = (displayIdx + 1) === currentAnswer;
-
-                if (isCorrect) {
-                    opt.style.backgroundColor = '#66ff66';
-                    opt.style.color = '#155724';
-                } else {
-                    opt.style.backgroundColor = '#ff6666';
-                    opt.style.color = '#721c24';
-                    // 高亮正确项
-                    const correctOpt = displayOptions[currentAnswer - 1];
-                    if (correctOpt) {
-                        correctOpt.style.backgroundColor = '#66ff66';
-                        correctOpt.style.color = '#155724';
-                    }
+            opt.dataset.selected = "false";
+            opt.textContent = (displayIdx + 1) + ". " + opt.textContent;
+            // Hover 效果：仅在未被选中时生效
+            opt.addEventListener('mouseenter', () => {
+                if (opt.dataset.selected === "false") {
+                    opt.style.backgroundColor = '#2c2c2c';
                 }
             });
+            opt.addEventListener('mouseleave', () => {
+                if (opt.dataset.selected === "false") {
+                    opt.style.backgroundColor = '#1e1e1e';
+                }
+            });
+            // 点击选项
+            opt.addEventListener('click', () => {
+                window.speechSynthesis.cancel();
+                displayOptions.forEach(o => {
+                    o.style.backgroundColor = '#1e1e1e';
+                    o.style.color = '#e0e0e0';
+                    o.dataset.selected = "false";
+                });
+                const currentAnswer = originalAnswer;
+                const isCorrect = (displayIdx + 1) === currentAnswer;
+                if (isCorrect) {
+                    opt.style.backgroundColor = '#1b5e20';
+                    opt.style.color = '#a5d6a7';
+                } else {
+                    opt.style.backgroundColor = '#b71c1c';
+                    opt.style.color = '#ffcccb';
+                    const correctOpt = displayOptions[currentAnswer - 1];
+                    if (correctOpt) {
+                        correctOpt.style.backgroundColor = '#1b5e20';
+                        correctOpt.style.color = '#a5d6a7';
+                        correctOpt.dataset.selected = "true";
+                    }
+                }
+                opt.dataset.selected = "true";
+                explainDiv.style.display = 'block';
+            });
         });
-    });
+    }
+
+    // ✅ 保证每次显示新卡时都重新朗读
+    if (typeof ankiDeckObserverAttached === "undefined") {
+        document.addEventListener("anki-show", init);
+        window.ankiDeckObserverAttached = true;
+    }
+
+    // ✅ 检测切换到背面
+    if (typeof ankiBackObserverAttached === "undefined") {
+        const observer = new MutationObserver(() => {
+            // const back = document.querySelector("#back");
+            // if (back && back.offsetParent !== null) {
+            //     const text = back.innerText || back.textContent;
+            //     console.log("🎯 检测到背面显示:", text);
+            //     // 👉 这里执行你想要的操作（例如朗读、暂停音频、修改样式等）
+            //     window.speechSynthesis.cancel();
+            // }
+        });
+        observer.observe(document.body, {childList: true, subtree: true});
+        window.ankiBackObserverAttached = true;
+    }
+
+    // 立即执行一次（用于首张卡片）
+    init()
+</script>
+
+<script>
+    function setupTTS() {
+        // 朗读指定文本
+        function speakText(text) {
+            if (!text) return;
+
+            // 停止当前播放（防止堆积）
+            window.speechSynthesis.cancel();
+
+            const filteredText = filterText(text);
+            const utterance = new SpeechSynthesisUtterance(filteredText);
+            utterance.rate = 3.5;
+
+            function findVoice() {
+                const voices = window.speechSynthesis.getVoices();
+                return voices.find(v =>
+                    v.name === "Microsoft Yaoyao - Chinese (Simplified, PRC)" &&
+                    v.lang === "zh-CN"
+                );
+            }
+
+            // 尝试找到指定语音
+            let voice = findVoice();
+            if (voice) {
+                utterance.voice = voice;
+                window.speechSynthesis.speak(utterance);
+            } else {
+                // 等待语音加载
+                window.speechSynthesis.onvoiceschanged = () => {
+                    voice = findVoice();
+                    utterance.voice = voice || null;
+                    utterance.lang = voice ? voice.lang : "zh-CN";
+                    window.speechSynthesis.speak(utterance);
+                    // 移除监听器，防止多次触发
+                    window.speechSynthesis.onvoiceschanged = null;
+                };
+            }
+        }
+
+        // 过滤文本函数
+        function filterText(text) {
+            let filtered = text // .split('\n')[0];
+            filtered = filtered.replace(/[\(\[\{〈《「『【].*?[\)\]\}〉》」』】]/g, '');
+            return filtered.trim();
+        }
+
+        // 获取文本内容
+        const front = document.querySelector("#front");
+        if (front) {
+            const title = front.innerText || front.textContent;
+            speakText(title);
+        }
+    }
+
 
 </script>
