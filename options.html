@@ -139,7 +139,9 @@
             background-color: #4d9fe0; /* Slightly darker on hover */
         }
 
-
+        b {
+            color: gold;
+        }
     </style>
 </head>
 <body>
@@ -179,7 +181,7 @@
 
         const container = document.getElementById('content');
         container.innerHTML = '';
-        container.innerHTML = htmlData.trim();
+        container.innerHTML = htmlData.replaceAll("**", "").trim();
 
         initializeQuestions();
         // document.querySelectorAll('pre code').forEach(code => {
@@ -436,7 +438,7 @@
                         opt.style.color = '#a5d6a7';
                         // 判断text是否只由字母, 数字，逗号,句号, -, 空格组成
                         const lastContent = displayOptions[displayOptions.length-1].textContent
-                        if (/^[a-zA-Z0-9,.()’+@"':/;`→、\[\]\-\s]+$/.test(lastContent)) {
+                        if (/^[a-zA-Z0-9,.()’+@"':/;`→—\[\]\-\s]+$/.test(lastContent)) {
                             speak(lastContent)
                         }
                     } else {
@@ -448,9 +450,9 @@
                             correctOpt.style.color = '#a5d6a7';
                             correctOpt.dataset.selected = "true";
                         }
-                        if(/^[a-zA-Z0-9,.()‘+@"':/;`→\[\]\-\s]+$/.test(correctOpt.textContent)){
+                        if(/^[a-zA-Z0-9,.()‘+@"':/;`→—\[\]\-\s]+$/.test(correctOpt.textContent)){
                             const lastContent = displayOptions[displayOptions.length-1].textContent
-                            if (/^[a-zA-Z0-9,.()’+@"':/;`→\[\]\-\s]+$/.test(lastContent)) {
+                            if (/^[a-zA-Z0-9,.()’+@"':/;`→—\[\]\-\s]+$/.test(lastContent)) {
                                 speak("The correct answer is "+ correctOpt.textContent.slice(2)+". "+lastContent)
                             } else {
                                 speak("The correct answer is "+ correctOpt.textContent.slice(2))

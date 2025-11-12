@@ -7,16 +7,139 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <link rel="stylesheet" href="style/code-filling.css"></link>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/normalize.css@8.0.1/normalize.min.css">
+    <style>
+        select {
+            background-color: #1e1e1e; /* Dark background */
+            color: #e0e0e0;           /* Light text */
+            border: 1px solid #333;   /* Subtle border */
+            border-radius: 4px;       /* Slightly rounded corners */
+            padding: 2px;             /* Internal spacing */
+        }
+        /* Optionally, style the options within the dropdown if needed */
+        /* Note: Styling options can be limited in some browsers */
+        select option {
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+        }
+    </style>
 </head>
 <body>
 <div id="front-content">
-    <div style="font-weight: bold;text-align:center;position: fixed;background: #333333;width: 100vw;z-index: 100;font-size: 30px;padding: 10px 0">CODE FILLING</div>
-    <div style="position:absolute;margin-top: 70px; padding-left: 25%;padding-right: 25%;">
+    <div style="position: fixed;background: #333333;width: 100vw;z-index: 100;padding-bottom: 10px;">
+        <div style="font-weight: bold;text-align:center;font-size: 30px;padding: 10px 0">
+            CODE FILLING
+        </div>
+        <div style="display: flex;height: 30px;align-items: center;width: 100%;">
+            <select id="voice-select" style="margin-left: auto;">
+            </select>
+            <div style="margin-left: 20px; display: flex;margin-top: 0px;margin-right: auto;">
+                <label for="rate-slider">Speed:</label>
+                <input type="range" id="rate-slider" min="0.5" max="2" step="0.1" value="1" style="margin-left: 10px;">
+                <span id="rate-value" style="margin-left: 10px;">1.0</span>
+            </div>
+        </div>
+    </div>
+
+    <div style="position:absolute;margin-top: 80px; padding-left: 25%;padding-right: 25%;">
         <pre><code id="code" style="line-height: 1.5;max-width: 50%;width: 50%;white-space: pre-wrap;word-break: break-word"></code></pre>
     </div>
 </div>
 
+
 <script>
+    const defaultVoiceName = localStorage.getItem('selectedVoice') || "Microsoft Brian Online (Natural) - English (United States)";
+
+    let isSpeaking = false;
+    const select = document.getElementById('voice-select');
+    select.innerHTML = '<option value="">Loading...</option>';
+    // Event listener for when the user manually selects a voice from the dropdown
+    select.addEventListener('change', () => {
+        const selectedVoiceName = select.value;
+        localStorage.setItem('selectedVoice', selectedVoiceName);
+        const voices = window.speechSynthesis.getVoices();
+        const voice = voices.find(voice => voice.name === selectedVoiceName);
+        if (voice) {
+            selectVoice = voice;
+        }
+    });
+
+    document.addEventListener("keydown",  (e) => {
+        console.log(e.key)
+        if (e.keyCode === 32) {
+            e.preventDefault();
+            window.speechSynthesis.cancel();
+            isSpeaking = false;
+        } else if (e.key === 'd'){
+            e.preventDefault();
+            // 暂停/继续
+            if (!isSpeaking) {
+                isSpeaking = true;
+                window.speechSynthesis.resume();
+            } else {
+                isSpeaking = false;
+                window.speechSynthesis.pause();
+            }
+        }
+    })
+
+    let selectVoice = null
+    let currentRate = parseFloat(localStorage.getItem('speechRate')) || 1.0; // Load saved rate or default to 1.0
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const rateSlider = document.getElementById('rate-slider');
+        const rateValueSpan = document.getElementById('rate-value');
+
+        if (rateSlider && rateValueSpan) {
+            rateSlider.value = currentRate;
+            rateValueSpan.textContent = currentRate.toFixed(1);
+
+            rateSlider.addEventListener('input', () => {
+                currentRate = parseFloat(rateSlider.value);
+                rateValueSpan.textContent = currentRate.toFixed(1);
+                localStorage.setItem('speechRate', currentRate); // Save the preference
+            });
+        }
+    });
+
+    window.speechSynthesis.onvoiceschanged = () => {
+        const voices = window.speechSynthesis.getVoices();
+
+        // Clear any existing options (like the "Loading..." one)
+        select.innerHTML = '';
+
+        // Populate the select element with available voices
+        voices.forEach(voice => {
+            const option = document.createElement('option');
+            option.value = voice.name;
+            option.textContent = voice.name; // Or voice.name + ' (' + voice.lang + ')'
+            select.appendChild(option);
+
+            // Check if this is the default voice and store it
+            if (voice.name === defaultVoiceName) {
+                selectVoice = voice;
+            }
+        });
+
+        // Set the default selected option in the dropdown if the default voice was found
+        if (selectVoice) {
+            select.value = selectVoice.name;
+        }
+    };
+
+    function speak(text){
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = currentRate; // 使用当前语速
+        utterance.voice = selectVoice;
+        utterance.onstart = () => {
+            isSpeaking = true;
+        };
+        utterance.onend = () => {
+            isSpeaking = false;
+        }
+        speechSynthesis.speak(utterance);
+    }
+
 
     // 定义监听函数（必须保留引用，方便移除）
     function onKeydown(event) {
@@ -114,7 +237,7 @@
     }
 
     // 立即执行一次（用于首张卡片）
-    setupTTS();
+    // setupTTS();
 </script>
 
 
@@ -173,7 +296,7 @@
                 return `__COMMENT_${commentTags.length - 1}__`;
             });
             html = html.replace(/(\/\/.*?$)/gm, (m) => {
-                commentTags.push(`<span class="comment" onclick="speakText('${m.replace("//", "")}')" style="cursor: pointer">${m}</span>`);
+                commentTags.push(`<span class="comment" onclick="speak('${m.replace("//", "")}')" style="cursor: pointer">${m}</span>`);
                 return `__COMMENT_${commentTags.length - 1}__`;
             });
 
