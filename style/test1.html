@@ -3,27 +3,19 @@
         <div style="display: flex; flex-direction: column; align-items: center;gap: 20px">
             <h1 id="front" style="text-align: center">{{Front}}</h1>
             {{Code}}
-            <div id="answer" style="line-height:2">{{Answer}}</div>
+            <div id="answer">{{Answer}}</div>
         </div>
     </div>
 </div>
 
-
 <script>
-    const codeElement = document.querySelector("code")
-    if(codeElement){
-        const newHTML = codeElement.innerHTML.replaceAll("<", "&lt;").replaceAll(">", "&gt;")
-        codeElement.innerHTML = newHTML
-    }
-
     function init(){
         let answer = document.getElementById('answer');
         let originalText = answer.textContent;
-        if(!originalText) answer.style.display = "none";
         if (!originalText.includes("~")) {
             answer.innerHTML = `<input placeholder='${originalText}'>`
         } else {
-            let newHTML = originalText.replace(/~~/g, '">').replace(/~/g, `<input placeholder="`).replace(/[；;]/g, '<br>');
+            let newHTML = originalText.replace(/~~/g, '">').replace(/~/g, `<input placeholder="`).replace(/；/g, '<br>').replace(/;/g, '<br>');
             answer.innerHTML = newHTML;
         }
         var initialInputLength = 0
@@ -31,7 +23,7 @@
             input.placeholder = input.placeholder.trim();
 
             const length = input.placeholder.length//input.getAttribute('placeholder').length
-            let width = Math.max(length * 10, 100)
+            let width = Math.max(length * 20, 100)
             width = Math.min(width, 1000)
             input.style.width = width + 'px'
 
@@ -155,7 +147,7 @@
 
             const filteredText = filterText(text);
             const utterance = new SpeechSynthesisUtterance(filteredText);
-            utterance.rate = 4;
+            utterance.rate = 2;
 
             function findVoice() {
                 const voices = window.speechSynthesis.getVoices();

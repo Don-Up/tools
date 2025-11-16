@@ -303,7 +303,7 @@
             const keywords = ['function', 'var', 'let', 'const', 'return', 'class', 'async', 'await', 'log', 'get',  'set'];
             html = html.replace(new RegExp(`\\b(${keywords.join('|')})\\b`, 'g'), '<span class="keyword">$1</span>');
 
-            const keywords1 = ['for', 'while', 'if', 'else', 'null', 'true', 'false', 'this', 'constructor', 'new', 'try', 'catch', 'implements', 'export', 'import', 'from'];
+            const keywords1 = ['for', 'while', 'if', 'else', 'null', 'true', 'false', 'this', 'constructor', 'new', 'try', 'catch', 'implements', 'export', 'import', 'from', 'static'];
             html = html.replace(new RegExp(`\\b(${keywords1.join('|')})\\b`, 'g'), '<span class="keyword1">$1</span>');
 
             html = html.replace(/__COMMENT_(\d+)__/g, (_, i) => commentTags[i]);
