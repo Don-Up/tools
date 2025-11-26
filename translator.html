@@ -234,6 +234,7 @@
 <script>
     let voices = [];
     let selectedVoice = null;
+    let cnVoice = null;
     let isLooping = false;
     let isPaused = false;
     let utteranceRef = null;
@@ -265,6 +266,8 @@
         'Microsoft David - English (United States)'
     ]
 
+    const cnVoiceName = "Microsoft Yunyang Online (Natural) - Chinese (Mainland)"
+
     // 加载发音人
     function loadVoices() {
         if (selectedVoice !== null) return
@@ -277,11 +280,14 @@
         voices.forEach((voice, index) => {
             const option = document.createElement('option');
             option.textContent = `${voice.name} (${voice.lang})`;
-            option.value = index;
+            option.value = String(index);
 
             // 检查是否为默认发音人
             if (voice.name === defaultVoiceName) {
                 defaultVoiceIndex = index;
+            }
+            if(voice.name === cnVoiceName){
+                cnVoice = voice
             }
 
             voiceSelect.appendChild(option);
@@ -313,16 +319,20 @@
 
     // 文本转语音朗读
     function speakText(text, loop = false, utteranceRef = null) {
-        if(cbDoublePlay.checked){
+        const hasChinese = /[\u4e00-\u9fa5]/.test(text);
+
+        if(cbDoublePlay.checked && !hasChinese){
             text = text.split(". ").map(text => `${text}. `.repeat(2)).join("")
         }
 
         if ('speechSynthesis' in window) {
             if (!utteranceRef) {
                 const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'en-US';
-                utterance.rate = speechSpeed; // 使用当前语速
-                if(useRandomVoice){
+                utterance.lang = hasChinese? 'zh-CN' : 'en-US';
+                utterance.rate = hasChinese? 1.5 :speechSpeed; // 使用当前语速
+                if(hasChinese){
+                    utterance.voice = cnVoice;
+                } else if(useRandomVoice){
                     const randomVoice = Math.floor(Math.random() * voicesEn.length)
                     utterance.voice = voicesEn[randomVoice];
                 } else if (selectedVoice) {
