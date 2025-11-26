@@ -150,6 +150,7 @@
 
         .speed-label {
             font-size: 14px;
+            width: 70px;
         }
 
         .voice-input-section {
@@ -218,7 +219,9 @@
         <!-- 语速设置 -->
         <div style="margin-left: 20px">
             <label for="randomVoiceCheckbox">Random Voice</label>
-            <input type="checkbox" id="randomVoiceCheckbox"></input>
+            <input type="checkbox" id="randomVoiceCheckbox">
+            <label for="dpCheckbox">Double Play</label>
+            <input type="checkbox" id="dpCheckbox">
             <div class="speed-control" style="margin-top: 5px;">
                 <label for="speedRange" class="speed-label">Speed: <span id="speedValue">1.0</span></label>
                 <input type="range" id="speedRange" min="0.5" max="2" step="0.1" value="1.0">
@@ -300,8 +303,20 @@
         localStorage.setItem("useRandomVoice", useRandomVoice)
     })
 
+    let useDoublePlay = localStorage.getItem("useDoublePlay") === "true"
+    const cbDoublePlay = document.getElementById("dpCheckbox")
+    cbDoublePlay.checked = useDoublePlay
+    cbDoublePlay.addEventListener("change", () => {
+        useDoublePlay = cbDoublePlay.checked
+        localStorage.setItem("useDoublePlay", useDoublePlay)
+    })
+
     // 文本转语音朗读
     function speakText(text, loop = false, utteranceRef = null) {
+        if(cbDoublePlay.checked){
+            text = text.split(". ").map(text => `${text}. `.repeat(2)).join("")
+        }
+
         if ('speechSynthesis' in window) {
             if (!utteranceRef) {
                 const utterance = new SpeechSynthesisUtterance(text);
