@@ -40,13 +40,6 @@
             color: #888;
         }
 
-        .button-row {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
         button {
             flex: 1;
             padding: 5px;
@@ -91,17 +84,9 @@
             color: #e0e0e0;
         }
 
-        .sentence, .word {
-            margin-top: 10px;
-            padding: 10px;
-            background: #1e1e1e;
-            border: 1px solid #444;
-            border-radius: 4px;
-            display: none;
-        }
-
         .control-section {
             display: flex;
+            flex-direction: column;
             align-items: stretch;
             gap: 10px;
             margin-bottom: 20px;
@@ -120,9 +105,10 @@
         }
 
         .control-buttons button {
-            font-size: 14px;
-            height: 40px;
-            padding: 5px 10px;
+            font-size: 12px;
+            width: 80px;
+            height: 30px;
+            padding: 5px 5px;
             color: #fff;
             background-color: #3a86ff;
             border: none;
@@ -191,6 +177,7 @@
             border: none;
             color: #fff;
             cursor: pointer;
+            width: 200px;
         }
 
         .voice-input-section button:hover {
@@ -212,27 +199,32 @@
         </select>
     </div>
 
-    <div>
-
-    </div>
-
-    <!-- 语速设置 -->
-    <div class="speed-control">
-        <label for="randomVoiceCheckbox" style="margin-left: 10px">Random Voice</label>
-        <input type="checkbox" id="randomVoiceCheckbox"></input>
-        <label for="speedRange" class="speed-label">Voice Speed: <span id="speedValue">1.0</span></label>
-        <input type="range" id="speedRange" min="0.5" max="2" step="0.1" value="1.0">
-    </div>
 
     <!-- 播放句子控制 -->
-    <div class="control-section">
-        <textarea id="playSentenceInput" placeholder="Please enter an English sentence for playback..."></textarea>
-        <div class="control-buttons">
-            <button id="playPauseBtn">Play</button>
-            <button id="loopPauseBtn">Loop</button>
-            <button id="stopBtn" style="display: none">Stop</button>
-            <button id="updateBtn" style="display: none">Review</button>
+    <div style="display: flex">
+        <div class="control-section">
+            <div class="control-buttons">
+                <button class="record-btn">Record</button>
+                <button class="playback-btn">Playback</button>
+            </div>
+            <textarea id="playSentenceInput" placeholder="Please enter an English sentence for playback..."></textarea>
+            <div class="control-buttons">
+                <button id="playPauseBtn">Play</button>
+                <button id="loopPauseBtn">Loop</button>
+                <button id="stopBtn" style="display: none">Stop</button>
+                <button id="updateBtn" style="display: none">Review</button>
+            </div>
         </div>
+        <!-- 语速设置 -->
+        <div style="margin-left: 20px">
+            <label for="randomVoiceCheckbox">Random Voice</label>
+            <input type="checkbox" id="randomVoiceCheckbox"></input>
+            <div class="speed-control" style="margin-top: 5px;">
+                <label for="speedRange" class="speed-label">Speed: <span id="speedValue">1.0</span></label>
+                <input type="range" id="speedRange" min="0.5" max="2" step="0.1" value="1.0">
+            </div>
+        </div>
+
     </div>
 </div>
 
@@ -492,5 +484,85 @@
     // 加载发音人
     window.speechSynthesis.onvoiceschanged = loadVoices;
 </script>
+
+<script>
+    let mediaRecorder;
+    let audioChunks = [];
+    let audioStream = null;
+    let isRecording = false;
+    let currentAudio = null;
+
+    const btnRecord = document.querySelector(".record-btn");
+    const btnPlayback = document.querySelector(".playback-btn");
+
+    btnRecord.addEventListener("click", async () => {
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            if (isRecording) {
+                // 停止录音
+                mediaRecorder.stop();
+                btnRecord.classList.remove("recording");
+                btnRecord.textContent = "Record";
+                isRecording = false;
+            } else {
+                // 开始录音
+                try {
+                    if (!audioStream) {
+                        audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    }
+                    audioChunks = [];
+                    mediaRecorder = new MediaRecorder(audioStream);
+
+                    mediaRecorder.ondataavailable = e => {
+                        audioChunks.push(e.data);
+                    };
+
+                    mediaRecorder.start();
+                    btnRecord.classList.add("recording");
+                    btnRecord.textContent = "Recording...";
+                    isRecording = true;
+                } catch (err) {
+                    console.error("无法访问麦克风:", err);
+                }
+            }
+        } else {
+            alert("你的浏览器不支持 getUserMedia。");
+        }
+    });
+
+    btnPlayback.addEventListener("click", () => {
+        if (audioChunks.length === 0) {
+            alert("请先录音！");
+            return;
+        }
+
+        if (btnPlayback.textContent === "Playback") {
+            const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const audio = new Audio(audioUrl);
+            currentAudio = audio;
+
+            audio.addEventListener("ended", () => {
+                btnPlayback.textContent = "Playback";
+            });
+
+            audio.play();
+            btnPlayback.textContent = "Stop";
+        } else {
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+            }
+            btnPlayback.textContent = "Playback";
+        }
+    });
+
+    // 清理资源
+    window.addEventListener("beforeunload", () => {
+        if (audioStream) {
+            audioStream.getTracks().forEach(track => track.stop());
+        }
+    });
+</script>
+
 </body>
 </html>
