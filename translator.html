@@ -205,7 +205,7 @@
 <body>
 <div class="container">
     <div class="header-section">
-        <h3>Speaker</h3>
+        <h3 id="title" style="cursor: pointer">Speaker</h3>
 
         <select id="voiceSelect" class="voice-select">
             <option value="">Choose the speaker</option>
@@ -218,7 +218,7 @@
 
     <!-- 语速设置 -->
     <div class="speed-control">
-        <label for="randomVoiceCheckbox" style="margin-left: 10px">Use Random Voice</label>
+        <label for="randomVoiceCheckbox" style="margin-left: 10px">Random Voice</label>
         <input type="checkbox" id="randomVoiceCheckbox"></input>
         <label for="speedRange" class="speed-label">Voice Speed: <span id="speedValue">1.0</span></label>
         <input type="range" id="speedRange" min="0.5" max="2" step="0.1" value="1.0">
@@ -230,7 +230,7 @@
         <div class="control-buttons">
             <button id="playPauseBtn">Play</button>
             <button id="loopPauseBtn">Loop</button>
-            <button id="stopBtn">Stop</button>
+            <button id="stopBtn" style="display: none">Stop</button>
             <button id="updateBtn" style="display: none">Review</button>
         </div>
     </div>
@@ -243,6 +243,10 @@
     let isPaused = false;
     let utteranceRef = null;
     let speechSpeed = localStorage.getItem('speechSpeed') || 1.0; // 默认语速
+
+    document.getElementById("title").addEventListener('click', function () {
+        stop()
+    });
 
     // 监听快捷键
     document.addEventListener('keydown', function (event) {
@@ -381,27 +385,8 @@
 
     // 播放/暂停按钮
     document.querySelector('#playPauseBtn').addEventListener('click', () => {
-        // stop()
-        // const text = contentInput.value.trim().replace(/[()#*<>`•]/g, '').replace(/e\.g\.,/gi, 'such-as').replace(/\//g, ' '); // .replace(/^\d+\.\s*/gm, '')
-        // if (!text) {
-        //     alert('Please enter the English sentence to be played');
-        //     return;
-        // }
-        //
-        // if (isPaused) {
-        //     isPaused = false;
-        //     speechSynthesis.resume();
-        // } else if (speechSynthesis.speaking) {
-        //     isPaused = true;
-        //     speechSynthesis.pause();
-        // } else {
-        //     utteranceRef = speakText(text, false, utteranceRef);
-        // }
         // 获取剪贴板文本
         navigator.clipboard.readText().then(text => {
-            if(text.trim() === contentInput.value.trim()){
-                return
-            }
             contentInput.value = text
             words.push(text)
             speakText(`${contentInput.value}, `, false, null)
