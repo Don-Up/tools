@@ -40,15 +40,15 @@
             color: #888;
         }
 
-        button {
-            flex: 1;
-            padding: 5px;
-            color: #fff;
-            background-color: #3a86ff;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
+        /*button {*/
+        /*    flex: 1;*/
+        /*    padding: 5px;*/
+        /*    color: #fff;*/
+        /*    background-color: #3a86ff;*/
+        /*    border: none;*/
+        /*    border-radius: 4px;*/
+        /*    cursor: pointer;*/
+        /*}*/
 
         button:hover {
             background-color: #2a6edc;
@@ -104,7 +104,7 @@
             gap: 10px;
         }
 
-        .control-buttons button {
+        button {
             font-size: 12px;
             width: 80px;
             height: 30px;
@@ -204,12 +204,12 @@
     <div style="display: flex">
         <div class="control-section">
             <div class="control-buttons">
-                <button id="playPauseBtn">Play</button>
+                <button id="playPauseBtn" style="width: 40px">Play</button>
                 <button class="record-btn">Record</button>
             </div>
             <textarea id="playSentenceInput" placeholder="Please enter an English sentence for playback..."></textarea>
             <div class="control-buttons">
-                <button id="loopPauseBtn">Loop</button>
+                <button id="loopPauseBtn" style="width: 40px">Loop</button>
                 <button class="playback-btn">Playback</button>
                 <button id="stopBtn" style="display: none">Stop</button>
                 <button id="updateBtn" style="display: none">Review</button>
