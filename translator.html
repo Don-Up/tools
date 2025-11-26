@@ -319,6 +319,7 @@
 
     // 文本转语音朗读
     function speakText(text, loop = false, utteranceRef = null) {
+        text = text.replaceAll("* ", "")
         const hasChinese = /[\u4e00-\u9fa5]/.test(text);
 
         if(cbDoublePlay.checked && !hasChinese){
