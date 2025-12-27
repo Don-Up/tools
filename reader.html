@@ -1045,7 +1045,11 @@
                             // } else {
                             //     textBlock.innerHTML = textBlock.innerHTML.replace("👀", "");
                             // }
-                            playText(li.textContent, this, true);
+                            if(!autoPlay.checked){
+                                playText(li.textContent, this, false, true);
+                            } else {
+                                playText(li.textContent, this, true);
+                            }
                         } else {
                             playText(li.textContent, this);
                         }
@@ -1156,7 +1160,11 @@
             }
             textBlock.onclick = function () {
                 if (event.ctrlKey) {
-                    playText(this.dataset.originalText, this, true);
+                    if(!autoPlay.checked){
+                        playText(this.dataset.originalText, this, false, true);
+                    } else {
+                        playText(this.dataset.originalText, this, true);
+                    }
                     // if (!textBlock.innerHTML.startsWith("👀")) {
                     //     textBlock.innerHTML = "👀" + textBlock.innerHTML;
                     // } else {
@@ -1244,7 +1252,7 @@
     })
 
     // Modified playText function for interleaved sentence repetition.
-    function playText(originalText, clickedElement, banContinuous = false) {
+    function playText(originalText, clickedElement, banContinuous = false, continueAnyway = false) {
         // 判断ALT键是否处于按下状态, 如果是则取消播放。
         if (selectionMode) {
             isPlaying = false;
@@ -1267,7 +1275,7 @@
             sentences.push(originalText.trim());
         }
         const autoPlayEnabled = autoPlay.checked;
-        if (autoPlayEnabled && clickedElement && !banContinuous) {
+        if (continueAnyway || (autoPlayEnabled && clickedElement && !banContinuous)) {
             let next = clickedElement.nextElementSibling;
             // if(clickedElement.tag)
             while (next) {
