@@ -98,7 +98,9 @@
     </style>
 </head>
 <body>
-<div id="player"></div>
+<div id="player">
+</div>
+<button id="btnBackward">backward</button>
 
 <div id="progressContainer">
     <progress id="progressBar" value="0" max="100"></progress>
@@ -5465,6 +5467,10 @@
             },
         });
     }
+
+    document.getElementById("btnBackward").addEventListener("click", () => {
+        player.seekTo(Math.max(player.getCurrentTime() - 2.5, 0), true);
+    })
 
     document.addEventListener("keydown", (e) => {
         if (!player || !player.getCurrentTime) return;
