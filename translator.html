@@ -320,6 +320,9 @@
     // 文本转语音朗读
     function speakText(text, loop = false, utteranceRef = null) {
         text = text.replaceAll("* ", "")
+        if(loop) {
+            text = text+". "+text
+        }
         const hasChinese = /[\u4e00-\u9fa5]/.test(text);
 
         if(cbDoublePlay.checked && !hasChinese){
@@ -426,12 +429,16 @@
                 utteranceRef.onend = null; // 移除 onend 回调
                 utteranceRef = null;       // 重置 utteranceRef
             }
-            if (isLooping) {
-                document.querySelector('#loopPauseBtn').textContent = 'Looping';
-                utteranceRef = speakText(text, true, utteranceRef);
-            } else {
-                document.querySelector('#loopPauseBtn').textContent = 'Loop';
-            }
+            // if (isLooping) {
+            //     document.querySelector('#loopPauseBtn').textContent = 'Looping';
+            //     utteranceRef = speakText(text, true, utteranceRef);
+            // } else {
+            //     document.querySelector('#loopPauseBtn').textContent = 'Loop';
+            // }
+
+            document.querySelector('#loopPauseBtn').textContent = 'Looping';
+            utteranceRef = speakText(text, true, utteranceRef);
+
             // contentInput.value = text
             // words.push(text)
             // speakText(`${contentInput.value}, `, false, null)
