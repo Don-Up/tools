@@ -1254,6 +1254,9 @@
     // Modified playText function for interleaved sentence repetition.
     function playText(originalText, clickedElement, banContinuous = false, continueAnyway = false) {
         // 判断ALT键是否处于按下状态, 如果是则取消播放。
+        if (event.altKey) {
+            return;
+        }
         if (selectionMode) {
             isPlaying = false;
             return;

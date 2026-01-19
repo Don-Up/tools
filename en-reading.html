@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>English Reading Tool</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .result-container {
+            font-size: 24px;
+            line-height: 1.6;
+            min-height: 200px;
+            background-color: #1e1e1e;
+            padding: 20px;
+            border-radius: 4px;
+            border: 1px solid #333;
+            margin: 20px auto;
+        }
+
+        .word-span {
+            position: relative;
+            display: inline-block;
+            margin: 0 2px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        .word-span:hover {
+            background-color: #333;
+        }
+
+        .word-full {
+            display: inline;
+        }
+
+        .word-short {
+            display: none;
+        }
+
+        .word-span.show-full .word-full {
+            display: inline;
+        }
+
+        .word-span.show-full .word-short {
+            display: none;
+        }
+
+        .word-span:not(.show-full) .word-full {
+            display: none;
+        }
+
+        .word-span:not(.show-full) .word-short {
+            display: inline;
+        }
+
+        .instructions {
+            color: #aaa;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>English Reading Helper</h1>
+    <div class="result-container" id="result">Paste English text to begin...</div>
+    <p class="instructions">Paste English text directly into this page to process it.</p>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const resultContainer = document.getElementById('result');
+
+        // Handle paste events on the entire document
+        document.addEventListener('paste', handlePaste);
+
+        function handlePaste(e) {
+            e.preventDefault();
+
+            // Get pasted text
+            let text = '';
+            if (e.clipboardData && e.clipboardData.getData) {
+                text = e.clipboardData.getData('text/plain');
+            } else if (window.clipboardData && window.clipboardData.getData) {
+                text = window.clipboardData.getData('Text');
+            }
+
+            if (text) {
+                processText(text);
+            }
+        }
+
+        function processText(text) {
+            // Clear previous content
+            resultContainer.innerHTML = '';
+
+            // Split text into words and non-word characters
+            const parts = text.split(/(\s+|[^\w\s]+)/);
+
+            parts.forEach(part => {
+                if (/^\s+$/.test(part)) {
+                    // Preserve whitespace
+                    resultContainer.appendChild(document.createTextNode(part));
+                } else if (/^[^\w\s]+$/.test(part)) {
+                    // Non-word characters
+                    resultContainer.appendChild(document.createTextNode(part));
+                } else if (/^\w+$/.test(part)) {
+                    // Actual word - create a toggleable span
+                    const word = part;
+                    const wordLength = word.length;
+
+                    const span = document.createElement('span');
+                    span.className = 'word-span';
+
+                    // Add full word display
+                    const fullWord = document.createElement('span');
+                    fullWord.className = 'word-full';
+                    fullWord.textContent = part;  // Preserve original casing
+
+                    // Add short version (first letter + length)
+                    const shortVersion = document.createElement('span');
+                    shortVersion.className = 'word-short';
+
+                    if (wordLength > 1) {
+                        shortVersion.textContent = `${word[0]}${wordLength}`;
+                        span.dataset.original = part;
+                        span.dataset.isShortened = 'true';
+
+                        // Toggle on click
+                        span.addEventListener('click', function() {
+                            this.classList.toggle('show-full');
+                        });
+                    } else {
+                        // For single character words, just show the word
+                        shortVersion.textContent = part;
+                    }
+
+                    span.appendChild(fullWord);
+                    span.appendChild(shortVersion);
+
+                    resultContainer.appendChild(span);
+                } else {
+                    // Fallback for other cases
+                    resultContainer.appendChild(document.createTextNode(part));
+                }
+            });
+        }
+    });
+</script>
+</body>
+</html>
