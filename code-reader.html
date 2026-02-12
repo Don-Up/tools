@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document & TTS</title>
     <style>
+        code {
+            white-space: pre-wrap; /* Enable line wrapping */
+            word-break: break-all; /* Handle long words */
+        }
         .text-block {
             margin-bottom: 10px;
             margin-top: 20px;
@@ -304,7 +308,7 @@
 
     </style>
     <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+          href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 </head>
@@ -404,8 +408,8 @@
     </div>
     <div style="position: absolute;top: 20%;  right: 20%;display: flex;align-items: baseline;visibility: hidden;"
          id="caption">
-        <div id="lastWord" style="margin-right: 5px;color: darkgrey;background-color: #333333"></div>
-        <h1 id="currentWord" style="background-color: #333333"></h1>
+        <h1 id="lastWord" style="margin-right: 5px;color: darkgrey;background-color: #333333;display: inline"></h1>
+        <h1 id="currentWord" style="background-color: #333333;display: inline;max-lines: 1"></h1>
     </div>
 </div>
 
@@ -1261,6 +1265,12 @@
 
     // let doubleMode = true
 
+    function containsChinese(text) {
+        const chineseRegex = /[\u4e00-\u9fa5]/; // Unicode range for Chinese characters
+        return chineseRegex.test(text);
+    }
+
+
     // Modified playText function for interleaved sentence repetition.
     function playText(originalText, clickedElement) {
         // 判断ALT键是否处于按下状态, 如果是则取消播放。
@@ -1303,16 +1313,19 @@
         if (autoPlayEnabled) {//filter(sentence => !sentence.startsWith(">")).
             if (ecCheckBox.checked || eceCheckBox.checked) {
                 let tempSentence = ""
-                finalText = sentences.map((sentence, index) => {
-                    if (sentence.startsWith(">")) {
-                        const result = (ecCheckBox.checked ? `${tempSentence + sentence} ` : `${tempSentence + sentence + tempSentence} `)
-                            .repeat(repeatCount)
-                        tempSentence = ""
-                        return result;
-                    } else {
-                        tempSentence += sentence + " "
-                        return ""
-                    }
+                // finalText = sentences.map((sentence, index) => {
+                //     if (sentence.startsWith(">")) {
+                //         const result = (ecCheckBox.checked ? `${tempSentence + sentence} ` : `${tempSentence + sentence + tempSentence} `)
+                //             .repeat(repeatCount)
+                //         tempSentence = ""
+                //         return result;
+                //     } else {
+                //         tempSentence += sentence + " "
+                //         return ""
+                //     }
+                // }).join('');
+                finalText = sentences.map(sentence => {
+                    return `${sentence} `.repeat(repeatCount)
                 }).join('');
             } else {
                 finalText = sentences.filter(sentence => !sentence.startsWith(">")).map(sentence => {
@@ -1338,10 +1351,10 @@
         //         return `${line} `.repeat(2)
         //     }).join("").replaceAll(". ", ", ")
         // }
-
         const utterance = new SpeechSynthesisUtterance(finalText);
         utterance.voice = currentVoice;
-        utterance.lang = "en-US";
+        const isChinese = containsChinese(finalText);
+        utterance.lang = isChinese ? "zh-CN" : "en-US";
         utterance.rate = parseFloat(rateSlider.value);
         utterance.onend = () => isPlaying = false;
         const caption = document.getElementById("caption");
@@ -1375,6 +1388,7 @@
         };
         speechSynthesis.speak(utterance);
     }
+
 
     function changeCaption() {
         if (is1C + 1 === 3) {
