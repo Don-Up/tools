@@ -326,7 +326,7 @@
         <!--        <button onclick="openModal()">Open</button>-->
         <button onclick="changeCaption()" id="btnC">1C</button>
         <select id="voiceSelect"></select>
-        <input id="repeatCount" type="number" min="1" value="1" placeholder="count">
+        <input id="wordCount" type="number" min="1" value="40" placeholder="count">
         <button id="fullscreenBtn" style="width: 60px">Full</button>
         <span style="margin-left: 10px;">Speed</span>
         <input id="rateSlider" type="range" min="0.5" max="2" step="0.05" value="1.00" title="语速">
@@ -408,8 +408,8 @@
     </div>
     <div style="position: absolute;top: 20%;  right: 20%;display: flex;align-items: baseline;visibility: hidden;"
          id="caption">
-        <h1 id="lastWord" style="margin-right: 5px;color: darkgrey;background-color: #333333;display: inline"></h1>
-        <h1 id="currentWord" style="background-color: #333333;display: inline;max-lines: 1"></h1>
+        <h3 id="currentWord" style="margin-right: 5px;color: darkgrey;background-color: #333333;display: inline;border-bottom: none"></h3>
+        <h3 id="lastWord" style="background-color: #333333;display: inline;max-lines: 1;border-bottom: none"></h3>
     </div>
 </div>
 
@@ -466,6 +466,8 @@
 </script>
 <script>
     mermaid.initialize({startOnLoad: false, theme: "dark"});
+    let clear = false
+
     const preList = []
     let isPlaying = false;
     let voices = [];
@@ -1270,6 +1272,7 @@
         return chineseRegex.test(text);
     }
 
+    const wordCount = document.getElementById("wordCount")
 
     // Modified playText function for interleaved sentence repetition.
     function playText(originalText, clickedElement) {
@@ -1307,7 +1310,7 @@
         }
 
         // Build the final text by interleaving the sentences.
-        const repeatCount = Math.max(1, parseInt(document.getElementById("repeatCount").value));
+        const repeatCount = 1
         let finalText = ''; // Ensure finalText is initialized
 
         if (autoPlayEnabled) {//filter(sentence => !sentence.startsWith(">")).
@@ -1369,22 +1372,44 @@
                 const wordLength = event.charLength; // Length of the current word
 
                 // Extract the current word from the text
-                const currentWord = finalText.substr(startIndex, wordLength);
-                // console.log("Current word being read:", currentWord);
-                if (is1C === 2) {
-                    lastWordH.textContent = lastWord;
-                } else {
+                let currentWord = finalText.substr(startIndex, wordLength);
+
+                if(clear){
                     lastWordH.textContent = ""
+                    clear = false
                 }
-                if (is1C > 0) {
-                    currentWordH.textContent = currentWord;
-                    lastWord = currentWord
+
+                if(lastWordH.textContent.length >= wordCount.value){
+                    clear = true
                 }
+
+                // Check if the current word is purely English
+                const isPurelyEnglish = /^[a-zA-Z0-9]+$/.test(currentWord);
+
+                // Add a space if the word is purely English
+                if (isPurelyEnglish) {
+                    currentWord += " ";
+                }
+
+                lastWordH.textContent += currentWord
+
+
+                // if (is1C === 2) {
+                //     lastWordH.textContent = lastWord;
+                // } else {
+                //     lastWordH.textContent = ""
+                // }
+                // if (is1C > 0) {
+                //     currentWordH.textContent = currentWord;
+                //     lastWord = currentWord
+                // }
             }
         });
         utterance.onend = () => {
             caption.style.visibility = "hidden";
             lastWord = ""
+            clear = false
+            lastWordH.textContent = ""
         };
         speechSynthesis.speak(utterance);
     }
