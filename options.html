@@ -169,9 +169,11 @@
 <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-jsx.min.js"></script>  <!-- JSX -->
 <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-tsx.min.js"></script>  <!-- TSX -->
 <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 
 <script>
+    mermaid.initialize({startOnLoad: false, theme: "dark"});
+
     // 默认发音人名称
     const defaultVoiceName = localStorage.getItem('selectedVoice') || "Microsoft Brian Online (Natural) - English (United States)";
 
@@ -495,7 +497,31 @@
                 pre.appendChild(copyButton);
             }
         });
+        const codeBlocks = document.querySelectorAll('.mermaid');
+        const diagramIds = [];
+        codeBlocks.forEach((block, index) => {
+            const text = block.textContent.trim();
+            // Check if the content looks like a Mermaid diagram
+            if (text.startsWith('flowchart') || text.startsWith('graph') || text.startsWith('sequenceDiagram') || text.startsWith('classDiagram')) {
+                // Create a div to hold the rendered diagram
+                const diagramDiv = block;
+                diagramDiv.id = `mermaid-diagram-${index}`;
+                diagramIds.push(diagramDiv.id )
+                diagramDiv.style.backgroundColor = '#282c34';
+                // 内容居中
+                diagramDiv.style.display = 'flex';
+                diagramDiv.style.justifyContent = 'center';
+                diagramDiv.textContent = text;
 
+                // Render the diagram
+                // mermaid.init(undefined, `#mermaid-diagram-${index}`);
+            }
+        });
+        if (typeof mermaid !== 'undefined' && diagramIds.length > 0) {
+            mermaid.run({
+                nodes: diagramIds.map(id => document.getElementById(id))
+            });
+        }
     }
 
     function reset(){
