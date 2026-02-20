@@ -337,7 +337,7 @@
 
             displayOptions.forEach((opt, i) => {
                 const cleanText = opt.textContent.trim();
-                opt.textContent = opt.className === 'explain' ? cleanText : `${i + 1}. ${cleanText}`;
+                opt.innerHTML = opt.className === 'explain' ? cleanText.replace("2.", "<br>2.").replace("3.", "<br>3.").replace("4.", "<br>4.") : `${i + 1}. ${cleanText}`;
             });
 
             question.style.fontWeight = 'bold';
@@ -350,7 +350,7 @@
 
             question.addEventListener("click", (event) => {
                 event.stopPropagation();
-                speak(textToCopy)
+                speak(questionText)
             })
 
             // 创建一个button
@@ -438,11 +438,12 @@
                     if (isCorrect) {
                         opt.style.backgroundColor = '#1b5e20';
                         opt.style.color = '#a5d6a7';
+                        speak(opt.textContent)
                         // 判断text是否只由字母, 数字，逗号,句号, -, 空格组成
-                        const lastContent = displayOptions[displayOptions.length-1].textContent
-                        if (/^[a-zA-Z0-9,.()’+@"':/;`→—\[\]\-\s]+$/.test(lastContent)) {
-                            speak(lastContent)
-                        }
+                        // const lastContent = displayOptions[displayOptions.length-1].textContent
+                        // if (/^[a-zA-Z0-9,.()’+@"':/;`→—\[\]\-\s]+$/.test(lastContent)) {
+                        //     speak(lastContent)
+                        // }
                     } else {
                         opt.style.backgroundColor = '#b71c1c';
                         opt.style.color = '#ffcccb';
@@ -452,14 +453,14 @@
                             correctOpt.style.color = '#a5d6a7';
                             correctOpt.dataset.selected = "true";
                         }
-                        if(/^[a-zA-Z0-9,.()‘+@"':/;`→—\[\]\-\s]+$/.test(correctOpt.textContent)){
-                            const lastContent = displayOptions[displayOptions.length-1].textContent
-                            if (/^[a-zA-Z0-9,.()’+@"':/;`→—\[\]\-\s]+$/.test(lastContent)) {
-                                speak("The correct answer is "+ correctOpt.textContent.slice(2)+". "+lastContent)
-                            } else {
-                                speak("The correct answer is "+ correctOpt.textContent.slice(2))
-                            }
-                        }
+                        // if(/^[a-zA-Z0-9,.()‘+@"':/;`→—\[\]\-\s]+$/.test(correctOpt.textContent)){
+                        //     const lastContent = displayOptions[displayOptions.length-1].textContent
+                        //     if (/^[a-zA-Z0-9,.()’+@"':/;`→—\[\]\-\s]+$/.test(lastContent)) {
+                        //         speak("The correct answer is "+ correctOpt.textContent.slice(2)+". "+lastContent)
+                        //     } else {
+                        //         speak("The correct answer is "+ correctOpt.textContent.slice(2))
+                        //     }
+                        // }
                     }
 
                     opt.dataset.selected = "true"; // 标记被选中
@@ -502,7 +503,7 @@
         codeBlocks.forEach((block, index) => {
             const text = block.textContent.trim();
             // Check if the content looks like a Mermaid diagram
-            if (text.startsWith('flowchart') || text.startsWith('graph') || text.startsWith('sequenceDiagram') || text.startsWith('classDiagram')) {
+            // if (text.startsWith('flowchart') || text.startsWith('graph') || text.startsWith('sequenceDiagram') || text.startsWith('classDiagram')) {
                 // Create a div to hold the rendered diagram
                 const diagramDiv = block;
                 diagramDiv.id = `mermaid-diagram-${index}`;
@@ -515,7 +516,7 @@
 
                 // Render the diagram
                 // mermaid.init(undefined, `#mermaid-diagram-${index}`);
-            }
+            // }
         });
         if (typeof mermaid !== 'undefined' && diagramIds.length > 0) {
             mermaid.run({
