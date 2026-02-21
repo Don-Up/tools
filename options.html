@@ -5,7 +5,7 @@
     <title>Options</title>
 
     <!-- Prism 暗黑主题 -->
-    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet"/>
 
     <style>
         body {
@@ -32,7 +32,7 @@
             background: #1e1e1e;
             padding: 16px;
             border-radius: 4px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
             margin-bottom: 30px;
             transition: background 0.3s;
         }
@@ -51,11 +51,12 @@
 
         select {
             background-color: #1e1e1e; /* Dark background */
-            color: #e0e0e0;           /* Light text */
-            border: 1px solid #333;   /* Subtle border */
-            border-radius: 4px;       /* Slightly rounded corners */
-            padding: 5px;             /* Internal spacing */
+            color: #e0e0e0; /* Light text */
+            border: 1px solid #333; /* Subtle border */
+            border-radius: 4px; /* Slightly rounded corners */
+            padding: 5px; /* Internal spacing */
         }
+
         /* Optionally, style the options within the dropdown if needed */
         /* Note: Styling options can be limited in some browsers */
         select option {
@@ -77,6 +78,7 @@
             border-radius: 4px;
             height: 8px;
         }
+
         #rate-slider::-moz-range-track { /* Firefox */
             background: #1e1e1e;
             border: 1px solid #333;
@@ -93,6 +95,7 @@
             height: 18px;
             margin-top: -5px; /* Center vertically */
         }
+
         #rate-slider::-moz-range-thumb { /* Firefox */
             background: #90caf9; /* Blue thumb */
             border-radius: 50%;
@@ -142,6 +145,35 @@
         b {
             color: gold;
         }
+
+        /* 对话框遮罩层 */
+        .dialog-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .dialog-overlay.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        /* 代码块自动换行 */
+        pre {
+            white-space: pre-wrap; /* 保留换行符并允许自动换行 */
+            word-break: break-all; /* 允许在任意字符处换行 */
+            overflow-x: auto; /* 水平滚动条（当内容过宽时） */
+        }
     </style>
 </head>
 <body>
@@ -157,6 +189,14 @@
     </div>
 </div>
 <div id="content"></div>
+<!-- 对话框遮罩层 -->
+<div class="dialog-overlay" id="dialog-overlay">
+            <pre style="height: 90vh;overflow:auto;min-width: 80vw;">
+                <code class="language-jsx" id="dialogCode"
+                      style="white-space: pre-wrap;word-break: break-all;padding: 0 20px">
+                </code>
+            </pre>
+</div>
 
 <!-- Prism Core -->
 <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
@@ -170,6 +210,50 @@
 <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-tsx.min.js"></script>  <!-- TSX -->
 <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+<script>
+    const dialogOverlay = document.getElementById('dialog-overlay');
+    const dialogCode = document.getElementById('dialogCode');
+    dialogCode.style.fontSize = "22px"
+
+    // 关闭对话框的函数
+    function closeDialog() {
+        dialogOverlay.style.visibility = 'hidden';
+    }
+
+    // 点击遮罩层关闭对话框
+    dialogOverlay.addEventListener('click', function (e) {
+        if (e.target === dialogOverlay) {
+            closeDialog();
+        }
+    });
+
+    // ESC键关闭对话框
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && dialogOverlay.classList.contains('show')) {
+            closeDialog();
+        }
+    });
+
+    // 监听快捷键(k)
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'q') {
+            dialogOverlay.style.visibility = dialogOverlay.style.visibility === 'visible' ? 'hidden' : 'visible';
+            if (dialogOverlay.style.visibility === 'visible') {
+                // 获取选中的文本
+                const selection = window.getSelection();
+                if (selection.rangeCount > 0) {
+                    const text = selection.toString().replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+                    dialogCode.innerHTML = `<pre><code class="language-javascript">
+
+${text}
+</code></pre>`;
+                    Prism.highlightAll();
+                }
+            }
+        }
+    })
+</script>
 
 <script>
     mermaid.initialize({startOnLoad: false, theme: "dark"});
@@ -191,7 +275,7 @@
         // });
         Prism.highlightAll();
         // 回到顶部
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo({top: 0, behavior: 'smooth'});
     });
 
     let isSpeaking = false;
@@ -208,13 +292,13 @@
         }
     });
 
-    document.addEventListener("keydown",  (e) => {
+    document.addEventListener("keydown", (e) => {
         console.log(e.key)
         if (e.keyCode === 32) {
             e.preventDefault();
             window.speechSynthesis.cancel();
             isSpeaking = false;
-        } else if (e.key === 'd'){
+        } else if (e.key === 'd') {
             e.preventDefault();
             // 暂停/继续
             if (!isSpeaking) {
@@ -271,7 +355,7 @@
         }
     };
 
-    function speak(text){
+    function speak(text) {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.rate = currentRate; // 使用当前语速
@@ -302,7 +386,7 @@
             const question = children[0];
 
             const explainDiv = container.querySelector(".explain")
-            if(explainDiv){
+            if (explainDiv) {
                 explainDiv.style.display = "none"
             }
 
@@ -363,7 +447,7 @@
             }).join('\n');
             const textToCopy = `${questionText}\n${optionsText}`;
 
-            question.textContent = `${qIndex+1}. ${questionText}`;
+            question.textContent = `${qIndex + 1}. ${questionText}`;
 
             copyButton.addEventListener("click", (event) => {
                 event.stopPropagation();
@@ -381,7 +465,7 @@
                 event.stopPropagation();
                 let result = `${questionText}</div>|${container.dataset.answer}|`
                 displayOptions.forEach((opt, displayIdx) => {
-                    if(opt.className !== "explain"){
+                    if (opt.className !== "explain") {
                         result += `<div class="option">${opt.textContent.trim()}</div>`
                     }
                 })
@@ -395,7 +479,7 @@
 
             displayOptions.forEach((opt, displayIdx) => {
                 opt.style.padding = '8px 12px';
-                opt.style.margin = opt.className === "explain"? "15px 4px 0 0"  : '4px 0';
+                opt.style.margin = opt.className === "explain" ? "15px 4px 0 0" : '4px 0';
                 opt.style.border = '1px solid #333';
                 opt.style.borderRadius = '6px';
                 opt.style.cursor = 'pointer';
@@ -419,7 +503,7 @@
 
                 // 点击选项
                 opt.addEventListener('click', () => {
-                    if(opt.className === "explain"){
+                    if (opt.className === "explain") {
                         speak(opt.textContent)
                         return
                     }
@@ -487,7 +571,9 @@
                         // Optional: Provide feedback (e.g., change button text temporarily)
                         const originalText = copyButton.textContent;
                         copyButton.textContent = 'Copied';
-                        setTimeout(() => { copyButton.textContent = originalText; }, 1000);
+                        setTimeout(() => {
+                            copyButton.textContent = originalText;
+                        }, 1000);
                     }).catch(err => {
                         console.error('Failed to copy code: ', err);
                         alert('Failed to copy code.');
@@ -504,18 +590,18 @@
             const text = block.textContent.trim();
             // Check if the content looks like a Mermaid diagram
             // if (text.startsWith('flowchart') || text.startsWith('graph') || text.startsWith('sequenceDiagram') || text.startsWith('classDiagram')) {
-                // Create a div to hold the rendered diagram
-                const diagramDiv = block;
-                diagramDiv.id = `mermaid-diagram-${index}`;
-                diagramIds.push(diagramDiv.id )
-                diagramDiv.style.backgroundColor = '#282c34';
-                // 内容居中
-                diagramDiv.style.display = 'flex';
-                diagramDiv.style.justifyContent = 'center';
-                diagramDiv.textContent = text;
+            // Create a div to hold the rendered diagram
+            const diagramDiv = block;
+            diagramDiv.id = `mermaid-diagram-${index}`;
+            diagramIds.push(diagramDiv.id)
+            diagramDiv.style.backgroundColor = '#282c34';
+            // 内容居中
+            diagramDiv.style.display = 'flex';
+            diagramDiv.style.justifyContent = 'center';
+            diagramDiv.textContent = text;
 
-                // Render the diagram
-                // mermaid.init(undefined, `#mermaid-diagram-${index}`);
+            // Render the diagram
+            // mermaid.init(undefined, `#mermaid-diagram-${index}`);
             // }
         });
         if (typeof mermaid !== 'undefined' && diagramIds.length > 0) {
@@ -525,7 +611,7 @@
         }
     }
 
-    function reset(){
+    function reset() {
         document.querySelectorAll('.options').forEach(container => {
             const options = Array.from(container.children).slice(1);
             options.forEach(opt => {
