@@ -368,6 +368,12 @@
             input.dataset.wordIndex = "0";
             input.value = answer.substring(0, initialInputLength);
             input.dataset.charIndex = String(input.value.length);
+
+            const length = answer.length;
+            let width = Math.max(length * (length>10?8:10), 40);
+            width = Math.min(width, 500);
+            input.style.width = width + 'px';
+
             if (index === 0) input.focus();
 
             // 监听输入事件
