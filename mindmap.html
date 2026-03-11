@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>思维导图生成器（暗黑模式）</title>
+    <style>
+        :root {
+            --bg-color:  #363B40;
+            --side-bar-bg-color: #2E3033;
+            --text-color: #b8bfc6;
+            --select-text-bg-color:#4a89dc;
+            --item-hover-bg-color: #0a0d16;
+            --control-text-color: #b7b7b7;
+            --control-text-hover-color: #eee;
+            --window-border: 1px solid #555;
+            --active-file-bg-color: rgb(34, 34, 34);
+            --active-file-border-color: #8d8df0;
+            --primary-color: #a3d5fe;
+            --active-file-text-color: white;
+            --item-hover-bg-color: #70717d;
+            --item-hover-text-color: white;
+            --primary-color: #6dc1e7;
+            --rawblock-edit-panel-bd: #333;
+            --search-select-bg-color: #428bca;
+        }
+
+        html {
+            font-size: 18px;
+            -webkit-font-smoothing: antialiased;
+            background-color: var(--bg-color);
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background: var(--bg-color);
+            color: var(--text-color);
+            font-family: Arial, sans-serif;
+            line-height: 1.625rem;
+        }
+
+        /* 隐藏原始文本容器 */
+        #source-text {
+            display: none;
+        }
+
+        /* 思维导图容器 */
+        #mindmap-container {
+            width: 100%;
+            max-width: 60%;
+            margin: 0 auto;
+            padding: 0;
+        }
+
+        /* 思维导图节点样式 - 关键修改：自适应宽度 */
+        .mindmap-node {
+            margin: 8px 0;
+            padding: 4px 8px;
+            border-radius: 4px;
+            list-style: none;
+            line-height: 1.5;
+            position: relative;
+            cursor: pointer;
+            display: inline-block; /* 改为inline-block实现宽度自适应 */
+            min-width: fit-content; /* 最小宽度适配内容 */
+            white-space: nowrap; /* 防止内容换行 */
+            box-sizing: border-box;
+        }
+
+        /* 根节点（层级0） */
+        .node-level-0 {
+            font-size: 18px;
+            font-weight: bold;
+            background: #4285f4;
+            color: white;
+            margin-left: 0;
+        }
+
+        /* 一级子节点（** → 层级1） */
+        .node-level-1 {
+            font-size: 15px;
+            background: #80752c;
+            color: white;
+            margin-left: 30px;
+            font-weight: bold;
+        }
+
+        /* 二级子节点（*** → 层级2） */
+        .node-level-2 {
+            font-size: 14px;
+            background: #1d953f;
+            color: #eee;
+            margin-left: 60px;
+        }
+
+        /* 三级子节点（**** → 层级3） */
+        .node-level-3 {
+            font-size: 12px;
+            background: #abc88b;
+            color: #333;
+            margin-left: 90px;
+        }
+
+        /* 四级子节点（***** → 层级4） */
+        .node-level-4 {
+            font-size: 11px;
+            background: #fedcbd;
+            color: #333;
+            margin-left: 120px;
+        }
+
+        /* 行内input样式 - 自适应宽度 */
+        .mindmap-node input {
+            border: none;
+            border-radius: 3px;
+            padding: 2px 6px;
+            outline: none;
+            font-size: inherit;
+            color: #333;
+            background: lightgrey;
+            margin: 0 2px;
+            font-family: 微软雅黑;
+            text-align: center;
+            width: auto; /* 取消固定宽度，改为自适应 */
+            min-width: 20px; /* 最小宽度保证可用性 */
+        }
+
+        /* 层级连接线 */
+        .node-level-1::before {
+            content: '';
+            position: absolute;
+            left: -20px;
+            top: 50%;
+            width: 20px;
+            height: 1px;
+            background: #999;
+        }
+        .node-level-2::before {
+            content: '';
+            position: absolute;
+            left: -30px;
+            top: 50%;
+            width: 30px;
+            height: 1px;
+            background: #999;
+        }
+        .node-level-3::before {
+            content: '';
+            position: absolute;
+            left: -40px;
+            top: 50%;
+            width: 40px;
+            height: 1px;
+            background: #999;
+        }
+        .node-level-4::before {
+            content: '';
+            position: absolute;
+            left: -50px;
+            top: 50%;
+            width: 50px;
+            height: 1px;
+            background: #999;
+        }
+
+        /* Input选中样式 */
+        .mindmap-node input::selection {
+            background-color: lightgrey;
+            color: #333;
+        }
+
+        .mindmap-node input::-moz-selection {
+            background-color: lightgrey;
+            color: #333;
+        }
+
+        input::placeholder {
+            opacity: 1;
+            color: #999;
+        }
+
+        /* 提示文本样式 */
+        #paste-hint {
+            text-align: center;
+            color: #999;
+            font-size: 16px;
+            margin: 50px 0;
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            #mindmap-container {
+                margin: 10px 0;
+                max-width: 100%;
+            }
+
+            .node-level-0 {
+                font-size: 15px;
+                margin-left: -20px;
+            }
+
+            .node-level-1 {
+                font-size: 14px;
+                margin-left: 20px;
+            }
+
+            .node-level-2 {
+                font-size: 12px;
+                margin-left: 40px;
+            }
+
+            .node-level-3 {
+                font-size: 10px;
+                margin-left: 60px;
+            }
+
+            .node-level-4 {
+                font-size: 9px;
+                margin-left: 80px;
+            }
+
+            .mindmap-node input {
+                padding: 1px 3px;
+                margin: 0 1px;
+            }
+
+            #paste-hint {
+                font-size: 14px;
+                margin: 30px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+<!-- 粘贴提示 -->
+<div id="paste-hint">按下 Ctrl+V 粘贴内容生成思维导图</div>
+
+<!-- 原始文本容器（隐藏） -->
+<div id="source-text"></div>
+
+<!--<hr style="border-color: #555; margin: 20px auto; max-width: 90%;">-->
+
+<!-- 思维导图渲染容器 -->
+<div id="mindmap-container"></div>
+
+<script>
+    let avaVoice = null
+    // 文本转语音函数
+    function speakText(text, force = false) {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            // 设置语音角色为 Microsoft Ava Online (Natural)
+            if(!avaVoice){
+                const voices = window.speechSynthesis.getVoices();
+                avaVoice = voices.find(voice => voice.name === "Microsoft Ava Online (Natural) - English (United States)");
+            }
+            if (avaVoice) {
+                utterance.voice = avaVoice;
+            }
+            utterance.lang = 'en-US';
+            utterance.rate = 1;
+            utterance.volume = 1;
+            utterance.pitch = 1;
+            window.speechSynthesis.speak(utterance);
+        } else {
+            alert('您的浏览器不支持文本朗读功能');
+        }
+    }
+
+    // 核心功能：解析文本并生成思维导图
+    function initMindmap() {
+        const sourceDiv = document.getElementById('source-text');
+        if (!sourceDiv) {
+            alert('未找到指定ID的div！');
+            return;
+        }
+
+        const rawText = sourceDiv.innerHTML.trim();
+        if (!rawText) {
+            return;
+        }
+
+        // 隐藏粘贴提示
+        document.getElementById('paste-hint').style.display = 'none';
+
+        const textLines = rawText.split('\n').map(line => line.trim()).filter(line => line);
+
+        const nodes = [];
+        textLines.forEach(line => {
+            const starMatch = line.match(/^\*+/);
+            let level = 0;
+            let content = line;
+
+            if (starMatch) {
+                const starCount = starMatch[0].length;
+                level = starCount - 1;
+                content = line.replace(/^\*+/, '').trim();
+            }
+
+            const originalContent = content;
+
+            // 处理~包裹的内容，替换为input标签
+            const processedContent = content.replace(/~([^~]+)~+/g, (match, placeholderText) => {
+                return `<input type="text" data-answer="${placeholderText.trim()}">`;
+            });
+
+            level = Math.min(level, 4);
+            nodes.push({level, content: processedContent, originalContent: originalContent});
+        });
+
+        // 渲染思维导图
+        const container = document.getElementById('mindmap-container');
+        container.innerHTML = '';
+
+        const ul = document.createElement('ul');
+        ul.style.paddingLeft = '20px';
+        ul.style.listStyle = 'none';
+        ul.style.margin = 0;
+
+        nodes.forEach(node => {
+            if(node.content === "hr") {
+                ul.append(document.createElement("hr"));
+            } else {
+                const li = document.createElement('li');
+                li.className = `mindmap-node node-level-${node.level}`;
+                li.innerHTML = node.content;
+                li.addEventListener("click", () => {
+                    speakText(node.originalContent);
+                });
+                ul.appendChild(li);
+                // 添加换行符，保证每个节点单独一行
+                const br = document.createElement('br');
+                ul.appendChild(br);
+            }
+        });
+
+        container.appendChild(ul);
+        initInputs();
+    }
+
+    // 初始化输入框功能
+    function initInputs() {
+        let initialInputLength = 0;
+
+        document.querySelectorAll('input').forEach((input, index) => {
+            if (input.id === "inpInterval" || input.id === "useTTS") return;
+
+            let answer = input.dataset.answer.trim();
+            const answerArray = answer.split(" ");
+            let len = answerArray.length;
+
+            if (len > 0) {
+                let temp = "";
+                for (let i = 0; i < answerArray.length; i++) {
+                    if (answerArray[i].length <= 1) {
+                        temp += (answerArray[i] + " ");
+                    } else {
+                        temp += (answerArray[i][0] + answerArray[i].length + " ");
+                    }
+                }
+                input.placeholder = temp.trim();
+            }
+
+            initialInputLength = input.dataset.len || 0;
+            input.dataset.charIndex = "0";
+            input.dataset.wordIndex = "0";
+            input.value = answer.substring(0, initialInputLength);
+            input.dataset.charIndex = String(input.value.length);
+            if (index === 0) input.focus();
+
+            // 监听输入事件
+            input.addEventListener('input', () => {
+                const targetString = answer.toLowerCase();
+                const userInput = input.value.toLowerCase();
+                input.dataset.charIndex = String(userInput.length);
+
+                if (targetString) {
+                    if (userInput.replaceAll(" ", "") === targetString.replaceAll(" ", "")) {
+                        input.style.color = 'yellow';
+                    } else if (targetString.replaceAll(" ", "").includes(userInput.replaceAll(" ", ""))) {
+                        input.style.color = 'green';
+                    } else {
+                        input.style.color = 'red';
+                    }
+                }
+            });
+
+            input.addEventListener('focus', () => {
+                input.dataset.charIndex = String(input.value.length);
+                const length = input.value.length;
+                input.setSelectionRange(length, length);
+            });
+
+            // 点击补字逻辑
+            input.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+
+                if (document.activeElement === input) {
+                    const placeholderValue = answer;
+
+                    if (event.shiftKey && event.ctrlKey) {
+                        document.querySelectorAll('input').forEach(input => {
+                            if (input.id === "inpInterval" || input.id === "useTTS") return;
+                            input.value = "";
+                            input.dataset.charIndex = "0";
+                            input.dataset.wordIndex = "0";
+                            input.style.color = "#333";
+                            input.style.background = "lightgrey";
+                        });
+                    } else if (event.ctrlKey) {
+                        input.value = "";
+                        input.dataset.charIndex = "0";
+                        input.dataset.wordIndex = "0";
+                        input.style.color = "#333";
+                        input.style.background = "lightgrey";
+                    } else if (event.shiftKey) {
+                        document.querySelectorAll('input').forEach(input => {
+                            if (input.id === "inpInterval" || input.id === "useTTS") return;
+                            input.value = input.dataset.answer;
+                            input.dataset.charIndex = String(input.dataset.answer.length);
+                            input.style.color = 'yellow';
+                        });
+                    } else if (event.altKey) {
+                        if (!input.value) {
+                            const hint = placeholderValue.split(" ").map(item => item[0] + item.length).join(" ");
+                            input.value = hint;
+                            input.dataset.charIndex = String(hint.length);
+                        } else {
+                            input.value = placeholderValue;
+                            input.dataset.charIndex = String(placeholderValue.length);
+                            input.style.color = 'yellow';
+                            speakText(input.value, true);
+                        }
+                    } else {
+                        let wordIndex = Number(input.dataset.wordIndex);
+                        const words = input.dataset.answer.split(" ");
+
+                        if (wordIndex < words.length) {
+                            input.value = words.slice(0, wordIndex + 1).join(" ");
+                            wordIndex++;
+                            input.dataset.wordIndex = String(wordIndex);
+                            input.dataset.charIndex = String(input.value.length);
+
+                            if (input.value === input.dataset.answer) {
+                                input.style.color = 'yellow';
+                                input.style.background = '#666';
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 键盘逻辑
+            input.addEventListener('keydown', (event) => {
+                if (document.activeElement === input) {
+                    if (event.key === '`') {
+                        event.preventDefault();
+                        const placeholderValue = answer;
+                        let charIndex = parseInt(input.dataset.charIndex, 10);
+
+                        if (placeholderValue && charIndex < placeholderValue.length) {
+                            input.value += placeholderValue.charAt(charIndex);
+                            charIndex++;
+                            input.dataset.charIndex = String(charIndex);
+
+                            if (input.value.replaceAll(" ", "") === placeholderValue.replaceAll(" ", "")) {
+                                input.style.color = 'yellow';
+                                speakText(input.value, true);
+                            }
+                        }
+                    } else if (event.key === 'F4') {
+                        document.querySelectorAll('input').forEach(input => {
+                            if (input.id === "inpInterval" || input.id === "useTTS") return;
+                            input.value = input.dataset.answer.substring(0, initialInputLength);
+                        });
+                    } else if (event.key === 'F3') {
+                        input.blur();
+                    } else if (event.key === 'F2') {
+                        const placeholderValue = answer;
+                        input.value = placeholderValue;
+                        input.dataset.charIndex = String(placeholderValue.length);
+                        input.style.color = 'yellow';
+                    } else if (event.key === 'F6') {
+                        document.querySelectorAll('input').forEach(input => {
+                            if (input.id === "inpInterval" || input.id === "useTTS") return;
+                            input.value = input.dataset.answer;
+                            input.dataset.charIndex = String(input.dataset.answer.length);
+                            input.style.color = 'yellow';
+                        });
+                    }
+                }
+            });
+        });
+    }
+
+    // 监听全局Ctrl+V粘贴事件
+    document.addEventListener('keydown', async (e) => {
+        // 检测Ctrl+V组合键
+        if (e.ctrlKey && e.key === 'v') {
+            e.preventDefault(); // 阻止默认粘贴行为
+
+            try {
+                // 获取剪贴板内容
+                const clipboardText = await navigator.clipboard.readText();
+                if (clipboardText.trim()) {
+                    // 将剪贴板内容写入隐藏容器
+                    document.getElementById('source-text').innerHTML = clipboardText.trim();
+                    // 生成思维导图
+                    initMindmap();
+                } else {
+                    alert('剪贴板为空，请复制内容后再粘贴！');
+                }
+            } catch (err) {
+                console.error('读取剪贴板失败:', err);
+                alert('无法访问剪贴板，请确保浏览器权限已开启！');
+            }
+        }
+    });
+
+    // 兼容处理：如果浏览器不支持navigator.clipboard，提供备选方案
+    if (!navigator.clipboard) {
+        console.warn('当前浏览器不支持Clipboard API，将使用备选方案');
+        // 创建隐藏的输入框用于接收粘贴内容
+        const hiddenInput = document.createElement('input');
+        hiddenInput.style.position = 'fixed';
+        hiddenInput.style.opacity = '0';
+        hiddenInput.style.zIndex = '-1000';
+        document.body.appendChild(hiddenInput);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'v') {
+                e.preventDefault();
+                hiddenInput.focus();
+                // 延迟执行，确保粘贴完成
+                setTimeout(() => {
+                    if (hiddenInput.value.trim()) {
+                        document.getElementById('source-text').innerHTML = hiddenInput.value.trim();
+                        initMindmap();
+                        hiddenInput.value = '';
+                    } else {
+                        alert('剪贴板为空，请复制内容后再粘贴！');
+                    }
+                }, 100);
+            }
+        });
+    }
+</script>
+</body>
+</html>
