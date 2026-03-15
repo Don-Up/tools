@@ -255,7 +255,7 @@
             font-family: 'Consolas', monospace;
             font-size: 14px;
             line-height: 1.5;
-            //cursor: pointer;
+        / / cursor: pointer;
         }
 
         /* 遮罩层（背景半透明） */
@@ -449,6 +449,7 @@
     let voices = [];
     let currentSpeaker = localStorage.getItem("currentSpeaker") || "Microsoft Andrew Online (Natural) - English (United States)";
     let currentVoice = null;
+    let enVoice = null;
     let currentFont = localStorage.getItem("currentFont") || "Corbel";
     let bookName = null
     let doubleMode = false
@@ -780,6 +781,7 @@
             currentSpeaker = this.value;
             localStorage.setItem("currentSpeaker", this.value);
             currentVoice = voices.find(voice => voice.name === this.value);
+
         });
         voiceSelect.innerHTML = "";
         voices.forEach(voice => {
@@ -790,6 +792,9 @@
                 if (voice.name === currentSpeaker) {
                     option.selected = true;
                     currentVoice = voice;
+                }
+                if(voice.name === "Microsoft Ava Online (Natural) - English (United States)"){
+                    enVoice = voice;
                 }
                 voiceSelect.appendChild(option);
             }
@@ -1045,7 +1050,7 @@
                             // } else {
                             //     textBlock.innerHTML = textBlock.innerHTML.replace("👀", "");
                             // }
-                            if(!autoPlay.checked){
+                            if (!autoPlay.checked) {
                                 playText(li.textContent, this, false, true);
                             } else {
                                 playText(li.textContent, this, true);
@@ -1160,7 +1165,7 @@
             }
             textBlock.onclick = function () {
                 if (event.ctrlKey) {
-                    if(!autoPlay.checked){
+                    if (!autoPlay.checked) {
                         playText(this.dataset.originalText, this, false, true);
                     } else {
                         playText(this.dataset.originalText, this, true);
@@ -1341,9 +1346,15 @@
 
         // console.log("Final Text:", finalText)
         const utterance = new SpeechSynthesisUtterance(finalText);
-        utterance.voice = currentVoice;
-        utterance.lang = "en-US";
-        utterance.rate = parseFloat(rateSlider.value);
+        if (hideReadCheckbox.checked && !/[\u4e00-\u9fa5]/.test(finalText)) {
+            utterance.voice = enVoice;
+            utterance.lang = "en-US";
+            utterance.rate = 1;
+        } else {
+            utterance.voice = currentVoice;
+            utterance.rate = parseFloat(rateSlider.value);
+        }
+        //
         utterance.onend = () => {
             isPlaying = false;
             if (!autoPlay.checked && hideReadCheckbox.checked && clickedElement) {
