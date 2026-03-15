@@ -326,7 +326,7 @@
         const hasChinese = /[\u4e00-\u9fa5]/.test(text);
 
         if(cbDoublePlay.checked && !hasChinese){
-            text = text.split(". ").map(text => `${text}. `.repeat(2)).join("")
+            text = text.split(/(?=[.,;]\s*)/).map(text => `${text}. `.repeat(2)).join("")
         }
 
         if ('speechSynthesis' in window) {
