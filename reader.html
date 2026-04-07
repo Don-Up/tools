@@ -1337,6 +1337,7 @@
         finalText = finalText.replace(/[()#*<>`•\/🔹✅🚀🧠🔎❌]/g, " ").trim() + " ";
         // 将列表序号1. 2. 3.修改为1, 2, 3,
         finalText = finalText.replace(/(\d+)\./g, '$1, ');
+        finalText = finalText.replaceAll("&lt;", "").replaceAll("&gt;", "")
 
         if (doubleMode || tripleMode) {
             finalText = finalText.replaceAll("—", ", ").replace(/([?!:;,.])\s+/g, "$1\n").trim().split("\n").map((line, index) => {
