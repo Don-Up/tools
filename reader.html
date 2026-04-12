@@ -5,6 +5,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document & TTS</title>
     <style>
+        .mask-container {
+            position: relative;
+            background: #2c2c2c; /* Container background (optional) */
+            display: flex;
+            flex-direction: column;
+            align-items: left;
+            justify-content: center;
+            overflow: hidden; /* Ensures the mask stays within bounds */
+        }
+
+        /* Grey mask (covers text by default) */
+        .mask-container::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #363636; /* Solid grey (no transparency) */
+            transition: opacity 0.3s ease;
+        }
+
+        /* Text styling (hidden by default) */
+        .masked-text {
+            opacity: 0; /* Start invisible */
+            z-index: 1; /* Ensures text is above the mask when visible */
+            transition: opacity 0.3s ease;
+            color: white; /* Optional: improves readability */
+        }
+
+        /* Hover effect: Hide mask and show text */
+        .mask-container:hover::before {
+            display: none; /* Mask disappears */
+        }
+
+        .mask-container:hover .masked-text {
+            display: block; /* Text appears */
+        }
+
+        b {
+            color: orange;
+        }
+
         .text-block {
             margin-bottom: 10px;
             margin-top: 20px;
@@ -13,6 +56,7 @@
             font-family: "Corbel", 'Segoe UI', Tahoma, Verdana, sans-serif;
             color: #dfe1e5;
             font-weight: normal;
+            display: block;
         }
 
         .code-span {
@@ -1163,25 +1207,25 @@
             if (line.trim() !== "" && !textBlock.dataset.originalText.trim().endsWith(".")) {
                 textBlock.dataset.originalText += ". ";
             }
-            textBlock.onclick = function () {
+            textBlock.onclick = function (event) {
                 if (event.ctrlKey) {
                     if (!autoPlay.checked) {
                         playText(this.dataset.originalText, this, false, true);
                     } else {
                         playText(this.dataset.originalText, this, true);
                     }
-                    // if (!textBlock.innerHTML.startsWith("👀")) {
-                    //     textBlock.innerHTML = "👀" + textBlock.innerHTML;
-                    // } else {
-                    //     textBlock.innerHTML = textBlock.innerHTML.replace("👀", "");
-                    // }
+                } else if(event.altKey) {
+                    if (!textBlock.classList.contains("mask-container")) {
+                        textBlock.classList.add("mask-container")
+                    } else {
+                        textBlock.classList.remove("mask-container")
+                    }
                 } else {
                     playText(this.dataset.originalText, this);
                 }
             }
             textBlock.innerHTML = line;
             contentDiv.appendChild(textBlock);
-
         });
         setTimeout(() => {
             document.querySelectorAll('pre').forEach(pre => {
@@ -1257,9 +1301,9 @@
     })
 
     // Modified playText function for interleaved sentence repetition.
-    function playText(originalText, clickedElement, banContinuous = false, continueAnyway = false) {
+    function playText(originalText, clickedElement, banContinuous = false, continueAnyway = false, playSelection = false) {
         // 判断ALT键是否处于按下状态, 如果是则取消播放。
-        if (event.altKey) {
+        if (event.altKey || (!playSelection && window.getSelection().toString())) {
             return;
         }
         if (selectionMode) {
@@ -1357,9 +1401,13 @@
         }
         //
         utterance.onend = () => {
-            isPlaying = false;
-            if (!autoPlay.checked && hideReadCheckbox.checked && clickedElement) {
-                clickedElement.style.visibility = "visible";
+            if(playSelection){
+                playText(window.getSelection().toString(), null, false, false, true)
+            } else {
+                isPlaying = false;
+                if (!autoPlay.checked && hideReadCheckbox.checked && clickedElement) {
+                    clickedElement.style.visibility = "visible";
+                }
             }
         }
         utterance.onboundary = (event) => {
@@ -1409,6 +1457,18 @@
     document.addEventListener("keydown", async (event) => {
         // console.log("Keydown event:", event.code)
         switch (event.code) {
+            case "KeyH":
+                document.querySelectorAll(".text-block").forEach(/** @param {HTMLElement} textBlock */ textBlock => {
+                    if (!textBlock.classList.contains("mask-container")) {
+                        textBlock.classList.add("mask-container")
+                    } else {
+                        textBlock.classList.remove("mask-container")
+                    }
+                })
+                break
+            case "KeyR":
+                playText(window.getSelection().toString(), null, false, false, true)
+                break
             case "KeyA":
             case "KeyQ":
             case "KeyS":
