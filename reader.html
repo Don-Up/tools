@@ -1458,10 +1458,12 @@
         // console.log("Keydown event:", event.code)
         switch (event.code) {
             case "KeyH":
-                document.querySelectorAll(".text-block").forEach(/** @param {HTMLElement} textBlock */ textBlock => {
+                Array.from(document.querySelectorAll(".text-block")).filter(textBlock => textBlock.textContent !== "").forEach(/** @param {HTMLElement} textBlock */ textBlock => {
+                    console.log(textBlock.textContent)
                     if (!textBlock.classList.contains("mask-container")) {
                         textBlock.classList.add("mask-container")
-                        textBlock.nextElementSibling.innerHTML = textBlock.nextElementSibling.textContent+"<br>"+textBlock.textContent
+                        let nextElement = textBlock.nextElementSibling.tagName === "BLOCKQUOTE"?textBlock.nextElementSibling:textBlock.nextElementSibling.nextElementSibling
+                        const tip = textBlock.textContent
                             .replaceAll("(：", "")
                             .replaceAll(")：", "").trim()
                             .replace(/\[.*?\]/g, '')
@@ -1473,9 +1475,15 @@
                                     .includes(word)?word:(word[0]||"")+(word.length<=2?(word[1]||""):(end?word.length-1:word.length)+end)
                             })
                             .join(" ")
+                        nextElement.innerHTML = `${nextElement.textContent}<br>${tip}`
                     } else {
                         textBlock.classList.remove("mask-container")
-                        textBlock.nextElementSibling.textContent = textBlock.nextElementSibling.innerHTML.split("<br>")[0]
+                        let nextElement = textBlock.nextElementSibling
+
+                        if(nextElement.tagName !== "BLOCKQUOTE"){
+                            nextElement = nextElement.nextElementSibling
+                        }
+                        nextElement.textContent = nextElement.innerHTML.split("<br>")[0]
                     }
                 })
                 break
