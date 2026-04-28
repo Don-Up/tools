@@ -1467,7 +1467,12 @@
                             .replace(/\[.*?\]/g, '')
                             .replace(/[\u4e00-\u9fff]/g, "")
                             .replace(/、/g, "")
-                            .split(" ").map(word => ["...", "the", "...,", "and"].includes(word)?word:(word[0]||"")+(word.length<=2?(word[1]||""):word.length+(word.endsWith(",")?",":(word.endsWith(".")?".":(word.endsWith("?")?"?":""))))).join(" ")
+                            .split(" ").map(word => {
+                                const end = (word.endsWith(",")?",":(word.endsWith(".")?".":(word.endsWith("?")?"?":(word.endsWith("!")?"!":(word.endsWith("!")?"!":(word.endsWith(":")?":":""))))))
+                                return ["...", "the", "...,", "and"]
+                                    .includes(word)?word:(word[0]||"")+(word.length<=2?(word[1]||""):(end?word.length-1:word.length)+end)
+                            })
+                            .join(" ")
                     } else {
                         textBlock.classList.remove("mask-container")
                         textBlock.nextElementSibling.textContent = textBlock.nextElementSibling.innerHTML.split("<br>")[0]
