@@ -1123,7 +1123,7 @@
                 hljs.highlightElement(code);
                 return;
             }
-
+            
             const codeBlockStart = line.toString().trim().match(/^```(\w*)/);
             if (codeBlockStart) {
                 if (isInCodeBlock) {
@@ -1461,8 +1461,16 @@
                 document.querySelectorAll(".text-block").forEach(/** @param {HTMLElement} textBlock */ textBlock => {
                     if (!textBlock.classList.contains("mask-container")) {
                         textBlock.classList.add("mask-container")
+                        textBlock.nextElementSibling.innerHTML = textBlock.nextElementSibling.textContent+"<br>"+textBlock.textContent
+                            .replaceAll("(：", "")
+                            .replaceAll(")：", "").trim()
+                            .replace(/\[.*?\]/g, '')
+                            .replace(/[\u4e00-\u9fff]/g, "")
+                            .replace(/、/g, "")
+                            .split(" ").map(word => ["...", "the", "...,", "and"].includes(word)?word:(word[0]||"")+(word.length<=2?(word[1]||""):word.length+(word.endsWith(",")?",":(word.endsWith(".")?".":(word.endsWith("?")?"?":""))))).join(" ")
                     } else {
                         textBlock.classList.remove("mask-container")
+                        textBlock.nextElementSibling.textContent = textBlock.nextElementSibling.innerHTML.split("<br>")[0]
                     }
                 })
                 break
