@@ -1482,6 +1482,15 @@
     document.addEventListener("keydown", async (event) => {
         // console.log("Keydown event:", event.code)
         switch (event.code) {
+            case "KeyJ":
+                document.querySelectorAll(".first").forEach(first => {
+                    if(first.classList.contains("word")){
+                        first.classList.remove("word")
+                    } else {
+                        first.classList.add("word")
+                    }
+                })
+                break
             case "KeyG":
                 Array.from(document.querySelectorAll(".text-block")).filter(textBlock => textBlock.textContent !== "").forEach(/** @param {HTMLElement} textBlock */ textBlock => {
                     console.log(textBlock.textContent)
@@ -1527,7 +1536,7 @@
                             .split(" ").map(word => {
                                 const end = (word.endsWith(",")?",":(word.endsWith(".")?".":(word.endsWith("?")?"?":(word.endsWith("!")?"!":(word.endsWith("!")?"!":(word.endsWith(":")?":":""))))))
                                 return ["...", "the", "...,", "and"]
-                                    .includes(word)?word:(`<span">${word[0]}</span>`||"")+(word.length<=2?(word[1]||""):(end?`<span class="word" style="color: #b0b0b0;background: #2f363d;">${word.slice(1,  word.length-1)}</span>`:`<div class="word" style="color: #b0b0b0;background: #2f363d;">${word.slice(1,  word.length)}</div>`)+end)
+                                    .includes(word)?word:(`<span class="first">${word[0]}</span>`||"")+(word.length<=2?(`<span class="first">${word[1]}</span>`||""):(end?`<span class="word" style="color: #b0b0b0;background: #2f363d;">${word.slice(1,  word.length-1)}</span>`:`<div class="word" style="color: #b0b0b0;background: #2f363d;">${word.slice(1,  word.length)}</div>`)+end)
                                     // .includes(word)?word:(word[0]||"")+(word.length<=2?(word[1]||""):(end?"_".repeat(Math.min(Math.ceil(word.length)/2+1, word.length-1)):"_".repeat(Math.min(Math.ceil(word.length)/2+1, word.length-1)))+end)
                             })
                             .join(" ")
