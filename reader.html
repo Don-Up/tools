@@ -23,7 +23,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: #363636; /* Solid grey (no transparency) */
+            background: #454545; /* Solid grey (no transparency) 363636*/
             transition: opacity 0.3s ease;
         }
 
@@ -1505,7 +1505,7 @@
                                     .includes(word)?word:(word[0]||"")+(word.length<=2?(word[1]||""):(end?"_".repeat(Math.min(Math.ceil(word.length)/2+1, word.length-1)):"_".repeat(Math.min(Math.ceil(word.length)/2+1, word.length-1)))+end)
                             })
                             .join(" ")
-                        nextElement.innerHTML = `${nextElement.textContent}<br>${tip}`
+                        nextElement.innerHTML = `${nextElement.textContent}<br><div class="mask-container" style="font-size: 18px;margin-top: 10px;margin-bottom: 6px">${tip}</div>`
                     } else {
                         textBlock.classList.remove("mask-container")
                         let nextElement = textBlock.nextElementSibling
