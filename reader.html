@@ -1123,7 +1123,7 @@
                 hljs.highlightElement(code);
                 return;
             }
-            
+
             const codeBlockStart = line.toString().trim().match(/^```(\w*)/);
             if (codeBlockStart) {
                 if (isInCodeBlock) {
@@ -1457,7 +1457,7 @@
     document.addEventListener("keydown", async (event) => {
         // console.log("Keydown event:", event.code)
         switch (event.code) {
-            case "KeyH":
+            case "KeyG":
                 Array.from(document.querySelectorAll(".text-block")).filter(textBlock => textBlock.textContent !== "").forEach(/** @param {HTMLElement} textBlock */ textBlock => {
                     console.log(textBlock.textContent)
                     if (!textBlock.classList.contains("mask-container")) {
@@ -1473,6 +1473,36 @@
                                 const end = (word.endsWith(",")?",":(word.endsWith(".")?".":(word.endsWith("?")?"?":(word.endsWith("!")?"!":(word.endsWith("!")?"!":(word.endsWith(":")?":":""))))))
                                 return ["...", "the", "...,", "and"]
                                     .includes(word)?word:(word[0]||"")+(word.length<=2?(word[1]||""):(end?word.length-1:word.length)+end)
+                            })
+                            .join(" ")
+                        nextElement.innerHTML = `${nextElement.textContent}<br>${tip}`
+                    } else {
+                        textBlock.classList.remove("mask-container")
+                        let nextElement = textBlock.nextElementSibling
+
+                        if(nextElement.tagName !== "BLOCKQUOTE"){
+                            nextElement = nextElement.nextElementSibling
+                        }
+                        nextElement.textContent = nextElement.innerHTML.split("<br>")[0]
+                    }
+                })
+                break
+            case "KeyH":
+                Array.from(document.querySelectorAll(".text-block")).filter(textBlock => textBlock.textContent !== "").forEach(/** @param {HTMLElement} textBlock */ textBlock => {
+                    console.log(textBlock.textContent)
+                    if (!textBlock.classList.contains("mask-container")) {
+                        textBlock.classList.add("mask-container")
+                        let nextElement = textBlock.nextElementSibling.tagName === "BLOCKQUOTE"?textBlock.nextElementSibling:textBlock.nextElementSibling.nextElementSibling
+                        const tip = textBlock.textContent
+                            .replaceAll("(：", "")
+                            .replaceAll(")：", "").trim()
+                            .replace(/\[.*?\]/g, '')
+                            .replace(/[\u4e00-\u9fff]/g, "")
+                            .replace(/、/g, "")
+                            .split(" ").map(word => {
+                                const end = (word.endsWith(",")?",":(word.endsWith(".")?".":(word.endsWith("?")?"?":(word.endsWith("!")?"!":(word.endsWith("!")?"!":(word.endsWith(":")?":":""))))))
+                                return ["...", "the", "...,", "and"]
+                                    .includes(word)?word:(word[0]||"")+(word.length<=2?(word[1]||""):(end?"_".repeat(Math.min(Math.ceil(word.length), word.length-1)):"_".repeat(Math.min(Math.ceil(word.length)+1, word.length-1)))+end)
                             })
                             .join(" ")
                         nextElement.innerHTML = `${nextElement.textContent}<br>${tip}`
