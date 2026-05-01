@@ -1502,7 +1502,7 @@
                             .split(" ").map(word => {
                                 const end = (word.endsWith(",")?",":(word.endsWith(".")?".":(word.endsWith("?")?"?":(word.endsWith("!")?"!":(word.endsWith("!")?"!":(word.endsWith(":")?":":""))))))
                                 return ["...", "the", "...,", "and"]
-                                    .includes(word)?word:(word[0]||"")+(word.length<=2?(word[1]||""):(end?"_".repeat(Math.min(Math.ceil(word.length), word.length-1)):"_".repeat(Math.min(Math.ceil(word.length)+1, word.length-1)))+end)
+                                    .includes(word)?word:(word[0]||"")+(word.length<=2?(word[1]||""):(end?"_".repeat(Math.min(Math.ceil(word.length)/2+1, word.length-1)):"_".repeat(Math.min(Math.ceil(word.length)/2+1, word.length-1)))+end)
                             })
                             .join(" ")
                         nextElement.innerHTML = `${nextElement.textContent}<br>${tip}`
