@@ -5,10 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document & TTS</title>
     <style>
+        .word {
+            position: relative;
+            display: inline-block; /* 保持伪元素和文本的大小一致 */
+        }
+
+        .word::before {
+            content: ""; /* 生成伪元素 */
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #454545;
+            opacity: 1; /* 默认显示遮罩 */
+            pointer-events: none; /* 让鼠标事件穿透到下层元素 */
+            border-radius: 1px;
+        }
+
+        .word:hover::before {
+            opacity: 0; /* 悬停时隐藏遮罩 */
+        }
+
         .mask-container {
             position: relative;
             background: #2c2c2c; /* Container background (optional) */
-            display: flex;
+            display: inline-block;
             flex-direction: column;
             align-items: left;
             justify-content: center;
@@ -1505,10 +1527,12 @@
                             .split(" ").map(word => {
                                 const end = (word.endsWith(",")?",":(word.endsWith(".")?".":(word.endsWith("?")?"?":(word.endsWith("!")?"!":(word.endsWith("!")?"!":(word.endsWith(":")?":":""))))))
                                 return ["...", "the", "...,", "and"]
-                                    .includes(word)?word:(word[0]||"")+(word.length<=2?(word[1]||""):(end?"_".repeat(Math.min(Math.ceil(word.length)/2+1, word.length-1)):"_".repeat(Math.min(Math.ceil(word.length)/2+1, word.length-1)))+end)
+                                    .includes(word)?word:(`<span">${word[0]}</span>`||"")+(word.length<=2?(word[1]||""):(end?`<span class="word" style="color: #b0b0b0;background: #2f363d;">${word.slice(1,  word.length-1)}</span>`:`<div class="word" style="color: #b0b0b0;background: #2f363d;">${word.slice(1,  word.length)}</div>`)+end)
+                                    // .includes(word)?word:(word[0]||"")+(word.length<=2?(word[1]||""):(end?"_".repeat(Math.min(Math.ceil(word.length)/2+1, word.length-1)):"_".repeat(Math.min(Math.ceil(word.length)/2+1, word.length-1)))+end)
                             })
                             .join(" ")
-                        nextElement.innerHTML = `<span class="cnDiv">${nextElement.textContent}</span><br><div class="mask-container" style="font-size: 18px;margin-top: 10px;margin-bottom: 6px;cursor: none">${tip}</div>`
+                        nextElement.innerHTML = `<span class="cnDiv">${nextElement.textContent}</span><br><div style="margin-top: 15px;margin-bottom: 10px;line-height: 1.2">${tip}</div>`
+                        // class="mask-container" style="font-size: 18px;margin-top: 10px;margin-bottom: 6px;cursor: none"
                     } else {
                         textBlock.classList.remove("mask-container")
                         let nextElement = textBlock.nextElementSibling
