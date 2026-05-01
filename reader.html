@@ -1531,7 +1531,7 @@
                                     // .includes(word)?word:(word[0]||"")+(word.length<=2?(word[1]||""):(end?"_".repeat(Math.min(Math.ceil(word.length)/2+1, word.length-1)):"_".repeat(Math.min(Math.ceil(word.length)/2+1, word.length-1)))+end)
                             })
                             .join(" ")
-                        nextElement.innerHTML = `<span class="cnDiv">${nextElement.textContent}</span><br><div style="margin-top: 15px;margin-bottom: 10px;line-height: 1.2">${tip}</div>`
+                        nextElement.innerHTML = `${nextElement.textContent}<br><div style="margin-top: 15px;margin-bottom: 10px;line-height: 1.2">${tip}</div>`
                         // class="mask-container" style="font-size: 18px;margin-top: 10px;margin-bottom: 6px;cursor: none"
                     } else {
                         textBlock.classList.remove("mask-container")
