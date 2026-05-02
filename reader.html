@@ -8,15 +8,16 @@
         .word {
             position: relative;
             display: inline-block; /* 保持伪元素和文本的大小一致 */
+            line-height: 2;
         }
 
         .word::before {
             content: ""; /* 生成伪元素 */
             position: absolute;
-            top: 0;
+            top: 5px;
             left: 0;
             right: 0;
-            bottom: 0;
+            bottom: 6px;
             background: #454545;
             opacity: 1; /* 默认显示遮罩 */
             pointer-events: none; /* 让鼠标事件穿透到下层元素 */
@@ -73,12 +74,12 @@
         .text-block {
             margin-bottom: 10px;
             margin-top: 20px;
-            cursor: pointer;
             font-size: 20px;
             font-family: "Corbel", 'Segoe UI', Tahoma, Verdana, sans-serif;
             color: #dfe1e5;
             font-weight: normal;
             display: block;
+            cursor: pointer;
         }
 
         .code-span {
@@ -86,7 +87,6 @@
         }
 
         li {
-            cursor: pointer;
             font-size: 18px;
             font-family: "Corbel", 'Segoe UI', Tahoma, Verdana, sans-serif;
             color: #dfe1e5;
@@ -321,7 +321,6 @@
             font-family: 'Consolas', monospace;
             font-size: 14px;
             line-height: 1.5;
-        / / cursor: pointer;
         }
 
         /* 遮罩层（背景半透明） */
@@ -1178,7 +1177,7 @@
             if (line.startsWith("> ")) {
                 const quote = document.createElement("blockquote");
                 quote.innerHTML = line.substring(2);
-                quote.style.cursor = "pointer";
+                // quote.style.cursor = "pointer";
                 quote.dataset.originalText = line;
                 quote.onclick = function () {
                     playText(this.dataset.originalText, this);
