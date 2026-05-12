@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>代码讲解工具</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1e1e1e;
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding-left: 120px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #4fc3f7;
+    }
+    .section {
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      color: #b0bec5;
+      font-size: 14px;
+    }
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      background: #2d2d2d;
+      border: 1px solid #444;
+      border-radius: 6px;
+      color: #e0e0e0;
+      padding: 12px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 13px;
+      resize: vertical;
+    }
+    textarea:focus {
+      outline: none;
+      border-color: #4fc3f7;
+    }
+    select {
+      width: 100%;
+      max-width: 300px;
+      padding: 10px 12px;
+      background: #2d2d2d;
+      border: 1px solid #444;
+      border-radius: 6px;
+      color: #e0e0e0;
+      font-size: 14px;
+    }
+    select:focus {
+      outline: none;
+      border-color: #4fc3f7;
+    }
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    .btn-primary {
+      background: #4fc3f7;
+      color: #1e1e1e;
+    }
+    .btn-primary:hover {
+      background: #29b6f6;
+    }
+    .btn-secondary {
+      background: #616161;
+      color: #e0e0e0;
+    }
+    .btn-secondary:hover {
+      background: #757575;
+    }
+    .btn-secondary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .btn-danger {
+      background: #ef5350;
+      color: #fff;
+    }
+    .btn-danger:hover {
+      background: #f44336;
+    }
+    .code-display {
+      background: #1e1e1e;
+      border: 1px solid #444;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 16px;
+      padding-bottom: 80px;
+      display: none;
+    }
+    .code-display.visible {
+      display: block;
+    }
+    .code-line {
+      display: flex;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      border-bottom: 1px solid #2d2d2d;
+    }
+    .code-line:last-child {
+      border-bottom: none;
+    }
+    .code-line.highlight {
+      background: rgba(79, 195, 247, 0.2);
+    }
+    .code-line.highlight .line-content {
+      color: #fff;
+    }
+    .line-number {
+      min-width: 50px;
+      padding: 4px 12px;
+      background: #2d2d2d;
+      color: #6b6b6b;
+      text-align: right;
+      user-select: none;
+      border-right: 1px solid #3d3d3d;
+    }
+    .line-content {
+      padding: 4px 12px;
+      color: #e0e0e0;
+      white-space: pre;
+      overflow-x: auto;
+    }
+    .playback-wrapper {
+      position: fixed;
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: none;
+      z-index: 50;
+      align-items: center;
+      gap: 12px;
+    }
+    .playback-wrapper.visible {
+      display: flex;
+    }
+    .controls {
+      flex-direction: column;
+      gap: 10px;
+      display: flex;
+    }
+    .controls button {
+      min-width: 80px;
+    }
+    .status {
+      color: #b0bec5;
+      font-size: 12px;
+      max-width: 120px;
+    }
+    .status.active {
+      color: #4fc3f7;
+    }
+    .tts-row {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .tts-row .section {
+      margin-bottom: 0;
+    }
+    .tts-row label {
+      margin-bottom: 4px;
+    }
+    .subtitle {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0, 0, 0, 0.85);
+      color: #fff;
+      font-size: 18px;
+      text-align: center;
+      padding: 16px 20px;
+      display: none;
+      z-index: 100;
+    }
+    .subtitle.visible {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>代码讲解工具</h1>
+
+    <div class="tts-row">
+      <div class="section">
+        <label for="voiceSelect">TTS 语音</label>
+        <select id="voiceSelect">
+          <option value="">加载中...</option>
+        </select>
+      </div>
+
+      <div class="section">
+        <label for="speedRange">语速: <span id="speedValue">1.0</span>x</label>
+        <input type="range" id="speedRange" min="0.5" max="2.0" step="0.1" value="1.0" style="width: 200px;">
+      </div>
+    </div>
+
+    <div class="section">
+      <label for="codeInput">代码片段</label>
+      <textarea id="codeInput" placeholder="请输入代码片段..."></textarea>
+    </div>
+
+    <div class="section">
+      <label for="explainInput">JSON 格式讲解</label>
+      <textarea id="explainInput" placeholder='{"1": "说明1", "5-8": "说明2"}'></textarea>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-primary" id="generateBtn">生成讲解</button>
+    </div>
+
+    <div class="code-display" id="codeDisplay"></div>
+
+    <div class="playback-wrapper" id="playbackWrapper">
+      <div class="controls" id="controls">
+        <button class="btn-primary" id="playBtn">播放</button>
+        <button class="btn-secondary" id="pauseBtn" disabled>暂停</button>
+        <button class="btn-danger" id="stopBtn">停止</button>
+      </div>
+      <span class="status" id="status">等待播放...</span>
+    </div>
+
+    <div class="subtitle" id="subtitle"></div>
+  </div>
+
+  <script>
+    const voiceSelect = document.getElementById('voiceSelect');
+    const speedRange = document.getElementById('speedRange');
+    const speedValue = document.getElementById('speedValue');
+    const codeInput = document.getElementById('codeInput');
+    const explainInput = document.getElementById('explainInput');
+    const generateBtn = document.getElementById('generateBtn');
+    const codeDisplay = document.getElementById('codeDisplay');
+    const playbackWrapper = document.getElementById('playbackWrapper');
+    const controls = document.getElementById('controls');
+    const playBtn = document.getElementById('playBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const status = document.getElementById('status');
+    const subtitle = document.getElementById('subtitle');
+
+    let voices = [];
+    let isPlaying = false;
+    let isPaused = false;
+    let currentUtterance = null;
+    let segments = [];
+    let currentIndex = 0;
+    let highlightTimeout = null;
+
+    function loadVoices() {
+      const allVoices = speechSynthesis.getVoices();
+      voiceSelect.innerHTML = '';
+      if (allVoices.length === 0) {
+        voiceSelect.innerHTML = '<option value="">无可用语音</option>';
+        return;
+      }
+      const zhVoices = allVoices.filter(v => v.lang.includes('zh'));
+      const otherVoices = allVoices.filter(v => !v.lang.includes('zh'));
+      voices = [...zhVoices, ...otherVoices];
+
+      voices.forEach((voice) => {
+        const option = document.createElement('option');
+        option.value = voices.indexOf(voice);
+        option.textContent = `${voice.name} (${voice.lang})`;
+        option.dataset.isZh = voice.lang.includes('zh');
+        voiceSelect.appendChild(option);
+      });
+
+      const savedVoiceName = localStorage.getItem('codeExplain_voiceName');
+      if (savedVoiceName) {
+        const savedIndex = voices.findIndex(v => v.name === savedVoiceName);
+        if (savedIndex >= 0) {
+          voiceSelect.value = savedIndex;
+        }
+      }
+    }
+
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+      speechSynthesis.onvoiceschanged = loadVoices;
+    }
+    loadVoices();
+
+    const savedSpeed = localStorage.getItem('codeExplain_speed');
+    if (savedSpeed) {
+      speedRange.value = savedSpeed;
+      speedValue.textContent = parseFloat(savedSpeed).toFixed(1);
+    }
+
+    speedRange.addEventListener('input', () => {
+      speedValue.textContent = parseFloat(speedRange.value).toFixed(1);
+      localStorage.setItem('codeExplain_speed', speedRange.value);
+    });
+
+    voiceSelect.addEventListener('change', () => {
+      const selectedVoice = voices[voiceSelect.value];
+      if (selectedVoice) {
+        localStorage.setItem('codeExplain_voiceName', selectedVoice.name);
+      }
+    });
+
+    function parseLineRange(key) {
+      if (key.includes('-')) {
+        const [start, end] = key.split('-').map(Number);
+        const lines = [];
+        for (let i = start; i <= end; i++) lines.push(i);
+        return lines;
+      }
+      return [Number(key)];
+    }
+
+    function parseExplanations(jsonStr) {
+      const data = JSON.parse(jsonStr);
+      const segs = [];
+      for (const [key, value] of Object.entries(data)) {
+        const lineNumbers = parseLineRange(key);
+        segs.push({ lineNumbers, explanation: value });
+      }
+      segs.sort((a, b) => a.lineNumbers[0] - b.lineNumbers[0]);
+      return { segments: segs };
+    }
+
+    function generateCodeDisplay() {
+      const code = codeInput.value;
+      if (!code.trim()) {
+        alert('请输入代码片段');
+        return;
+      }
+
+      let jsonStr = explainInput.value.trim();
+      if (!jsonStr) {
+        alert('请输入 JSON 格式讲解');
+        return;
+      }
+
+      try {
+        ({ segments } = parseExplanations(jsonStr));
+      } catch (e) {
+        alert('JSON 格式错误: ' + e.message);
+        return;
+      }
+
+      const lines = code.split('\n');
+      codeDisplay.innerHTML = '';
+
+      lines.forEach((line, index) => {
+        const lineNum = index + 1;
+        const div = document.createElement('div');
+        div.className = 'code-line';
+        div.dataset.line = lineNum;
+        div.innerHTML = `
+          <span class="line-number">${lineNum}</span>
+          <span class="line-content">${escapeHtml(line) || ' '}</span>
+        `;
+        codeDisplay.appendChild(div);
+      });
+
+      codeDisplay.classList.add('visible');
+      playbackWrapper.classList.add('visible');
+      currentIndex = 0;
+      setStatus('等待播放...');
+      codeInput.value = '';
+      explainInput.value = '';
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function setStatus(text, active = false) {
+      status.textContent = text;
+      status.className = 'status' + (active ? ' active' : '');
+    }
+
+    function highlightLines(lineNumbers) {
+      document.querySelectorAll('.code-line').forEach(el => {
+        el.classList.remove('highlight');
+      });
+      lineNumbers.forEach(num => {
+        const lineEl = document.querySelector(`.code-line[data-line="${num}"]`);
+        if (lineEl) lineEl.classList.add('highlight');
+      });
+      if (lineNumbers.length > 0) {
+        const firstEl = document.querySelector(`.code-line[data-line="${lineNumbers[0]}"]`);
+        if (firstEl) firstEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    function getSelectedVoice() {
+      const index = Number(voiceSelect.value);
+      return voices[index] || voices[0];
+    }
+
+    function speakText(text, onEnd) {
+      if (!text) {
+        onEnd();
+        return;
+      }
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.voice = getSelectedVoice();
+      utterance.rate = parseFloat(speedRange.value);
+      utterance.pitch = 1.0;
+
+      utterance.onend = () => onEnd();
+      utterance.onerror = (e) => {
+        console.error('TTS error:', e);
+        onEnd();
+      };
+
+      currentUtterance = utterance;
+      speechSynthesis.speak(utterance);
+    }
+
+    function playNext() {
+      if (!isPlaying || isPaused) return;
+
+      if (currentIndex >= segments.length) {
+        isPlaying = false;
+        isPaused = false;
+        setStatus('讲解完成');
+        playBtn.disabled = false;
+        pauseBtn.disabled = true;
+        document.querySelectorAll('.code-line').forEach(el => el.classList.remove('highlight'));
+        subtitle.classList.remove('visible');
+        subtitle.textContent = '';
+        return;
+      }
+
+      const segment = segments[currentIndex];
+      highlightLines(segment.lineNumbers);
+
+      const lineRange = segment.lineNumbers.length > 1
+        ? `${segment.lineNumbers[0]}-${segment.lineNumbers[segment.lineNumbers.length - 1]}`
+        : `${segment.lineNumbers[0]}`;
+      setStatus(`讲解第 ${lineRange} 行...`, true);
+      subtitle.textContent = segment.explanation;
+      subtitle.classList.add('visible');
+
+      speakText(segment.explanation, () => {
+        currentIndex++;
+        highlightTimeout = setTimeout(playNext, 300);
+      });
+    }
+
+    function startPlay() {
+      if (currentIndex >= segments.length) {
+        currentIndex = 0;
+      }
+      isPlaying = true;
+      isPaused = false;
+      playBtn.disabled = true;
+      pauseBtn.disabled = false;
+      playNext();
+    }
+
+    generateBtn.addEventListener('click', generateCodeDisplay);
+
+    playBtn.addEventListener('click', () => {
+      if (isPaused) {
+        speechSynthesis.resume();
+        isPaused = false;
+        pauseBtn.textContent = '暂停';
+        const seg = segments[currentIndex];
+        const lineRange = seg.lineNumbers.length > 1
+          ? `${seg.lineNumbers[0]}-${seg.lineNumbers[seg.lineNumbers.length - 1]}`
+          : `${seg.lineNumbers[0]}`;
+        setStatus(`讲解第 ${lineRange} 行...`, true);
+      } else {
+        startPlay();
+      }
+    });
+
+    pauseBtn.addEventListener('click', () => {
+      if (!isPlaying) return;
+      if (isPaused) {
+        speechSynthesis.resume();
+        isPaused = false;
+        pauseBtn.textContent = '暂停';
+        const seg = segments[currentIndex];
+        const lineRange = seg.lineNumbers.length > 1
+          ? `${seg.lineNumbers[0]}-${seg.lineNumbers[seg.lineNumbers.length - 1]}`
+          : `${seg.lineNumbers[0]}`;
+        setStatus(`讲解第 ${lineRange} 行...`, true);
+      } else {
+        speechSynthesis.pause();
+        isPaused = true;
+        pauseBtn.textContent = '继续';
+        setStatus('已暂停');
+      }
+    });
+
+    stopBtn.addEventListener('click', () => {
+      speechSynthesis.cancel();
+      clearTimeout(highlightTimeout);
+      isPlaying = false;
+      isPaused = false;
+      currentIndex = 0;
+      playBtn.disabled = false;
+      pauseBtn.disabled = true;
+      pauseBtn.textContent = '暂停';
+      setStatus('已停止');
+      document.querySelectorAll('.code-line').forEach(el => el.classList.remove('highlight'));
+      subtitle.classList.remove('visible');
+      subtitle.textContent = '';
+    });
+  </script>
+</body>
+</html>
