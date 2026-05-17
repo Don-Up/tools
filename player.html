@@ -106,7 +106,7 @@
     <div id="timeDisplay">00:00 / 00:00</div> <!-- 新增 -->
 </div>
 
-<div style="position: absolute;bottom: 335px;right: 100px">
+<div style="position: absolute;bottom: 335px;right: 100px" id="actionBar">
     <button id="btnBackward" style="margin-bottom: 10px;">backward</button>
     <div>Total: <span id="total"></span>  Current: <span id="current">1</span>  <button id="jump">jump</button></div>
     <div style="right: 0;margin-top: 3px;">
@@ -6005,8 +6005,8 @@
         result.push(...zack)
     }
     if(/a|x/.test(content)){
-        result.unshift(...afrimax)
-        result.splice(Math.floor(result.length/2), 0, ...afrimax)
+        // result.unshift(...afrimax)
+        // result.splice(Math.floor(result.length/2), 0, ...afrimax)
         result.push(...afrimax)
     }
     if (/a|i/.test(content)) {
@@ -6018,27 +6018,27 @@
     if (/a|w/.test(content)) {
         result.push(...theArtOfWar)
     }
-    // if (/a|s/.test(content)) {
-    //     result.push(...sean)
-    // }
-    // if (/a|t/.test(content)) {
-    //     result.push(...terra)
-    // }
-    // if (/a|sc/.test(content)) {
-    //     result.push(...scienceverse)
-    // }
-    // if (/a|ku/.test(content)) {
-    //     result.push(...kurzgesagt)
-    // }
-    // if (/a|o/.test(content)) {
-    //     result.push(...outerliners)
-    // }
-    // if (/a|n/.test(content)) {
-    //     result.push(...nash)
-    // }
-    // if (/a|ko/.test(content)) {
-    //     result.push(...kobi)
-    // }
+    if (/a|s/.test(content)) {
+        result.push(...sean)
+    }
+    if (/a|t/.test(content)) {
+        result.push(...terra)
+    }
+    if (/a|sc/.test(content)) {
+        result.push(...scienceverse)
+    }
+    if (/a|ku/.test(content)) {
+        result.push(...kurzgesagt)
+    }
+    if (/a|o/.test(content)) {
+        result.push(...outerliners)
+    }
+    if (/a|n/.test(content)) {
+        result.push(...nash)
+    }
+    if (/a|ko/.test(content)) {
+        result.push(...kobi)
+    }
 
     document.getElementById("total").textContent = result.length + ""
 
@@ -6107,6 +6107,8 @@
         player.seekTo(Math.max(player.getCurrentTime() - 2.5, 0), true);
     })
 
+    const actionBar = document.getElementById("actionBar")
+
     document.addEventListener("keydown", (e) => {
         if (!player || !player.getCurrentTime) return;
         const currentTime = player.getCurrentTime();
@@ -6133,6 +6135,8 @@
         } else if (e.key === "l") {
             e.preventDefault()
             currentLink.click()
+        } else if (e.key === "h"){
+            actionBar.style.visibility = actionBar.style.visibility !== "hidden"?"hidden":"visible"
         }
     });
 
