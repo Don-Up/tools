@@ -108,7 +108,9 @@
 
 <div style="position: absolute;bottom: 335px;right: 100px" id="actionBar">
     <button id="btnBackward" style="margin-bottom: 10px;">backward</button>
-    <div>Total: <span id="total"></span>  Current: <span id="current">1</span>  <button id="jump">jump</button></div>
+    <div>Total: <span id="total"></span> Current: <span id="current">1</span>
+        <button id="jump">jump</button>
+    </div>
     <div style="right: 0;margin-top: 3px;">
         <div>Range: <input type="number" id="from" value="1" style="width: 50px"> to <input type="number" id="to"
                                                                                             value="1"
@@ -138,6 +140,16 @@
 
 <script>
     const zack = [
+        "https://www.youtube.com/shorts/zQQVMHKu350",
+        "https://www.youtube.com/shorts/jUftyi4MeKw",
+        "https://www.youtube.com/shorts/Ce_yCU5X6jk",
+        "https://www.youtube.com/shorts/XMckRI7lCVY",
+        "https://www.youtube.com/shorts/K4eVlEVAyvY",
+        "https://www.youtube.com/shorts/c0XuOPDD7wM",
+        "https://www.youtube.com/shorts/WSj88B2nCyI",
+        "https://www.youtube.com/shorts/bo2rS2b13TE",
+        "https://www.youtube.com/shorts/iocGgVlB5K0",
+        "https://www.youtube.com/shorts/mBXkAN-V4R0",
         "https://www.youtube.com/shorts/gxYcxwR-J0Y",
         "https://www.youtube.com/shorts/UqerqXgD67s",
         "https://www.youtube.com/shorts/qNvus8Wy8ng",
@@ -3062,7 +3074,6 @@
         "https://www.youtube.com/shorts/T9gl9nbYSeI",
         "https://www.youtube.com/shorts/o6aby9QJWkc",
         "https://www.youtube.com/shorts/abyOSZNTNVI",
-
 
 
         // "https://www.youtube.com/shorts/rGBe0cznRB0",
@@ -6868,7 +6879,7 @@
     const jump = document.getElementById("jump")
 
     jump.addEventListener("click", () => {
-        loadVideo(Number(from.value)-1)
+        loadVideo(Number(from.value) - 1)
     })
 
     slice.addEventListener("click", () => {
@@ -6882,9 +6893,9 @@
         const toValue = Math.min(to.value || 1, result.length)
         let sliceResult = []
         sliceResult.push(...(zack.slice(fromValue - 1, toValue)))
-        sliceResult.push(...(insight.slice(fromValue - 1, Math.floor(toValue/2))))
-        sliceResult.push(...(kube.slice(fromValue - 1, Math.floor(toValue/2))))
-        sliceResult.push(...(theArtOfWar.slice(fromValue - 1, Math.floor(toValue/2))))
+        sliceResult.push(...(insight.slice(fromValue - 1, Math.floor(toValue / 2))))
+        sliceResult.push(...(kube.slice(fromValue - 1, Math.floor(toValue / 2))))
+        sliceResult.push(...(theArtOfWar.slice(fromValue - 1, Math.floor(toValue / 2))))
         youtubeIDs = sliceResult.map(link => new URL(link).pathname.split("/shorts/")[1])
     })
 
@@ -6893,7 +6904,7 @@
     if (!content.includes("-z") && /a|z/.test(content)) {
         result.push(...zack)
     }
-    if(/a|x/.test(content)){
+    if (/a|x/.test(content)) {
         // result.unshift(...afrimax)
         // result.splice(Math.floor(result.length/2), 0, ...afrimax)
         result.push(...afrimax)
@@ -6998,6 +7009,10 @@
 
     const actionBar = document.getElementById("actionBar")
 
+    let startTime = 0
+    let endTime = 0
+    let isLooping = false
+
     document.addEventListener("keydown", (e) => {
         if (!player || !player.getCurrentTime) return;
         const currentTime = player.getCurrentTime();
@@ -7024,8 +7039,18 @@
         } else if (e.key === "l") {
             e.preventDefault()
             currentLink.click()
-        } else if (e.key === "h"){
-            actionBar.style.visibility = actionBar.style.visibility !== "hidden"?"hidden":"visible"
+        } else if (e.key === "h") {
+            actionBar.style.visibility = actionBar.style.visibility !== "hidden" ? "hidden" : "visible"
+        } else if (e.key === "1") {
+            e.preventDefault()
+            endTime = currentTime;
+            isLooping = true;
+        } else if (e.key === "2") {
+            e.preventDefault()
+            if (isLooping) {
+                startTime = endTime;
+                isLooping = false;
+            }
         }
     });
 
@@ -7121,6 +7146,10 @@
                 progressBar.value = progress;
 
                 timeDisplay.textContent = `${formatTime(currentTime)} / ${formatTime(duration)}`;
+
+                if (isLooping && endTime > startTime && currentTime >= endTime) {
+                    player.seekTo(startTime, true);
+                }
             }
         }, 500);
     }
