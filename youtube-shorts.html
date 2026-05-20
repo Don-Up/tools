@@ -110,6 +110,7 @@
     <div class="input-group">
         <input type="text" id="urlInput" placeholder="输入 YouTube Shorts 链接...">
         <button id="playBtn">播放</button>
+        <button id="pasteBtn">粘贴播放</button>
     </div>
     <div class="container">
         <div id="player"></div>
@@ -140,6 +141,19 @@
             document.getElementById('playBtn').addEventListener('click', loadVideo);
             document.getElementById('urlInput').addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') loadVideo();
+            });
+            document.getElementById('pasteBtn').addEventListener('click', async () => {
+                try {
+                    const text = await navigator.clipboard.readText();
+                    if (text) {
+                        document.getElementById('urlInput').value = text;
+                        loadVideo();
+                        const container = document.getElementById('player');
+                        container.requestFullscreen();
+                    }
+                } catch (err) {
+                    alert('无法读取剪贴板，请手动粘贴链接');
+                }
             });
             document.body.addEventListener('click', () => {
                 document.body.focus();
