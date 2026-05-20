@@ -7028,13 +7028,21 @@
             e.preventDefault()
             // 下一个视频
             document.getElementById("nextButton").click();
-        } else if (e.key === "p") {
+        } else if (e.key === "s") {
             e.preventDefault()
             // 暂停播放
             if (player.getPlayerState() === YT.PlayerState.PLAYING) {
                 player.pauseVideo();
             } else {
                 player.playVideo();
+            }
+        } else if (e.key === 'f' || e.key === 'F') {
+            e.preventDefault()
+            const container = document.getElementById('player');
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            } else {
+                container.requestFullscreen();
             }
         } else if (e.key === "l") {
             e.preventDefault()
