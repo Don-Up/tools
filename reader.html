@@ -1481,7 +1481,7 @@
     document.addEventListener("keydown", async (event) => {
         // console.log("Keydown event:", event.code)
         switch (event.code) {
-            case "KeyJ":
+            case "KeyX":
                 document.querySelectorAll(".first").forEach(first => {
                     if(first.classList.contains("word")){
                         first.classList.remove("word")
@@ -1490,7 +1490,7 @@
                     }
                 })
                 break
-            case "KeyK":
+            case "KeyC":
 
                 Array.from(document.querySelectorAll(".text-block")).filter(textBlock => textBlock.textContent !== "").forEach(/** @param {HTMLElement} textBlock */ textBlock => {
                     if (!textBlock.classList.contains("mask-container")) {
@@ -1552,7 +1552,7 @@
                     }
                 })
                 break
-            case "KeyH":
+            case "KeyZ":
                 Array.from(document.querySelectorAll(".text-block")).filter(textBlock => textBlock.textContent !== "").forEach(/** @param {HTMLElement} textBlock */ textBlock => {
                     if (!textBlock.classList.contains("mask-container")) {
                         textBlock.classList.add("mask-container")
@@ -1591,7 +1591,7 @@
             case "KeyS":
                 selectionMode = true
                 break
-            case "KeyX":
+            case "KeyB":
                 // get the text from the pasteboard
                 const comments = (await getClipboardText()).split("\n")
                     .filter(t => t.trim() !== "" && t.trim().length > 20 && !t.trim().startsWith("@")).map(t =>

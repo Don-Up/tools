@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube Player</title>
+    <title>YouTube Shorts Player</title>
     <style>
         * {
             margin: 0;
@@ -31,7 +31,7 @@
             gap: 12px;
             margin-bottom: 30px;
             width: 100%;
-            max-width: 700px;
+            max-width: 500px;
         }
         input[type="text"] {
             flex: 1;
@@ -69,8 +69,8 @@
         }
         #player {
             width: 100%;
-            max-width: 900px;
-            aspect-ratio: 16 / 9;
+            max-width: 400px;
+            aspect-ratio: 9 / 16;
             border-radius: 12px;
             overflow: hidden;
             background: #000;
@@ -84,8 +84,8 @@
         .placeholder {
             display: none;
             width: 100%;
-            max-width: 900px;
-            aspect-ratio: 16 / 9;
+            max-width: 400px;
+            aspect-ratio: 9 / 16;
             border-radius: 12px;
             background: #2a2a2a;
             align-items: center;
@@ -101,14 +101,14 @@
         .container {
             position: relative;
             width: 100%;
-            max-width: 900px;
+            max-width: 400px;
         }
     </style>
 </head>
 <body>
-    <h1>YouTube Player</h1>
+    <h1>YouTube Shorts</h1>
     <div class="input-group">
-        <input type="text" id="urlInput" placeholder="输入 YouTube 视频链接...">
+        <input type="text" id="urlInput" placeholder="输入 YouTube Shorts 链接...">
         <button id="playBtn">播放</button>
     </div>
     <div class="container">
@@ -173,6 +173,7 @@
 
         function extractVideoId(url) {
             const patterns = [
+                /(?:youtube\.com\/shorts\/)([^&\?\/]+)/,
                 /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\?\/]+)/,
                 /^([a-zA-Z0-9_-]{11})$/
             ];
@@ -188,7 +189,7 @@
             const url = document.getElementById('urlInput').value.trim();
             const videoId = extractVideoId(url);
             if (!videoId) {
-                alert('请输入有效的 YouTube 链接');
+                alert('请输入有效的 YouTube Shorts 链接');
                 return;
             }
             document.getElementById('placeholder').style.display = 'none';
