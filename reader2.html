@@ -931,8 +931,8 @@
 
     const rootElement = document.getElementById("content");
 
-    if (localStorage.getItem("text")) {
-        processText(localStorage.getItem("text"));
+    if (localStorage.getItem("text2")) {
+        processText(localStorage.getItem("text2"));
         highlightWords(rootElement);
         document.querySelectorAll(".text-block").forEach(textBlock => {
             textBlock.style.fontFamily = currentFont;
@@ -981,7 +981,7 @@
                 input.value.replace(/([,.])\s+/g, "$1\n").trim() :
                 input.value
             // .replace(/^[1-9]\.\s/gm, "")
-            localStorage.setItem("text", value.replace(/\[(.*?)\]\(.*?\)/g, '$1'));
+            localStorage.setItem("text2", value.replace(/\[(.*?)\]\(.*?\)/g, '$1'));
             processText(value.replace(/\[(.*?)\]\(.*?\)/g, '$1'));
             document.body.removeChild(input);
             document.body.removeChild(confirmBtn);
@@ -1568,7 +1568,7 @@
                                 const end = (word.endsWith(",")?",":(word.endsWith(".")?".":(word.endsWith("?")?"?":(word.endsWith("!")?"!":(word.endsWith("!")?"!":(word.endsWith(":")?":":""))))))
                                 return ["...", "the", "...,", "and"]
                                     .includes(word)?word:(`<span class="first">${word[0]}</span>`||"")+(word.length===2?(`<span class="first">${word[1]}</span>`||""):(end?`<span class="word" style="color: #b0b0b0;background: #2f363d;">${word.slice(1,  word.length-1)}</span>`:`<div class="word" style="color: #b0b0b0;background: #2f363d;">${word.slice(1,  word.length)}</div>`)+end)
-                                    // .includes(word)?word:(word[0]||"")+(word.length<=2?(word[1]||""):(end?"_".repeat(Math.min(Math.ceil(word.length)/2+1, word.length-1)):"_".repeat(Math.min(Math.ceil(word.length)/2+1, word.length-1)))+end)
+                                // .includes(word)?word:(word[0]||"")+(word.length<=2?(word[1]||""):(end?"_".repeat(Math.min(Math.ceil(word.length)/2+1, word.length-1)):"_".repeat(Math.min(Math.ceil(word.length)/2+1, word.length-1)))+end)
                             })
                             .join(" ")
                         nextElement.innerHTML = `${nextElement.textContent}<br><div style="margin-top: 15px;margin-bottom: 4px;line-height: 1.2">${tip}</div>`
@@ -1809,5 +1809,3 @@
     });
 </script>
 </body>
-
-
