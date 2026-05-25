@@ -205,7 +205,156 @@
     </div>
 
     <script>
-        // Code will be added in Task 2
+        let timers = [];
+        let timerIntervals = {};
+
+        const cardNameInput = document.getElementById('cardNameInput');
+        const durationSelect = document.getElementById('durationSelect');
+        const customDurationInput = document.getElementById('customDurationInput');
+        const confirmBtn = document.getElementById('confirmBtn');
+        const timerList = document.getElementById('timerList');
+
+        // Show/hide custom duration input
+        durationSelect.addEventListener('change', () => {
+            customDurationInput.style.display = durationSelect.value === 'custom' ? 'block' : 'none';
+        });
+
+        // Confirm button click handler
+        confirmBtn.addEventListener('click', addTimer);
+
+        function addTimer() {
+            const name = cardNameInput.value.trim();
+            if (!name) {
+                alert('Please enter a card name');
+                return;
+            }
+
+            let durationSeconds;
+            if (durationSelect.value === 'custom') {
+                durationSeconds = parseInt(customDurationInput.value, 10);
+                if (!durationSeconds || durationSeconds <= 0) {
+                    alert('Please enter a valid duration');
+                    return;
+                }
+            } else {
+                durationSeconds = parseInt(durationSelect.value, 10);
+            }
+
+            const timer = {
+                id: Date.now(),
+                name: name,
+                duration: durationSeconds,
+                remaining: durationSeconds,
+                status: 'running'
+            };
+
+            timers.unshift(timer);
+            renderTimer(timer);
+            startCountdown(timer);
+
+            // Reset inputs
+            cardNameInput.value = '';
+            customDurationInput.value = '';
+        }
+
+        function renderTimer(timer) {
+            const card = document.createElement('div');
+            card.className = `timer-card ${timer.status === 'ended' ? 'ended' : ''}`;
+            card.id = `timer-${timer.id}`;
+
+            const formattedDuration = formatDuration(timer.duration);
+            const statusText = timer.status === 'running' ? '倒计时中' : '已结束';
+
+            card.innerHTML = `
+                <div class="timer-info">
+                    <span class="timer-name" title="${timer.name}">${timer.name}</span>
+                    <span class="timer-duration">${formattedDuration}</span>
+                </div>
+                <div class="timer-status">
+                    <span class="timer-countdown" id="countdown-${timer.id}">${formatTime(timer.remaining)}</span>
+                    <span class="status-dot ${timer.status}"></span>
+                    <span>${statusText}</span>
+                </div>
+                <button class="delete-btn" onclick="deleteTimer(${timer.id})">&times;</button>
+            `;
+
+            timerList.insertBefore(card, timerList.firstChild);
+        }
+
+        function startCountdown(timer) {
+            timerIntervals[timer.id] = setInterval(() => {
+                timer.remaining--;
+
+                const countdownEl = document.getElementById(`countdown-${timer.id}`);
+                if (countdownEl) {
+                    countdownEl.textContent = formatTime(timer.remaining);
+                }
+
+                if (timer.remaining <= 0) {
+                    clearInterval(timerIntervals[timer.id]);
+                    timer.status = 'ended';
+                    onTimerEnd(timer);
+                }
+            }, 1000);
+        }
+
+        function onTimerEnd(timer) {
+            // Update card appearance
+            const card = document.getElementById(`timer-${timer.id}`);
+            if (card) {
+                card.classList.add('ended');
+                const statusDot = card.querySelector('.status-dot');
+                if (statusDot) {
+                    statusDot.className = 'status-dot ended';
+                }
+                const statusText = card.querySelector('.timer-status span:last-child');
+                if (statusText) {
+                    statusText.textContent = '已结束';
+                }
+            }
+
+            // TTS speak card name twice
+            speakTwice(timer.name);
+        }
+
+        function speakTwice(text) {
+            if ('speechSynthesis' in window) {
+                const speakOnce = () => {
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = 'en-US';
+                    speechSynthesis.speak(utterance);
+                };
+
+                speakOnce();
+                setTimeout(speakOnce, 1500);
+            }
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function formatDuration(seconds) {
+            if (seconds >= 60) {
+                const mins = Math.floor(seconds / 60);
+                return mins > 1 ? `${mins}min` : '1min';
+            }
+            return `${seconds}s`;
+        }
+
+        function deleteTimer(id) {
+            if (timerIntervals[id]) {
+                clearInterval(timerIntervals[id]);
+                delete timerIntervals[id];
+            }
+            timers = timers.filter(t => t.id !== id);
+            const card = document.getElementById(`timer-${id}`);
+            if (card) {
+                card.remove();
+            }
+        }
     </script>
 </body>
 </html>
