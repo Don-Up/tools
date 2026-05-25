@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CardTimer</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+
+        .input-section {
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        #cardNameInput {
+            flex: 1;
+            padding: 12px;
+            font-size: 16px;
+            background: #2c2c2c;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+        }
+
+        #cardNameInput::placeholder {
+            color: #888;
+        }
+
+        #durationSelect {
+            padding: 12px;
+            font-size: 16px;
+            background: #2c2c2c;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            min-width: 120px;
+        }
+
+        #customDurationInput {
+            padding: 12px;
+            font-size: 16px;
+            background: #2c2c2c;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            width: 80px;
+            display: none;
+        }
+
+        #confirmBtn {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            background: #3a86ff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #confirmBtn:hover {
+            background: #2a6edc;
+        }
+
+        .timer-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .timer-card {
+            background: #1e1e1e;
+            padding: 15px 20px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .timer-card.ended {
+            opacity: 0.6;
+        }
+
+        .timer-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .timer-name {
+            font-size: 16px;
+            font-weight: 500;
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .timer-duration {
+            font-size: 14px;
+            color: #888;
+        }
+
+        .timer-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-dot.running {
+            background: #4ade80;
+            animation: pulse 1.5s infinite;
+        }
+
+        .status-dot.ended {
+            background: #888;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .timer-countdown {
+            font-size: 18px;
+            font-weight: 600;
+            color: #fff;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .delete-btn {
+            background: transparent;
+            color: #888;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            font-size: 18px;
+        }
+
+        .delete-btn:hover {
+            color: #ff5252;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CardTimer</h1>
+
+        <div class="input-section">
+            <div class="input-row">
+                <input type="text" id="cardNameInput" placeholder="Card name...">
+                <select id="durationSelect">
+                    <option value="30">30s</option>
+                    <option value="60" selected>1min</option>
+                    <option value="180">3min</option>
+                    <option value="300">5min</option>
+                    <option value="600">10min</option>
+                    <option value="custom">Custom</option>
+                </select>
+                <input type="number" id="customDurationInput" placeholder="秒" min="1">
+            </div>
+            <button id="confirmBtn">Confirm</button>
+        </div>
+
+        <div id="timerList" class="timer-list"></div>
+    </div>
+
+    <script>
+        // Code will be added in Task 2
+    </script>
+</body>
+</html>
