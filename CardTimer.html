@@ -167,7 +167,20 @@
             text-align: center;
         }
 
-        .delete-btn {
+        .restart-btn {
+            background: transparent;
+            color: #888;
+            border: 1px solid #444;
+            cursor: pointer;
+            padding: 4px 10px;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+
+        .restart-btn:hover {
+            color: #3a86ff;
+            border-color: #3a86ff;
+        }
             background: transparent;
             color: #888;
             border: none;
@@ -275,6 +288,7 @@
                     <span class="status-dot ${timer.status}"></span>
                     <span>${statusText}</span>
                 </div>
+                <button class="restart-btn" onclick="restartTimer(${timer.id})">Restart</button>
                 <button class="delete-btn" onclick="deleteTimer(${timer.id})">&times;</button>
             `;
 
@@ -342,6 +356,41 @@
                 return mins > 1 ? `${mins}min` : '1min';
             }
             return `${seconds}s`;
+        }
+
+        function restartTimer(id) {
+            const timer = timers.find(t => t.id === id);
+            if (!timer) return;
+
+            // Clear existing interval
+            if (timerIntervals[id]) {
+                clearInterval(timerIntervals[id]);
+            }
+
+            // Reset timer state
+            timer.remaining = timer.duration;
+            timer.status = 'running';
+
+            // Update card appearance
+            const card = document.getElementById(`timer-${id}`);
+            if (card) {
+                card.classList.remove('ended');
+                const countdownEl = document.getElementById(`countdown-${id}`);
+                if (countdownEl) {
+                    countdownEl.textContent = formatTime(timer.remaining);
+                }
+                const statusDot = card.querySelector('.status-dot');
+                if (statusDot) {
+                    statusDot.className = 'status-dot running';
+                }
+                const statusText = card.querySelector('.timer-status span:last-child');
+                if (statusText) {
+                    statusText.textContent = '倒计时中';
+                }
+            }
+
+            // Start countdown again
+            startCountdown(timer);
         }
 
         function deleteTimer(id) {
