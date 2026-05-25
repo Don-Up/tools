@@ -167,6 +167,19 @@
             text-align: center;
         }
 
+        .timer-countdown.editable {
+            background: #2c2c2c;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 2px 8px;
+            color: #e0e0e0;
+        }
+
+        .countdown-min {
+            font-size: 14px;
+            color: #888;
+        }
+
         .restart-btn {
             background: transparent;
             color: #888;
@@ -181,15 +194,8 @@
             color: #3a86ff;
             border-color: #3a86ff;
         }
-            background: transparent;
-            color: #888;
-            border: none;
-            cursor: pointer;
-            padding: 8px;
-            font-size: 18px;
-        }
 
-        .delete-btn:hover {
+        .delete-btn {
             color: #ff5252;
         }
     </style>
@@ -202,14 +208,14 @@
             <div class="input-row">
                 <input type="text" id="cardNameInput" placeholder="Card name...">
                 <select id="durationSelect">
-                    <option value="30">30s</option>
-                    <option value="60" selected>1min</option>
+                    <option value="60">1min</option>
+                    <option value="120" selected>2min</option>
                     <option value="180">3min</option>
                     <option value="300">5min</option>
                     <option value="600">10min</option>
                     <option value="custom">Custom</option>
                 </select>
-                <input type="number" id="customDurationInput" placeholder="秒" min="1">
+                <input type="number" id="customDurationInput" placeholder="min" min="1">
             </div>
             <button id="confirmBtn">Confirm</button>
         </div>
@@ -244,11 +250,12 @@
 
             let durationSeconds;
             if (durationSelect.value === 'custom') {
-                durationSeconds = parseInt(customDurationInput.value, 10);
-                if (!durationSeconds || durationSeconds <= 0) {
+                const durationMin = parseInt(customDurationInput.value, 10);
+                if (!durationMin || durationMin <= 0) {
                     alert('Please enter a valid duration');
                     return;
                 }
+                durationSeconds = durationMin * 60;
             } else {
                 durationSeconds = parseInt(durationSelect.value, 10);
             }
@@ -277,6 +284,12 @@
 
             const formattedDuration = formatDuration(timer.duration);
             const statusText = timer.status === 'running' ? '倒计时中' : '已结束';
+            const mins = Math.floor(timer.remaining / 60);
+            const secs = timer.remaining % 60;
+
+            const countdownHtml = timer.status === 'ended'
+                ? `<input type="number" class="timer-countdown editable" id="countdown-${timer.id}" value="${mins}" min="0" onchange="updateTimerDuration(${timer.id}, this.value)"> <span class="countdown-min">min</span>`
+                : `<span class="timer-countdown" id="countdown-${timer.id}">${mins}:${secs.toString().padStart(2, '0')}</span>`;
 
             card.innerHTML = `
                 <div class="timer-info">
@@ -284,7 +297,7 @@
                     <span class="timer-duration">${formattedDuration}</span>
                 </div>
                 <div class="timer-status">
-                    <span class="timer-countdown" id="countdown-${timer.id}">${formatTime(timer.remaining)}</span>
+                    ${countdownHtml}
                     <span class="status-dot ${timer.status}"></span>
                     <span>${statusText}</span>
                 </div>
@@ -293,6 +306,15 @@
             `;
 
             timerList.insertBefore(card, timerList.firstChild);
+        }
+
+        function updateTimerDuration(id, newMins) {
+            const timer = timers.find(t => t.id === id);
+            if (!timer) return;
+
+            const mins = parseInt(newMins, 10) || 0;
+            timer.duration = mins * 60;
+            timer.remaining = mins * 60;
         }
 
         function startCountdown(timer) {
@@ -367,7 +389,7 @@
                 clearInterval(timerIntervals[id]);
             }
 
-            // Reset timer state
+            // Reset timer state using the current (possibly edited) duration
             timer.remaining = timer.duration;
             timer.status = 'running';
 
@@ -377,7 +399,13 @@
                 card.classList.remove('ended');
                 const countdownEl = document.getElementById(`countdown-${id}`);
                 if (countdownEl) {
-                    countdownEl.textContent = formatTime(timer.remaining);
+                    // Replace input with span showing new time
+                    const mins = Math.floor(timer.remaining / 60);
+                    const secs = timer.remaining % 60;
+                    const parent = countdownEl.parentNode;
+                    const minLabel = parent.querySelector('.countdown-min');
+                    parent.innerHTML = `<span class="timer-countdown" id="countdown-${id}">${mins}:${secs.toString().padStart(2, '0')}</span>`;
+                    if (minLabel) minLabel.remove();
                 }
                 const statusDot = card.querySelector('.status-dot');
                 if (statusDot) {
