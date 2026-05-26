@@ -242,6 +242,19 @@
         svg += `</svg>`;
         return svg;
     }
+
+    function main() {
+        const sourceEl = document.getElementById('source-text');
+        const puml = sourceEl ? sourceEl.textContent.trim() : '';
+        if (!puml) return;
+        const tokens = tokenize(puml);
+        const ast = buildAST(tokens);
+        const svg = renderFlowchart(ast);
+        const container = document.getElementById('flowchart');
+        if (container) container.innerHTML = svg;
+    }
+
+    document.addEventListener('DOMContentLoaded', main);
     </script>
 </body>
 </html>
