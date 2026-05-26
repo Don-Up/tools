@@ -392,20 +392,27 @@
         }
 
         function startCountdown(timer) {
+            // Store the start time and expected end time for accuracy
+            timer.startTime = Date.now();
+            timer.endTime = Date.now() + timer.remaining * 1000;
+
             timerIntervals[timer.id] = setInterval(() => {
-                timer.remaining--;
+                // Calculate remaining time based on actual elapsed time
+                const now = Date.now();
+                const remaining = Math.max(0, Math.ceil((timer.endTime - now) / 1000));
+                timer.remaining = remaining;
 
                 const countdownEl = document.getElementById(`countdown-${timer.id}`);
                 if (countdownEl) {
-                    countdownEl.textContent = formatTime(timer.remaining);
+                    countdownEl.textContent = formatTime(remaining);
                 }
 
-                if (timer.remaining <= 0) {
+                if (remaining <= 0) {
                     clearInterval(timerIntervals[timer.id]);
                     timer.status = 'ended';
                     onTimerEnd(timer);
                 }
-            }, 1000);
+            }, 250); // Update more frequently for smoother display
         }
 
         function onTimerEnd(timer) {
