@@ -36,7 +36,79 @@
         <div id="flowchart" class="flowchart"></div>
     </div>
     <script>
-    // JS code will be added in later tasks
+    function tokenize(puml) {
+        const tokens = [];
+        const lines = puml.split('\n');
+        let i = 0;
+        while (i < lines.length) {
+            const line = lines[i].trim();
+            if (!line || line.startsWith("'") || line.startsWith("/")) {
+                i++;
+                continue;
+            }
+            if (line === "start") {
+                tokens.push({ type: "START" });
+                i++;
+            } else if (line === "stop") {
+                tokens.push({ type: "STOP" });
+                i++;
+            } else if (line.startsWith("if(")) {
+                const match = line.match(/^if\((.+?)\)\s*then$/);
+                if (match) {
+                    tokens.push({ type: "IF", condition: match[1] });
+                    i++;
+                    // Collect then branch content
+                    const thenActions = [];
+                    while (i < lines.length && !lines[i].includes("else") && !lines[i].includes("endif")) {
+                        const a = lines[i].trim();
+                        if (a && !a.startsWith("'") && !a.startsWith("/")) {
+                            if (a.startsWith(":")) thenActions.push(a);
+                        }
+                        i++;
+                    }
+                    tokens.push({ type: "THEN_ACTIONS", actions: thenActions });
+                    // Else branch
+                    if (i < lines.length && lines[i].includes("else")) {
+                        tokens.push({ type: "ELSE" });
+                        i++;
+                        const elseActions = [];
+                        while (i < lines.length && !lines[i].includes("endif")) {
+                            const a = lines[i].trim();
+                            if (a && !a.startsWith("'") && !a.startsWith("/")) {
+                                if (a.startsWith(":")) elseActions.push(a);
+                            }
+                            i++;
+                        }
+                        tokens.push({ type: "ELSE_ACTIONS", actions: elseActions });
+                    }
+                    if (i < lines.length && lines[i].includes("endif")) {
+                        tokens.push({ type: "ENDIF" });
+                        i++;
+                    }
+                }
+            } else if (line.startsWith(":")) {
+                tokens.push({ type: "ACTION", raw: line });
+                i++;
+            } else {
+                i++;
+            }
+        }
+        return tokens;
+    }
+
+    function parseAction(raw) {
+        // :文本~placeholder~~; → { label: '文本', placeholder: 'placeholder' }
+        const match = raw.match(/^:\s*(.+?)~([^~]+)~~;?$/);
+        if (match) {
+            return { label: match[1].trim(), placeholder: match[2].trim() };
+        }
+        // No placeholder
+        const simple = raw.match(/^:\s*(.+?)\s*;?$/);
+        if (simple) {
+            return { label: simple[1].trim(), placeholder: null };
+        }
+        return { label: raw, placeholder: null };
+    }
     </script>
 </body>
 </html>
