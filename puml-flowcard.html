@@ -109,6 +109,48 @@
         }
         return { label: raw, placeholder: null };
     }
+
+    function buildAST(tokens) {
+        const ast = [];
+        let i = 0;
+        while (i < tokens.length) {
+            const t = tokens[i];
+            if (t.type === "START") {
+                ast.push({ type: "start" });
+                i++;
+            } else if (t.type === "STOP") {
+                ast.push({ type: "stop" });
+                i++;
+            } else if (t.type === "IF") {
+                const ifNode = { type: "if", condition: t.condition, thenBlock: [], elseBlock: [] };
+                i++;
+                // Collect then actions
+                while (i < tokens.length && tokens[i].type === "THEN_ACTIONS") {
+                    tokens[i].actions.forEach(a => ifNode.thenBlock.push(parseAction(a)));
+                    i++;
+                }
+                // Collect else actions
+                if (i < tokens.length && tokens[i].type === "ELSE") {
+                    i++;
+                    while (i < tokens.length && tokens[i].type === "ELSE_ACTIONS") {
+                        tokens[i].actions.forEach(a => ifNode.elseBlock.push(parseAction(a)));
+                        i++;
+                    }
+                }
+                // Skip ENDIF
+                if (i < tokens.length && tokens[i].type === "ENDIF") {
+                    i++;
+                }
+                ast.push(ifNode);
+            } else if (t.type === "ACTION") {
+                ast.push({ type: "action", ...parseAction(t.raw) });
+                i++;
+            } else {
+                i++;
+            }
+        }
+        return ast;
+    }
     </script>
 </body>
 </html>
