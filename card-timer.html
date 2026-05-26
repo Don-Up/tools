@@ -375,7 +375,7 @@
 
             card.innerHTML = `
                 <div class="timer-info">
-                    <span class="timer-name" title="${timer.name}">${timer.name}</span>
+                    <span class="timer-name" title="${timer.name}" onclick="copyToClipboard('${timer.name}')" style="cursor:pointer">${timer.name}</span>
                     <span class="timer-duration">${formattedDuration}</span>
                 </div>
                 <div class="timer-status">
@@ -488,6 +488,14 @@
             if (card) {
                 card.remove();
             }
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                // Optional: brief visual feedback could be added here
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+            });
         }
 
         let currentEditTimerId = null;
