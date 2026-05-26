@@ -517,12 +517,17 @@
             if (timer) {
                 timer.duration = mins * 60;
                 timer.remaining = timer.duration;
+                timer.status = 'running';
+
                 // Re-render the timer card
                 const card = document.getElementById(`timer-${timer.id}`);
                 if (card) {
                     card.remove();
                 }
                 renderTimer(timer);
+
+                // Auto restart the countdown
+                startCountdown(timer);
             }
 
             closeModal();
