@@ -460,31 +460,14 @@
             timer.remaining = timer.duration;
             timer.status = 'running';
 
-            // Update card appearance
+            // Re-render the timer card to update button visibility
             const card = document.getElementById(`timer-${id}`);
             if (card) {
-                card.classList.remove('ended');
-                const countdownEl = document.getElementById(`countdown-${id}`);
-                if (countdownEl) {
-                    // Replace input with span showing new time
-                    const mins = Math.floor(timer.remaining / 60);
-                    const secs = timer.remaining % 60;
-                    const parent = countdownEl.parentNode;
-                    const minLabel = parent.querySelector('.countdown-min');
-                    parent.innerHTML = `<span class="timer-countdown" id="countdown-${id}">${mins}:${secs.toString().padStart(2, '0')}</span>`;
-                    if (minLabel) minLabel.remove();
-                }
-                const statusDot = card.querySelector('.status-dot');
-                if (statusDot) {
-                    statusDot.className = 'status-dot running';
-                }
-                const statusText = card.querySelector('.timer-status span:last-child');
-                if (statusText) {
-                    statusText.textContent = '倒计时中';
-                }
+                card.remove();
             }
+            renderTimer(timer);
 
-            // Start countdown again
+            // Start countdown
             startCountdown(timer);
         }
 
