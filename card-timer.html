@@ -104,23 +104,7 @@
             cursor: pointer;
         }
 
-        #hideNameBtn {
-            width: 200px;
-            margin-left: 10px;
-            padding: 12px;
-            font-size: 16px;
-            background: #3a86ff;
-            color: #fff;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
         #confirmBtn:hover {
-            background: #2a6edc;
-        }
-
-        #hideNameBtn:hover {
             background: #2a6edc;
         }
 
@@ -371,7 +355,6 @@
         </div>
         <div style="display: flex">
             <button id="confirmBtn">Confirm</button>
-            <button id="hideNameBtn">Hide Name</button>
         </div>
     </div>
 
@@ -398,23 +381,11 @@
     const customDurationInput = document.getElementById('customDurationInput');
     const answerInput = document.getElementById('answerInput');
     const confirmBtn = document.getElementById('confirmBtn');
-    const hideNameBtn = document.getElementById('hideNameBtn');
     const timerList = document.getElementById('timerList');
 
     // Show/hide custom duration input
     durationSelect.addEventListener('change', () => {
         customDurationInput.style.display = durationSelect.value === 'custom' ? 'block' : 'none';
-    });
-
-    // Hide/Show name button click handler
-    let isNameHidden = false;
-    hideNameBtn.addEventListener('click', () => {
-        isNameHidden = !isNameHidden;
-        const names = document.querySelectorAll('.timer-name');
-        names.forEach(name => {
-            name.style.display = isNameHidden ? 'none' : 'inline';
-        });
-        hideNameBtn.textContent = isNameHidden ? 'Show Name' : 'Hide Name';
     });
 
     // Confirm button click handler
@@ -486,7 +457,8 @@
             answer: answer,
             duration: durationSeconds,
             remaining: durationSeconds,
-            status: 'running'
+            status: 'running',
+            isNameHidden: false
         };
 
         timers.unshift(timer);
@@ -513,12 +485,12 @@
             ? `<span class="timer-countdown" id="countdown-${timer.id}">${mins}:${secs.toString().padStart(2, '0')}</span>`
             : `<span class="timer-countdown" id="countdown-${timer.id}">${mins}:${secs.toString().padStart(2, '0')}</span>`;
 
-        const nameDisplay = timer.status === 'ended' ? (isNameHidden ? 'none' : 'inline') : 'none';
+        const nameDisplay = timer.status === 'ended' ? (timer.isNameHidden ? 'none' : 'inline') : 'none';
         card.innerHTML = `
                 <div class="timer-left">
                     <div class="timer-info">
                         <span class="timer-name" title="${timer.name}" onclick="copyToClipboard('${timer.name}')" style="cursor:pointer;display:${nameDisplay}">${timer.name}</span>
-                        <span class="timer-duration">${formattedDuration}</span>
+                        <span class="timer-duration" onclick="toggleTimerName(${timer.id})" style="cursor:pointer;user-select:none">${formattedDuration}</span>
                     </div>
                     <div class="timer-status">
                         ${countdownHtml}
@@ -647,6 +619,18 @@
         if (timer && timer.answer) {
             alert(timer.answer);
         }
+    }
+
+    function toggleTimerName(id) {
+        const timer = timers.find(t => t.id === id);
+        if (!timer) return;
+
+        const nameEl = document.querySelector(`#timer-${id} .timer-name`);
+        if (!nameEl) return;
+
+        // Toggle based on current display state
+        const isCurrentlyHidden = nameEl.style.display === 'none';
+        nameEl.style.display = isCurrentlyHidden ? 'inline' : 'none';
     }
 
     function copyToClipboard(text) {
