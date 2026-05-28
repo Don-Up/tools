@@ -441,7 +441,7 @@
 
         let answer = answerInput.value.trim();
 
-        if (name.includes(" ~") && name.includes("~~")) {
+        if (name.includes("~~")) {
             // 1. 提取所有 {{...}} 里的内容
             const matches = [...name.matchAll(/~(.*?)~~/g)].map(m => m[1]);
             // matches = ["extracting", "arrays", "objects"]
@@ -476,7 +476,7 @@
             // result = "Destructuring is a feature that allows ____ values from ____ or ____"
 
             // 3. 拼成想要的格式（题目里没明确最后输出格式，这里按示例来）
-            answer = matches.map(word => `"${word}"`).join(', ');
+            answer = matches.map(word => `"${word.startsWith("*") || word.startsWith("^")?word.slice(1):word}"`).join(', ');
         }
 
 
