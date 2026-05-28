@@ -44,14 +44,14 @@
         }
 
         #cardNameInput {
-            flex: none;
-            width: 120px;
+            width: 100px;
             padding: 12px;
             font-size: 16px;
             background: #2c2c2c;
             color: #e0e0e0;
             border: 1px solid #444;
             border-radius: 4px;
+            flex-shrink: 0;
         }
 
         #cardNameInput::placeholder {
@@ -59,14 +59,14 @@
         }
 
         #answerInput {
-            flex: none;
-            width: 120px;
+            width: 100px;
             padding: 12px;
             font-size: 16px;
             background: #2c2c2c;
             color: #e0e0e0;
             border: 1px solid #444;
             border-radius: 4px;
+            flex-shrink: 0;
         }
 
         #answerInput::placeholder {
@@ -74,14 +74,13 @@
         }
 
         #durationSelect {
-            flex: 1;
             padding: 12px;
             font-size: 16px;
             background: #2c2c2c;
             color: #e0e0e0;
             border: 1px solid #444;
             border-radius: 4px;
-            min-width: 100px;
+            min-width: 120px;
         }
 
         #customDurationInput {
@@ -96,7 +95,8 @@
         }
 
         #confirmBtn {
-            width: 100%;
+            box-sizing: border-box;
+            width: 350px;
             padding: 12px;
             font-size: 16px;
             background: #3a86ff;
@@ -114,18 +114,19 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
+            width: 350px;
+            box-sizing: border-box;
         }
 
         .timer-card {
             background: #1e1e1e;
             padding: 15px 20px;
             border-radius: 8px;
-            width: 100%;
-            box-sizing: border-box;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 10px;
+            box-sizing: border-box;
+            width: 100%;
         }
 
         .timer-card.ended {
