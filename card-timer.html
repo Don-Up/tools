@@ -132,6 +132,21 @@
             color: #888;
         }
 
+        .answer-btn {
+            background: transparent;
+            color: #4ade80;
+            border: 1px solid #4ade80;
+            cursor: pointer;
+            padding: 4px 10px;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+
+        .answer-btn:hover {
+            background: #4ade80;
+            color: #121212;
+        }
+
         .timer-status {
             display: flex;
             align-items: center;
@@ -278,6 +293,7 @@
         <div class="input-section">
             <div class="input-row">
                 <input type="text" id="cardNameInput" placeholder="Card name...">
+                <input type="text" id="answerInput" placeholder="Answer (optional)">
                 <select id="durationSelect">
                     <option value="60">1min</option>
                     <option value="120" selected>2min</option>
@@ -312,6 +328,7 @@
         const cardNameInput = document.getElementById('cardNameInput');
         const durationSelect = document.getElementById('durationSelect');
         const customDurationInput = document.getElementById('customDurationInput');
+        const answerInput = document.getElementById('answerInput');
         const confirmBtn = document.getElementById('confirmBtn');
         const timerList = document.getElementById('timerList');
 
@@ -342,9 +359,12 @@
                 durationSeconds = parseInt(durationSelect.value, 10);
             }
 
+            const answer = answerInput.value.trim();
+
             const timer = {
                 id: Date.now(),
                 name: name,
+                answer: answer,
                 duration: durationSeconds,
                 remaining: durationSeconds,
                 status: 'running'
@@ -356,6 +376,7 @@
 
             // Reset inputs
             cardNameInput.value = '';
+            answerInput.value = '';
             customDurationInput.value = '';
         }
 
@@ -383,6 +404,7 @@
                     <span class="status-dot ${timer.status}"></span>
                     <span>${statusText}</span>
                 </div>
+                ${timer.status === 'ended' && timer.answer ? `<button class="answer-btn" onclick="showAnswer(${timer.id})">Answer</button>` : ''}
                 ${timer.status === 'ended' ? `<button class="new-min-btn" onclick="openNewMinModal(${timer.id})">New Min</button>` : ''}
                 <button class="restart-btn" onclick="restartTimer(${timer.id})">Restart</button>
                 <button class="delete-btn" onclick="deleteTimer(${timer.id})">&times;</button>
@@ -487,6 +509,13 @@
             const card = document.getElementById(`timer-${id}`);
             if (card) {
                 card.remove();
+            }
+        }
+
+        function showAnswer(id) {
+            const timer = timers.find(t => t.id === id);
+            if (timer && timer.answer) {
+                alert(timer.answer);
             }
         }
 
