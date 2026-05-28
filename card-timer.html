@@ -465,9 +465,12 @@
 
         function speakTwice(text) {
             if ('speechSynthesis' in window) {
+                const hasChinese = /[一-鿿]/.test(text);
+                const lang = hasChinese ? 'zh-CN' : 'en-US';
+
                 const speakOnce = () => {
                     const utterance = new SpeechSynthesisUtterance(text);
-                    utterance.lang = 'en-US';
+                    utterance.lang = lang;
                     speechSynthesis.speak(utterance);
                 };
 
