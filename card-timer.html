@@ -104,7 +104,23 @@
             cursor: pointer;
         }
 
+        #hideNameBtn {
+            width: 200px;
+            margin-left: 10px;
+            padding: 12px;
+            font-size: 16px;
+            background: #3a86ff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
         #confirmBtn:hover {
+            background: #2a6edc;
+        }
+
+        #hideNameBtn:hover {
             background: #2a6edc;
         }
 
@@ -353,7 +369,10 @@
             </select>
             <input type="number" id="customDurationInput" placeholder="min" min="1">
         </div>
-        <button id="confirmBtn">Confirm</button>
+        <div style="display: flex">
+            <button id="confirmBtn">Confirm</button>
+            <button id="hideNameBtn">Hide Name</button>
+        </div>
     </div>
 
     <div id="timerList" class="timer-list"></div>
@@ -379,11 +398,23 @@
     const customDurationInput = document.getElementById('customDurationInput');
     const answerInput = document.getElementById('answerInput');
     const confirmBtn = document.getElementById('confirmBtn');
+    const hideNameBtn = document.getElementById('hideNameBtn');
     const timerList = document.getElementById('timerList');
 
     // Show/hide custom duration input
     durationSelect.addEventListener('change', () => {
         customDurationInput.style.display = durationSelect.value === 'custom' ? 'block' : 'none';
+    });
+
+    // Hide/Show name button click handler
+    let isNameHidden = false;
+    hideNameBtn.addEventListener('click', () => {
+        isNameHidden = !isNameHidden;
+        const names = document.querySelectorAll('.timer-name');
+        names.forEach(name => {
+            name.style.display = isNameHidden ? 'none' : 'inline';
+        });
+        hideNameBtn.textContent = isNameHidden ? 'Show Name' : 'Hide Name';
     });
 
     // Confirm button click handler
@@ -449,7 +480,7 @@
         card.id = `timer-${timer.id}`;
 
         const formattedDuration = formatDuration(timer.duration);
-        const statusText = timer.status === 'running' ? '倒计时中' : '已结束';
+        const statusText = timer.status === 'running' ? '倒计时中' : (timer.duration >= 600?'OVER':'已结束');
         const mins = Math.floor(timer.remaining / 60);
         const secs = timer.remaining % 60;
 
