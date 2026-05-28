@@ -41,10 +41,11 @@
             display: flex;
             gap: 10px;
             margin-bottom: 15px;
+            margin-top: 15px;
         }
 
         #cardNameInput {
-            width: 300px;
+            width: 100%;
             padding: 12px;
             font-size: 16px;
             background: #2c2c2c;
@@ -58,7 +59,7 @@
         }
 
         #answerInput {
-            width: 300px;
+            width: 100%;
             padding: 12px;
             font-size: 16px;
             background: #2c2c2c;
@@ -78,7 +79,7 @@
             color: #e0e0e0;
             border: 1px solid #444;
             border-radius: 4px;
-            min-width: 120px;
+            min-width: 80px;
         }
 
         #customDurationInput {
@@ -206,8 +207,12 @@
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
         }
 
         .timer-countdown {
@@ -330,114 +335,128 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Card Timer</h1>
+<div class="container">
+    <h1>Card Timer</h1>
 
-        <div class="input-section">
-            <div class="input-row">
-                <input type="text" id="cardNameInput" placeholder="Card name...">
-                <input type="text" id="answerInput" placeholder="Answer (optional)">
-                <select id="durationSelect">
-                    <option value="60">1min</option>
-                    <option value="120" selected>2min</option>
-                    <option value="180">3min</option>
-                    <option value="300">5min</option>
-                    <option value="600">10min</option>
-                    <option value="custom">Custom</option>
-                </select>
-                <input type="number" id="customDurationInput" placeholder="min" min="1">
-            </div>
-            <button id="confirmBtn">Confirm</button>
+    <div class="input-section">
+        <input type="text" id="cardNameInput" placeholder="Card name...">
+        <div class="input-row">
+            <input type="text" id="answerInput" placeholder="Answer (optional)">
+            <select id="durationSelect">
+                <option value="60">1min</option>
+                <option value="120" selected>2min</option>
+                <option value="180">3min</option>
+                <option value="300">5min</option>
+                <option value="600">10min</option>
+                <option value="custom">Custom</option>
+            </select>
+            <input type="number" id="customDurationInput" placeholder="min" min="1">
         </div>
-
-        <div id="timerList" class="timer-list"></div>
+        <button id="confirmBtn">Confirm</button>
     </div>
 
-    <div id="modalOverlay" class="modal-overlay">
-        <div class="modal">
-            <h3>New Duration (min)</h3>
-            <input type="number" id="modalInput" class="modal-input" min="1">
-            <div class="modal-buttons">
-                <button class="modal-btn cancel" onclick="closeModal()">Cancel</button>
-                <button class="modal-btn confirm" onclick="confirmNewDuration()">OK</button>
-            </div>
+    <div id="timerList" class="timer-list"></div>
+</div>
+
+<div id="modalOverlay" class="modal-overlay">
+    <div class="modal">
+        <h3>New Duration (min)</h3>
+        <input type="number" id="modalInput" class="modal-input" min="1">
+        <div class="modal-buttons">
+            <button class="modal-btn cancel" onclick="closeModal()">Cancel</button>
+            <button class="modal-btn confirm" onclick="confirmNewDuration()">OK</button>
         </div>
     </div>
+</div>
 
-    <script>
-        let timers = [];
-        let timerIntervals = {};
+<script>
+    let timers = [];
+    let timerIntervals = {};
 
-        const cardNameInput = document.getElementById('cardNameInput');
-        const durationSelect = document.getElementById('durationSelect');
-        const customDurationInput = document.getElementById('customDurationInput');
-        const answerInput = document.getElementById('answerInput');
-        const confirmBtn = document.getElementById('confirmBtn');
-        const timerList = document.getElementById('timerList');
+    const cardNameInput = document.getElementById('cardNameInput');
+    const durationSelect = document.getElementById('durationSelect');
+    const customDurationInput = document.getElementById('customDurationInput');
+    const answerInput = document.getElementById('answerInput');
+    const confirmBtn = document.getElementById('confirmBtn');
+    const timerList = document.getElementById('timerList');
 
-        // Show/hide custom duration input
-        durationSelect.addEventListener('change', () => {
-            customDurationInput.style.display = durationSelect.value === 'custom' ? 'block' : 'none';
-        });
+    // Show/hide custom duration input
+    durationSelect.addEventListener('change', () => {
+        customDurationInput.style.display = durationSelect.value === 'custom' ? 'block' : 'none';
+    });
 
-        // Confirm button click handler
-        confirmBtn.addEventListener('click', addTimer);
+    // Confirm button click handler
+    confirmBtn.addEventListener('click', addTimer);
 
-        function addTimer() {
-            const name = cardNameInput.value.trim();
-            if (!name) {
-                alert('Please enter a card name');
-                return;
-            }
-
-            let durationSeconds;
-            if (durationSelect.value === 'custom') {
-                const durationMin = parseInt(customDurationInput.value, 10);
-                if (!durationMin || durationMin <= 0) {
-                    alert('Please enter a valid duration');
-                    return;
-                }
-                durationSeconds = durationMin * 60;
-            } else {
-                durationSeconds = parseInt(durationSelect.value, 10);
-            }
-
-            const answer = answerInput.value.trim();
-
-            const timer = {
-                id: Date.now(),
-                name: name,
-                answer: answer,
-                duration: durationSeconds,
-                remaining: durationSeconds,
-                status: 'running'
-            };
-
-            timers.unshift(timer);
-            renderTimer(timer);
-            startCountdown(timer);
-
-            // Reset inputs
-            cardNameInput.value = '';
-            answerInput.value = '';
-            customDurationInput.value = '';
+    function addTimer() {
+        let name = cardNameInput.value.trim();
+        if (!name) {
+            alert('Please enter a card name');
+            return;
         }
 
-        function renderTimer(timer) {
-            const card = document.createElement('div');
-            card.className = `timer-card ${timer.status === 'ended' ? 'ended' : ''}`;
-            card.id = `timer-${timer.id}`;
+        let durationSeconds;
+        if (durationSelect.value === 'custom') {
+            const durationMin = parseInt(customDurationInput.value, 10);
+            if (!durationMin || durationMin <= 0) {
+                alert('Please enter a valid duration');
+                return;
+            }
+            durationSeconds = durationMin * 60;
+        } else {
+            durationSeconds = parseInt(durationSelect.value, 10);
+        }
 
-            const formattedDuration = formatDuration(timer.duration);
-            const statusText = timer.status === 'running' ? '倒计时中' : '已结束';
-            const mins = Math.floor(timer.remaining / 60);
-            const secs = timer.remaining % 60;
+        let answer = answerInput.value.trim();
 
-            const countdownHtml = timer.status === 'ended'
-                ? `<span class="timer-countdown" id="countdown-${timer.id}">${mins}:${secs.toString().padStart(2, '0')}</span>`
-                : `<span class="timer-countdown" id="countdown-${timer.id}">${mins}:${secs.toString().padStart(2, '0')}</span>`;
+        if (name.includes(" ~") && name.includes("~~")) {
+            // 1. 提取所有 {{...}} 里的内容
+            const matches = [...name.matchAll(/~(.*?)~~/g)].map(m => m[1]);
+            // matches = ["extracting", "arrays", "objects"]
 
-            card.innerHTML = `
+            // 2. 把 {{...}} 替换成 ____
+            name = name.replace(/~.*?~~/g, '____');
+            // result = "Destructuring is a feature that allows ____ values from ____ or ____"
+
+            // 3. 拼成想要的格式（题目里没明确最后输出格式，这里按示例来）
+            answer = matches.map(word => `"${word}"`).join(', ');
+        }
+
+
+        const timer = {
+            id: Date.now(),
+            name: name,
+            answer: answer,
+            duration: durationSeconds,
+            remaining: durationSeconds,
+            status: 'running'
+        };
+
+        timers.unshift(timer);
+        renderTimer(timer);
+        startCountdown(timer);
+
+        // Reset inputs
+        cardNameInput.value = '';
+        answerInput.value = '';
+        customDurationInput.value = '';
+    }
+
+    function renderTimer(timer) {
+        const card = document.createElement('div');
+        card.className = `timer-card ${timer.status === 'ended' ? 'ended' : ''}`;
+        card.id = `timer-${timer.id}`;
+
+        const formattedDuration = formatDuration(timer.duration);
+        const statusText = timer.status === 'running' ? '倒计时中' : '已结束';
+        const mins = Math.floor(timer.remaining / 60);
+        const secs = timer.remaining % 60;
+
+        const countdownHtml = timer.status === 'ended'
+            ? `<span class="timer-countdown" id="countdown-${timer.id}">${mins}:${secs.toString().padStart(2, '0')}</span>`
+            : `<span class="timer-countdown" id="countdown-${timer.id}">${mins}:${secs.toString().padStart(2, '0')}</span>`;
+
+        card.innerHTML = `
                 <div class="timer-left">
                     <div class="timer-info">
                         <span class="timer-name" title="${timer.name}" onclick="copyToClipboard('${timer.name}')" style="cursor:pointer">${timer.name}</span>
@@ -457,190 +476,193 @@
                 </div>
             `;
 
-            timerList.insertBefore(card, timerList.firstChild);
+        timerList.insertBefore(card, timerList.firstChild);
+    }
+
+    function startCountdown(timer) {
+        // Store the start time and expected end time for accuracy
+        timer.startTime = Date.now();
+        timer.endTime = Date.now() + timer.remaining * 1000;
+
+        timerIntervals[timer.id] = setInterval(() => {
+            // Calculate remaining time based on actual elapsed time
+            const now = Date.now();
+            const remaining = Math.max(0, Math.ceil((timer.endTime - now) / 1000));
+            timer.remaining = remaining;
+
+            const countdownEl = document.getElementById(`countdown-${timer.id}`);
+            if (countdownEl) {
+                countdownEl.textContent = formatTime(remaining);
+            }
+
+            if (remaining <= 0) {
+                clearInterval(timerIntervals[timer.id]);
+                timer.status = 'ended';
+                onTimerEnd(timer);
+            }
+        }, 250); // Update more frequently for smoother display
+    }
+
+    function onTimerEnd(timer) {
+        // Re-render the timer card to show/hide buttons properly
+        const card = document.getElementById(`timer-${timer.id}`);
+        if (card) {
+            card.remove();
+        }
+        renderTimer(timer);
+
+        // TTS speak card name twice
+        speakTwice(timer.name);
+    }
+
+    function speakTwice(text) {
+        if (text.includes("::")) {
+            text = text.split("::")[0]
+        }
+        if ('speechSynthesis' in window) {
+            const hasChinese = /[一-鿿]/.test(text);
+            const lang = hasChinese ? 'zh-CN' : 'en-US';
+
+            const speakOnce = () => {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = lang;
+                speechSynthesis.speak(utterance);
+            };
+
+            speakOnce();
+            setTimeout(speakOnce, 1500);
+        }
+    }
+
+    function formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function formatDuration(seconds) {
+        if (seconds >= 60) {
+            const mins = Math.floor(seconds / 60);
+            return mins > 1 ? `${mins}min` : '1min';
+        }
+        return `${seconds}s`;
+    }
+
+    function restartTimer(id) {
+        const timer = timers.find(t => t.id === id);
+        if (!timer) return;
+
+        // Clear existing interval
+        if (timerIntervals[id]) {
+            clearInterval(timerIntervals[id]);
         }
 
-        function startCountdown(timer) {
-            // Store the start time and expected end time for accuracy
-            timer.startTime = Date.now();
-            timer.endTime = Date.now() + timer.remaining * 1000;
+        // Reset timer state using the current (possibly edited) duration
+        timer.remaining = timer.duration;
+        timer.status = 'running';
 
-            timerIntervals[timer.id] = setInterval(() => {
-                // Calculate remaining time based on actual elapsed time
-                const now = Date.now();
-                const remaining = Math.max(0, Math.ceil((timer.endTime - now) / 1000));
-                timer.remaining = remaining;
+        // Re-render the timer card to update button visibility
+        const card = document.getElementById(`timer-${id}`);
+        if (card) {
+            card.remove();
+        }
+        renderTimer(timer);
 
-                const countdownEl = document.getElementById(`countdown-${timer.id}`);
-                if (countdownEl) {
-                    countdownEl.textContent = formatTime(remaining);
-                }
+        // Start countdown
+        startCountdown(timer);
+    }
 
-                if (remaining <= 0) {
-                    clearInterval(timerIntervals[timer.id]);
-                    timer.status = 'ended';
-                    onTimerEnd(timer);
-                }
-            }, 250); // Update more frequently for smoother display
+    function deleteTimer(id) {
+        if (timerIntervals[id]) {
+            clearInterval(timerIntervals[id]);
+            delete timerIntervals[id];
+        }
+        timers = timers.filter(t => t.id !== id);
+        const card = document.getElementById(`timer-${id}`);
+        if (card) {
+            card.remove();
+        }
+    }
+
+    function showAnswer(id) {
+        const timer = timers.find(t => t.id === id);
+        if (timer && timer.answer) {
+            alert(timer.answer);
+        }
+    }
+
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            // Optional: brief visual feedback could be added here
+        }).catch(err => {
+            console.error('Failed to copy:', err);
+        });
+    }
+
+    let currentEditTimerId = null;
+
+    function openNewMinModal(id) {
+        currentEditTimerId = id;
+        const modal = document.getElementById('modalOverlay');
+        const input = document.getElementById('modalInput');
+        const timer = timers.find(t => t.id === id);
+        if (timer) {
+            input.value = 10; //Math.ceil(timer.duration / 60);
+        }
+        modal.classList.add('active');
+        input.focus();
+        input.select();
+    }
+
+    function closeModal() {
+        const modal = document.getElementById('modalOverlay');
+        modal.classList.remove('active');
+        currentEditTimerId = null;
+    }
+
+    function confirmNewDuration() {
+        if (currentEditTimerId === null) return;
+
+        const input = document.getElementById('modalInput');
+        const mins = parseInt(input.value, 10);
+        if (!mins || mins <= 0) {
+            alert('Please enter a valid duration');
+            return;
         }
 
-        function onTimerEnd(timer) {
-            // Re-render the timer card to show/hide buttons properly
+        const timer = timers.find(t => t.id === currentEditTimerId);
+        if (timer) {
+            timer.duration = mins * 60;
+            timer.remaining = timer.duration;
+            timer.status = 'running';
+
+            // Re-render the timer card
             const card = document.getElementById(`timer-${timer.id}`);
             if (card) {
                 card.remove();
             }
             renderTimer(timer);
 
-            // TTS speak card name twice
-            speakTwice(timer.name);
-        }
-
-        function speakTwice(text) {
-            if ('speechSynthesis' in window) {
-                const hasChinese = /[一-鿿]/.test(text);
-                const lang = hasChinese ? 'zh-CN' : 'en-US';
-
-                const speakOnce = () => {
-                    const utterance = new SpeechSynthesisUtterance(text);
-                    utterance.lang = lang;
-                    speechSynthesis.speak(utterance);
-                };
-
-                speakOnce();
-                setTimeout(speakOnce, 1500);
-            }
-        }
-
-        function formatTime(seconds) {
-            const mins = Math.floor(seconds / 60);
-            const secs = seconds % 60;
-            return `${mins}:${secs.toString().padStart(2, '0')}`;
-        }
-
-        function formatDuration(seconds) {
-            if (seconds >= 60) {
-                const mins = Math.floor(seconds / 60);
-                return mins > 1 ? `${mins}min` : '1min';
-            }
-            return `${seconds}s`;
-        }
-
-        function restartTimer(id) {
-            const timer = timers.find(t => t.id === id);
-            if (!timer) return;
-
-            // Clear existing interval
-            if (timerIntervals[id]) {
-                clearInterval(timerIntervals[id]);
-            }
-
-            // Reset timer state using the current (possibly edited) duration
-            timer.remaining = timer.duration;
-            timer.status = 'running';
-
-            // Re-render the timer card to update button visibility
-            const card = document.getElementById(`timer-${id}`);
-            if (card) {
-                card.remove();
-            }
-            renderTimer(timer);
-
-            // Start countdown
+            // Auto restart the countdown
             startCountdown(timer);
         }
 
-        function deleteTimer(id) {
-            if (timerIntervals[id]) {
-                clearInterval(timerIntervals[id]);
-                delete timerIntervals[id];
-            }
-            timers = timers.filter(t => t.id !== id);
-            const card = document.getElementById(`timer-${id}`);
-            if (card) {
-                card.remove();
-            }
-        }
+        closeModal();
+    }
 
-        function showAnswer(id) {
-            const timer = timers.find(t => t.id === id);
-            if (timer && timer.answer) {
-                alert(timer.answer);
-            }
-        }
-
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                // Optional: brief visual feedback could be added here
-            }).catch(err => {
-                console.error('Failed to copy:', err);
-            });
-        }
-
-        let currentEditTimerId = null;
-
-        function openNewMinModal(id) {
-            currentEditTimerId = id;
-            const modal = document.getElementById('modalOverlay');
-            const input = document.getElementById('modalInput');
-            const timer = timers.find(t => t.id === id);
-            if (timer) {
-                input.value = 10; //Math.ceil(timer.duration / 60);
-            }
-            modal.classList.add('active');
-            input.focus();
-            input.select();
-        }
-
-        function closeModal() {
-            const modal = document.getElementById('modalOverlay');
-            modal.classList.remove('active');
-            currentEditTimerId = null;
-        }
-
-        function confirmNewDuration() {
-            if (currentEditTimerId === null) return;
-
-            const input = document.getElementById('modalInput');
-            const mins = parseInt(input.value, 10);
-            if (!mins || mins <= 0) {
-                alert('Please enter a valid duration');
-                return;
-            }
-
-            const timer = timers.find(t => t.id === currentEditTimerId);
-            if (timer) {
-                timer.duration = mins * 60;
-                timer.remaining = timer.duration;
-                timer.status = 'running';
-
-                // Re-render the timer card
-                const card = document.getElementById(`timer-${timer.id}`);
-                if (card) {
-                    card.remove();
-                }
-                renderTimer(timer);
-
-                // Auto restart the countdown
-                startCountdown(timer);
-            }
-
+    // Close modal on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
             closeModal();
         }
+    });
 
-        // Close modal on Escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                closeModal();
-            }
-        });
-
-        // Close modal on overlay click
-        document.getElementById('modalOverlay').addEventListener('click', (e) => {
-            if (e.target.id === 'modalOverlay') {
-                closeModal();
-            }
-        });
-    </script>
+    // Close modal on overlay click
+    document.getElementById('modalOverlay').addEventListener('click', (e) => {
+        if (e.target.id === 'modalOverlay') {
+            closeModal();
+        }
+    });
+</script>
 </body>
 </html>
