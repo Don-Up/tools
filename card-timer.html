@@ -513,10 +513,11 @@
             ? `<span class="timer-countdown" id="countdown-${timer.id}">${mins}:${secs.toString().padStart(2, '0')}</span>`
             : `<span class="timer-countdown" id="countdown-${timer.id}">${mins}:${secs.toString().padStart(2, '0')}</span>`;
 
+        const nameDisplay = timer.status === 'ended' ? (isNameHidden ? 'none' : 'inline') : 'none';
         card.innerHTML = `
                 <div class="timer-left">
                     <div class="timer-info">
-                        <span class="timer-name" title="${timer.name}" onclick="copyToClipboard('${timer.name}')" style="cursor:pointer">${timer.name}</span>
+                        <span class="timer-name" title="${timer.name}" onclick="copyToClipboard('${timer.name}')" style="cursor:pointer;display:${nameDisplay}">${timer.name}</span>
                         <span class="timer-duration">${formattedDuration}</span>
                     </div>
                     <div class="timer-status">
