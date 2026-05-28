@@ -447,7 +447,32 @@
             // matches = ["extracting", "arrays", "objects"]
 
             // 2. 把 {{...}} 替换成 ____
-            name = name.replace(/~.*?~~/g, '____');
+            if (name.includes(" → ")) {
+                name = name.replace(/~.*?~~/g, '____');
+                matches.forEach(match => {
+                    const words = match.split(" ")
+                    const result = words.map((w, i) => {
+                        if (match.startsWith("^")) {
+                            if (i === 0) {
+                                return w[1] + (w.length - 1)
+                            } else {
+                                return w.length
+                            }
+                        } else if (match.startsWith("*")) {
+                            if (i === 0) {
+                                return w[1] + (w.length - 1)
+                            } else {
+                                return w[0] + w.length
+                            }
+                        } else {
+                            return w.length
+                        }
+                    }).join(" ").trim()
+                    name = name.replace("____", result)
+                })
+            } else {
+                name = name.replace(/~.*?~~/g, '____');
+            }
             // result = "Destructuring is a feature that allows ____ values from ____ or ____"
 
             // 3. 拼成想要的格式（题目里没明确最后输出格式，这里按示例来）
@@ -480,7 +505,7 @@
         card.id = `timer-${timer.id}`;
 
         const formattedDuration = formatDuration(timer.duration);
-        const statusText = timer.status === 'running' ? '倒计时中' : (timer.duration >= 600?'OVER':'已结束');
+        const statusText = timer.status === 'running' ? '倒计时中' : (timer.duration >= 600 ? 'OVER' : '已结束');
         const mins = Math.floor(timer.remaining / 60);
         const secs = timer.remaining % 60;
 
