@@ -585,7 +585,7 @@
             const input = document.getElementById('modalInput');
             const timer = timers.find(t => t.id === id);
             if (timer) {
-                input.value = Math.ceil(timer.duration / 60);
+                input.value = 10; //Math.ceil(timer.duration / 60);
             }
             modal.classList.add('active');
             input.focus();
