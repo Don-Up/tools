@@ -136,16 +136,13 @@
         .timer-right {
             display: flex;
             align-items: center;
-            gap: 8px;
-            flex: 1;
-            justify-content: flex-end;
+            gap: 10px;
+            flex-shrink: 0;
             padding-left: 20px;
         }
 
-        .timer-right > * {
-            flex: 0 0 auto;
+        .timer-right button:not(.delete-btn) {
             min-width: 60px;
-            text-align: center;
         }
 
         .timer-info {
@@ -257,6 +254,7 @@
             cursor: pointer;
             padding: 4px 8px;
             font-size: 18px;
+            margin-left: auto;
         }
 
         .modal-overlay {
