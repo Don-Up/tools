@@ -543,10 +543,10 @@
         renderTimer(timer);
 
         // TTS speak card name twice
-        speakTwice(timer.name);
+        speakOnce(timer.name);
     }
 
-    function speakTwice(text) {
+    function speakOnce(text) {
         if (text.includes("::")) {
             text = text.split("::")[0]
         }
@@ -554,14 +554,9 @@
             const hasChinese = /[一-鿿]/.test(text);
             const lang = hasChinese ? 'zh-CN' : 'en-US';
 
-            const speakOnce = () => {
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = lang;
-                speechSynthesis.speak(utterance);
-            };
-
-            speakOnce();
-            setTimeout(speakOnce, 1500);
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = lang;
+            speechSynthesis.speak(utterance);
         }
     }
 
