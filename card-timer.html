@@ -618,7 +618,7 @@
                     </div>
                 </div>
                 <div class="timer-right">
-                    ${timer.status === 'ended' && timer.answer ? `<button class="answer-btn" onclick="showAnswer(${timer.id})">Answer</button>` : ''}
+                    ${timer.status === 'ended' && timer.answer ? `<button class="answer-btn" onclick="showAnswer(${timer.id}, event)">Answer</button>` : ''}
                     ${timer.status === 'ended' ? `<button class="new-min-btn" onclick="openNewMinModal(${timer.id})">New Min</button>` : ''}
                     <button class="restart-btn" onclick="restartTimer(${timer.id})">Restart</button>
                     <button class="delete-btn" onclick="deleteTimer(${timer.id})">&times;</button>
@@ -771,7 +771,8 @@
         }
     }
 
-    function showAnswer(id) {
+    function showAnswer(id, e) {
+        if (e) e.stopPropagation();
         const timer = timers.find(t => t.id === id);
         if (timer && timer.answer) {
             alert(timer.answer);
