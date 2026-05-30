@@ -352,6 +352,9 @@
                 <option value="600">10min</option>
                 <option value="custom">Custom</option>
             </select>
+            <label style="color:#888;padding:12px 0 12px 10px;white-space:nowrap">Def new min</label>
+            <input type="number" id="defNewMinInput" value="2" min="1" style="width:60px;padding:12px;font-size:16px;background:#2c2c2c;color:#e0e0e0;border:1px solid #444;border-radius:4px">
+            <input type="checkbox" id="defNewMinCheckbox" style="margin-left:5px">
             <input type="number" id="customDurationInput" placeholder="min" min="1">
         </div>
         <div style="display: flex">
@@ -413,7 +416,11 @@
 
         let answer = answerInput.value.trim();
 
-        if (name.includes("~~")) {
+        if (name.includes("~~") || name.includes("::")) {
+            if(name.includes("::") && !name.includes("~~")){
+                const subNames = name.split("::")
+                name = subNames[0].trim()+"::"+`~${subNames[1].trim()}~~`
+            }
             // 1. 提取所有 {{...}} 里的内容
             const matches = [...name.matchAll(/~(.*?)~~/g)].map(m => m[1]);
             // matches = ["extracting", "arrays", "objects"]
@@ -640,12 +647,35 @@
     let currentEditTimerId = null;
 
     function openNewMinModal(id) {
+        const defNewMinCheckbox = document.getElementById('defNewMinCheckbox');
+        const defNewMinInput = document.getElementById('defNewMinInput');
+
+        if (defNewMinCheckbox && defNewMinCheckbox.checked) {
+            // Apply default duration directly without modal
+            const mins = parseInt(defNewMinInput.value, 10) || 2;
+            const timer = timers.find(t => t.id === id);
+            if (timer) {
+                timer.duration = mins * 60;
+                timer.remaining = timer.duration;
+                timer.status = 'running';
+
+                const card = document.getElementById(`timer-${timer.id}`);
+                if (card) {
+                    card.remove();
+                }
+                renderTimer(timer);
+                startCountdown(timer);
+            }
+            return;
+        }
+
+        // Show modal as normal
         currentEditTimerId = id;
         const modal = document.getElementById('modalOverlay');
         const input = document.getElementById('modalInput');
         const timer = timers.find(t => t.id === id);
         if (timer) {
-            input.value = 10; //Math.ceil(timer.duration / 60);
+            input.value = Math.ceil(timer.duration / 60);
         }
         modal.classList.add('active');
         input.focus();
