@@ -130,6 +130,11 @@
             border: 1px solid #4ade80;
         }
 
+        .timer-card.pinned {
+            background: #1d2d4d;
+            border: 1px solid #3a86ff;
+        }
+
         .timer-card.ended {
             opacity: 1;
         }
@@ -393,10 +398,8 @@
     const confirmBtn = document.getElementById('confirmBtn');
     const timerList = document.getElementById('timerList');
 
-    // Click on ended timer card to pin/unpin at top
+    // Click on ended timer card to pin/promote
     timerList.addEventListener('click', (e) => {
-        if (e.altKey) return; // Ignore Alt key clicks
-
         const card = e.target.closest('.timer-card');
         if (!card) return;
 
@@ -404,25 +407,47 @@
         const timer = timers.find(t => t.id === timerId);
         if (!timer || timer.status !== 'ended') return;
 
-        timer.isPinned = !timer.isPinned;
+        const isAltKey = e.altKey;
 
-        if (timer.isPinned) {
-            card.classList.add('promoted');
-            // Move to top, after other pinned cards
-            const pinnedCards = [...timerList.querySelectorAll('.timer-card.promoted')];
-            if (pinnedCards.length === 1) {
-                timerList.insertBefore(card, pinnedCards[0].nextSibling);
+        if (isAltKey) {
+            // Alt+click: green background, move to bottom
+            timer.isPinned = false;
+            timer.isPromoted = !timer.isPromoted;
+            card.classList.remove('pinned');
+            if (timer.isPromoted) {
+                card.classList.add('promoted');
+                timerList.appendChild(card);
             } else {
-                const firstNonPinned = [...timerList.querySelectorAll('.timer-card')].find(c => !c.classList.contains('promoted'));
+                card.classList.remove('promoted');
+                const firstPromoted = timerList.querySelector('.timer-card.promoted');
+                if (firstPromoted) {
+                    timerList.insertBefore(card, firstPromoted);
+                } else {
+                    timerList.appendChild(card);
+                }
+            }
+        } else {
+            // Regular click: blue background, move to top
+            timer.isPromoted = false;
+            timer.isPinned = !timer.isPinned;
+            card.classList.remove('promoted');
+            if (timer.isPinned) {
+                card.classList.add('pinned');
+                const firstPinned = timerList.querySelector('.timer-card.pinned');
+                if (firstPinned && firstPinned !== card) {
+                    timerList.insertBefore(card, firstPinned);
+                } else {
+                    timerList.insertBefore(card, timerList.firstChild);
+                }
+            } else {
+                card.classList.remove('pinned');
+                const firstNonPinned = [...timerList.querySelectorAll('.timer-card')].find(c => !c.classList.contains('pinned') && !c.classList.contains('promoted'));
                 if (firstNonPinned) {
                     timerList.insertBefore(card, firstNonPinned);
                 } else {
                     timerList.appendChild(card);
                 }
             }
-        } else {
-            card.classList.remove('promoted');
-            timerList.appendChild(card);
         }
     });
 
@@ -506,7 +531,8 @@
             remaining: durationSeconds,
             status: 'running',
             isNameHidden: false,
-            isPinned: false
+            isPinned: false,
+            isPromoted: false
         };
 
         timers.unshift(timer);
@@ -554,20 +580,32 @@
                 </div>
             `;
 
-        // Insert card based on pinned state
-        if (timer.status === 'ended' && timer.isPinned) {
-            const pinnedCards = [...timerList.querySelectorAll('.timer-card.promoted')];
-            if (pinnedCards.length > 0) {
-                timerList.insertBefore(card, pinnedCards[0].nextSibling);
-            } else {
-                timerList.insertBefore(card, timerList.firstChild);
-            }
-        } else if (timer.status === 'ended' && !timer.isPinned) {
-            const firstNonPinned = [...timerList.querySelectorAll('.timer-card')].find(c => !c.classList.contains('promoted'));
-            if (firstNonPinned) {
-                timerList.insertBefore(card, firstNonPinned);
-            } else {
+        // Insert card based on pinned/promoted state
+        if (timer.status === 'ended') {
+            if (timer.isPinned) {
+                // Pinned cards go to top
+                card.classList.add('pinned');
+                const firstPinned = timerList.querySelector('.timer-card.pinned');
+                if (firstPinned && firstPinned !== card) {
+                    timerList.insertBefore(card, firstPinned);
+                } else {
+                    timerList.insertBefore(card, timerList.firstChild);
+                }
+            } else if (timer.isPromoted) {
+                // Promoted cards go to bottom
+                card.classList.add('promoted');
                 timerList.appendChild(card);
+            } else {
+                // Normal insertion: after pinned, before promoted
+                const firstPromoted = timerList.querySelector('.timer-card.promoted');
+                const firstNonSpecial = [...timerList.querySelectorAll('.timer-card')].find(c => !c.classList.contains('pinned') && !c.classList.contains('promoted'));
+                if (firstPromoted) {
+                    timerList.insertBefore(card, firstPromoted);
+                } else if (firstNonSpecial) {
+                    timerList.insertBefore(card, firstNonSpecial);
+                } else {
+                    timerList.appendChild(card);
+                }
             }
         } else {
             timerList.insertBefore(card, timerList.firstChild);
