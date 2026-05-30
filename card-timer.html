@@ -393,15 +393,37 @@
     const confirmBtn = document.getElementById('confirmBtn');
     const timerList = document.getElementById('timerList');
 
-    // Alt+click to promote timer card to bottom with green background
+    // Click on ended timer card to pin/unpin at top
     timerList.addEventListener('click', (e) => {
-        if (!e.altKey) return;
+        if (e.altKey) return; // Ignore Alt key clicks
 
         const card = e.target.closest('.timer-card');
         if (!card) return;
 
-        card.classList.add('promoted');
-        timerList.appendChild(card);
+        const timerId = parseInt(card.id.replace('timer-', ''));
+        const timer = timers.find(t => t.id === timerId);
+        if (!timer || timer.status !== 'ended') return;
+
+        timer.isPinned = !timer.isPinned;
+
+        if (timer.isPinned) {
+            card.classList.add('promoted');
+            // Move to top, after other pinned cards
+            const pinnedCards = [...timerList.querySelectorAll('.timer-card.promoted')];
+            if (pinnedCards.length === 1) {
+                timerList.insertBefore(card, pinnedCards[0].nextSibling);
+            } else {
+                const firstNonPinned = [...timerList.querySelectorAll('.timer-card')].find(c => !c.classList.contains('promoted'));
+                if (firstNonPinned) {
+                    timerList.insertBefore(card, firstNonPinned);
+                } else {
+                    timerList.appendChild(card);
+                }
+            }
+        } else {
+            card.classList.remove('promoted');
+            timerList.appendChild(card);
+        }
     });
 
     // Show/hide custom duration input
@@ -483,7 +505,8 @@
             duration: durationSeconds,
             remaining: durationSeconds,
             status: 'running',
-            isNameHidden: false
+            isNameHidden: false,
+            isPinned: false
         };
 
         timers.unshift(timer);
@@ -531,7 +554,24 @@
                 </div>
             `;
 
-        timerList.insertBefore(card, timerList.firstChild);
+        // Insert card based on pinned state
+        if (timer.status === 'ended' && timer.isPinned) {
+            const pinnedCards = [...timerList.querySelectorAll('.timer-card.promoted')];
+            if (pinnedCards.length > 0) {
+                timerList.insertBefore(card, pinnedCards[0].nextSibling);
+            } else {
+                timerList.insertBefore(card, timerList.firstChild);
+            }
+        } else if (timer.status === 'ended' && !timer.isPinned) {
+            const firstNonPinned = [...timerList.querySelectorAll('.timer-card')].find(c => !c.classList.contains('promoted'));
+            if (firstNonPinned) {
+                timerList.insertBefore(card, firstNonPinned);
+            } else {
+                timerList.appendChild(card);
+            }
+        } else {
+            timerList.insertBefore(card, timerList.firstChild);
+        }
     }
 
     function startCountdown(timer) {
