@@ -411,8 +411,8 @@
 
         if (isAltKey) {
             // Alt+click: green background, move to bottom
-            timer.isPinned = false;
             timer.isPromoted = !timer.isPromoted;
+            timer.isPinned = false;
             card.classList.remove('pinned');
             if (timer.isPromoted) {
                 card.classList.add('promoted');
@@ -427,18 +427,22 @@
                 }
             }
         } else {
-            // Regular click: blue background, move to top
-            timer.isPromoted = false;
+            // Regular click: blue background, move to top (only one pinned allowed)
             timer.isPinned = !timer.isPinned;
+            timer.isPromoted = false;
             card.classList.remove('promoted');
+
             if (timer.isPinned) {
+                // Unpin any other pinned items first
+                timers.forEach(t => {
+                    if (t.id !== timerId && t.isPinned) {
+                        t.isPinned = false;
+                        const otherCard = document.getElementById(`timer-${t.id}`);
+                        if (otherCard) otherCard.classList.remove('pinned');
+                    }
+                });
                 card.classList.add('pinned');
-                const firstPinned = timerList.querySelector('.timer-card.pinned');
-                if (firstPinned && firstPinned !== card) {
-                    timerList.insertBefore(card, firstPinned);
-                } else {
-                    timerList.insertBefore(card, timerList.firstChild);
-                }
+                timerList.insertBefore(card, timerList.firstChild);
             } else {
                 card.classList.remove('pinned');
                 const firstNonPinned = [...timerList.querySelectorAll('.timer-card')].find(c => !c.classList.contains('pinned') && !c.classList.contains('promoted'));
@@ -581,34 +585,32 @@
             `;
 
         // Insert card based on pinned/promoted state
-        if (timer.status === 'ended') {
-            if (timer.isPinned) {
-                // Pinned cards go to top
-                card.classList.add('pinned');
-                const firstPinned = timerList.querySelector('.timer-card.pinned');
-                if (firstPinned && firstPinned !== card) {
-                    timerList.insertBefore(card, firstPinned);
-                } else {
-                    timerList.insertBefore(card, timerList.firstChild);
+        if (timer.isPinned) {
+            // Only one pinned allowed - remove others
+            timers.forEach(t => {
+                if (t.id !== timer.id && t.isPinned) {
+                    t.isPinned = false;
+                    const otherCard = document.getElementById(`timer-${t.id}`);
+                    if (otherCard) otherCard.classList.remove('pinned');
                 }
-            } else if (timer.isPromoted) {
-                // Promoted cards go to bottom
-                card.classList.add('promoted');
-                timerList.appendChild(card);
-            } else {
-                // Normal insertion: after pinned, before promoted
-                const firstPromoted = timerList.querySelector('.timer-card.promoted');
-                const firstNonSpecial = [...timerList.querySelectorAll('.timer-card')].find(c => !c.classList.contains('pinned') && !c.classList.contains('promoted'));
-                if (firstPromoted) {
-                    timerList.insertBefore(card, firstPromoted);
-                } else if (firstNonSpecial) {
-                    timerList.insertBefore(card, firstNonSpecial);
-                } else {
-                    timerList.appendChild(card);
-                }
-            }
-        } else {
+            });
+            card.classList.add('pinned');
             timerList.insertBefore(card, timerList.firstChild);
+        } else if (timer.isPromoted) {
+            card.classList.add('promoted');
+            timerList.appendChild(card);
+        } else {
+            // Insert below pinned, before promoted
+            const firstPromoted = timerList.querySelector('.timer-card.promoted');
+            const firstPinned = timerList.querySelector('.timer-card.pinned');
+            if (firstPromoted) {
+                timerList.insertBefore(card, firstPromoted);
+            } else if (firstPinned) {
+                // Insert after pinned
+                timerList.insertBefore(card, firstPinned.nextSibling);
+            } else {
+                timerList.insertBefore(card, timerList.firstChild);
+            }
         }
     }
 
