@@ -477,8 +477,9 @@
                         if (otherCard) otherCard.classList.remove('pinned');
                     }
                 });
-                isFocusMode = false;
-                timerList.classList.remove('focus-mode');
+                // Enable focus mode for new pinned card
+                isFocusMode = true;
+                timerList.classList.add('focus-mode');
                 card.classList.add('pinned');
                 timerList.insertBefore(card, timerList.firstChild);
             } else {
@@ -731,6 +732,13 @@
         timer.remaining = timer.duration;
         timer.status = 'running';
 
+        // If this was the pinned card, exit focus mode
+        if (timer.isPinned) {
+            timer.isPinned = false;
+            isFocusMode = false;
+            timerList.classList.remove('focus-mode');
+        }
+
         // Re-render the timer card to update button visibility
         const card = document.getElementById(`timer-${id}`);
         if (card) {
@@ -743,6 +751,9 @@
     }
 
     function deleteTimer(id) {
+        const timer = timers.find(t => t.id === id);
+        const wasPinned = timer && timer.isPinned;
+
         if (timerIntervals[id]) {
             clearInterval(timerIntervals[id]);
             delete timerIntervals[id];
@@ -751,6 +762,12 @@
         const card = document.getElementById(`timer-${id}`);
         if (card) {
             card.remove();
+        }
+
+        // If the deleted card was pinned, exit focus mode
+        if (wasPinned) {
+            isFocusMode = false;
+            timerList.classList.remove('focus-mode');
         }
     }
 
