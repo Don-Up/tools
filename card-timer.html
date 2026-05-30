@@ -429,7 +429,7 @@
             if (name.includes(" → ")) {
                 name = name.replace(/~.*?~~/g, '____');
                 matches.forEach(match => {
-                    const words = match.split(" ")/
+                    const words = match.split(" ");
                     const result = words.map((w, i) => {
                         if (match.startsWith("^")) {
                             if (i === 0) {
