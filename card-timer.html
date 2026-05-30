@@ -122,6 +122,12 @@
             align-items: center;
             gap: 20px;
             opacity: 0.7;
+            cursor: pointer;
+        }
+
+        .timer-card.promoted {
+            background: #1d3d1d;
+            border: 1px solid #4ade80;
         }
 
         .timer-card.ended {
@@ -386,6 +392,17 @@
     const answerInput = document.getElementById('answerInput');
     const confirmBtn = document.getElementById('confirmBtn');
     const timerList = document.getElementById('timerList');
+
+    // Alt+click to promote timer card to bottom with green background
+    timerList.addEventListener('click', (e) => {
+        if (!e.altKey) return;
+
+        const card = e.target.closest('.timer-card');
+        if (!card) return;
+
+        card.classList.add('promoted');
+        timerList.appendChild(card);
+    });
 
     // Show/hide custom duration input
     durationSelect.addEventListener('change', () => {
