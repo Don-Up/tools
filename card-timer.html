@@ -813,6 +813,13 @@
                 timer.remaining = timer.duration;
                 timer.status = 'running';
 
+                // If this was the pinned card, exit focus mode
+                if (timer.isPinned) {
+                    timer.isPinned = false;
+                    isFocusMode = false;
+                    timerList.classList.remove('focus-mode');
+                }
+
                 const card = document.getElementById(`timer-${timer.id}`);
                 if (card) {
                     card.remove();
@@ -857,6 +864,13 @@
             timer.duration = mins * 60;
             timer.remaining = timer.duration;
             timer.status = 'running';
+
+            // If this was the pinned card, exit focus mode
+            if (timer.isPinned) {
+                timer.isPinned = false;
+                isFocusMode = false;
+                timerList.classList.remove('focus-mode');
+            }
 
             // Re-render the timer card
             const card = document.getElementById(`timer-${timer.id}`);
