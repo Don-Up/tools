@@ -135,8 +135,27 @@
             border: 1px solid #3a86ff;
         }
 
+        .timer-card.pinned.focus-mode {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 600px;
+            z-index: 100;
+            opacity: 1;
+        }
+
         .timer-card.ended {
             opacity: 1;
+        }
+
+        .timer-card.hidden-card {
+            display: none;
+        }
+
+        .timer-list.focus-mode .timer-card:not(.pinned) {
+            display: none;
         }
 
         .timer-left {
@@ -398,6 +417,8 @@
     const confirmBtn = document.getElementById('confirmBtn');
     const timerList = document.getElementById('timerList');
 
+    let isFocusMode = false;
+
     // Click on ended timer card to pin/promote
     timerList.addEventListener('click', (e) => {
         const card = e.target.closest('.timer-card');
@@ -411,6 +432,10 @@
 
         if (isAltKey) {
             // Alt+click: green background, move to bottom
+            if (isFocusMode) {
+                isFocusMode = false;
+                timerList.classList.remove('focus-mode');
+            }
             timer.isPromoted = !timer.isPromoted;
             timer.isPinned = false;
             card.classList.remove('pinned');
@@ -427,7 +452,18 @@
                 }
             }
         } else {
-            // Regular click: blue background, move to top (only one pinned allowed)
+            // Regular click: blue background, move to top or toggle focus mode
+            if (timer.isPinned && !timer.isPromoted) {
+                // Toggle focus mode
+                isFocusMode = !isFocusMode;
+                if (isFocusMode) {
+                    timerList.classList.add('focus-mode');
+                } else {
+                    timerList.classList.remove('focus-mode');
+                }
+                return;
+            }
+
             timer.isPinned = !timer.isPinned;
             timer.isPromoted = false;
             card.classList.remove('promoted');
@@ -441,9 +477,13 @@
                         if (otherCard) otherCard.classList.remove('pinned');
                     }
                 });
+                isFocusMode = false;
+                timerList.classList.remove('focus-mode');
                 card.classList.add('pinned');
                 timerList.insertBefore(card, timerList.firstChild);
             } else {
+                isFocusMode = false;
+                timerList.classList.remove('focus-mode');
                 card.classList.remove('pinned');
                 const firstNonPinned = [...timerList.querySelectorAll('.timer-card')].find(c => !c.classList.contains('pinned') && !c.classList.contains('promoted'));
                 if (firstNonPinned) {
