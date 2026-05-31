@@ -131,8 +131,8 @@
         }
 
         .timer-card.pinned {
-            background: #1d2d4d;
-            border: 1px solid #3a86ff;
+            background: #2f2f2f;
+            border: none;
         }
 
         .timer-card.pinned.focus-mode {
@@ -167,14 +167,39 @@
 
         .timer-right {
             display: flex;
-            align-items: center;
-            gap: 10px;
+            flex-direction: column;
+            gap: 8px;
             flex: 1;
-            justify-content: space-between;
+            justify-content: center;
+        }
+
+        .btn-row-top, .btn-row-bottom {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .btn-row-bottom {
+            margin-top: 4px;
         }
 
         .timer-right button:not(.delete-btn) {
             min-width: 60px;
+        }
+
+        .quick-min-btn {
+            background: transparent;
+            color: #888;
+            border: 1px solid #444;
+            cursor: pointer;
+            padding: 4px 8px;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+
+        .quick-min-btn:hover {
+            color: #4ade80;
+            border-color: #4ade80;
         }
 
         .timer-info {
@@ -383,7 +408,8 @@
                 <option value="custom">Custom</option>
             </select>
             <label style="color:#888;padding:12px 0 12px 10px;white-space:nowrap">Def New</label>
-            <input type="number" id="defNewMinInput" value="10" min="1" style="width:60px;padding:12px;font-size:16px;background:#2c2c2c;color:#e0e0e0;border:1px solid #444;border-radius:4px">
+            <input type="number" id="defNewMinInput" value="10" min="1"
+                   style="width:60px;padding:12px;font-size:16px;background:#2c2c2c;color:#e0e0e0;border:1px solid #444;border-radius:4px">
             <input type="checkbox" id="defNewMinCheckbox" checked style="margin-left:5px">
             <input type="number" id="customDurationInput" placeholder="min" min="1">
         </div>
@@ -526,9 +552,9 @@
         let answer = answerInput.value.trim();
 
         if (name.includes("~~") || name.includes("::")) {
-            if(name.includes("::") && !name.includes("~~")){
+            if (name.includes("::") && !name.includes("~~")) {
                 const subNames = name.split("::")
-                name = subNames[0].trim()+"::"+`~${subNames[1].trim()}~~`
+                name = subNames[0].trim() + "::" + `~${subNames[1].trim()}~~`
             }
             // 1. 提取所有 {{...}} 里的内容
             const matches = [...name.matchAll(/~(.*?)~~/g)].map(m => m[1]);
@@ -541,8 +567,8 @@
                     const words = match.split(" ");
                     const result = words.map((w, i) => {
                         if (match.startsWith("^")) {
-                            if (i === 0) {
-                                return w[1] + (w.length - 1)
+                            if (i === 0 || i === 1) {
+                                return i === 0 ? w[1] + (w.length - 1) : w[0] + w.length
                             } else {
                                 return w.length
                             }
@@ -564,7 +590,7 @@
             // result = "Destructuring is a feature that allows ____ values from ____ or ____"
 
             // 3. 拼成想要的格式（题目里没明确最后输出格式，这里按示例来）
-            answer = matches.map(word => `"${word.startsWith("*") || word.startsWith("^")?word.slice(1):word}"`).join(', ');
+            answer = matches.map(word => `"${word.startsWith("*") || word.startsWith("^") ? word.slice(1) : word}"`).join(', ');
         }
 
 
@@ -618,10 +644,20 @@
                     </div>
                 </div>
                 <div class="timer-right">
-                    ${timer.status === 'ended' && timer.answer ? `<button class="answer-btn" onclick="showAnswer(${timer.id}, event)">Answer</button>` : ''}
-                    ${timer.status === 'ended' ? `<button class="new-min-btn" onclick="openNewMinModal(${timer.id})">New Min</button>` : ''}
-                    <button class="restart-btn" onclick="restartTimer(${timer.id})">Restart</button>
-                    <button class="delete-btn" onclick="deleteTimer(${timer.id})">&times;</button>
+                    ${timer.status === 'ended' ? `
+                    <div class="btn-row-top">
+                        <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 1)">1m</button>
+                        <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 2)">2m</button>
+                        <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 5)">5m</button>
+                        <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 10)">10m</button>
+                    </div>
+                    ` : ''}
+                    <div class="btn-row-bottom">
+                        ${timer.status === 'ended' && timer.answer ? `<button class="answer-btn" onclick="showAnswer(${timer.id}, event)">Answer</button>` : ''}
+                        ${timer.status === 'ended' ? `<button class="new-min-btn" onclick="openNewMinModal(${timer.id})">New Min</button>` : ''}
+                        <button class="restart-btn" onclick="restartTimer(${timer.id})">Restart</button>
+                        <button class="delete-btn" onclick="deleteTimer(${timer.id})">&times;</button>
+                    </div>
                 </div>
             `;
 
@@ -729,6 +765,38 @@
         }
 
         // Reset timer state using the current (possibly edited) duration
+        timer.remaining = timer.duration;
+        timer.status = 'running';
+
+        // If this was the pinned card, exit focus mode
+        if (timer.isPinned) {
+            timer.isPinned = false;
+            isFocusMode = false;
+            timerList.classList.remove('focus-mode');
+        }
+
+        // Re-render the timer card to update button visibility
+        const card = document.getElementById(`timer-${id}`);
+        if (card) {
+            card.remove();
+        }
+        renderTimer(timer);
+
+        // Start countdown
+        startCountdown(timer);
+    }
+
+    function quickRestart(id, mins) {
+        const timer = timers.find(t => t.id === id);
+        if (!timer) return;
+
+        // Clear existing interval
+        if (timerIntervals[id]) {
+            clearInterval(timerIntervals[id]);
+        }
+
+        // Set new duration
+        timer.duration = mins * 60;
         timer.remaining = timer.duration;
         timer.status = 'running';
 
