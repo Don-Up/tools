@@ -591,6 +591,28 @@
         createNext();
     }
 
+    const stopWords = [
+        // 冠词
+        'a', 'an', 'the',
+        // 介词
+        'of', 'to', 'in', 'on', 'at', 'with', 'without', 'by', 'from', 'into',
+        'through', 'during', 'via', 'per', 'for',
+        // 连接词
+        'and', 'or', 'but', 'so', 'because', 'if', 'then', 'else',
+        'when', 'while', 'where', 'that', 'which', 'who', 'whom',
+        // 助动词/be动词
+        'is', 'are', 'was', 'were', 'be', 'been', 'being',
+        'have', 'has', 'had', 'having', 'do', 'does', 'did', 'doing',
+        'can', 'could', 'will', 'would', 'should', 'may', 'might', 'must',
+        // 代词
+        'it', 'they', 'we', 'you', 'he', 'she', 'this', 'that',
+        'these', 'those', 'there', 'their', 'them', 'us', 'our',
+        'your', 'his', 'her',
+        // 高频副词/形容词
+        'not', 'no', 'so', 'very', 'too', 'also', 'only', 'just',
+        'even', 'such', 'same', 'different', 'other', 'another'
+    ]
+
     function createTimer(name) {
         let durationSeconds;
         if (durationSelect.value === 'custom') {
@@ -608,29 +630,6 @@
         const originalName = name
 
         if (name.includes("~~") || name.includes("::")) {
-            const stopWords = [
-                // 冠词
-                'a', 'an', 'the',
-                // 介词
-                'of', 'to', 'in', 'on', 'at', 'with', 'without', 'by', 'from', 'into',
-                'through', 'during', 'via', 'per', 'for',
-                // 连接词
-                'and', 'or', 'but', 'so', 'because', 'if', 'then', 'else',
-                'when', 'while', 'where', 'that', 'which', 'who', 'whom',
-                // 助动词/be动词
-                'is', 'are', 'was', 'were', 'be', 'been', 'being',
-                'have', 'has', 'had', 'having', 'do', 'does', 'did', 'doing',
-                'can', 'could', 'will', 'would', 'should', 'may', 'might', 'must',
-                // 代词
-                'it', 'they', 'we', 'you', 'he', 'she', 'this', 'that',
-                'these', 'those', 'there', 'their', 'them', 'us', 'our',
-                'your', 'his', 'her',
-                // 高频副词/形容词
-                'not', 'no', 'so', 'very', 'too', 'also', 'only', 'just',
-                'even', 'such', 'same', 'different', 'other', 'another'
-            ]
-
-
             if (name.includes("::") && !name.includes("~~")) {
                 const subNames = name.split("::")
                 name = subNames[0].trim() + "::" + `~${subNames[1].trim()}~~`
@@ -643,42 +642,13 @@
             if (name.includes(" → ")) {
                 name = name.replace(/~.*?~~/g, '____');
                 matches.forEach(match => {
-                    const words = match.split(" ");
-                    const result = words.map((w, i) => {
-                        if (match.startsWith("^")) {
-                            // if (i === 0 || i === 1) {
-                            //     return i === 0 ? w[1] + (w.length - 1) : w[0] + w.length
-                            // } else {
-                            //     return w.length
-                            // }
-
-                            if (i === 0) {
-                                return w.substring(1) + " "
-                            } else if (stopWords.includes(w)) {
-                                return w + " "
-                            } else if (i === 1) {
-                                return w[0] + w.length + " "
-                            } else {
-                                return w.length + " "
-                            }
-                        } else if (match.startsWith("*")) {
-                            if (i === 0) {
-                                return w[1] + (w.length - 1)
-                            } else {
-                                return w[0] + w.length
-                            }
-                        } else {
-                            return w.length
-                        }
-                    }).join(" ").trim()
-                    name = name.replace("____", result)
+                    name = name.replace("____", match2result(match))
                 })
             } else {
                 name = name.replace(/~.*?~~/g, '____');
             }
-            // result = "Destructuring is a feature that allows ____ values from ____ or ____"
 
-            // 3. 拼成想要的格式（题目里没明确最后输出格式，这里按示例来）
+            // 3. 拼成想要的格式
             answer = matches.map(word => `"${word.startsWith("*") || word.startsWith("^") ? word.slice(1) : word}"`).join(', ');
         }
 
@@ -1089,6 +1059,40 @@
         currentEditTimerId = null;
     }
 
+    function match2result(match) {
+        const words = match.split(" ");
+        const result = words.map((w, i) => {
+            if (match.startsWith("^")) {
+                // 只显示首个单词的首字母，其它仅显示长度
+                // if (i === 0 || i === 1) {
+                //     return i === 0 ? w[1] + (w.length - 1) : w[0] + w.length
+                // } else {
+                //     return w.length
+                // }
+
+                // 显示完整的首单词，第二个单词的首字母以及一些虚词，其它仅显示长度
+                if (i === 0) {
+                    return w.substring(1) + " "
+                } else if (stopWords.includes(w)) {
+                    return w + " "
+                } else if (i === 1) {
+                    return w[0] + w.length + " "
+                } else {
+                    return w.length + " "
+                }
+            } else if (match.startsWith("*")) {
+                if (i === 0) {
+                    return w[1] + (w.length - 1)
+                } else {
+                    return w[0] + w.length
+                }
+            } else {
+                return w.length
+            }
+        }).join(" ").trim()
+        return result
+    }
+
     function confirmEdit() {
         if (currentEditTimerId === null) return;
 
@@ -1106,29 +1110,6 @@
         let name = newName
         if (timer) {//1
             if (name.includes("~~") || name.includes("::")) {
-                const stopWords = [
-                    // 冠词
-                    'a', 'an', 'the',
-                    // 介词
-                    'of', 'to', 'in', 'on', 'at', 'with', 'without', 'by', 'from', 'into',
-                    'through', 'during', 'via', 'per', 'for',
-                    // 连接词
-                    'and', 'or', 'but', 'so', 'because', 'if', 'then', 'else',
-                    'when', 'while', 'where', 'that', 'which', 'who', 'whom',
-                    // 助动词/be动词
-                    'is', 'are', 'was', 'were', 'be', 'been', 'being',
-                    'have', 'has', 'had', 'having', 'do', 'does', 'did', 'doing',
-                    'can', 'could', 'will', 'would', 'should', 'may', 'might', 'must',
-                    // 代词
-                    'it', 'they', 'we', 'you', 'he', 'she', 'this', 'that',
-                    'these', 'those', 'there', 'their', 'them', 'us', 'our',
-                    'your', 'his', 'her',
-                    // 高频副词/形容词
-                    'not', 'no', 'so', 'very', 'too', 'also', 'only', 'just',
-                    'even', 'such', 'same', 'different', 'other', 'another'
-                ]
-
-
                 if (name.includes("::") && !name.includes("~~")) {
                     const subNames = name.split("::")
                     name = subNames[0].trim() + "::" + `~${subNames[1].trim()}~~`
@@ -1141,35 +1122,7 @@
                 if (name.includes(" → ")) {
                     name = name.replace(/~.*?~~/g, '____');
                     matches.forEach(match => {
-                        const words = match.split(" ");
-                        const result = words.map((w, i) => {
-                            if (match.startsWith("^")) {
-                                // if (i === 0 || i === 1) {
-                                //     return i === 0 ? w[1] + (w.length - 1) : w[0] + w.length
-                                // } else {
-                                //     return w.length
-                                // }
-
-                                if (i === 0) {
-                                    return w.substring(1) + " "
-                                } else if (stopWords.includes(w)) {
-                                    return w + " "
-                                } else if (i === 1) {
-                                    return w[0] + w.length + " "
-                                } else {
-                                    return w.length + " "
-                                }
-                            } else if (match.startsWith("*")) {
-                                if (i === 0) {
-                                    return w[1] + (w.length - 1)
-                                } else {
-                                    return w[0] + w.length
-                                }
-                            } else {
-                                return w.length
-                            }
-                        }).join(" ").trim()
-                        name = name.replace("____", result)
+                        name = name.replace("____", match2result(match))
                     })
                 } else {
                     name = name.replace(/~.*?~~/g, '____');
