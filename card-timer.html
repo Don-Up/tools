@@ -1045,7 +1045,7 @@
         const nameInput = document.getElementById('editNameInput');
         const answerInput = document.getElementById('editAnswerInput');
 
-        nameInput.value = timer.originalName;
+        nameInput.value = timer.originalName.replaceAll("~~", "").replaceAll("~^", "").replaceAll("~^", "").replaceAll("~*", "");;
         answerInput.value = timer.answer || '';
 
         modal.classList.add('active');
@@ -1133,7 +1133,7 @@
             }
 
 
-            timer.name = name;
+            timer.name = name
             timer.answer = newAnswer;
 
             // Re-render the timer card
