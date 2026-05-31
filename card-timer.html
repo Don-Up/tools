@@ -542,15 +542,56 @@
     });
 
     // Confirm button click handler
-    confirmBtn.addEventListener('click', addTimer);
+    confirmBtn.addEventListener('click', (e) => addTimer(e));
 
-    function addTimer() {
-        let name = cardNameInput.value.trim();
-        if (!name) {
-            alert('Please enter a card name');
-            return;
+    function addTimer(e) {
+        if(e.altKey){
+            getClipboardText().then(text => {
+                if (!text) {
+                    alert('Please enter a card name');
+                    return;
+                }
+
+                const cardNames = text.split("|||")
+                createTimersWithDelay(cardNames)
+
+                // Reset inputs
+                cardNameInput.value = '';
+                answerInput.value = '';
+                customDurationInput.value = '';
+            })
+        } else {
+            let name = cardNameInput.value.trim();
+            if (!name) {
+                alert('Please enter a card name');
+                return;
+            }
+
+            createTimer(name)
+
+            // Reset inputs
+            cardNameInput.value = '';
+            answerInput.value = '';
+            customDurationInput.value = '';
         }
 
+    }
+
+    function createTimersWithDelay(cardNames, delay = 100) {
+        let index = 0;
+
+        function createNext() {
+            if (index < cardNames.length) {
+                createTimer(cardNames[index]);
+                index++;
+                setTimeout(createNext, delay);
+            }
+        }
+
+        createNext();
+    }
+
+    function createTimer(name) {
         let durationSeconds;
         if (durationSelect.value === 'custom') {
             const durationMin = parseInt(customDurationInput.value, 10);
@@ -658,11 +699,6 @@
         timers.unshift(timer);
         renderTimer(timer);
         startCountdown(timer);
-
-        // Reset inputs
-        cardNameInput.value = '';
-        answerInput.value = '';
-        customDurationInput.value = '';
     }
 
     function renderTimer(timer) {
@@ -918,7 +954,7 @@
 
     function handleNameClick(id, e) {
         e.preventDefault()
-        e.stopPropagation()
+        // e.stopPropagation()
         const timer = timers.find(t => t.id === id);
         if (!timer) return;
         if (e.button === 0 && e.ctrlKey) {
@@ -980,6 +1016,17 @@
         const modal = document.getElementById('modalOverlay');
         modal.classList.remove('active');
         currentEditTimerId = null;
+    }
+
+    async function getClipboardText() {
+        try {
+            const text = await navigator.clipboard.readText();
+            console.log('剪贴板内容:', text);
+            return text;
+        } catch (err) {
+            console.error('读取失败:', err);
+            return null;
+        }
     }
 
     function confirmNewDuration() {
@@ -1161,12 +1208,6 @@
             closeModal();
         }
     });
-
-    // document.getElementById('editModal').addEventListener('click', (e) => {
-    //     if (e.target.id === 'editModal') {
-    //         closeEditModal();
-    //     }
-    // });
 </script>
 </body>
 </html>
