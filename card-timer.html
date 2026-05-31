@@ -195,6 +195,7 @@
             padding: 4px 8px;
             font-size: 12px;
             border-radius: 4px;
+            width: 40px;
         }
 
         .quick-min-btn:hover {
@@ -644,20 +645,20 @@
                     </div>
                 </div>
                 <div class="timer-right">
-                    ${timer.status === 'ended' ? `
                     <div class="btn-row-top">
+                        ${timer.status === 'ended' && timer.answer ? `<button class="answer-btn" onclick="showAnswer(${timer.id}, event)">Answer</button>` : ''}
+                        ${timer.status === 'ended' ? `<button class="new-min-btn" onclick="openNewMinModal(${timer.id})">New Min</button>` : ''}
+                        <button class="restart-btn" onclick="restartTimer(${timer.id})">Restart</button>
+                        <button class="delete-btn" onclick="deleteTimer(${timer.id})">&times;</button>
+                    </div>
+                    ${timer.status === 'ended' ? `
+                    <div class="btn-row-bottom">
                         <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 1)">1m</button>
                         <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 2)">2m</button>
                         <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 5)">5m</button>
                         <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 10)">10m</button>
                     </div>
                     ` : ''}
-                    <div class="btn-row-bottom">
-                        ${timer.status === 'ended' && timer.answer ? `<button class="answer-btn" onclick="showAnswer(${timer.id}, event)">Answer</button>` : ''}
-                        ${timer.status === 'ended' ? `<button class="new-min-btn" onclick="openNewMinModal(${timer.id})">New Min</button>` : ''}
-                        <button class="restart-btn" onclick="restartTimer(${timer.id})">Restart</button>
-                        <button class="delete-btn" onclick="deleteTimer(${timer.id})">&times;</button>
-                    </div>
                 </div>
             `;
 
