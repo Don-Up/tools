@@ -173,7 +173,7 @@
             justify-content: center;
         }
 
-        .btn-row-top, .btn-row-bottom {
+        .btn-row-top {
             display: flex;
             gap: 8px;
             justify-content: flex-end;
@@ -181,6 +181,7 @@
 
         .btn-row-bottom {
             margin-top: 4px;
+            gap: 8px;
         }
 
         .timer-right button:not(.delete-btn) {
@@ -195,7 +196,7 @@
             padding: 4px 8px;
             font-size: 12px;
             border-radius: 4px;
-            width: 40px;
+            width: 20px;
         }
 
         .quick-min-btn:hover {
@@ -433,6 +434,18 @@
     </div>
 </div>
 
+<div id="editModal" class="modal-overlay">
+    <div class="modal">
+        <h3>Edit Card</h3>
+        <input type="text" id="editNameInput" class="modal-input" placeholder="Card name">
+        <input type="text" id="editAnswerInput" class="modal-input" placeholder="Answer (optional)">
+        <div class="modal-buttons">
+            <button class="modal-btn cancel" onclick="closeEditModal()">Cancel</button>
+            <button class="modal-btn confirm" onclick="confirmEdit()">OK</button>
+        </div>
+    </div>
+</div>
+
 <script>
     let timers = [];
     let timerIntervals = {};
@@ -551,8 +564,32 @@
         }
 
         let answer = answerInput.value.trim();
+        const originalName = name
 
         if (name.includes("~~") || name.includes("::")) {
+            const stopWords = [
+                // 冠词
+                'a', 'an', 'the',
+                // 介词
+                'of', 'to', 'in', 'on', 'at', 'with', 'without', 'by', 'from', 'into',
+                'through', 'during', 'via', 'per', 'for',
+                // 连接词
+                'and', 'or', 'but', 'so', 'because', 'if', 'then', 'else',
+                'when', 'while', 'where', 'that', 'which', 'who', 'whom',
+                // 助动词/be动词
+                'is', 'are', 'was', 'were', 'be', 'been', 'being',
+                'have', 'has', 'had', 'having', 'do', 'does', 'did', 'doing',
+                'can', 'could', 'will', 'would', 'should', 'may', 'might', 'must',
+                // 代词
+                'it', 'they', 'we', 'you', 'he', 'she', 'this', 'that',
+                'these', 'those', 'there', 'their', 'them', 'us', 'our',
+                'your', 'his', 'her',
+                // 高频副词/形容词
+                'not', 'no', 'so', 'very', 'too', 'also', 'only', 'just',
+                'even', 'such', 'same', 'different', 'other', 'another'
+            ]
+
+
             if (name.includes("::") && !name.includes("~~")) {
                 const subNames = name.split("::")
                 name = subNames[0].trim() + "::" + `~${subNames[1].trim()}~~`
@@ -568,10 +605,20 @@
                     const words = match.split(" ");
                     const result = words.map((w, i) => {
                         if (match.startsWith("^")) {
-                            if (i === 0 || i === 1) {
-                                return i === 0 ? w[1] + (w.length - 1) : w[0] + w.length
+                            // if (i === 0 || i === 1) {
+                            //     return i === 0 ? w[1] + (w.length - 1) : w[0] + w.length
+                            // } else {
+                            //     return w.length
+                            // }
+
+                            if (i === 0) {
+                                return w.substring(1) + " "
+                            } else if (stopWords.includes(w)) {
+                                return w + " "
+                            } else if (i === 1) {
+                                return w[0] + w.length + " "
                             } else {
-                                return w.length
+                                return w.length + " "
                             }
                         } else if (match.startsWith("*")) {
                             if (i === 0) {
@@ -598,6 +645,7 @@
         const timer = {
             id: Date.now(),
             name: name,
+            originalName: originalName,
             answer: answer,
             duration: durationSeconds,
             remaining: durationSeconds,
@@ -635,7 +683,7 @@
         card.innerHTML = `
                 <div class="timer-left">
                     <div class="timer-info">
-                        <span class="timer-name" title="${timer.name}" onclick="copyToClipboard('${timer.name}')" style="cursor:pointer;display:${nameDisplay}">${timer.name}</span>
+                        <span class="timer-name" title="${timer.name}" onclick="handleNameClick(${timer.id}, event)" style="cursor:pointer;display:${nameDisplay}">${timer.name}</span>
                         <span class="timer-duration" onclick="toggleTimerName(${timer.id})" style="cursor:pointer;user-select:none">${formattedDuration}</span>
                     </div>
                     <div class="timer-status">
@@ -656,7 +704,7 @@
                         <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 1)">1m</button>
                         <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 2)">2m</button>
                         <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 5)">5m</button>
-                        <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 10)">10m</button>
+<!--                        <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 10)">10m</button>-->
                     </div>
                     ` : ''}
                 </div>
@@ -868,6 +916,21 @@
         });
     }
 
+    function handleNameClick(id, e) {
+        e.preventDefault()
+        e.stopPropagation()
+        const timer = timers.find(t => t.id === id);
+        if (!timer) return;
+        if (e.button === 0 && e.ctrlKey) {
+            // Middle-click + Alt: open edit modal
+            e.preventDefault();
+            openEditModal(id);
+        } else if (e.button === 0) {
+            // Left click: copy to clipboard
+            copyToClipboard(timer.name);
+        }
+    }
+
     let currentEditTimerId = null;
 
     function openNewMinModal(id) {
@@ -956,10 +1019,139 @@
         closeModal();
     }
 
-    // Close modal on Escape key
+    function openEditModal(id) {
+        const timer = timers.find(t => t.id === id);
+        if (!timer) return;
+
+        currentEditTimerId = id;
+        const modal = document.getElementById('editModal');
+        const nameInput = document.getElementById('editNameInput');
+        const answerInput = document.getElementById('editAnswerInput');
+
+        nameInput.value = timer.originalName;
+        answerInput.value = timer.answer || '';
+
+        modal.classList.add('active');
+        nameInput.focus();
+        nameInput.select();
+    }
+
+    function closeEditModal() {
+        const modal = document.getElementById('editModal');
+        modal.classList.remove('active');
+        currentEditTimerId = null;
+    }
+
+    function confirmEdit() {
+        if (currentEditTimerId === null) return;
+
+        const nameInput = document.getElementById('editNameInput');
+        const answerInput = document.getElementById('editAnswerInput');
+        const newName = nameInput.value.trim();
+        let newAnswer = answerInput.value.trim();
+
+        if (!newName) {
+            alert('Please enter a card name');
+            return;
+        }
+
+        const timer = timers.find(t => t.id === currentEditTimerId);
+        let name = newName
+        if (timer) {//1
+            if (name.includes("~~") || name.includes("::")) {
+                const stopWords = [
+                    // 冠词
+                    'a', 'an', 'the',
+                    // 介词
+                    'of', 'to', 'in', 'on', 'at', 'with', 'without', 'by', 'from', 'into',
+                    'through', 'during', 'via', 'per', 'for',
+                    // 连接词
+                    'and', 'or', 'but', 'so', 'because', 'if', 'then', 'else',
+                    'when', 'while', 'where', 'that', 'which', 'who', 'whom',
+                    // 助动词/be动词
+                    'is', 'are', 'was', 'were', 'be', 'been', 'being',
+                    'have', 'has', 'had', 'having', 'do', 'does', 'did', 'doing',
+                    'can', 'could', 'will', 'would', 'should', 'may', 'might', 'must',
+                    // 代词
+                    'it', 'they', 'we', 'you', 'he', 'she', 'this', 'that',
+                    'these', 'those', 'there', 'their', 'them', 'us', 'our',
+                    'your', 'his', 'her',
+                    // 高频副词/形容词
+                    'not', 'no', 'so', 'very', 'too', 'also', 'only', 'just',
+                    'even', 'such', 'same', 'different', 'other', 'another'
+                ]
+
+
+                if (name.includes("::") && !name.includes("~~")) {
+                    const subNames = name.split("::")
+                    name = subNames[0].trim() + "::" + `~${subNames[1].trim()}~~`
+                }
+                // 1. 提取所有 {{...}} 里的内容
+                const matches = [...name.matchAll(/~(.*?)~~/g)].map(m => m[1]);
+                // matches = ["extracting", "arrays", "objects"]
+
+                // 2. 把 {{...}} 替换成 ____
+                if (name.includes(" → ")) {
+                    name = name.replace(/~.*?~~/g, '____');
+                    matches.forEach(match => {
+                        const words = match.split(" ");
+                        const result = words.map((w, i) => {
+                            if (match.startsWith("^")) {
+                                // if (i === 0 || i === 1) {
+                                //     return i === 0 ? w[1] + (w.length - 1) : w[0] + w.length
+                                // } else {
+                                //     return w.length
+                                // }
+
+                                if (i === 0) {
+                                    return w.substring(1) + " "
+                                } else if (stopWords.includes(w)) {
+                                    return w + " "
+                                } else if (i === 1) {
+                                    return w[0] + w.length + " "
+                                } else {
+                                    return w.length + " "
+                                }
+                            } else if (match.startsWith("*")) {
+                                if (i === 0) {
+                                    return w[1] + (w.length - 1)
+                                } else {
+                                    return w[0] + w.length
+                                }
+                            } else {
+                                return w.length
+                            }
+                        }).join(" ").trim()
+                        name = name.replace("____", result)
+                    })
+                } else {
+                    name = name.replace(/~.*?~~/g, '____');
+                }
+
+                // 3. 拼成想要的格式（题目里没明确最后输出格式，这里按示例来）
+                newAnswer = matches.map(word => `"${word.startsWith("*") || word.startsWith("^") ? word.slice(1) : word}"`).join(', ');
+            }
+
+
+            timer.name = name;
+            timer.answer = newAnswer;
+
+            // Re-render the timer card
+            const card = document.getElementById(`timer-${timer.id}`);
+            if (card) {
+                card.remove();
+            }
+            renderTimer(timer);
+        }
+
+        closeEditModal();
+    }
+
+    // Close edit modal on Escape key
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             closeModal();
+            closeEditModal();
         }
     });
 
@@ -969,6 +1161,12 @@
             closeModal();
         }
     });
+
+    // document.getElementById('editModal').addEventListener('click', (e) => {
+    //     if (e.target.id === 'editModal') {
+    //         closeEditModal();
+    //     }
+    // });
 </script>
 </body>
 </html>
