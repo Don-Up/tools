@@ -1076,9 +1076,9 @@
                 } else if (stopWords.includes(w)) {
                     return w + " "
                 } else if (i === 1) {
-                    return w[0] + w.length + " "
+                    return w[0] + w.length + (w.endsWith(",")?", ": " ")
                 } else {
-                    return w.length + " "
+                    return w.length + (w.endsWith(",")?", ": " ")
                 }
             } else if (match.startsWith("*")) {
                 if (i === 0) {
