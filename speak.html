@@ -357,6 +357,12 @@ B: Sure thing. Send me the file and I will check it. Let us finish by tomorrow.
 
         loadTheme();
 
+        const savedInput = localStorage.getItem('speakInput');
+        if (savedInput) {
+            document.getElementById('inputText').value = savedInput;
+            generate();
+        }
+
         function detectLanguage(text) {
             let englishRatio = 0;
             const enChars = text.match(/[a-zA-Z]/g) || [];
@@ -377,6 +383,9 @@ B: Sure thing. Send me the file and I will check it. Let us finish by tomorrow.
                 resultList.innerHTML = '<li class="empty-message">请输入内容后点击生成</li>';
                 return;
             }
+
+            localStorage.setItem('speakInput', input);
+            document.getElementById('inputText').value = '';
 
             const lines = input.split('\n').filter(l => l.trim());
             let results = [];
