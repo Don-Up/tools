@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>中英对照细化分组工具</title>
+    <title>SPEAK</title>
     <style>
         :root {
             --bg-primary: #1a1a1a;
@@ -74,6 +74,22 @@
 
         .theme-toggle:hover {
             background: var(--border-color);
+        }
+
+        .tts-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #voiceSelect {
+            padding: 8px 12px;
+            font-size: 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            cursor: pointer;
         }
 
         .container {
@@ -184,6 +200,23 @@
             filter: brightness(1.2);
         }
 
+        .result-item .play-btn {
+            position: absolute;
+            top: 10px;
+            right: 70px;
+            padding: 5px 12px;
+            font-size: 12px;
+            background: var(--accent-primary);
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .result-item .play-btn:hover {
+            filter: brightness(1.2);
+        }
+
         .result-item .speaker {
             display: inline-block;
             background: var(--accent-primary);
@@ -213,8 +246,8 @@
         .result-item .en-text.masked {
             position: relative;
             display: inline-block;
-            line-height: 2;
-            padding: 0 0px;
+            line-height: 1;
+            padding: 8px 0;
         }
 
         .result-item .en-text.masked::before {
@@ -273,11 +306,14 @@
 </head>
 <body data-theme="dark">
     <div class="header">
-        <h1>中英对照细化分组工具</h1>
-        <button class="theme-toggle" onclick="toggleTheme()">
-            <span id="themeIcon">☀️</span>
-            <span id="themeText">浅色</span>
-        </button>
+        <h1>SPEAK</h1>
+        <div class="tts-controls">
+            <select id="voiceSelect" onchange="changeVoice()"></select>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span id="themeIcon">☀️</span>
+                <span id="themeText">浅色</span>
+            </button>
+        </div>
     </div>
     <div class="container">
         <div class="input-section">
@@ -401,6 +437,7 @@ B: Sure thing. Send me the file and I will check it. Let us finish by tomorrow.
                 <li class="result-item">
                     ${item.speaker ? `<span class="speaker">${item.speaker}</span>` : ''}
                     <button class="copy-btn" onclick="copyText(this)">复制</button>
+                    <button class="play-btn" onclick="playText(this)">播放</button>
                     <br>
                     <div class="en-text masked">${escapeHtml(item.en)}</div>
                     <div class="zh-text">${escapeHtml(item.zh)}</div>
@@ -413,12 +450,58 @@ B: Sure thing. Send me the file and I will check it. Let us finish by tomorrow.
             const en = item.querySelector('.en-text').textContent;
             const zh = item.querySelector('.zh-text').textContent;
             navigator.clipboard.writeText("译:: "+zh+"\n"+en).then(() => {
-                btn.textContent = '已复制';
+                btn.textContent = '成功';
                 setTimeout(() => btn.textContent = '复制', 1500);
             });
         }
 
+        function playText(btn) {
+            const item = btn.closest('.result-item');
+            const en = item.querySelector('.en-text').textContent;
+            speakText(en);
+        }
+
         let enMasked = true;
+        let currentVoice = null;
+
+        function loadVoices() {
+            const voiceSelect = document.getElementById('voiceSelect');
+            const voices = speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'));
+            voiceSelect.innerHTML = voices.map((v, i) => `<option value="${i}">${v.name}</option>`).join('');
+            const savedVoiceName = localStorage.getItem('selectedVoice');
+            if (savedVoiceName) {
+                const idx = voices.findIndex(v => v.name === savedVoiceName);
+                if (idx >= 0) {
+                    voiceSelect.value = idx;
+                    currentVoice = voices[idx];
+                    return;
+                }
+            }
+            if (voices.length > 0) {
+                currentVoice = voices[0];
+            }
+        }
+
+        function changeVoice() {
+            const voices = speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'));
+            const idx = parseInt(document.getElementById('voiceSelect').value);
+            currentVoice = voices[idx] || voices[0];
+            localStorage.setItem('selectedVoice', currentVoice.name);
+        }
+
+        speechSynthesis.onvoiceschanged = loadVoices;
+        loadVoices();
+
+        function speakText(text) {
+            if (!currentVoice) {
+                const voices = speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'));
+                currentVoice = voices[0];
+            }
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.voice = currentVoice;
+            speechSynthesis.cancel();
+            speechSynthesis.speak(utterance);
+        }
 
         function toggleEnMask() {
             enMasked = !enMasked;
