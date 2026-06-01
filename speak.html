@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中英对照细化分组工具</title>
+    <style>
+        :root {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --bg-input: #242424;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --text-accent: #7cb3ff;
+            --accent-en: #6fcf97;
+            --accent-primary: #4a9eff;
+            --border-color: #404040;
+            --shadow: rgba(0,0,0,0.4);
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f5f5f5;
+            --bg-secondary: #fff;
+            --bg-input: #fff;
+            --text-primary: #333;
+            --text-secondary: #666;
+            --text-accent: #007bff;
+            --accent-en: #28a745;
+            --accent-primary: #007bff;
+            --border-color: #ddd;
+            --shadow: rgba(0,0,0,0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: var(--bg-primary);
+            min-height: 100vh;
+            color: var(--text-primary);
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--text-primary);
+            font-size: 1.5rem;
+        }
+
+        .theme-toggle {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px 16px;
+            cursor: pointer;
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .theme-toggle:hover {
+            background: var(--border-color);
+        }
+
+        .container {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px var(--shadow);
+            transition: background 0.3s, box-shadow 0.3s;
+        }
+
+        .input-section {
+            margin-bottom: 20px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: vertical;
+            font-family: inherit;
+            background: var(--bg-input);
+            color: var(--text-primary);
+            transition: border-color 0.2s, background 0.3s, color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 10px 24px;
+            font-size: 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent-primary);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            filter: brightness(1.1);
+        }
+
+        .btn-secondary {
+            background: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            filter: brightness(1.2);
+        }
+
+        .result-section {
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+        }
+
+        .result-section h3 {
+            color: var(--text-primary);
+            margin-bottom: 15px;
+            font-size: 1rem;
+        }
+
+        .result-list {
+            list-style: none;
+        }
+
+        .result-item {
+            background: var(--bg-input);
+            border-radius: 6px;
+            padding: 15px;
+            padding-right: 50px;
+            margin-bottom: 12px;
+            border-left: 3px solid var(--accent-primary);
+            transition: background 0.3s;
+            position: relative;
+        }
+
+        .result-item .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 5px 12px;
+            font-size: 12px;
+            background: var(--border-color);
+            color: var(--text-primary);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .result-item .copy-btn:hover {
+            filter: brightness(1.2);
+        }
+
+        .result-item .speaker {
+            display: inline-block;
+            background: var(--accent-primary);
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+
+        [data-theme="light"] .result-item .speaker {
+            color: #fff;
+        }
+
+        .result-item .en-text {
+            color: var(--accent-en);
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .result-item .en-text {
+            color: var(--accent-en);
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .result-item .en-text.masked {
+            position: relative;
+            display: inline-block;
+            line-height: 2;
+            padding: 0 0px;
+        }
+
+        .result-item .en-text.masked::before {
+            content: "";
+            position: absolute;
+            top: 5px;
+            left: 0;
+            right: 0;
+            bottom: 5px;
+            background: #454545;
+            opacity: 1;
+            pointer-events: none;
+            border-radius: 2px;
+        }
+
+        .result-item .en-text.masked:hover::before {
+            opacity: 0;
+        }
+
+        .result-item .zh-text {
+            color: var(--text-primary);
+        }
+
+        .result-item.en-text-hidden .en-text {
+            display: none;
+        }
+
+        .empty-message {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 40px 20px;
+        }
+
+        .example {
+            background: var(--bg-input);
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            transition: background 0.3s;
+        }
+
+        .example-title {
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .example code {
+            display: block;
+            white-space: pre-wrap;
+            font-family: Consolas, monospace;
+        }
+    </style>
+</head>
+<body data-theme="dark">
+    <div class="header">
+        <h1>中英对照细化分组工具</h1>
+        <button class="theme-toggle" onclick="toggleTheme()">
+            <span id="themeIcon">☀️</span>
+            <span id="themeText">浅色</span>
+        </button>
+    </div>
+    <div class="container">
+        <div class="input-section">
+            <div class="example">
+                <div class="example-title">输入格式（无需空行，自动识别中英文）：</div>
+                <code>A: Hey, have you had a chance to look over the proposal? We need to finalize before Friday.
+嘿，你有机会看提案了吗？我们需要在周五前敲定。
+B: Sure thing. Send me the file and I will check it. Let us finish by tomorrow.
+当然可以。把文件发给我，我会检查。让我明天完成。</code>
+            </div>
+            <textarea id="inputText" placeholder="请输入中英文对照内容..."></textarea>
+        </div>
+        <div class="btn-group">
+            <button class="btn-primary" onclick="generate()">生成</button>
+            <button class="btn-secondary" onclick="clearText()">清空</button>
+            <button class="btn-secondary" id="toggleBtn" onclick="toggleEnMask()">隐藏</button>
+        </div>
+        <div class="result-section">
+            <h3>细化分组结果</h3>
+            <ul class="result-list" id="resultList"></ul>
+        </div>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const body = document.body;
+            const currentTheme = body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            body.setAttribute('data-theme', newTheme);
+            document.getElementById('themeIcon').textContent = newTheme === 'dark' ? '☀️' : '🌙';
+            document.getElementById('themeText').textContent = newTheme === 'dark' ? '浅色' : '深色';
+            localStorage.setItem('theme', newTheme);
+        }
+
+        function loadTheme() {
+            const saved = localStorage.getItem('theme') || 'dark';
+            document.body.setAttribute('data-theme', saved);
+            document.getElementById('themeIcon').textContent = saved === 'dark' ? '☀️' : '🌙';
+            document.getElementById('themeText').textContent = saved === 'dark' ? '浅色' : '深色';
+        }
+
+        loadTheme();
+
+        function detectLanguage(text) {
+            let englishRatio = 0;
+            const enChars = text.match(/[a-zA-Z]/g) || [];
+            const zhChars = text.match(/[一-龥]/g) || [];
+            const totalLetters = enChars.length + zhChars.length;
+            if (totalLetters === 0) return 'unknown';
+            englishRatio = enChars.length / totalLetters;
+            if (englishRatio > 0.5) return 'en';
+            if (englishRatio < 0.3) return 'zh';
+            return 'unknown';
+        }
+
+        function generate() {
+            const input = document.getElementById('inputText').value.trim();
+            const resultList = document.getElementById('resultList');
+
+            if (!input) {
+                resultList.innerHTML = '<li class="empty-message">请输入内容后点击生成</li>';
+                return;
+            }
+
+            const lines = input.split('\n').filter(l => l.trim());
+            let results = [];
+            let currentGroup = { en: '', zh: '', speaker: '' };
+
+            function flushGroup() {
+                if (!currentGroup.en.trim() && !currentGroup.zh.trim()) return;
+
+                const enParts = currentGroup.en.split(/(?<=[?.!])\s+/);
+                const zhParts = currentGroup.zh.split(/(?<=[？。])/);
+
+                const enSentences = enParts.map(s => s.trim()).filter(s => s);
+                const zhSentences = zhParts.map(s => s.trim()).filter(s => s);
+
+                const count = Math.min(enSentences.length, zhSentences.length);
+                for (let i = 0; i < count; i++) {
+                    results.push({
+                        speaker: currentGroup.speaker,
+                        en: enSentences[i],
+                        zh: zhSentences[i]
+                    });
+                }
+                currentGroup = { en: '', zh: '', speaker: '' };
+            }
+
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed) continue;
+
+                const lang = detectLanguage(trimmed);
+                const speakerMatch = trimmed.match(/^([A-Z]):\s*/);
+                const textWithoutSpeaker = trimmed.replace(/^[A-Z]:\s*/, '');
+
+                if (lang === 'en' || lang === 'unknown') {
+                    if (currentGroup.en.trim() || currentGroup.zh.trim()) {
+                        flushGroup();
+                    }
+                    if (speakerMatch) currentGroup.speaker = speakerMatch[1];
+                    currentGroup.en = textWithoutSpeaker;
+                } else if (lang === 'zh') {
+                    if (currentGroup.en.trim()) {
+                        currentGroup.zh = textWithoutSpeaker;
+                        flushGroup();
+                    } else {
+                        currentGroup.zh = textWithoutSpeaker;
+                    }
+                }
+            }
+
+            flushGroup();
+
+            if (results.length === 0) {
+                resultList.innerHTML = '<li class="empty-message">未找到有效的中英对照内容</li>';
+                return;
+            }
+
+            resultList.innerHTML = results.map((item, index) => `
+                <li class="result-item">
+                    ${item.speaker ? `<span class="speaker">${item.speaker}</span>` : ''}
+                    <button class="copy-btn" onclick="copyText(this)">复制</button>
+                    <br>
+                    <div class="en-text masked">${escapeHtml(item.en)}</div>
+                    <div class="zh-text">${escapeHtml(item.zh)}</div>
+                </li>
+            `).join('');
+        }
+
+        function copyText(btn) {
+            const item = btn.closest('.result-item');
+            const en = item.querySelector('.en-text').textContent;
+            const zh = item.querySelector('.zh-text').textContent;
+            navigator.clipboard.writeText("译:: "+zh+"\n"+en).then(() => {
+                btn.textContent = '已复制';
+                setTimeout(() => btn.textContent = '复制', 1500);
+            });
+        }
+
+        let enMasked = true;
+
+        function toggleEnMask() {
+            enMasked = !enMasked;
+            document.getElementById('toggleBtn').textContent = enMasked ? '隐藏' : '显示';
+            document.querySelectorAll('.result-item .en-text').forEach(el => {
+                if (enMasked) {
+                    el.classList.add('masked');
+                } else {
+                    el.classList.remove('masked');
+                }
+            });
+        }
+
+        function clearText() {
+            document.getElementById('inputText').value = '';
+            document.getElementById('resultList').innerHTML = '<li class="empty-message">请输入内容后点击生成</li>';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
