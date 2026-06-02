@@ -52,7 +52,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
 
         h1 {
@@ -76,13 +76,14 @@
             background: var(--border-color);
         }
 
-        .tts-controls {
+        .voice-selectors {
             display: flex;
-            align-items: center;
+            flex-direction: column;
             gap: 10px;
+            margin-bottom: 20px;
         }
 
-        #voiceSelect {
+        .voice-selectors select {
             padding: 8px 12px;
             font-size: 14px;
             border: 1px solid var(--border-color);
@@ -187,7 +188,9 @@
             position: absolute;
             top: 10px;
             right: 10px;
-            padding: 5px 12px;
+            width: 50px;
+            height: 26px;
+            padding: 0;
             font-size: 12px;
             background: var(--border-color);
             color: var(--text-primary);
@@ -200,21 +203,32 @@
             filter: brightness(1.2);
         }
 
-        .result-item .play-btn {
+        .result-item .play-en-btn,
+        .result-item .play-zh-btn {
             position: absolute;
             top: 10px;
-            right: 70px;
-            padding: 5px 12px;
+            width: 50px;
+            height: 26px;
+            padding: 0;
             font-size: 12px;
-            background: var(--accent-primary);
-            color: #fff;
+            background: var(--border-color);
+            color: var(--text-primary);
             border: none;
             border-radius: 4px;
             cursor: pointer;
         }
 
-        .result-item .play-btn:hover {
+        .result-item .play-en-btn:hover,
+        .result-item .play-zh-btn:hover {
             filter: brightness(1.2);
+        }
+
+        .result-item .play-en-btn {
+            right: 70px;
+        }
+
+        .result-item .play-zh-btn {
+            right: 130px;
         }
 
         .result-item .speaker {
@@ -307,13 +321,14 @@
 <body data-theme="dark">
     <div class="header">
         <h1>SPEAK</h1>
-        <div class="tts-controls">
-            <select id="voiceSelect" onchange="changeVoice()"></select>
-            <button class="theme-toggle" onclick="toggleTheme()">
-                <span id="themeIcon">☀️</span>
-                <span id="themeText">浅色</span>
-            </button>
-        </div>
+        <button class="theme-toggle" onclick="toggleTheme()">
+            <span id="themeIcon">☀️</span>
+            <span id="themeText">浅色</span>
+        </button>
+    </div>
+    <div class="voice-selectors">
+        <select id="voiceSelectEn" onchange="changeVoiceEn()"></select>
+        <select id="voiceSelectZh" onchange="changeVoiceZh()"></select>
     </div>
     <div class="container">
         <div class="input-section">
@@ -445,8 +460,9 @@ B: Sure thing. Send me the file and I will check it. Let us finish by tomorrow.
             resultList.innerHTML = results.map((item, index) => `
                 <li class="result-item">
                     ${item.speaker ? `<span class="speaker">${item.speaker}</span>` : ''}
-                    <button class="copy-btn" onclick="copyText(this)">复制</button>
-                    <button class="play-btn" onclick="playText(this)">播放</button>
+                    <button class="copy-btn" onclick="copyText(this)">Copy</button>
+                    <button class="play-en-btn" onclick="playText(this, 'en')">PlayEN</button>
+                    <button class="play-zh-btn" onclick="playText(this, 'zh')">PlayZH</button>
                     <br>
                     <div class="en-text masked">${escapeHtml(item.en)}</div>
                     <div class="zh-text">${escapeHtml(item.zh)}</div>
@@ -459,58 +475,72 @@ B: Sure thing. Send me the file and I will check it. Let us finish by tomorrow.
             const en = item.querySelector('.en-text').textContent;
             const zh = item.querySelector('.zh-text').textContent;
             navigator.clipboard.writeText("译:: "+zh+"\n"+en).then(() => {
-                btn.textContent = '成功';
-                setTimeout(() => btn.textContent = '复制', 1500);
+                btn.textContent = 'Copied';
+                setTimeout(() => btn.textContent = 'Copy', 1500);
             });
         }
 
-        function playText(btn) {
+        function playText(btn, lang) {
             const item = btn.closest('.result-item');
-            const en = item.querySelector('.en-text').textContent;
-            speakText(en);
+            const text = lang === 'en' ? item.querySelector('.en-text').textContent : item.querySelector('.zh-text').textContent;
+            speakText(text, lang);
         }
 
         let enMasked = true;
-        let currentVoice = null;
+        let currentVoiceEn = null;
+        let currentVoiceZh = null;
 
         function loadVoices() {
-            const voiceSelect = document.getElementById('voiceSelect');
-            const voices = speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'));
-            voiceSelect.innerHTML = voices.map((v, i) => `<option value="${i}">${v.name}</option>`).join('');
-            const savedVoiceName = localStorage.getItem('selectedVoice');
-            if (savedVoiceName) {
-                const idx = voices.findIndex(v => v.name === savedVoiceName);
+            const voiceSelectEn = document.getElementById('voiceSelectEn');
+            const voiceSelectZh = document.getElementById('voiceSelectZh');
+            const enVoices = speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'));
+            const zhVoices = speechSynthesis.getVoices().filter(v => v.lang.startsWith('zh'));
+            voiceSelectEn.innerHTML = enVoices.map((v, i) => `<option value="${i}">${v.name}</option>`).join('');
+            voiceSelectZh.innerHTML = zhVoices.map((v, i) => `<option value="${i}">${v.name}</option>`).join('');
+            const savedVoiceEnName = localStorage.getItem('selectedVoiceEn');
+            const savedVoiceZhName = localStorage.getItem('selectedVoiceZh');
+            if (savedVoiceEnName) {
+                const idx = enVoices.findIndex(v => v.name === savedVoiceEnName);
                 if (idx >= 0) {
-                    voiceSelect.value = idx;
-                    currentVoice = voices[idx];
-                    return;
+                    voiceSelectEn.value = idx;
+                    currentVoiceEn = enVoices[idx];
                 }
             }
-            if (voices.length > 0) {
-                currentVoice = voices[0];
+            if (savedVoiceZhName) {
+                const idx = zhVoices.findIndex(v => v.name === savedVoiceZhName);
+                if (idx >= 0) {
+                    voiceSelectZh.value = idx;
+                    currentVoiceZh = zhVoices[idx];
+                }
             }
+            if (!currentVoiceEn && enVoices.length > 0) currentVoiceEn = enVoices[0];
+            if (!currentVoiceZh && zhVoices.length > 0) currentVoiceZh = zhVoices[0];
         }
 
-        function changeVoice() {
+        function changeVoiceEn() {
             const voices = speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'));
-            const idx = parseInt(document.getElementById('voiceSelect').value);
-            currentVoice = voices[idx] || voices[0];
-            localStorage.setItem('selectedVoice', currentVoice.name);
+            const idx = parseInt(document.getElementById('voiceSelectEn').value);
+            currentVoiceEn = voices[idx] || voices[0];
+            localStorage.setItem('selectedVoiceEn', currentVoiceEn.name);
+        }
+
+        function changeVoiceZh() {
+            const voices = speechSynthesis.getVoices().filter(v => v.lang.startsWith('zh'));
+            const idx = parseInt(document.getElementById('voiceSelectZh').value);
+            currentVoiceZh = voices[idx] || voices[0];
+            localStorage.setItem('selectedVoiceZh', currentVoiceZh.name);
+        }
+
+        function speakText(text, lang) {
+            const voice = lang === 'en' ? currentVoiceEn : currentVoiceZh;
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.voice = voice;
+            speechSynthesis.cancel();
+            speechSynthesis.speak(utterance);
         }
 
         speechSynthesis.onvoiceschanged = loadVoices;
         loadVoices();
-
-        function speakText(text) {
-            if (!currentVoice) {
-                const voices = speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'));
-                currentVoice = voices[0];
-            }
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.voice = currentVoice;
-            speechSynthesis.cancel();
-            speechSynthesis.speak(utterance);
-        }
 
         function toggleEnMask() {
             enMasked = !enMasked;
