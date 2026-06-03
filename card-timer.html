@@ -405,7 +405,9 @@
 </head>
 <body>
 <div class="container">
-    <h1 onclick="handleTitleClick(event)">Card Timer <span id="timerStatus" style="font-size:14px;color:#888;font-weight:normal"></span></h1>
+    <h1 onclick="handleTitleClick(event)">Card Timer <span id="timerStatus"
+                                                           style="font-size:14px;color:#888;font-weight:normal"></span>
+    </h1>
 
     <div class="input-section">
         <input type="text" id="cardNameInput" placeholder="Card name...">
@@ -697,6 +699,17 @@
         updateTimerStatus();
     }
 
+    function getName(timer) {
+        const names = timer.name.split('::')
+        const first = names[0]
+        let second = names[1]
+        if (names[1].includes("→")) {
+            const secondNames = names[1].replace("→", "").split("→")
+            second = `<span style="color:lightgreen;font-size: 14px">${secondNames[0]}</span>` + "<br>" + `<span style="color:white;font-size: 14px">${secondNames[1]}</span>`
+        }
+        return timer.name.includes("::") ? `<span style="color:yellow;font-size: 14px;font-weight: bold;max-lines: 2;text-overflow: ellipsis">${first}</span>` + "<br>" + second : timer.name
+    }
+
     function renderTimer(timer) {
         const card = document.createElement('div');
         card.className = `timer-card ${timer.status === 'ended' ? 'ended' : ''}`;
@@ -723,7 +736,9 @@
         card.innerHTML = `
                 <div class="timer-left">
                     <div class="timer-info">
-                        <span class="timer-name" title="${timer.name}" onclick="handleNameClick(${timer.id}, event)" style="cursor:pointer;display:${nameDisplay}">${timer.name}</span>
+                        <span class="timer-name" title="${timer.name}" onclick="handleNameClick(${timer.id}, event)" style="cursor:pointer;display:${nameDisplay}">
+${getName(timer)}
+</span>
                         <span class="timer-duration" onclick="toggleTimerName(${timer.id})" style="cursor:pointer;user-select:none">${formattedDuration}</span>
                     </div>
                     <div class="timer-status">
@@ -1066,11 +1081,8 @@
 
     async function getClipboardText() {
         try {
-            const text = await navigator.clipboard.readText();
-            console.log('剪贴板内容:', text);
-            return text;
+            return await navigator.clipboard.readText();
         } catch (err) {
-            console.error('读取失败:', err);
             return null;
         }
     }
@@ -1153,7 +1165,7 @@
                     return w.substring(1) + " "
                 } else if (stopWords.includes(w)) {
                     return w + " "
-                } else if (i === 1 || i === words.length-1) {
+                } else if (i === 1 || i === words.length - 1) {
                     return w[0] + w.length + (w.endsWith(",") ? ", " : " ")
                 } else {
                     return w.length + (w.endsWith(",") ? ", " : " ")
