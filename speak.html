@@ -474,7 +474,7 @@ B: Sure thing. Send me the file and I will check it. Let us finish by tomorrow.
             const item = btn.closest('.result-item');
             const en = item.querySelector('.en-text').textContent;
             const zh = item.querySelector('.zh-text').textContent;
-            navigator.clipboard.writeText("译:: "+zh+"\n"+en).then(() => {
+            navigator.clipboard.writeText("<<"+zh+">>"+"<br>"+en).then(() => {
                 btn.textContent = 'Copied';
                 setTimeout(() => btn.textContent = 'Copy', 1500);
             });

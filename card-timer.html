@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CardTimer</title>
     <style>
+        b {
+            color:yellow;
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -217,7 +221,7 @@
         }
 
         .timer-name {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 500;
             max-width: 200px;
             min-width: 200px;
@@ -225,6 +229,7 @@
             text-overflow: ellipsis;
             white-space: wrap;
             max-lines: 3;
+            color: white;
         }
 
         .timer-duration {
@@ -682,7 +687,7 @@
 
         const timer = {
             id: Date.now(),
-            name: name,
+            name: name.replaceAll("<<", "<b>").replaceAll(">>",  "</b>"),
             originalName: originalName,
             answer: answer,
             duration: durationSeconds,
@@ -700,14 +705,18 @@
     }
 
     function getName(timer) {
-        const names = timer.name.split('::')
-        const first = names[0]
-        let second = names[1]
-        if (names[1].includes("→")) {
-            const secondNames = names[1].replace("→", "").split("→")
-            second = `<span style="color:lightgreen;font-size: 14px">${secondNames[0]}</span>` + "<br>" + `<span style="color:white;font-size: 14px">${secondNames[1]}</span>`
+        if(timer.name.includes("::")){
+            const names = timer.name.split('::')
+            const first = names[0]
+            let second = names[1]
+            if (names[1].includes("→")) {
+                const secondNames = names[1].replace("→", "").split("→")
+                second = `<span style="color:lightgreen;">${secondNames[0]}</span>` + "<br>" + `<span">${secondNames[1]}</span>`
+            }
+            return timer.name.includes("::") ? `<span style="color:yellow;font-weight: bold;max-lines: 2;text-overflow: ellipsis">${first}</span>` + "<br>" + second : timer.name
+        } else {
+            return timer.name
         }
-        return timer.name.includes("::") ? `<span style="color:yellow;font-size: 14px;font-weight: bold;max-lines: 2;text-overflow: ellipsis">${first}</span>` + "<br>" + second : timer.name
     }
 
     function renderTimer(timer) {
@@ -844,6 +853,7 @@ ${getName(timer)}
     }
 
     function speakOnce(text) {
+        if(!text) return
         if (text.includes("::")) {
             text = text.split("::")[0]
         }
