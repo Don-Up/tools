@@ -477,6 +477,9 @@
         document.getElementById('timerStatus').textContent = `(${running} 倒计时中, ${ended} 已结束)`;
     }
 
+    // Initialize status display
+    updateTimerStatus();
+
     // Click on ended timer card to pin/promote
     timerList.addEventListener('click', (e) => {
         const card = e.target.closest('.timer-card');
