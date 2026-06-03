@@ -148,12 +148,16 @@
             opacity: 1;
         }
 
+        .timer-card.hidden-card {
+            display: none;
+        }
+
         .timer-card.ended {
             opacity: 1;
         }
 
-        .timer-card.hidden-card {
-            display: none;
+        .timer-card.forced-visible {
+            display: flex;
         }
 
         .timer-list.focus-mode .timer-card:not(.pinned) {
@@ -401,7 +405,7 @@
 </head>
 <body>
 <div class="container">
-    <h1 onclick="toggleCountdownVisibility()">Card Timer</h1>
+    <h1 onclick="handleTitleClick(event)">Card Timer</h1>
 
     <div class="input-section">
         <input type="text" id="cardNameInput" placeholder="Card name...">
@@ -465,6 +469,7 @@
 
     let isFocusMode = false;
     let isCountdownVisible = true;
+    let isListHidden = false;
 
     // Click on ended timer card to pin/promote
     timerList.addEventListener('click', (e) => {
@@ -782,12 +787,23 @@
     }
 
     function onTimerEnd(timer) {
+        // Mark as ended BEFORE re-rendering so the card gets correct styling
+        timer.status = 'ended';
+
         // Re-render the timer card to show/hide buttons properly
         const card = document.getElementById(`timer-${timer.id}`);
         if (card) {
             card.remove();
         }
         renderTimer(timer);
+
+        // If list is hidden, show this card when timer ends
+        if (isListHidden) {
+            const newCard = document.getElementById(`timer-${timer.id}`);
+            if (newCard) {
+                newCard.classList.add('forced-visible');
+            }
+        }
 
         // TTS speak card name twice
         speakOnce(timer.name);
@@ -948,13 +964,33 @@
         }
     }
 
-    let currentEditTimerId = null;
-
     function toggleCountdownVisibility() {
         isCountdownVisible = !isCountdownVisible;
         document.querySelectorAll('.timer-countdown').forEach(el => {
             el.classList.toggle('hidden', !isCountdownVisible);
         });
+    }
+
+    function handleTitleClick(e) {
+        if (e.altKey) {
+            // Alt+click: toggle list visibility
+            e.preventDefault();
+            isListHidden = !isListHidden;
+            document.querySelectorAll('.timer-card').forEach(card => {
+                const timerId = parseInt(card.id.replace('timer-', ''));
+                const timer = timers.find(t => t.id === timerId);
+                // Only hide if list is hidden AND timer is NOT ended
+                if (isListHidden && timer && timer.status !== 'ended') {
+                    card.classList.add('hidden-card');
+                } else {
+                    card.classList.remove('hidden-card');
+                    card.classList.remove('forced-visible');
+                }
+            });
+        } else {
+            // Regular click: toggle countdown visibility
+            toggleCountdownVisibility();
+        }
     }
 
     function openNewMinModal(id) {
