@@ -469,7 +469,7 @@
 
     let isFocusMode = false;
     let isCountdownVisible = true;
-    let isListHidden = false;
+    let isTimerHidden = false;
 
     // Click on ended timer card to pin/promote
     timerList.addEventListener('click', (e) => {
@@ -692,14 +692,22 @@
         card.className = `timer-card ${timer.status === 'ended' ? 'ended' : ''}`;
         card.id = `timer-${timer.id}`;
 
+        // Apply visibility flags to new cards
+        if (isTimerHidden && timer.status !== 'ended') {
+            card.classList.add('hidden-card');
+        } else if (isTimerHidden && timer.status === 'ended') {
+            card.classList.add('forced-visible');
+        }
+
         const formattedDuration = formatDuration(timer.duration);
         const statusText = timer.status === 'running' ? '倒计时中' : (timer.duration >= 600 ? 'OVER' : '已结束');
         const mins = Math.floor(timer.remaining / 60);
         const secs = timer.remaining % 60;
+        const countdownClass = isCountdownVisible ? '' : ' hidden';
 
         const countdownHtml = timer.status === 'ended'
-            ? `<span class="timer-countdown" id="countdown-${timer.id}">${mins}:${secs.toString().padStart(2, '0')}</span>`
-            : `<span class="timer-countdown" id="countdown-${timer.id}">${mins}:${secs.toString().padStart(2, '0')}</span>`;
+            ? `<span class="timer-countdown${countdownClass}" id="countdown-${timer.id}">${mins}:${secs.toString().padStart(2, '0')}</span>`
+            : `<span class="timer-countdown${countdownClass}" id="countdown-${timer.id}">${mins}:${secs.toString().padStart(2, '0')}</span>`;
 
         const nameDisplay = timer.status === 'ended' ? (timer.isNameHidden ? 'none' : 'inline') : 'none';
         card.innerHTML = `
@@ -797,8 +805,8 @@
         }
         renderTimer(timer);
 
-        // If list is hidden, show this card when timer ends
-        if (isListHidden) {
+        // If timer list is hidden and timer just ended, show it
+        if (isTimerHidden) {
             const newCard = document.getElementById(`timer-${timer.id}`);
             if (newCard) {
                 newCard.classList.add('forced-visible');
@@ -973,14 +981,13 @@
 
     function handleTitleClick(e) {
         if (e.altKey) {
-            // Alt+click: toggle list visibility
+            // Alt+click: toggle timer list visibility (only affects running timers)
             e.preventDefault();
-            isListHidden = !isListHidden;
+            isTimerHidden = !isTimerHidden;
             document.querySelectorAll('.timer-card').forEach(card => {
                 const timerId = parseInt(card.id.replace('timer-', ''));
                 const timer = timers.find(t => t.id === timerId);
-                // Only hide if list is hidden AND timer is NOT ended
-                if (isListHidden && timer && timer.status !== 'ended') {
+                if (isTimerHidden && timer && timer.status !== 'ended') {
                     card.classList.add('hidden-card');
                 } else {
                     card.classList.remove('hidden-card');
