@@ -410,7 +410,7 @@ B: Sure thing. Send me the file and I will check it. Let us finish by tomorrow.
                 if (!currentGroup.en.trim() && !currentGroup.zh.trim()) return;
 
                 const enParts = currentGroup.en.split(/(?<=[?.!])\s+/);
-                const zhParts = currentGroup.zh.split(/(?<=[？。])/);
+                const zhParts = currentGroup.zh.split(/(?<=[？。！])/);
 
                 const enSentences = enParts.map(s => s.trim()).filter(s => s);
                 const zhSentences = zhParts.map(s => s.trim()).filter(s => s);

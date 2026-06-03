@@ -545,7 +545,7 @@
     confirmBtn.addEventListener('click', (e) => addTimer(e));
 
     function addTimer(e) {
-        if(e.altKey){
+        if (e.altKey) {
             getClipboardText().then(text => {
                 if (!text) {
                     alert('Please enter a card name');
@@ -650,6 +650,10 @@
 
             // 3. 拼成想要的格式
             answer = matches.map(word => `"${word.startsWith("*") || word.startsWith("^") ? word.slice(1) : word}"`).join(', ');
+        } else if (name.includes("英") && name.includes("美")) {
+            const array = name.split("\n")
+            name = array[2]
+            answer = array[0] + array[1]
         }
 
 
@@ -1045,7 +1049,8 @@
         const nameInput = document.getElementById('editNameInput');
         const answerInput = document.getElementById('editAnswerInput');
 
-        nameInput.value = timer.originalName.replaceAll("~~", "").replaceAll("~^", "").replaceAll("~^", "").replaceAll("~*", "");;
+        nameInput.value = timer.originalName.replaceAll("~~", "").replaceAll("~^", "").replaceAll("~^", "").replaceAll("~*", "");
+        ;
         answerInput.value = timer.answer || '';
 
         modal.classList.add('active');
@@ -1076,9 +1081,9 @@
                 } else if (stopWords.includes(w)) {
                     return w + " "
                 } else if (i === 1) {
-                    return w[0] + w.length + (w.endsWith(",")?", ": " ")
+                    return w[0] + w.length + (w.endsWith(",") ? ", " : " ")
                 } else {
-                    return w.length + (w.endsWith(",")?", ": " ")
+                    return w.length + (w.endsWith(",") ? ", " : " ")
                 }
             } else if (match.startsWith("*")) {
                 if (i === 0) {
