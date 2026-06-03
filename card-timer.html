@@ -405,7 +405,7 @@
 </head>
 <body>
 <div class="container">
-    <h1 onclick="handleTitleClick(event)">Card Timer</h1>
+    <h1 onclick="handleTitleClick(event)">Card Timer <span id="timerStatus" style="font-size:14px;color:#888;font-weight:normal"></span></h1>
 
     <div class="input-section">
         <input type="text" id="cardNameInput" placeholder="Card name...">
@@ -470,6 +470,12 @@
     let isFocusMode = false;
     let isCountdownVisible = true;
     let isTimerHidden = false;
+
+    function updateTimerStatus() {
+        const running = timers.filter(t => t.status === 'running').length;
+        const ended = timers.filter(t => t.status === 'ended').length;
+        document.getElementById('timerStatus').textContent = `(${running} 倒计时中, ${ended} 已结束)`;
+    }
 
     // Click on ended timer card to pin/promote
     timerList.addEventListener('click', (e) => {
@@ -685,6 +691,7 @@
         timers.unshift(timer);
         renderTimer(timer);
         startCountdown(timer);
+        updateTimerStatus();
     }
 
     function renderTimer(timer) {
@@ -815,6 +822,7 @@
 
         // TTS speak card name twice
         speakOnce(timer.name);
+        updateTimerStatus();
     }
 
     function speakOnce(text) {
@@ -874,6 +882,7 @@
 
         // Start countdown
         startCountdown(timer);
+        updateTimerStatus();
     }
 
     function quickRestart(id, mins) {
@@ -906,6 +915,7 @@
 
         // Start countdown
         startCountdown(timer);
+        updateTimerStatus();
     }
 
     function deleteTimer(id) {
@@ -927,6 +937,7 @@
             isFocusMode = false;
             timerList.classList.remove('focus-mode');
         }
+        updateTimerStatus();
     }
 
     function showAnswer(id, e) {
@@ -1026,6 +1037,7 @@
                 }
                 renderTimer(timer);
                 startCountdown(timer);
+                updateTimerStatus();
             }
             return;
         }
@@ -1092,6 +1104,7 @@
 
             // Auto restart the countdown
             startCountdown(timer);
+            updateTimerStatus();
         }
 
         closeModal();
