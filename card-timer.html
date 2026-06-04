@@ -100,7 +100,7 @@
         }
 
         #confirmBtn {
-            width: 100%;
+            width: calc(100% - 110px);
             padding: 12px;
             font-size: 16px;
             background: #3a86ff;
@@ -112,6 +112,21 @@
 
         #confirmBtn:hover {
             background: #2a6edc;
+        }
+
+        #exportBtn {
+            width: 100px;
+            padding: 12px;
+            font-size: 16px;
+            background: #444;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #exportBtn:hover {
+            background: #555;
         }
 
         .timer-list {
@@ -419,6 +434,7 @@
         <div class="input-row">
             <input type="text" id="answerInput" placeholder="Answer (optional)">
             <select id="durationSelect">
+                <option value="0">0min</option>
                 <option value="60">1min</option>
                 <option value="120" selected>2min</option>
                 <option value="180">3min</option>
@@ -432,8 +448,9 @@
             <input type="checkbox" id="defNewMinCheckbox" checked style="margin-left:5px">
             <input type="number" id="customDurationInput" placeholder="min" min="1">
         </div>
-        <div style="display: flex">
+        <div style="display: flex; gap: 10px;">
             <button id="confirmBtn">Confirm</button>
+            <button id="exportBtn">Export</button>
         </div>
     </div>
 
@@ -472,6 +489,7 @@
     const customDurationInput = document.getElementById('customDurationInput');
     const answerInput = document.getElementById('answerInput');
     const confirmBtn = document.getElementById('confirmBtn');
+    const exportBtn = document.getElementById('exportBtn');
     const timerList = document.getElementById('timerList');
 
     let isFocusMode = false;
@@ -487,14 +505,24 @@
     // Initialize status display
     updateTimerStatus();
 
-    // Click on ended timer card to pin/promote
+    // Click on timer card
     timerList.addEventListener('click', (e) => {
         const card = e.target.closest('.timer-card');
         if (!card) return;
 
         const timerId = parseInt(card.id.replace('timer-', ''));
         const timer = timers.find(t => t.id === timerId);
-        if (!timer || timer.status !== 'ended') return;
+        if (!timer) return;
+
+        // Ctrl+click: delete timer
+        if (e.ctrlKey) {
+            e.preventDefault();
+            deleteTimer(timerId);
+            return;
+        }
+
+        // Only ended timers can be pinned/promoted
+        if (timer.status !== 'ended') return;
 
         const isAltKey = e.altKey;
 
@@ -571,6 +599,15 @@
 
     // Confirm button click handler
     confirmBtn.addEventListener('click', (e) => addTimer(e));
+
+    exportBtn.addEventListener('click', () => {
+        const names = timers.map(t => t.name).join('|||');
+        navigator.clipboard.writeText(names).then(() => {
+            // Optional: brief visual feedback could be added
+        }).catch(err => {
+            console.error('Failed to copy:', err);
+        });
+    });
 
     function addTimer(e) {
         if (e.altKey) {
@@ -687,7 +724,7 @@
 
         const timer = {
             id: Date.now(),
-            name: name.replaceAll("<<", "<b>").replaceAll(">>",  "</b>"),
+            name: name.replaceAll("<{", "<b>").replaceAll("}>",  "</b>"),
             originalName: originalName,
             answer: answer,
             duration: durationSeconds,
@@ -700,7 +737,15 @@
 
         timers.unshift(timer);
         renderTimer(timer);
-        startCountdown(timer);
+
+        if (durationSeconds === 0) {
+            // Immediately end timer for 0 second duration
+            timer.remaining = 0;
+            timer.status = 'ended';
+            onTimerEnd(timer);
+        } else {
+            startCountdown(timer);
+        }
         updateTimerStatus();
     }
 

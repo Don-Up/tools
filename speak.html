@@ -285,6 +285,15 @@
             color: var(--text-primary);
         }
 
+        .result-item.practiced {
+            background: #555;
+            opacity: 0.6;
+        }
+
+        .result-item.practiced .en-text.masked::before {
+            opacity: 1;
+        }
+
         .result-item.en-text-hidden .en-text {
             display: none;
         }
@@ -372,10 +381,15 @@ B: Sure thing. Send me the file and I will check it. Let us finish by tomorrow.
 
         loadTheme();
 
+        let practicedIndex = parseInt(localStorage.getItem('practicedIndex')) || -1;
+        let isAutoLoad = false;
+
         const savedInput = localStorage.getItem('speakInput');
         if (savedInput) {
+            isAutoLoad = true;
             document.getElementById('inputText').value = savedInput;
             generate();
+            isAutoLoad = false;
         }
 
         function detectLanguage(text) {
@@ -458,7 +472,7 @@ B: Sure thing. Send me the file and I will check it. Let us finish by tomorrow.
             }
 
             resultList.innerHTML = results.map((item, index) => `
-                <li class="result-item">
+                <li class="result-item" onclick="if(event.altKey) togglePracticed(${index})">
                     ${item.speaker ? `<span class="speaker">${item.speaker}</span>` : ''}
                     <button class="copy-btn" onclick="copyText(this)">Copy</button>
                     <button class="play-en-btn" onclick="playText(this, 'en')">PlayEN</button>
@@ -468,13 +482,28 @@ B: Sure thing. Send me the file and I will check it. Let us finish by tomorrow.
                     <div class="zh-text">${escapeHtml(item.zh)}</div>
                 </li>
             `).join('');
+            if (isAutoLoad) {
+                restorePracticedState();
+            } else {
+                practicedIndex = -1;
+                savePracticedIndex();
+            }
+        }
+
+        function restorePracticedState() {
+            if (practicedIndex >= 0) {
+                const items = document.querySelectorAll('.result-item');
+                if (items[practicedIndex]) {
+                    items[practicedIndex].classList.add('practiced');
+                }
+            }
         }
 
         function copyText(btn) {
             const item = btn.closest('.result-item');
             const en = item.querySelector('.en-text').textContent;
             const zh = item.querySelector('.zh-text').textContent;
-            navigator.clipboard.writeText("<<"+zh+">>"+"<br>"+en).then(() => {
+            navigator.clipboard.writeText("<{"+zh+"}>"+"<br>"+en).then(() => {
                 btn.textContent = 'Copied';
                 setTimeout(() => btn.textContent = 'Copy', 1500);
             });
@@ -484,6 +513,25 @@ B: Sure thing. Send me the file and I will check it. Let us finish by tomorrow.
             const item = btn.closest('.result-item');
             const text = lang === 'en' ? item.querySelector('.en-text').textContent : item.querySelector('.zh-text').textContent;
             speakText(text, lang);
+        }
+
+        function savePracticedIndex() {
+            localStorage.setItem('practicedIndex', practicedIndex);
+        }
+
+        function togglePracticed(index) {
+            const items = document.querySelectorAll('.result-item');
+            if (practicedIndex === index) {
+                practicedIndex = -1;
+                items[index]?.classList.remove('practiced');
+            } else {
+                if (practicedIndex >= 0) {
+                    items[practicedIndex]?.classList.remove('practiced');
+                }
+                practicedIndex = index;
+                items[index]?.classList.add('practiced');
+            }
+            savePracticedIndex();
         }
 
         let enMasked = true;
