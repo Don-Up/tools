@@ -234,7 +234,7 @@
         .result-item .progress-mark {
             display: inline-block;
             color: var(--text-secondary);
-            font-size: 12px;
+            font-size: 15px;
             margin-right: 8px;
         }
 
@@ -503,6 +503,7 @@ B: Sure thing. Send me the file and I will check it. Let us finish by tomorrow.
                 const items = document.querySelectorAll('.result-item');
                 if (items[practicedIndex]) {
                     items[practicedIndex].classList.add('practiced');
+                    items[practicedIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
             }
         }
