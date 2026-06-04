@@ -231,6 +231,13 @@
             right: 130px;
         }
 
+        .result-item .progress-mark {
+            display: inline-block;
+            color: var(--text-secondary);
+            font-size: 12px;
+            margin-right: 8px;
+        }
+
         .result-item .speaker {
             display: inline-block;
             background: var(--accent-primary);
@@ -473,6 +480,7 @@ B: Sure thing. Send me the file and I will check it. Let us finish by tomorrow.
 
             resultList.innerHTML = results.map((item, index) => `
                 <li class="result-item" onclick="if(event.altKey) togglePracticed(${index})">
+                    <span class="progress-mark">${index + 1}/${results.length}</span>
                     ${item.speaker ? `<span class="speaker">${item.speaker}</span>` : ''}
                     <button class="copy-btn" onclick="copyText(this)">Copy</button>
                     <button class="play-en-btn" onclick="playText(this, 'en')">PlayEN</button>
