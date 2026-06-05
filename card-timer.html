@@ -710,7 +710,7 @@
             // matches = ["extracting", "arrays", "objects"]
 
             // 2. 把 {{...}} 替换成 ____
-            if (name.includes(" → ")) {
+            if (name.includes(" → ") || name.includes(" / ")) {
                 name = name.replace(/~.*?~~/g, '____');
                 matches.forEach(match => {
                     name = name.replace("____", match2result(match))
@@ -764,7 +764,7 @@
                 const secondNames = names[1].replace("→", "").split("→")
                 second = `<span style="color:lightgreen;">${secondNames[0]}</span>` + "<br>" + `<span">${secondNames[1]}</span>`
             }
-            return timer.name.includes("::") ? `<span style="color:yellow;font-weight: bold;max-lines: 2;text-overflow: ellipsis">${first}</span>` + "<br>" + second : timer.name
+            return timer.name.includes("::") ? `<span style="color:gold;max-lines: 2;text-overflow: ellipsis">${first}</span>` + "<br>" + second : timer.name
         } else {
             return timer.name
         }
@@ -1057,6 +1057,7 @@ ${getName(timer)}
         if (e.button === 0 && e.ctrlKey) {
             // Middle-click + Alt: open edit modal
             e.preventDefault();
+            e.stopPropagation()
             openEditModal(id);
         } else if (e.button === 0) {
             // Left click: copy to clipboard
@@ -1272,7 +1273,7 @@ ${getName(timer)}
                 // matches = ["extracting", "arrays", "objects"]
 
                 // 2. 把 {{...}} 替换成 ____
-                if (name.includes(" → ")) {
+                if (name.includes(" → ") || name.includes(" / ")) {
                     name = name.replace(/~.*?~~/g, '____');
                     matches.forEach(match => {
                         name = name.replace("____", match2result(match))
