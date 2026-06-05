@@ -425,9 +425,7 @@
 </head>
 <body>
 <div class="container">
-    <h1 onclick="handleTitleClick(event)">Card Timer <span id="timerStatus"
-                                                           style="font-size:14px;color:#888;font-weight:normal"></span>
-    </h1>
+    <h1 onclick="handleTitleClick(event)">Card Timer <span id="timerStatus" style="font-size:14px;color:#888;font-weight:normal"></span> <label id="ttsToggle" style="cursor:pointer;font-size:14px;color:#888;font-weight:normal"><input type="checkbox" id="ttsSwitch" checked style="margin-left:8px"> TTS</label></h1>
 
     <div class="input-section">
         <input type="text" id="cardNameInput" placeholder="Card name...">
@@ -495,6 +493,14 @@
     let isFocusMode = false;
     let isCountdownVisible = true;
     let isTimerHidden = false;
+    let isTtsEnabled = localStorage.getItem('ttsEnabled') !== 'false';
+
+    // Initialize TTS switch
+    document.getElementById('ttsSwitch').checked = isTtsEnabled;
+    document.getElementById('ttsSwitch').addEventListener('change', (e) => {
+        isTtsEnabled = e.target.checked;
+        localStorage.setItem('ttsEnabled', isTtsEnabled);
+    });
 
     function updateTimerStatus() {
         const running = timers.filter(t => t.status === 'running').length;
@@ -601,7 +607,7 @@
     confirmBtn.addEventListener('click', (e) => addTimer(e));
 
     exportBtn.addEventListener('click', () => {
-        const names = timers.map(t => t.name).join('|||');
+        const names = timers.map(t => t.originalName).join('|||');
         navigator.clipboard.writeText(names).then(() => {
             // Optional: brief visual feedback could be added
         }).catch(err => {
@@ -893,7 +899,9 @@ ${getName(timer)}
         }
 
         // TTS speak card name twice
-        speakOnce(timer.name);
+        if (isTtsEnabled) {
+            speakOnce(timer.name);
+        }
         updateTimerStatus();
     }
 
