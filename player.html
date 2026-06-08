@@ -123,6 +123,7 @@
         <label><input type="radio" name="playMode" value="random" checked>Random</label>
         <label><input type="radio" name="playMode" value="sequential">Seq</label>
         <label><input type="radio" name="playMode" value="single">Single</label>
+        <label><input type="radio" name="playMode" value="double">Double</label>
         <a id="currentLink" href="#" target="_blank"
            style="margin-left: 10px; color: #0af; text-decoration: underline;">
             🔗 Link
@@ -7062,6 +7063,7 @@
     let player;
     let playMode = "random";
     let progressInterval;
+    let doublePlayCount = 0;
 
     const current = document.getElementById("current");
 
@@ -7176,6 +7178,15 @@
             if (playMode === "random") playRandomVideo();
             else if (playMode === "sequential") playNextVideo();
             else if (playMode === "single") replayCurrentVideo();
+            else if (playMode === "double") {
+                if (doublePlayCount === 0) {
+                    doublePlayCount = 1;
+                    replayCurrentVideo();
+                } else {
+                    doublePlayCount = 0;
+                    playRandomVideo();
+                }
+            }
         } else if (event.data === YT.PlayerState.PLAYING) {
             startProgressBar();
         } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.BUFFERING) {
@@ -7229,7 +7240,8 @@
     });
 
     document.getElementById("nextButton").addEventListener("click", () => {
-        if (playMode === "random" || playMode === "single") playRandomVideo();
+        doublePlayCount = 0;
+        if (playMode === "random" || playMode === "single" || playMode === "double") playRandomVideo();
         else playNextVideo();
     });
 
