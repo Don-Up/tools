@@ -140,6 +140,31 @@
 
 <script>
     const zack = [
+        "https://www.youtube.com/shorts/CbaGlBuKJng",
+        "https://www.youtube.com/shorts/EDl2c81elCY",
+        "https://www.youtube.com/shorts/HmLSHWzbh7M",
+        "https://www.youtube.com/shorts/OKRbZq3D7xg",
+        "https://www.youtube.com/shorts/lsTjYvoUZ_Q",
+        "https://www.youtube.com/shorts/nWuVo5mN8Fk",
+        "https://www.youtube.com/shorts/QmKa42DgAgw",
+        "https://www.youtube.com/shorts/8WnPghAtcNM",
+        "https://www.youtube.com/shorts/p9qjMK-X_fQ",
+        "https://www.youtube.com/shorts/afr3UP5305A",
+        "https://www.youtube.com/shorts/ehXAyMXLsGw",
+        "https://www.youtube.com/shorts/E-xN78l5e10",
+        "https://www.youtube.com/shorts/THDwxvcypus",
+        "https://www.youtube.com/shorts/cbf03Yzzf3I",
+        "https://www.youtube.com/shorts/Cib-CzoVBcI",
+        "https://www.youtube.com/shorts/tSeXn2np06U",
+        "https://www.youtube.com/shorts/kl5ESSQFF7o",
+        "https://www.youtube.com/shorts/fx3TlDQFM8s",
+        "https://www.youtube.com/shorts/tNjQ9bUSWEc",
+        "https://www.youtube.com/shorts/rREBsFbmaos",
+        "https://www.youtube.com/shorts/Is2RXtLCepo",
+        "https://www.youtube.com/shorts/sWk_w2LiJtA",
+        "https://www.youtube.com/shorts/UgP7_6_i1J4",
+        "https://www.youtube.com/shorts/_SIlet5IAIg",
+        "https://www.youtube.com/shorts/i3d7hYWSPPI",
         "https://www.youtube.com/shorts/eJyBecfmdoE",
         "https://www.youtube.com/shorts/iCAt9aNEMVE",
         "https://www.youtube.com/shorts/1LWzVIyB2G4",
@@ -7016,6 +7041,17 @@
     let youtubeIDs = result.map(link => new URL(link).pathname.split("/shorts/")[1]);
     const allIds = youtubeIDs
     let historyQueue = [];
+    let shuffledIndices = [];
+    let shufflePointer = 0;
+
+    function shufflePlaylist() {
+        shuffledIndices = youtubeIDs.map((_, i) => i);
+        for (let i = shuffledIndices.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffledIndices[i], shuffledIndices[j]] = [shuffledIndices[j], shuffledIndices[i]];
+        }
+        shufflePointer = 0;
+    }
 
     confirm.addEventListener("click", function () {
         localStorage.setItem("inputContent", inputContent.value)
@@ -7072,6 +7108,7 @@
                 // onReady: startProgressBar,
             },
         });
+        shufflePlaylist();
     }
 
     document.getElementById("btnBackward").addEventListener("click", () => {
@@ -7154,14 +7191,10 @@
     }
 
     function playRandomVideo() {
-
-        let randomIndex;
-
-        do {
-            randomIndex = Math.floor(Math.random() * youtubeIDs.length);
-        } while (randomIndex === currentIndex || historyQueue.includes(randomIndex));
+        if (shufflePointer >= shuffledIndices.length) shufflePlaylist();
+        const randomIndex = shuffledIndices[shufflePointer++];
         historyQueue.push(randomIndex);
-        if (youtubeIDs.length < 100 && historyQueue.length > Math.floor(youtubeIDs.length / 2)) historyQueue.shift();
+        if (historyQueue.length > Math.floor(youtubeIDs.length / 2)) historyQueue.shift();
         loadVideo(randomIndex);
     }
 
@@ -7178,7 +7211,8 @@
     }
 
     function replayCurrentVideo() {
-        loadVideo(currentIndex);
+        player.seekTo(0, true);
+        player.playVideo();
     }
 
     document.querySelectorAll('input[name="playMode"]').forEach(radio => {
