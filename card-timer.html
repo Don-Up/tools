@@ -6,7 +6,7 @@
     <title>CardTimer</title>
     <style>
         b {
-            color:yellow;
+            color: yellow;
         }
 
         * {
@@ -425,7 +425,13 @@
 </head>
 <body>
 <div class="container">
-    <h1 onclick="handleTitleClick(event)">Card Timer <span id="timerStatus" style="font-size:14px;color:#888;font-weight:normal"></span> <label id="ttsToggle" style="cursor:pointer;font-size:14px;color:#888;font-weight:normal"><input type="checkbox" id="ttsSwitch" checked style="margin-left:8px"> TTS</label></h1>
+    <h1 onclick="handleTitleClick(event)">Card Timer <span id="timerStatus"
+                                                           style="font-size:14px;color:#888;font-weight:normal"></span>
+        <label id="ttsToggle" style="cursor:pointer;font-size:14px;color:#888;font-weight:normal"><input type="checkbox"
+                                                                                                         id="ttsSwitch"
+                                                                                                         checked
+                                                                                                         style="margin-left:8px">
+            TTS</label></h1>
 
     <div class="input-section">
         <input type="text" id="cardNameInput" placeholder="Card name...">
@@ -606,8 +612,13 @@
     // Confirm button click handler
     confirmBtn.addEventListener('click', (e) => addTimer(e));
 
-    exportBtn.addEventListener('click', () => {
-        const names = timers.map(t => t.originalName).join('|||');
+    exportBtn.addEventListener('click', (e) => {
+        let names = ""
+        if (e.altKey) {
+            names = timers.map(t => t.originalName.replaceAll("<{", "<b>").replaceAll("}>", "</b>").replaceAll("<br>", "|")).join('\n');
+        } else {
+            names = timers.map(t => t.originalName).join('|||');
+        }
         navigator.clipboard.writeText(names).then(() => {
             // Optional: brief visual feedback could be added
         }).catch(err => {
@@ -730,7 +741,7 @@
 
         const timer = {
             id: Date.now(),
-            name: name.replaceAll("<{", "<b>").replaceAll("}>",  "</b>").replaceAll("\"", "'"),
+            name: name.replaceAll("<{", "<b>").replaceAll("}>", "</b>").replaceAll("\"", "'"),
             originalName: originalName,
             answer: answer,
             duration: durationSeconds,
@@ -756,7 +767,7 @@
     }
 
     function getName(timer) {
-        if(timer.name.includes("::")){
+        if (timer.name.includes("::")) {
             const names = timer.name.split('::')
             const first = names[0]
             let second = names[1]
@@ -906,7 +917,7 @@ ${getName(timer)}
     }
 
     function speakOnce(text) {
-        if(!text) return
+        if (!text) return
         if (text.includes("::")) {
             text = text.split("::")[0]
         }
