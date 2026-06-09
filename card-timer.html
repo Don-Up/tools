@@ -730,7 +730,7 @@
 
         const timer = {
             id: Date.now(),
-            name: name.replaceAll("<{", "<b>").replaceAll("}>",  "</b>"),
+            name: name.replaceAll("<{", "<b>").replaceAll("}>",  "</b>").replaceAll("\"", "'"),
             originalName: originalName,
             answer: answer,
             duration: durationSeconds,
