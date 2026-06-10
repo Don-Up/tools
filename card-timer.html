@@ -508,6 +508,36 @@
         localStorage.setItem('ttsEnabled', isTtsEnabled);
     });
 
+    let voiceEn = null
+
+    // 推荐的正确获取方式
+    function loadVoices() {
+        return new Promise((resolve) => {
+            // 先尝试立即获取
+            let voices = window.speechSynthesis.getVoices();
+            if (voices.length) {
+                resolve(voices);
+                return;
+            }
+            // 若为空，则监听事件，等待异步加载完成
+            window.speechSynthesis.onvoiceschanged = () => {
+                voices = window.speechSynthesis.getVoices();
+                resolve(voices);
+            };
+        });
+    }
+
+    // 调用方式
+    loadVoices().then(voices => {
+        // 在这里进行后续操作，如填充下拉菜单等
+        for (const voice of voices) {
+            if (voice.name.includes("Guy")) {
+                voiceEn = voice
+                break
+            }
+        }
+    });
+
     function updateTimerStatus() {
         const running = timers.filter(t => t.status === 'running').length;
         const ended = timers.filter(t => t.status === 'ended').length;
@@ -644,6 +674,9 @@
             })
         } else {
             let name = cardNameInput.value.trim();
+            if(!name && answerInput.value.trim()){
+                name = "-"
+            }
             if (!name) {
                 alert('Please enter a card name');
                 return;
@@ -911,7 +944,11 @@ ${getName(timer)}
 
         // TTS speak card name twice
         if (isTtsEnabled) {
-            speakOnce(timer.name);
+            if (timer.name !== "-") {
+                speakOnce(timer.name);
+            } else {
+                speakOnce((timer.answer + ", ").repeat(3))
+            }
         }
         updateTimerStatus();
     }
@@ -924,9 +961,11 @@ ${getName(timer)}
         if ('speechSynthesis' in window) {
             const hasChinese = /[一-鿿]/.test(text);
             const lang = hasChinese ? 'zh-CN' : 'en-US';
-
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = lang;
+            if (lang === 'en-US') {
+                utterance.voice = voiceEn
+            }
             speechSynthesis.speak(utterance);
         }
     }
