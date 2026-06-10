@@ -28,7 +28,7 @@
             border-radius: 1px;
         }
 
-        .word, small:hover::before {
+        .word:hover::before {
             opacity: 0; /* 悬停时隐藏遮罩 */
         }
 
@@ -1059,7 +1059,7 @@
     }
 
     function processText(input) {
-        input = input.replaceAll("<{",  "<small>(").replaceAll("}>", ")</small>")
+        input = input.replaceAll("<{",  "<small>|").replaceAll("}>", "|</small>")
 
 
         const contentDiv = document.getElementById("content");

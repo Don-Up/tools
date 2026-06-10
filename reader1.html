@@ -5,13 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document & TTS</title>
     <style>
-        .word {
+        small {
+            color:#aaa;
+        }
+
+        .word, small {
             position: relative;
             display: inline-block; /* 保持伪元素和文本的大小一致 */
             line-height: 2;
         }
 
-        .word::before {
+        .word, small::before {
             content: ""; /* 生成伪元素 */
             position: absolute;
             top: 5px;
@@ -24,7 +28,7 @@
             border-radius: 1px;
         }
 
-        .word:hover::before {
+        .word, small:hover::before {
             opacity: 0; /* 悬停时隐藏遮罩 */
         }
 
@@ -931,8 +935,8 @@
 
     const rootElement = document.getElementById("content");
 
-    if (localStorage.getItem("text1")) {
-        processText(localStorage.getItem("text1"));
+    if (localStorage.getItem("text")) {
+        processText(localStorage.getItem("text"));
         highlightWords(rootElement);
         document.querySelectorAll(".text-block").forEach(textBlock => {
             textBlock.style.fontFamily = currentFont;
@@ -981,7 +985,7 @@
                 input.value.replace(/([,.])\s+/g, "$1\n").trim() :
                 input.value
             // .replace(/^[1-9]\.\s/gm, "")
-            localStorage.setItem("text1", value.replace(/\[(.*?)\]\(.*?\)/g, '$1'));
+            localStorage.setItem("text", value.replace(/\[(.*?)\]\(.*?\)/g, '$1'));
             processText(value.replace(/\[(.*?)\]\(.*?\)/g, '$1'));
             document.body.removeChild(input);
             document.body.removeChild(confirmBtn);
@@ -1055,6 +1059,9 @@
     }
 
     function processText(input) {
+        input = input.replaceAll("<{",  "<small>|").replaceAll("}>", "|</small>")
+
+
         const contentDiv = document.getElementById("content");
         contentDiv.innerHTML = "";
 
@@ -1164,6 +1171,8 @@
                 return;
             }
 
+            // line = line.replaceAll("{{",  "<small>(").replaceAll("}}", ")</small>")
+
             line = line.trim()
                 .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
                 .replace(/`(.*?)`/g, "<span class=\"code-span\">$1</span>")
@@ -1255,33 +1264,6 @@
             document.querySelectorAll('pre').forEach(pre => {
                 const code = pre.querySelector("code")
                 const text = code.innerText
-                // 转义所有的<和>
-                // code.addEventListener('click', function (event) {
-                //     if(event.altKey) return
-                //     const codeText = text
-                //         .replace(event.ctrlKey ? /\/\/.*$/gm : /\/\//g, "")
-                //         .replace(/\/\*\*[\s\S]*?\*\//g, "")
-                //         .replaceAll("args", "arguments")
-                //         .replaceAll("...", ", spread-")
-                //         // 替换所有(任意长度字符) => 为"callback"
-                //         .replace(/(?<!\bit)\([^)]*\)\s*=>/g, "-callback-")
-                //         .replace(/!==?/g, ",not equal,")
-                //         .replace(/<==?/g, ",less or equal,")
-                //         .replace(/>==?/g, ",greater or equal,")
-                //         .replaceAll("=>", "-arrow-")
-                //         .replace(/==?=?/g, ",equal,")
-                //         .replaceAll("console.", "")
-                //         // 过滤掉所有以import开头的语句
-                //         .replace(/import .* from '.*';/g, "")
-                //         .replaceAll(" < ", ",less,")
-                //         .replaceAll(" > ", ",greater,")
-                //         .replaceAll(" + ", "-plus-")
-                //         .replaceAll(" - ", "-minus-")
-                //         .replaceAll(" * ", "-multiply-")
-                //         .replaceAll(" / ", "-divide-")
-                //     playText(codeText)
-                // })
-
                 const button = document.createElement('button')
                 button.style.position = 'absolute'  // Add this
                 button.style.top = '10px'          // Add px unit
@@ -1397,7 +1379,7 @@
             }
             // console.log("Final Text2:", finalText)
         }
-
+        finalText = finalText.replaceAll("<small>", ", ").replaceAll("</small>", "")
         // 将所有<b>XX</b>替换为XX
         finalText = finalText.replace(/<b>(.*?)<\/b>/g, '$1');
         // 将所有的<span class="code-span">XX</span>替换为XX
@@ -1421,7 +1403,7 @@
             utterance.lang = "en-US";
             utterance.rate = 1;
         } else {
-            utterance.voice = hasCN? cnVoice : currentVoice;
+            utterance.voice = currentVoice // hasCN? cnVoice : currentVoice;
             utterance.rate = parseFloat(rateSlider.value);
         }
         //
@@ -1809,3 +1791,5 @@
     });
 </script>
 </body>
+
+

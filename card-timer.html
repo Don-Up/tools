@@ -656,6 +656,46 @@
         });
     });
 
+    function convertText(text) {
+        if (!text) return '';
+
+        // 1. 按换行符分割成数组，并过滤掉可能存在的空行
+        const lines = text.split('\n').filter(line => line.trim() !== '');
+
+        // 2. 遍历每一行进行处理
+        const processedLines = lines.map((line, index) => {
+            // 找到第一个 '|' 的位置
+            const firstPipeIndex = line.indexOf('|');
+
+            // 如果当前行没有 '|'，直接返回原内容（防御性编程）
+            if (firstPipeIndex === -1) return line;
+
+            // 将第一个 '|' 替换为 ':: <br>'
+            let newLine = line.substring(0, firstPipeIndex) + '::' + line.substring(firstPipeIndex + 1);
+
+            // 找到第二个 '|' 的位置（注意：此时字符串已经改变，需要重新查找）
+            const secondPipeIndex = newLine.indexOf('|');
+
+            // 判断是否为最后一行
+            const isLastLine = index === lines.length - 1;
+
+            if (secondPipeIndex !== -1) {
+                if (isLastLine) {
+                    // 3. 最后一行：去除第二个 '|' 及其后面的内容（根据要求“去除”）
+                    newLine = newLine.substring(0, secondPipeIndex);
+                } else {
+                    // 2. 非最后一行：将第二个 '|' 替换为 '|||'
+                    newLine = newLine.substring(0, secondPipeIndex) + '|||' + newLine.substring(secondPipeIndex + 1);
+                }
+            }
+
+            return newLine;
+        });
+
+        // 4. 将所有处理后的行拼接起来，中间不加换行符
+        return processedLines.join('');
+    }
+
     function addTimer(e) {
         if (e.altKey) {
             getClipboardText().then(text => {
@@ -664,6 +704,21 @@
                     return;
                 }
 
+                const cardNames = text.split("|||")
+                createTimersWithDelay(cardNames)
+
+                // Reset inputs
+                cardNameInput.value = '';
+                answerInput.value = '';
+                customDurationInput.value = '';
+            })
+        } else if(e.ctrlKey) {
+            getClipboardText().then(text => {
+                if (!text) {
+                    alert('Please enter a card name');
+                    return;
+                }
+                text = convertText(text)
                 const cardNames = text.split("|||")
                 createTimersWithDelay(cardNames)
 
