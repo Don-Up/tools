@@ -748,6 +748,7 @@
     }
 
     function createTimersWithDelay(cardNames, delay = 100) {
+        cardNames.reverse()
         let index = 0;
 
         function createNext() {
@@ -784,6 +785,8 @@
     ]
 
     function createTimer(name) {
+        name = name.replaceAll("&amp;", "&")
+
         let durationSeconds;
         if (durationSelect.value === 'custom') {
             const durationMin = parseInt(customDurationInput.value, 10);
@@ -1330,11 +1333,12 @@ ${getName(timer)}
                 // }
 
                 // 显示完整的首单词，第二个单词的首字母以及一些虚词，其它仅显示长度
+                if(w.length === 1) return w
                 if (i === 0) {
                     return w.substring(1) + " "
                 } else if (stopWords.includes(w)) {
                     return w + " "
-                } else if (i === 1 || i === words.length - 1) {
+                } else if (i === 1 || i === 2 || i === words.length - 1) {
                     return w[0] + w.length + (w.endsWith(",") ? ", " : " ")
                 } else {
                     return w.length + (w.endsWith(",") ? ", " : " ")
