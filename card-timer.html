@@ -812,7 +812,7 @@
             // matches = ["extracting", "arrays", "objects"]
 
             // 2. 把 {{...}} 替换成 ____
-            if (name.includes(" → ") || name.includes(" / ")) {
+            if (name.includes(" → ") || name.includes(" / ") || name.includes("~*")) {
                 name = name.replace(/~.*?~~/g, '____');
                 matches.forEach(match => {
                     name = name.replace("____", match2result(match))
@@ -1382,7 +1382,7 @@ ${getName(timer)}
                 // matches = ["extracting", "arrays", "objects"]
 
                 // 2. 把 {{...}} 替换成 ____
-                if (name.includes(" → ") || name.includes(" / ")) {
+                if (name.includes(" → ") || name.includes(" / ") || name.includes("~*")) {
                     name = name.replace(/~.*?~~/g, '____');
                     matches.forEach(match => {
                         name = name.replace("____", match2result(match))
