@@ -188,8 +188,6 @@
     </style>
 </head>
 <body>
-    <h1>Mermaid Sequence Diagram Viewer</h1>
-
     <div id="paste-area">
         <button id="paste-btn">Paste from Clipboard</button>
         <p class="hint">Click the button to paste mermaid code and JSON explanation</p>
@@ -213,6 +211,7 @@ sequenceDiagram
 
     <div id="app">
         <div id="navigation">
+            <h3>Mermaid Sequence Diagram Viewer</h3>
             <select id="voice-select"></select>
             <label style="color: #e0e0e0; display: flex; align-items: center; gap: 5px;">
                 <input type="checkbox" id="auto-play-checkbox">
@@ -227,6 +226,7 @@ sequenceDiagram
             <span id="position">1/10</span>
             <button id="next-btn">Next</button>
             <button id="last-btn">Last</button>
+            <button id="nav-paste-btn">Paste</button>
         </div>
         <div id="explanation" style="cursor: pointer;" title="Click to speak"></div>
         <div id="diagram-container">
@@ -252,6 +252,7 @@ sequenceDiagram
         const nextBtn = document.getElementById('next-btn');
         const firstBtn = document.getElementById('first-btn');
         const lastBtn = document.getElementById('last-btn');
+        const navPasteBtn = document.getElementById('nav-paste-btn');
         const positionEl = document.getElementById('position');
         const errorEl = document.getElementById('error');
         const pasteAreaEl = document.getElementById('paste-area');
@@ -409,6 +410,11 @@ sequenceDiagram
                     lastLabel.style.fontWeight = 'bold';
                     lastLabel.style.fontSize = '1.1em';
                 }
+                // Scroll to bottom after rendering
+                window.scrollTo({
+                    top: document.body.scrollHeight,
+                    behavior: 'smooth'
+                });
             }, 100);
         }
 
@@ -449,6 +455,15 @@ sequenceDiagram
         nextBtn.addEventListener('click', nextStep);
         firstBtn.addEventListener('click', firstStep);
         lastBtn.addEventListener('click', lastStep);
+        navPasteBtn.addEventListener('click', async () => {
+            const text = await getClipboardText();
+            if (text) {
+                pasteAreaEl.style.display = 'flex';
+                appEl.style.display = 'none';
+                errorEl.style.display = 'none';
+                parseInput(text);
+            }
+        });
 
         // TTS functionality
         const voiceSelect = document.getElementById('voice-select');
