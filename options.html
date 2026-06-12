@@ -273,7 +273,7 @@ ${text}
 
         const container = document.getElementById('content');
         container.innerHTML = '';
-        container.innerHTML = htmlData.replaceAll("**", "").replaceAll("<{", "<small>(").replaceAll("}>", ")</small>").trim();
+        container.innerHTML = htmlData.replaceAll("**", "").replaceAll("<{", "《").replaceAll("}>", "》").trim();
 
         initializeQuestions();
         // document.querySelectorAll('pre code').forEach(code => {
@@ -361,9 +361,10 @@ ${text}
         }
     };
 
-    function speak(text) {
+    function speak(text, event) {
         window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text.replaceAll("_", " "));
+        text = event.altKey ? text.replaceAll("_", " ").replace(/《([^》]+)》/g, '$1, $1') : text.replaceAll("_", " ")
+        const utterance = new SpeechSynthesisUtterance(text);
         utterance.rate = currentRate; // 使用当前语速
         utterance.voice = selectVoice;
         utterance.onstart = () => {
@@ -440,7 +441,7 @@ ${text}
 
             question.addEventListener("click", (event) => {
                 event.stopPropagation();
-                speak(questionText)
+                speak(questionText, event)
             })
 
             // 创建一个button
@@ -508,9 +509,9 @@ ${text}
                 });
 
                 // 点击选项
-                opt.addEventListener('click', () => {
+                opt.addEventListener('click', (event) => {
                     if (opt.className === "explain") {
-                        speak(opt.textContent)
+                        speak(opt.textContent, event)
                         return
                     }
 
@@ -528,7 +529,7 @@ ${text}
                     if (isCorrect) {
                         opt.style.backgroundColor = '#1b5e20';
                         opt.style.color = '#a5d6a7';
-                        speak(opt.textContent)
+                        speak(opt.textContent, event)
                         // 判断text是否只由字母, 数字，逗号,句号, -, 空格组成
                         // const lastContent = displayOptions[displayOptions.length-1].textContent
                         // if (/^[a-zA-Z0-9,.()’+@"':/;`→—\[\]\-\s]+$/.test(lastContent)) {

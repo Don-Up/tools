@@ -470,8 +470,8 @@
                 <label for="ecCheckBox" style="margin-left: -20px;" id="ecLabel">EC</label>
             </switch>
             <switch id="fullscreenToggle" style="margin-left: -20px;">
-                <input type="checkbox" id="eceCheckBox">
-                <label for="eceCheckBox" style="margin-left: -20px;" id="eceLabel">ECE</label>
+                <input type="checkbox" id="e2CheckBox">
+                <label for="e2CheckBox" style="margin-left: -20px;" id="eceLabel">E2</label>
             </switch>
         </div>
         <div style="display: flex;flex-direction: column">
@@ -1290,7 +1290,7 @@
         contentWrapper?.scrollIntoView({behavior: "smooth"});
     }
 
-    const eceCheckBox = document.getElementById("eceCheckBox")
+    const e2CheckBox = document.getElementById("e2CheckBox")
     const ecCheckBox = document.getElementById("ecCheckBox")
 
     const inputRepeatCount = document.getElementById("repeatCount")
@@ -1352,7 +1352,7 @@
         let finalText = ''; // Ensure finalText is initialized
 
         if (autoPlayEnabled && !banContinuous) {//filter(sentence => !sentence.startsWith(">")).
-            if (ecCheckBox.checked || eceCheckBox.checked) {
+            if (ecCheckBox.checked) {
                 let tempSentence = ""
                 finalText = sentences.map((sentence, index) => {
                     if (sentence.startsWith(">")) {
@@ -1380,7 +1380,8 @@
             }
             // console.log("Final Text2:", finalText)
         }
-        finalText = finalText.replaceAll("<small>", ", ").replaceAll("</small>", "")
+        finalText = (e2CheckBox.checked ? finalText.replace(/<small>([^<]+)<\/small>/g, '$1, $1') : finalText.replaceAll("<small>", ", ").replaceAll("</small>", ""))
+            .replaceAll("_" ," ")
         // 将所有<b>XX</b>替换为XX
         finalText = finalText.replace(/<b>(.*?)<\/b>/g, '$1');
         // 将所有的<span class="code-span">XX</span>替换为XX

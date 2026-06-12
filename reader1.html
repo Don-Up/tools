@@ -1379,7 +1379,7 @@
             }
             // console.log("Final Text2:", finalText)
         }
-        finalText = finalText.replaceAll("<small>", ", ").replaceAll("</small>", "")
+        finalText = finalText.replaceAll("<small>", ", ").replaceAll("</small>", "").replaceAll("_", " ")
         // 将所有<b>XX</b>替换为XX
         finalText = finalText.replace(/<b>(.*?)<\/b>/g, '$1');
         // 将所有的<span class="code-span">XX</span>替换为XX
