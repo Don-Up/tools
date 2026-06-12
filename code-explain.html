@@ -54,7 +54,7 @@
     }
     select {
       width: 100%;
-      max-width: 300px;
+      max-width: 500px;
       padding: 10px 12px;
       background: #2d2d2d;
       border: 1px solid #444;
@@ -111,8 +111,9 @@
       border: 1px solid #444;
       border-radius: 8px;
       overflow: hidden;
+      margin-top: 20px;
       margin-bottom: 16px;
-      padding-bottom: 80px;
+      padding-bottom: 0px;
       display: none;
     }
     .code-display.visible {
@@ -224,20 +225,10 @@
         <label for="speedRange">语速: <span id="speedValue">1.0</span>x</label>
         <input type="range" id="speedRange" min="0.5" max="2.0" step="0.1" value="1.0" style="width: 200px;">
       </div>
-    </div>
 
-    <div class="section">
-      <label for="codeInput">代码片段</label>
-      <textarea id="codeInput" placeholder="请输入代码片段..."></textarea>
-    </div>
-
-    <div class="section">
-      <label for="explainInput">JSON 格式讲解</label>
-      <textarea id="explainInput" placeholder='{"1": "说明1", "5-8": "说明2"}'></textarea>
-    </div>
-
-    <div class="btn-row">
-      <button class="btn-primary" id="generateBtn">生成讲解</button>
+      <div class="section" style="margin-left: auto;">
+        <button class="btn-primary" id="generateBtn" style="margin-top: 15px;">生成讲解</button>
+      </div>
     </div>
 
     <div class="code-display" id="codeDisplay"></div>
@@ -258,8 +249,6 @@
     const voiceSelect = document.getElementById('voiceSelect');
     const speedRange = document.getElementById('speedRange');
     const speedValue = document.getElementById('speedValue');
-    const codeInput = document.getElementById('codeInput');
-    const explainInput = document.getElementById('explainInput');
     const generateBtn = document.getElementById('generateBtn');
     const codeDisplay = document.getElementById('codeDisplay');
     const playbackWrapper = document.getElementById('playbackWrapper');
@@ -350,21 +339,46 @@
       return { segments: segs };
     }
 
-    function generateCodeDisplay() {
-      const code = codeInput.value;
-      if (!code.trim()) {
-        alert('请输入代码片段');
+    async function generateCodeDisplay() {
+      let clipboardText;
+      try {
+        clipboardText = await navigator.clipboard.readText();
+      } catch (e) {
+        alert('无法读取剪贴板，请确保已授权访问权限');
         return;
       }
 
-      let jsonStr = explainInput.value.trim();
-      if (!jsonStr) {
-        alert('请输入 JSON 格式讲解');
+      const blocks = [];
+      const regex = /```(\w+)?\n?([\s\S]*?)```/g;
+      let match;
+      while ((match = regex.exec(clipboardText)) !== null) {
+        blocks.push({
+          lang: match[1] || '',
+          content: match[2].trim()
+        });
+      }
+
+      if (blocks.length < 2) {
+        alert('格式错误：需要两个代码块，第一个为代码，第二个为JSON讲解');
+        return;
+      }
+
+      const lastBlock = blocks[blocks.length - 1];
+      if (lastBlock.lang.toLowerCase() !== 'json') {
+        alert('格式错误：第二个代码块必须是 JSON 格式');
+        return;
+      }
+
+      const codeBlock = blocks[0];
+      const code = codeBlock.content;
+
+      if (!code) {
+        alert('格式错误：代码块内容为空');
         return;
       }
 
       try {
-        ({ segments } = parseExplanations(jsonStr));
+        ({ segments } = parseExplanations(lastBlock.content));
       } catch (e) {
         alert('JSON 格式错误: ' + e.message);
         return;
@@ -389,8 +403,6 @@
       playbackWrapper.classList.add('visible');
       currentIndex = 0;
       setStatus('等待播放...');
-      codeInput.value = '';
-      explainInput.value = '';
     }
 
     function escapeHtml(text) {

@@ -1004,6 +1004,31 @@
                 top: 0,
                 behavior: "instant"
             });
+            setTimeout(() => {
+                // mermaid.initialize({startOnLoad: false, theme: "dark"});
+                const codeBlocks = document.querySelectorAll('pre code');
+                codeBlocks.forEach((block, index) => {
+                    const text = block.textContent.trim();
+                    // Check if the content looks like a Mermaid diagram
+                    if (text.startsWith('flowchart') || text.startsWith('graph') || text.startsWith('sequenceDiagram') || text.startsWith('classDiagram')) {
+                        // Create a div to hold the rendered diagram
+                        const diagramDiv = document.createElement('div');
+                        diagramDiv.id = `mermaid-diagram-${index}`;
+                        diagramDiv.className = 'mermaid';
+                        diagramDiv.style.backgroundColor = '#282c34';
+                        // 内容居中
+                        diagramDiv.style.display = 'flex';
+                        diagramDiv.style.justifyContent = 'center';
+                        diagramDiv.textContent = text;
+
+                        // Replace the <pre><code> with the new div
+                        block.parentElement.replaceWith(diagramDiv);
+
+                        // Render the diagram
+                        mermaid.init(undefined, `#mermaid-diagram-${index}`);
+                    }
+                });
+            }, 0)
         };
         document.body.appendChild(confirmBtn);
     }
