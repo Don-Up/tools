@@ -712,7 +712,7 @@
                 answerInput.value = '';
                 customDurationInput.value = '';
             })
-        } else if(e.ctrlKey) {
+        } else if (e.ctrlKey) {
             getClipboardText().then(text => {
                 if (!text) {
                     alert('Please enter a card name');
@@ -729,7 +729,7 @@
             })
         } else {
             let name = cardNameInput.value.trim();
-            if(!name && answerInput.value.trim()){
+            if (!name && answerInput.value.trim()) {
                 name = "-"
             }
             if (!name) {
@@ -803,6 +803,11 @@
         const originalName = name
 
         if (name.includes("~~") || name.includes("::")) {
+            if (name.includes("\n")) {
+                const array = name.split("\n")
+                name = array[2]+"::"+array[0]
+            }
+
             if (name.includes("::") && !name.includes("~~")) {
                 const subNames = name.split("::")
                 name = subNames[0].trim() + "::" + `~${subNames[1].trim()}~~`
@@ -1333,7 +1338,7 @@ ${getName(timer)}
                 // }
 
                 // 显示完整的首单词，第二个单词的首字母以及一些虚词，其它仅显示长度
-                if(w.length === 1) return w
+                if (w.length === 1) return w
                 if (i === 0) {
                     return w.substring(1) + " "
                 } else if (stopWords.includes(w)) {

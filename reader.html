@@ -1023,7 +1023,6 @@
                         diagramDiv.style.display = 'flex';
                         diagramDiv.style.justifyContent = 'center';
                         diagramDiv.textContent = text;
-
                         // Replace the <pre><code> with the new div
                         block.parentElement.replaceWith(diagramDiv);
 
@@ -1814,6 +1813,9 @@
             diagramDiv.style.display = 'flex';
             diagramDiv.style.justifyContent = 'center';
             diagramDiv.textContent = text;
+            diagramDiv.addEventListener("click", () => {
+                navigator.clipboard.writeText(text)
+            })
 
             // Replace the <pre><code> with the new div
             block.parentElement.replaceWith(diagramDiv);

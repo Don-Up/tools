@@ -63,7 +63,6 @@
         #app {
             display: none;
             width: 100%;
-            max-width: 1000px;
             flex-direction: column;
             align-items: center;
         }
@@ -185,6 +184,10 @@
             white-space: pre-line;
             color: #aaa;
         }
+
+        small {
+            color:#00BFFF;
+        }
     </style>
 </head>
 <body>
@@ -209,7 +212,7 @@ sequenceDiagram
 
     <div class="error" id="error"></div>
 
-    <div id="app">
+    <div id="app" style="position: fixed;background: #1e1e1e">
         <div id="navigation">
             <h3>Mermaid Sequence Diagram Viewer</h3>
             <select id="voice-select"></select>
@@ -229,9 +232,11 @@ sequenceDiagram
             <button id="nav-paste-btn">Paste</button>
         </div>
         <div id="explanation" style="cursor: pointer;" title="Click to speak"></div>
-        <div id="diagram-container">
-            <div id="diagram" class="mermaid"></div>
-        </div>
+
+    </div>
+
+    <div id="diagram-container" style="margin-top: 150px">
+        <div id="diagram" class="mermaid"></div>
     </div>
 
     <script>
@@ -370,7 +375,7 @@ sequenceDiagram
             }
 
             const key = String(currentIndex + 1);
-            explanationEl.textContent = explanations[key] || '';
+            explanationEl.innerHTML = explanations[key].replaceAll("<{",  " <small>|").replaceAll("}>", "|</small>") || '';
 
             positionEl.textContent = `${currentIndex + 1}/${totalArrows}`;
 
