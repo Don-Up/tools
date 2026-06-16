@@ -557,8 +557,26 @@
         return `<span style="color:${inMultilineRange.isDoc ? '#4ec9b0' : '#6a9955'}">${html}</span>`;
       }
 
-      // 高亮单行注释 //
-      html = html.replace(/(\/\/[^\n]*)/g, '<span style="color:#6a9955">$1</span>');
+      // 检查是否有单行注释
+      const singleLineCommentMatch = html.match(/(\/\/[^\n]*)/);
+      if (singleLineCommentMatch) {
+        const commentStart = html.indexOf('//');
+        const beforeComment = html.substring(0, commentStart);
+        const commentPart = html.substring(commentStart);
+
+        // 对注释前的部分应用关键字和数字高亮
+        let beforeHighlighted = beforeComment;
+        // 高亮字符串
+        beforeHighlighted = beforeHighlighted.replace(/(&quot;[^&]*?&quot;|'[^']*?'|`[^`]*?`)/g, '<span style="color:#ce9178">$1</span>');
+        // 高亮关键字
+        const keywords = /\b(function|const|let|var|if|else|for|while|return|class|import|export|from|async|await|try|catch|throw|new|this|typeof|instanceof|typeof|void|null|undefined|true|false|in|of|switch|case|default|break|continue|do|finally|while)\b/g;
+        beforeHighlighted = beforeHighlighted.replace(keywords, '<span style="color:#569cd6">$1</span>');
+        // 高亮数字
+        beforeHighlighted = beforeHighlighted.replace(/\b(\d+)\b/g, '<span style="color:#b5cea8">$1</span>');
+
+        // 注释部分不变色关键字
+        return beforeHighlighted + `<span style="color:#6a9955">${commentPart}</span>`;
+      }
 
       // 高亮字符串 (双引号、单引号、模板字符串)
       html = html.replace(/(&quot;[^&]*?&quot;|'[^']*?'|`[^`]*?`)/g, '<span style="color:#ce9178">$1</span>');
