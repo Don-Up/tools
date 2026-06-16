@@ -18,17 +18,18 @@
       padding: 20px;
     }
     .container {
-      max-width: 1000px;
+      max-width: 1200px;
       margin: 0 auto;
       padding-left: 120px;
     }
     h1 {
       text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
       color: #4fc3f7;
     }
     .section {
       margin-bottom: 16px;
+      display: flex;gap:10px;align-items: center
     }
     label {
       display: block;
@@ -155,7 +156,6 @@
       left: 20px;
       top: 50%;
       transform: translateY(-50%);
-      display: none;
       z-index: 50;
       align-items: center;
       gap: 12px;
@@ -211,24 +211,25 @@
 </head>
 <body>
   <div class="container">
-    <h1>代码讲解工具</h1>
+      <div style="display: flex;gap: 20px;align-items: center">
+        <h1>Explainer</h1>
 
-    <div class="tts-row">
-      <div class="section">
-        <label for="voiceSelect">TTS 语音</label>
-        <select id="voiceSelect">
-          <option value="">加载中...</option>
-        </select>
+        <div class="tts-row">
+          <div class="section">
+            <label for="voiceSelect">TTS 语音</label>
+            <select id="voiceSelect">
+              <option value="">加载中...</option>
+            </select>
+          </div>
       </div>
 
-      <div class="section">
+      <div class="section" style="margin-top: 18px;">
         <label for="speedRange">语速: <span id="speedValue">1.0</span>x</label>
         <input type="range" id="speedRange" min="0.5" max="2.0" step="0.1" value="1.0" style="width: 200px;">
       </div>
 
       <div class="section" style="margin-left: auto;">
-        <button class="btn-primary" id="codeBtn" style="margin-top: 15px;">读取</button>
-        <button class="btn-primary" id="generateBtn" style="margin-top: 15px;">生成</button>
+
       </div>
     </div>
 
@@ -236,11 +237,13 @@
 
     <div class="playback-wrapper" id="playbackWrapper">
       <div class="controls" id="controls">
+        <button class="btn-primary" id="codeBtn">读取</button>
+        <button class="btn-primary" id="generateBtn">生成</button>
         <button class="btn-primary" id="playBtn">播放</button>
         <button class="btn-secondary" id="pauseBtn" disabled>暂停</button>
         <button class="btn-danger" id="stopBtn">停止</button>
       </div>
-      <span class="status" id="status">等待播放...</span>
+      <span class="status" id="status" style="display: none">等待播放...</span>
     </div>
 
     <div class="subtitle" id="subtitle"></div>
