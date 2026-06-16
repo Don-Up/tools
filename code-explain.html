@@ -242,6 +242,8 @@
         <button class="btn-primary" id="playBtn">播放</button>
         <button class="btn-secondary" id="pauseBtn" disabled>暂停</button>
         <button class="btn-danger" id="stopBtn">停止</button>
+        <button class="btn-primary" id="preBtn">Pre</button>
+        <button class="btn-primary" id="nextBtn">Next</button>
       </div>
       <span class="status" id="status" style="display: none">等待播放...</span>
     </div>
@@ -269,8 +271,9 @@
     let isPaused = false;
     let currentUtterance = null;
     let segments = [];
-    let currentIndex = 0;
+    let currentIndex = -1;
     let highlightTimeout = null;
+    let currentUtteranceCancelled = false;
 
     function loadVoices() {
       const allVoices = speechSynthesis.getVoices();
@@ -431,8 +434,6 @@
 
       if(codeText) clipboardText = "```json\n"+codeText + "\n```\n"+"```json\n"+clipboardText+"\n```"
 
-      console.log(clipboardText)
-
       const blocks = [];
       const regex = /```(\w+)?\n?([\s\S]*?)```/g;
       let match;
@@ -486,7 +487,7 @@
 
       codeDisplay.classList.add('visible');
       playbackWrapper.classList.add('visible');
-      currentIndex = 0;
+      currentIndex = -1;
       codeText = ""
       setStatus('等待播放...');
     }
@@ -531,13 +532,22 @@
       utterance.rate = parseFloat(speedRange.value);
       utterance.pitch = 1.0;
 
-      utterance.onend = () => onEnd();
+      utterance.onend = () => {
+        if (!currentUtteranceCancelled) {
+          onEnd();
+        }
+        currentUtteranceCancelled = false;
+      };
       utterance.onerror = (e) => {
-        console.error('TTS error:', e);
-        onEnd();
+        if (!currentUtteranceCancelled && e.error !== 'interrupted') {
+          console.error('TTS error:', e);
+          onEnd();
+        }
+        currentUtteranceCancelled = false;
       };
 
       currentUtterance = utterance;
+      currentUtteranceCancelled = false;
       speechSynthesis.speak(utterance);
     }
 
@@ -573,7 +583,7 @@
     }
 
     function startPlay() {
-      if (currentIndex >= segments.length) {
+      if (currentIndex < 0 || currentIndex >= segments.length) {
         currentIndex = 0;
       }
       isPlaying = true;
@@ -620,11 +630,11 @@
     });
 
     stopBtn.addEventListener('click', () => {
+      currentUtteranceCancelled = true;
       speechSynthesis.cancel();
       clearTimeout(highlightTimeout);
       isPlaying = false;
       isPaused = false;
-      currentIndex = 0;
       playBtn.disabled = false;
       pauseBtn.disabled = true;
       pauseBtn.textContent = '暂停';
@@ -632,6 +642,78 @@
       document.querySelectorAll('.code-line').forEach(el => el.classList.remove('highlight'));
       subtitle.classList.remove('visible');
       subtitle.textContent = '';
+    });
+
+    preBtn.addEventListener('click', () => {
+      if (segments.length === 0 || currentIndex < 0) return;
+      currentUtteranceCancelled = true;
+      speechSynthesis.cancel();
+      clearTimeout(highlightTimeout);
+
+      let segmentIndex = currentIndex - 1;
+      if (segmentIndex < 0) {
+        segmentIndex = segments.length - 1;
+      }
+      currentIndex = segmentIndex;
+
+      const segment = segments[segmentIndex];
+      highlightLines(segment.lineNumbers);
+
+      const lineRange = segment.lineNumbers.length > 1
+        ? `${segment.lineNumbers[0]}-${segment.lineNumbers[segment.lineNumbers.length - 1]}`
+        : `${segment.lineNumbers[0]}`;
+      setStatus(`讲解第 ${lineRange} 行...`, true);
+      subtitle.textContent = segment.explanation;
+      subtitle.classList.add('visible');
+
+      isPlaying = true;
+      isPaused = false;
+      playBtn.disabled = true;
+      pauseBtn.disabled = false;
+
+      speakText(segment.explanation, () => {
+        isPlaying = false;
+        isPaused = false;
+        playBtn.disabled = false;
+        pauseBtn.disabled = true;
+        setStatus('等待播放...');
+      });
+    });
+
+    nextBtn.addEventListener('click', () => {
+      if (segments.length === 0) return;
+      currentUtteranceCancelled = true;
+      speechSynthesis.cancel();
+      clearTimeout(highlightTimeout);
+
+      let segmentIndex = currentIndex < 0 ? 0 : currentIndex + 1;
+      if (segmentIndex >= segments.length) {
+        segmentIndex = 0;
+      }
+      currentIndex = segmentIndex;
+
+      const segment = segments[segmentIndex];
+      highlightLines(segment.lineNumbers);
+
+      const lineRange = segment.lineNumbers.length > 1
+        ? `${segment.lineNumbers[0]}-${segment.lineNumbers[segment.lineNumbers.length - 1]}`
+        : `${segment.lineNumbers[0]}`;
+      setStatus(`讲解第 ${lineRange} 行...`, true);
+      subtitle.textContent = segment.explanation;
+      subtitle.classList.add('visible');
+
+      isPlaying = true;
+      isPaused = false;
+      playBtn.disabled = true;
+      pauseBtn.disabled = false;
+
+      speakText(segment.explanation, () => {
+        isPlaying = false;
+        isPaused = false;
+        playBtn.disabled = false;
+        pauseBtn.disabled = true;
+        setStatus('等待播放...');
+      });
     });
   </script>
 </body>
