@@ -227,7 +227,8 @@
       </div>
 
       <div class="section" style="margin-left: auto;">
-        <button class="btn-primary" id="generateBtn" style="margin-top: 15px;">生成讲解</button>
+        <button class="btn-primary" id="codeBtn" style="margin-top: 15px;">读取</button>
+        <button class="btn-primary" id="generateBtn" style="margin-top: 15px;">生成</button>
       </div>
     </div>
 
@@ -249,6 +250,7 @@
     const voiceSelect = document.getElementById('voiceSelect');
     const speedRange = document.getElementById('speedRange');
     const speedValue = document.getElementById('speedValue');
+    const codeBtn = document.getElementById("codeBtn")
     const generateBtn = document.getElementById('generateBtn');
     const codeDisplay = document.getElementById('codeDisplay');
     const playbackWrapper = document.getElementById('playbackWrapper');
@@ -339,6 +341,82 @@
       return { segments: segs };
     }
 
+    let codeText = ""
+
+    codeBtn.addEventListener("click", async () => {
+      let clipboardText;
+      try {
+        clipboardText = await navigator.clipboard.readText();
+      } catch (e) {
+        alert('无法读取剪贴板，请确保已授权访问权限');
+        return;
+      }
+      codeText = clipboardText
+      await addLineNumbersAndCopyToClipboard(codeText)
+    })
+
+    /**
+     * 为代码文本的每一行（包含空行）添加行号，并将结果写入剪贴板。
+     *
+     * @param {string} code - 原始代码字符串。
+     * @returns {Promise<string>} 返回一个 Promise，解析为添加行号后的代码字符串。
+     * @throws {Error} 如果剪贴板写入失败，会抛出错误。
+     */
+    async function addLineNumbersAndCopyToClipboard(code) {
+      // 1. 防御性检查：确保输入是字符串
+      if (typeof code !== 'string') {
+        throw new Error('输入内容必须为字符串');
+      }
+
+      // 2. 核心处理：为每一行添加行号（包含空行）
+      //    使用 split('\n') 保留所有行，包括末尾空行。
+      const lines = code.split('\n');
+
+      // 如果代码为空字符串，直接返回空字符串，不进行标注
+      if (lines.length === 1 && lines[0] === '' && code === '') {
+        return '';
+      }
+
+      let numberedCode = '';
+      for (let i = 0; i < lines.length; i++) {
+        const lineContent = lines[i];
+        const lineNumber = i + 1; // 行号从 1 开始
+        numberedCode += lineNumber + ' ' + lineContent;
+        // 除了最后一行，其余行后添加换行符
+        if (i < lines.length - 1) {
+          numberedCode += '\n';
+        }
+      }
+
+      // 3. 将结果写入剪贴板
+      try {
+        // 优先使用现代 Clipboard API
+        await navigator.clipboard.writeText(numberedCode);
+      } catch (clipError) {
+        // 如果 Clipboard API 失败，尝试降级方案 (execCommand)
+        console.warn('Clipboard API 写入失败，尝试降级方案:', clipError);
+        try {
+          const textArea = document.createElement('textarea');
+          textArea.value = numberedCode;
+          textArea.style.position = 'fixed';
+          textArea.style.opacity = '0';
+          document.body.appendChild(textArea);
+          textArea.select();
+          const success = document.execCommand('copy');
+          document.body.removeChild(textArea);
+          if (!success) {
+            throw new Error('execCommand 复制失败');
+          }
+        } catch (fallbackError) {
+          // 如果两种方法都失败，则抛出错误
+          throw new Error(`无法将结果写入剪贴板: ${fallbackError.message}`);
+        }
+      }
+
+      // 返回处理后的代码，以便调用方可以进一步使用
+      return numberedCode;
+    }
+
     async function generateCodeDisplay() {
       let clipboardText;
       try {
@@ -347,6 +425,10 @@
         alert('无法读取剪贴板，请确保已授权访问权限');
         return;
       }
+
+      if(codeText) clipboardText = "```json\n"+codeText + "\n```\n"+"```json\n"+clipboardText+"\n```"
+
+      console.log(clipboardText)
 
       const blocks = [];
       const regex = /```(\w+)?\n?([\s\S]*?)```/g;
@@ -402,6 +484,7 @@
       codeDisplay.classList.add('visible');
       playbackWrapper.classList.add('visible');
       currentIndex = 0;
+      codeText = ""
       setStatus('等待播放...');
     }
 
