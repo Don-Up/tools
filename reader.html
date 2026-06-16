@@ -1103,14 +1103,6 @@
         let isInTable = false
 
         lines.forEach((line, index) => {
-            // if (smallTextOnly.checked) {
-            //     if (index % 2 === 1) {
-            //         line = "> " + line.replace(/[“”]/g, "")
-            //     } else {
-            //         line = line.replace(/[“”]/g, "\"")
-            //     }
-            // }
-
             if (line.toString().trim().startsWith("|") && line.toString().trim().endsWith("|")) {
                 // 将所有**xx**替换为<b>xx</b>
                 line = line.toString().trim().replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
@@ -1144,13 +1136,8 @@
                     li.innerHTML = item;
                     li.dataset.originalText = li.textContent
                     originalTextList.push(li.textContent + (li.textContent.trim().endsWith(".") ? "" : ". "))
-                    li.onclick = function () {
+                    li.onclick = function (event) {
                         if (event.ctrlKey) {
-                            // if (!textBlock.innerHTML.startsWith("👀")) {
-                            //     textBlock.innerHTML = "👀" + textBlock.innerHTML;
-                            // } else {
-                            //     textBlock.innerHTML = textBlock.innerHTML.replace("👀", "");
-                            // }
                             if (!autoPlay.checked) {
                                 playText(li.textContent, this, false, true);
                             } else {
@@ -1166,7 +1153,7 @@
                 contentDiv.appendChild(ul)
                 list = []
                 isInList = false
-                if (index === lines.length - 1) return
+                if (index === lines.length) return
             }
 
             if (line.toString().trim() === "```" && isInCodeBlock) {
@@ -1178,11 +1165,13 @@
                 pre.appendChild(code);
                 contentDiv.appendChild(pre);
                 hljs.highlightElement(code);
+
                 return;
             }
 
             const codeBlockStart = line.toString().trim().match(/^```(\w*)/);
             if (codeBlockStart) {
+
                 if (isInCodeBlock) {
                     return;
                 }
@@ -1197,12 +1186,12 @@
                 return;
             }
 
-            // line = line.replaceAll("{{",  "<small>(").replaceAll("}}", ")</small>")
-
             line = line.trim()
                 .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
                 .replace(/`(.*?)`/g, "<span class=\"code-span\">$1</span>")
                 .replace(/[’]/g, "'");
+
+
 
             if (line.startsWith("---")) {
                 const hr = document.createElement("hr");
@@ -1232,33 +1221,10 @@
                 heading.onclick = function () {
                     playText(this.dataset.originalText, this);
                 }
-                // text = text.replace(/(`+)(.*?)\1/g, (match, p1, p2) => {
-                //     return `<span class="code-span">${p2}</span>`;
-                // })
                 heading.innerHTML = text;
                 contentDiv.appendChild(heading);
                 return;
             }
-
-
-            // 将line中, 将所有的<替换为$lt;, 将所有>替换为$gt, 最后将所有包含``的部分全都替换为<code></code>;
-            // line = line.replace(/<|>/g, (match) => {
-            //     if (match === '<') {
-            //         return '&lt;';
-            //     } else {
-            //         return '&gt;';
-            //     }
-            // })
-            //     .replace(/(`+)(.*?)\1/g, (match, p1, p2) => {
-            //     return `<span style="color: lightskyblue">${p2}</span>`;
-            // })
-
-
-            // if (isInCodeBlock) {
-            //     const pre = document.createElement("pre");
-            //     pre.textContent = "```" + (codeLang ? codeLang : "") + "\n" + codeLines.join("\n");
-            //     contentDiv.appendChild(pre);
-            // }
 
             const textBlock = document.createElement("div");
             textBlock.classList.add("text-block");
