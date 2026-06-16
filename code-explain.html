@@ -15,7 +15,7 @@
       background: #1e1e1e;
       color: #e0e0e0;
       min-height: 100vh;
-      padding: 20px;
+      padding: 20px 20px 80px 20px;
     }
     .container {
       max-width: 1200px;
@@ -473,14 +473,27 @@
       const lines = code.split('\n');
       codeDisplay.innerHTML = '';
 
+      // 找出所有多行注释的范围
+      const multilineRanges = findMultilineCommentRanges(code);
+
+      // 计算每行的起始和结束位置
+      let charPos = 0;
       lines.forEach((line, index) => {
         const lineNum = index + 1;
+        const lineStart = charPos;
+        const lineEnd = charPos + line.length;
+        charPos = lineEnd + 1; // +1 for the newline
+
         const div = document.createElement('div');
         div.className = 'code-line';
         div.dataset.line = lineNum;
+
+        // 检查这行是否在多行注释内
+        const inRange = isInMultilineComment(lineStart, lineEnd, multilineRanges);
+
         div.innerHTML = `
           <span class="line-number">${lineNum}</span>
-          <span class="line-content">${escapeHtml(line) || ' '}</span>
+          <span class="line-content">${highlightLine(line, inRange) || ' '}</span>
         `;
         codeDisplay.appendChild(div);
       });
@@ -496,6 +509,68 @@
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
+    }
+
+    function findMultilineCommentRanges(code) {
+      const ranges = [];
+      // 匹配多行注释
+      const regex = /(\/\*[\s\S]*?\*\/)/g;
+      let match;
+      while ((match = regex.exec(code)) !== null) {
+        ranges.push({
+          start: match.index,
+          end: match.index + match[0].length,
+          text: match[0],
+          isDoc: match[0].startsWith('/**')
+        });
+      }
+      return ranges;
+    }
+
+    function isInMultilineComment(lineStart, lineEnd, ranges) {
+      for (const range of ranges) {
+        // 检查这一行是否与注释范围有交集
+        if (lineStart < range.end && lineEnd > range.start) {
+          return range;
+        }
+      }
+      return null;
+    }
+
+    function highlightCode(code) {
+      let html = escapeHtml(code);
+
+      // 高亮多行文档注释 /** */
+      html = html.replace(/(\/\*\*[\s\S]*?\*\/)/g, '<span style="color:#4ec9b0">$1</span>');
+
+      // 高亮多行普通注释 /* */
+      html = html.replace(/(\/\*[\s\S]*?\*\/)/g, '<span style="color:#6a9955">$1</span>');
+
+      return html;
+    }
+
+    function highlightLine(line, inMultilineRange) {
+      let html = escapeHtml(line);
+
+      // 如果整行都在多行注释内，返回已处理的内容
+      if (inMultilineRange) {
+        return `<span style="color:${inMultilineRange.isDoc ? '#4ec9b0' : '#6a9955'}">${html}</span>`;
+      }
+
+      // 高亮单行注释 //
+      html = html.replace(/(\/\/[^\n]*)/g, '<span style="color:#6a9955">$1</span>');
+
+      // 高亮字符串 (双引号、单引号、模板字符串)
+      html = html.replace(/(&quot;[^&]*?&quot;|'[^']*?'|`[^`]*?`)/g, '<span style="color:#ce9178">$1</span>');
+
+      // 高亮保留关键字
+      const keywords = /\b(function|const|let|var|if|else|for|while|return|class|import|export|from|async|await|try|catch|throw|new|this|typeof|instanceof|typeof|void|null|undefined|true|false|in|of|switch|case|default|break|continue|do|finally|while)\b/g;
+      html = html.replace(keywords, '<span style="color:#569cd6">$1</span>');
+
+      // 高亮数字
+      html = html.replace(/\b(\d+)\b/g, '<span style="color:#b5cea8">$1</span>');
+
+      return html;
     }
 
     function setStatus(text, active = false) {
