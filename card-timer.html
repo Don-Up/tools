@@ -425,13 +425,7 @@
 </head>
 <body>
 <div class="container">
-    <h1 onclick="handleTitleClick(event)">Card Timer <span id="timerStatus"
-                                                           style="font-size:14px;color:#888;font-weight:normal"></span>
-        <label id="ttsToggle" style="cursor:pointer;font-size:14px;color:#888;font-weight:normal"><input type="checkbox"
-                                                                                                         id="ttsSwitch"
-                                                                                                         checked
-                                                                                                         style="margin-left:8px">
-            TTS</label></h1>
+    <h1 onclick="handleTitleClick(event)">Card Timer <span id="timerStatus" style="font-size:14px;color:#888;font-weight:normal"></span> <label style="cursor:pointer;font-size:14px;color:#888;font-weight:normal"><input type="checkbox" id="ttsSwitch" checked style="margin-left:8px"> TTS</label> <label style="cursor:pointer;font-size:14px;color:#888;font-weight:normal"><input type="checkbox" id="fxSwitch" style="margin-left:8px"> FX</label></h1>
 
     <div class="input-section">
         <input type="text" id="cardNameInput" placeholder="Card name...">
@@ -484,6 +478,9 @@
     </div>
 </div>
 
+<!-- HTML -->
+<audio id="dingSound" src="/mp3/bounce.mp3" preload="auto"></audio>
+
 <script>
     let timers = [];
     let timerIntervals = {};
@@ -506,6 +503,13 @@
     document.getElementById('ttsSwitch').addEventListener('change', (e) => {
         isTtsEnabled = e.target.checked;
         localStorage.setItem('ttsEnabled', isTtsEnabled);
+    });
+
+    let isFxEnabled = localStorage.getItem('fxEnabled') === 'true';
+    document.getElementById('fxSwitch').checked = isFxEnabled;
+    document.getElementById('fxSwitch').addEventListener('change', (e) => {
+        isFxEnabled = e.target.checked;
+        localStorage.setItem('fxEnabled', isFxEnabled);
     });
 
     let voiceEn = null
@@ -803,10 +807,10 @@
         const originalName = name
 
         if (name.includes("~~") || name.includes("::")) {
-            if (name.includes("\n")) {
-                const array = name.split("\n")
-                name = array[2]+"::"+array[0]
-            }
+            // if (name.includes("\n")) {
+            //     const array = name.split("\n")
+            //     name = array[2]+"::"+array[0]
+            // }
 
             if (name.includes("::") && !name.includes("~~")) {
                 const subNames = name.split("::")
@@ -1006,7 +1010,14 @@ ${getName(timer)}
         }
 
         // TTS speak card name twice
-        if (isTtsEnabled) {
+        if (isFxEnabled) {
+            // Play FX sound only, ignore TTS
+            const dingSound = document.getElementById('dingSound');
+            if (dingSound) {
+                dingSound.currentTime = 0;
+                dingSound.play().catch(err => console.error('Audio play failed:', err));
+            }
+        } else if (isTtsEnabled) {
             if (timer.name !== "-") {
                 speakOnce(timer.name);
             } else {
