@@ -921,17 +921,16 @@ ${getName(timer)}
                 </div>
                 <div class="timer-right">
                     <div class="btn-row-top">
-                        ${timer.status === 'ended' && timer.answer ? `<button class="answer-btn" onclick="showAnswer(${timer.id}, event)">Answer</button>` : ''}
-                        ${timer.status === 'ended' ? `<button class="new-min-btn" onclick="openNewMinModal(${timer.id})">New Min</button>` : ''}
-                        <button class="restart-btn" onclick="restartTimer(${timer.id})">Restart</button>
-                        <button class="delete-btn" onclick="deleteTimer(${timer.id})">&times;</button>
+                        ${timer.status === 'ended' && !timer.buttonsDelay && timer.answer ? `<button class="answer-btn" onclick="showAnswer(${timer.id}, event)">Answer</button>` : ''}
+                        ${timer.status === 'ended' && !timer.buttonsDelay ? `<button class="new-min-btn" onclick="openNewMinModal(${timer.id})">New Min</button>` : ''}
+                        ${timer.status === 'ended' && !timer.buttonsDelay ? `<button class="restart-btn" onclick="restartTimer(${timer.id})">Restart</button>` : ''}
+                        ${timer.status === 'ended' && !timer.buttonsDelay ? `<button class="delete-btn" onclick="deleteTimer(${timer.id})">&times;</button>` : ''}
                     </div>
-                    ${timer.status === 'ended' ? `
+                    ${timer.status === 'ended' && !timer.buttonsDelay ? `
                     <div class="btn-row-bottom">
                         <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 1)">1m</button>
                         <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 2)">2m</button>
                         <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 5)">5m</button>
-<!--                        <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 10)">10m</button>-->
                     </div>
                     ` : ''}
                 </div>
@@ -994,8 +993,9 @@ ${getName(timer)}
     function onTimerEnd(timer) {
         // Mark as ended BEFORE re-rendering so the card gets correct styling
         timer.status = 'ended';
+        timer.buttonsDelay = true;
 
-        // Re-render the timer card to show/hide buttons properly
+        // Re-render the timer card (buttons hidden initially)
         const card = document.getElementById(`timer-${timer.id}`);
         if (card) {
             card.remove();
@@ -1009,6 +1009,16 @@ ${getName(timer)}
                 newCard.classList.add('forced-visible');
             }
         }
+
+        // Show buttons after 1 second delay
+        setTimeout(() => {
+            timer.buttonsDelay = false;
+            const btnCard = document.getElementById(`timer-${timer.id}`);
+            if (btnCard) {
+                btnCard.remove();
+            }
+            renderTimer(timer);
+        }, 1000);
 
         // TTS speak card name twice
         if (isFxEnabled) {
