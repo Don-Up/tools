@@ -1,257 +1,296 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>代码讲解工具</title>
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #1e1e1e;
-      color: #e0e0e0;
-      min-height: 100vh;
-      padding: 20px 20px 80px 20px;
-    }
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding-left: 120px;
-    }
-    h1 {
-      text-align: center;
-      margin-bottom: 10px;
-      color: #4fc3f7;
-    }
-    .section {
-      margin-bottom: 16px;
-      display: flex;gap:10px;align-items: center
-    }
-    label {
-      display: block;
-      margin-bottom: 6px;
-      color: #b0bec5;
-      font-size: 14px;
-    }
-    textarea {
-      width: 100%;
-      min-height: 120px;
-      background: #2d2d2d;
-      border: 1px solid #444;
-      border-radius: 6px;
-      color: #e0e0e0;
-      padding: 12px;
-      font-family: 'Consolas', 'Monaco', monospace;
-      font-size: 13px;
-      resize: vertical;
-    }
-    textarea:focus {
-      outline: none;
-      border-color: #4fc3f7;
-    }
-    select {
-      width: 100%;
-      max-width: 500px;
-      padding: 10px 12px;
-      background: #2d2d2d;
-      border: 1px solid #444;
-      border-radius: 6px;
-      color: #e0e0e0;
-      font-size: 14px;
-    }
-    select:focus {
-      outline: none;
-      border-color: #4fc3f7;
-    }
-    .btn-row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 16px;
-    }
-    button {
-      padding: 10px 20px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 500;
-      transition: background 0.2s;
-    }
-    .btn-primary {
-      background: #4fc3f7;
-      color: #1e1e1e;
-    }
-    .btn-primary:hover {
-      background: #29b6f6;
-    }
-    .btn-secondary {
-      background: #616161;
-      color: #e0e0e0;
-    }
-    .btn-secondary:hover {
-      background: #757575;
-    }
-    .btn-secondary:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    .btn-danger {
-      background: #ef5350;
-      color: #fff;
-    }
-    .btn-danger:hover {
-      background: #f44336;
-    }
-    .code-display {
-      background: #1e1e1e;
-      border: 1px solid #444;
-      border-radius: 8px;
-      overflow: hidden;
-      margin-top: 20px;
-      margin-bottom: 16px;
-      padding-bottom: 0px;
-      display: none;
-    }
-    .code-display.visible {
-      display: block;
-    }
-    .code-line {
-      display: flex;
-      font-family: 'Consolas', 'Monaco', monospace;
-      font-size: 13px;
-      line-height: 1.6;
-      border-bottom: 1px solid #2d2d2d;
-    }
-    .code-line:last-child {
-      border-bottom: none;
-    }
-    .code-line.highlight {
-      background: rgba(79, 195, 247, 0.2);
-    }
-    .code-line.highlight .line-content {
-      color: #fff;
-    }
-    .line-number {
-      min-width: 50px;
-      padding: 4px 12px;
-      background: #2d2d2d;
-      color: #6b6b6b;
-      text-align: right;
-      user-select: none;
-      border-right: 1px solid #3d3d3d;
-    }
-    .line-content {
-      padding: 4px 12px;
-      color: #e0e0e0;
-      white-space: pre;
-      overflow-x: auto;
-    }
-    .playback-wrapper {
-      position: fixed;
-      left: 20px;
-      top: 50%;
-      transform: translateY(-50%);
-      z-index: 50;
-      align-items: center;
-      gap: 12px;
-    }
-    .playback-wrapper.visible {
-      display: flex;
-    }
-    .controls {
-      flex-direction: column;
-      gap: 10px;
-      display: flex;
-    }
-    .controls button {
-      min-width: 80px;
-    }
-    .status {
-      color: #b0bec5;
-      font-size: 12px;
-      max-width: 120px;
-    }
-    .status.active {
-      color: #4fc3f7;
-    }
-    .tts-row {
-      display: flex;
-      gap: 16px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-    .tts-row .section {
-      margin-bottom: 0;
-    }
-    .tts-row label {
-      margin-bottom: 4px;
-    }
-    .subtitle {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: rgba(0, 0, 0, 0.85);
-      color: #fff;
-      font-size: 18px;
-      text-align: center;
-      padding: 16px 20px;
-      display: none;
-      z-index: 100;
-    }
-    .subtitle.visible {
-      display: block;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>代码讲解工具</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1e1e1e;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px 20px 100px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding-left: 120px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #4fc3f7;
+        }
+
+        .section {
+            margin-bottom: 16px;
+            display: flex;
+            gap: 10px;
+            align-items: center
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            color: #b0bec5;
+            font-size: 14px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            background: #2d2d2d;
+            border: 1px solid #444;
+            border-radius: 6px;
+            color: #e0e0e0;
+            padding: 12px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #4fc3f7;
+        }
+
+        select {
+            width: 100%;
+            max-width: 500px;
+            padding: 10px 12px;
+            background: #2d2d2d;
+            border: 1px solid #444;
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #4fc3f7;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .btn-primary {
+            background: #4fc3f7;
+            color: #1e1e1e;
+        }
+
+        .btn-primary:hover {
+            background: #29b6f6;
+        }
+
+        .btn-secondary {
+            background: #616161;
+            color: #e0e0e0;
+        }
+
+        .btn-secondary:hover {
+            background: #757575;
+        }
+
+        .btn-secondary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-danger {
+            background: #ef5350;
+            color: #fff;
+        }
+
+        .btn-danger:hover {
+            background: #f44336;
+        }
+
+        .code-display {
+            background: #1e1e1e;
+            border: 1px solid #444;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 20px;
+            margin-bottom: 16px;
+            padding-bottom: 0px;
+            display: none;
+        }
+
+        .code-display.visible {
+            display: block;
+        }
+
+        .code-line {
+            display: flex;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            border-bottom: 1px solid #2d2d2d;
+        }
+
+        .code-line:last-child {
+            border-bottom: none;
+        }
+
+        .code-line.highlight {
+            background: rgba(79, 195, 247, 0.2);
+        }
+
+        .code-line.highlight .line-content {
+            color: #fff;
+        }
+
+        .line-number {
+            min-width: 50px;
+            padding: 4px 12px;
+            background: #2d2d2d;
+            color: #6b6b6b;
+            text-align: right;
+            user-select: none;
+            border-right: 1px solid #3d3d3d;
+        }
+
+        .line-content {
+            padding: 4px 12px;
+            color: #e0e0e0;
+            white-space: pre;
+            overflow-x: auto;
+        }
+
+        .playback-wrapper {
+            position: fixed;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 50;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .playback-wrapper.visible {
+            display: flex;
+        }
+
+        .controls {
+            flex-direction: column;
+            gap: 10px;
+            display: flex;
+        }
+
+        .controls button {
+            min-width: 80px;
+        }
+
+        .status {
+            color: #b0bec5;
+            font-size: 12px;
+            max-width: 120px;
+        }
+
+        .status.active {
+            color: #4fc3f7;
+        }
+
+        .tts-row {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .tts-row .section {
+            margin-bottom: 0;
+        }
+
+        .tts-row label {
+            margin-bottom: 4px;
+        }
+
+        .subtitle {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.85);
+            color: #fff;
+            font-size: 18px;
+            text-align: center;
+            padding: 16px 20px;
+            display: none;
+            z-index: 100;
+        }
+
+        .subtitle.visible {
+            display: block;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-      <div style="display: flex;gap: 20px;align-items: center">
+<div class="container">
+    <div style="display: flex;gap: 20px;align-items: center">
         <h1>Explainer</h1>
 
         <div class="tts-row">
-          <div class="section">
-            <label for="voiceSelect">TTS 语音</label>
-            <select id="voiceSelect">
-              <option value="">加载中...</option>
-            </select>
-          </div>
-      </div>
+            <div class="section">
+                <label for="voiceSelect">TTS 语音</label>
+                <select id="voiceSelect">
+                    <option value="">加载中...</option>
+                </select>
+            </div>
+        </div>
 
-      <div class="section" style="margin-top: 18px;">
-        <label for="speedRange">语速: <span id="speedValue">1.0</span>x</label>
-        <input type="range" id="speedRange" min="0.5" max="2.0" step="0.1" value="1.0" style="width: 200px;">
-      </div>
+        <div class="section" style="margin-top: 18px;">
+            <label for="speedRange">语速: <span id="speedValue">1.0</span>x</label>
+            <input type="range" id="speedRange" min="0.5" max="2.0" step="0.1" value="1.0" style="width: 200px;">
+        </div>
 
-      <div class="section" style="margin-left: auto;">
+        <div class="section" style="margin-left: auto;">
 
-      </div>
+        </div>
     </div>
 
     <div class="code-display" id="codeDisplay"></div>
 
     <div class="playback-wrapper" id="playbackWrapper">
-      <div class="controls" id="controls">
-        <button class="btn-primary" id="codeBtn">读取</button>
-        <button class="btn-primary" id="generateBtn">生成</button>
-        <button class="btn-primary" id="playBtn">播放</button>
-        <button class="btn-secondary" id="pauseBtn" disabled>暂停</button>
-        <button class="btn-danger" id="stopBtn">停止</button>
-        <button class="btn-primary" id="preBtn">Pre</button>
-        <button class="btn-primary" id="nextBtn">Next</button>
-      </div>
-      <span class="status" id="status" style="display: none">等待播放...</span>
+        <div class="controls" id="controls">
+            <button class="btn-primary" id="codeBtn">读取</button>
+            <button class="btn-primary" id="generateBtn">生成</button>
+            <button class="btn-primary" id="playBtn">播放</button>
+            <button class="btn-secondary" id="pauseBtn" disabled>暂停</button>
+            <button class="btn-danger" id="stopBtn">停止</button>
+            <button class="btn-primary" id="preBtn">Pre</button>
+            <button class="btn-primary" id="nextBtn">Next</button>
+        </div>
+        <span class="status" id="status" style="display: none">等待播放...</span>
     </div>
 
     <div class="subtitle" id="subtitle"></div>
-  </div>
+</div>
 
-  <script>
+<script>
     const voiceSelect = document.getElementById('voiceSelect');
     const speedRange = document.getElementById('speedRange');
     const speedValue = document.getElementById('speedValue');
@@ -265,6 +304,8 @@
     const stopBtn = document.getElementById('stopBtn');
     const status = document.getElementById('status');
     const subtitle = document.getElementById('subtitle');
+    const studentName = "Microsoft Xiaoyi Online"
+    let studentVoice = null
 
     let voices = [];
     let isPlaying = false;
@@ -276,89 +317,103 @@
     let currentUtteranceCancelled = false;
 
     function loadVoices() {
-      const allVoices = speechSynthesis.getVoices();
-      voiceSelect.innerHTML = '';
-      if (allVoices.length === 0) {
-        voiceSelect.innerHTML = '<option value="">无可用语音</option>';
-        return;
-      }
-      const zhVoices = allVoices.filter(v => v.lang.includes('zh'));
-      const otherVoices = allVoices.filter(v => !v.lang.includes('zh'));
-      voices = [...zhVoices, ...otherVoices];
-
-      voices.forEach((voice) => {
-        const option = document.createElement('option');
-        option.value = voices.indexOf(voice);
-        option.textContent = `${voice.name} (${voice.lang})`;
-        option.dataset.isZh = voice.lang.includes('zh');
-        voiceSelect.appendChild(option);
-      });
-
-      const savedVoiceName = localStorage.getItem('codeExplain_voiceName');
-      if (savedVoiceName) {
-        const savedIndex = voices.findIndex(v => v.name === savedVoiceName);
-        if (savedIndex >= 0) {
-          voiceSelect.value = savedIndex;
+        const allVoices = speechSynthesis.getVoices();
+        voiceSelect.innerHTML = '';
+        if (allVoices.length === 0) {
+            voiceSelect.innerHTML = '<option value="">无可用语音</option>';
+            return;
         }
-      }
+        const zhVoices = allVoices.filter(v => v.lang.includes('zh'));
+        const otherVoices = allVoices.filter(v => !v.lang.includes('zh'));
+        voices = [...zhVoices, ...otherVoices];
+
+        voices.forEach((voice) => {
+            console.log(voice.name)
+            if (studentVoice === null && voice.name.includes(studentName)) {
+                studentVoice = voice
+                console.log("已复制")
+            }
+            const option = document.createElement('option');
+            option.value = voices.indexOf(voice);
+            option.textContent = `${voice.name} (${voice.lang})`;
+            option.dataset.isZh = voice.lang.includes('zh');
+            voiceSelect.appendChild(option);
+        });
+
+        const savedVoiceName = localStorage.getItem('codeExplain_voiceName');
+        if (savedVoiceName) {
+            const savedIndex = voices.findIndex(v => v.name === savedVoiceName);
+            if (savedIndex >= 0) {
+                voiceSelect.value = savedIndex;
+            }
+        }
     }
 
     if (speechSynthesis.onvoiceschanged !== undefined) {
-      speechSynthesis.onvoiceschanged = loadVoices;
+        speechSynthesis.onvoiceschanged = loadVoices;
     }
     loadVoices();
 
     const savedSpeed = localStorage.getItem('codeExplain_speed');
     if (savedSpeed) {
-      speedRange.value = savedSpeed;
-      speedValue.textContent = parseFloat(savedSpeed).toFixed(1);
+        speedRange.value = savedSpeed;
+        speedValue.textContent = parseFloat(savedSpeed).toFixed(1);
     }
 
     speedRange.addEventListener('input', () => {
-      speedValue.textContent = parseFloat(speedRange.value).toFixed(1);
-      localStorage.setItem('codeExplain_speed', speedRange.value);
+        speedValue.textContent = parseFloat(speedRange.value).toFixed(1);
+        localStorage.setItem('codeExplain_speed', speedRange.value);
     });
 
     voiceSelect.addEventListener('change', () => {
-      const selectedVoice = voices[voiceSelect.value];
-      if (selectedVoice) {
-        localStorage.setItem('codeExplain_voiceName', selectedVoice.name);
-      }
+        const selectedVoice = voices[voiceSelect.value];
+        if (selectedVoice) {
+            localStorage.setItem('codeExplain_voiceName', selectedVoice.name);
+        }
     });
 
     function parseLineRange(key) {
-      if (key.includes('-')) {
-        const [start, end] = key.split('-').map(Number);
-        const lines = [];
-        for (let i = start; i <= end; i++) lines.push(i);
-        return lines;
-      }
-      return [Number(key)];
+        if (key.includes('-')) {
+            const [start, end] = key.split('-').map(Number);
+            const lines = [];
+            for (let i = start; i <= end; i++) lines.push(i);
+            return lines;
+        }
+        return [Number(key)];
     }
 
     function parseExplanations(jsonStr) {
-      const data = JSON.parse(jsonStr);
-      const segs = [];
-      for (const [key, value] of Object.entries(data)) {
-        const lineNumbers = parseLineRange(key);
-        segs.push({ lineNumbers, explanation: value });
-      }
-      segs.sort((a, b) => a.lineNumbers[0] - b.lineNumbers[0]);
-      return { segments: segs };
+        // 使用正则提取所有键值对（保留重复键的顺序）
+        const pairs = [];
+        const regex = /"([^"]+)":\s*"((?:[^"\\]|\\.)*)"/g;
+        let match;
+        while ((match = regex.exec(jsonStr)) !== null) {
+            const key = match[1];
+            const value = match[2].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+            pairs.push({key, value});
+        }
+
+        const segs = [];
+        for (const {key, value} of pairs) {
+            const lineNumbers = parseLineRange(key);
+            segs.push({lineNumbers, explanation: value});
+        }
+        // 不再排序，保持原有顺序
+        return {segments: segs};
     }
 
     let codeText = ""
 
     codeBtn.addEventListener("click", async () => {
-      let clipboardText;
-      try {
-        clipboardText = await navigator.clipboard.readText();
-      } catch (e) {
-        alert('无法读取剪贴板，请确保已授权访问权限');
-        return;
-      }
-      codeText = clipboardText
-      await addLineNumbersAndCopyToClipboard(codeText)
+        let clipboardText;
+        try {
+            clipboardText = await navigator.clipboard.readText();
+        } catch (e) {
+            alert('无法读取剪贴板，请确保已授权访问权限');
+            return;
+        }
+        codeText = clipboardText
+        await addLineNumbersAndCopyToClipboard(codeText)
     })
 
     /**
@@ -369,445 +424,450 @@
      * @throws {Error} 如果剪贴板写入失败，会抛出错误。
      */
     async function addLineNumbersAndCopyToClipboard(code) {
-      // 1. 防御性检查：确保输入是字符串
-      if (typeof code !== 'string') {
-        throw new Error('输入内容必须为字符串');
-      }
-
-      // 2. 核心处理：为每一行添加行号（包含空行）
-      //    使用 split('\n') 保留所有行，包括末尾空行。
-      const lines = code.split('\n');
-
-      // 如果代码为空字符串，直接返回空字符串，不进行标注
-      if (lines.length === 1 && lines[0] === '' && code === '') {
-        return '';
-      }
-
-      let numberedCode = '';
-      for (let i = 0; i < lines.length; i++) {
-        const lineContent = lines[i];
-        const lineNumber = i + 1; // 行号从 1 开始
-        numberedCode += lineNumber + ' ' + lineContent;
-        // 除了最后一行，其余行后添加换行符
-        if (i < lines.length - 1) {
-          numberedCode += '\n';
+        // 1. 防御性检查：确保输入是字符串
+        if (typeof code !== 'string') {
+            throw new Error('输入内容必须为字符串');
         }
-      }
 
-      // 3. 将结果写入剪贴板
-      try {
-        // 优先使用现代 Clipboard API
-        await navigator.clipboard.writeText(numberedCode);
-      } catch (clipError) {
-        // 如果 Clipboard API 失败，尝试降级方案 (execCommand)
-        console.warn('Clipboard API 写入失败，尝试降级方案:', clipError);
+        // 2. 核心处理：为每一行添加行号（包含空行）
+        //    使用 split('\n') 保留所有行，包括末尾空行。
+        const lines = code.split('\n');
+
+        // 如果代码为空字符串，直接返回空字符串，不进行标注
+        if (lines.length === 1 && lines[0] === '' && code === '') {
+            return '';
+        }
+
+        let numberedCode = '';
+        for (let i = 0; i < lines.length; i++) {
+            const lineContent = lines[i];
+            const lineNumber = i + 1; // 行号从 1 开始
+            numberedCode += lineNumber + ' ' + lineContent;
+            // 除了最后一行，其余行后添加换行符
+            if (i < lines.length - 1) {
+                numberedCode += '\n';
+            }
+        }
+
+        // 3. 将结果写入剪贴板
         try {
-          const textArea = document.createElement('textarea');
-          textArea.value = numberedCode;
-          textArea.style.position = 'fixed';
-          textArea.style.opacity = '0';
-          document.body.appendChild(textArea);
-          textArea.select();
-          const success = document.execCommand('copy');
-          document.body.removeChild(textArea);
-          if (!success) {
-            throw new Error('execCommand 复制失败');
-          }
-        } catch (fallbackError) {
-          // 如果两种方法都失败，则抛出错误
-          throw new Error(`无法将结果写入剪贴板: ${fallbackError.message}`);
+            // 优先使用现代 Clipboard API
+            await navigator.clipboard.writeText(numberedCode);
+        } catch (clipError) {
+            // 如果 Clipboard API 失败，尝试降级方案 (execCommand)
+            console.warn('Clipboard API 写入失败，尝试降级方案:', clipError);
+            try {
+                const textArea = document.createElement('textarea');
+                textArea.value = numberedCode;
+                textArea.style.position = 'fixed';
+                textArea.style.opacity = '0';
+                document.body.appendChild(textArea);
+                textArea.select();
+                const success = document.execCommand('copy');
+                document.body.removeChild(textArea);
+                if (!success) {
+                    throw new Error('execCommand 复制失败');
+                }
+            } catch (fallbackError) {
+                // 如果两种方法都失败，则抛出错误
+                throw new Error(`无法将结果写入剪贴板: ${fallbackError.message}`);
+            }
         }
-      }
 
-      // 返回处理后的代码，以便调用方可以进一步使用
-      return numberedCode;
+        // 返回处理后的代码，以便调用方可以进一步使用
+        return numberedCode;
     }
 
     async function generateCodeDisplay() {
-      let clipboardText;
-      try {
-        clipboardText = await navigator.clipboard.readText();
-      } catch (e) {
-        alert('无法读取剪贴板，请确保已授权访问权限');
-        return;
-      }
+        let clipboardText;
+        try {
+            clipboardText = await navigator.clipboard.readText();
+        } catch (e) {
+            alert('无法读取剪贴板，请确保已授权访问权限');
+            return;
+        }
 
-      if(codeText) clipboardText = "```json\n"+codeText + "\n```\n"+"```json\n"+clipboardText+"\n```"
+        if (codeText) clipboardText = "```json\n" + codeText + "\n```\n" + "```json\n" + clipboardText + "\n```"
 
-      const blocks = [];
-      const regex = /```(\w+)?\n?([\s\S]*?)```/g;
-      let match;
-      while ((match = regex.exec(clipboardText)) !== null) {
-        blocks.push({
-          lang: match[1] || '',
-          content: match[2].trim()
-        });
-      }
+        const blocks = [];
+        const regex = /```(\w+)?\n?([\s\S]*?)```/g;
+        let match;
+        while ((match = regex.exec(clipboardText)) !== null) {
+            blocks.push({
+                lang: match[1] || '',
+                content: match[2].trim()
+            });
+        }
 
-      if (blocks.length < 2) {
-        alert('格式错误：需要两个代码块，第一个为代码，第二个为JSON讲解');
-        return;
-      }
+        if (blocks.length < 2) {
+            alert('格式错误：需要两个代码块，第一个为代码，第二个为JSON讲解');
+            return;
+        }
 
-      const lastBlock = blocks[blocks.length - 1];
-      if (lastBlock.lang.toLowerCase() !== 'json') {
-        alert('格式错误：第二个代码块必须是 JSON 格式');
-        return;
-      }
+        const lastBlock = blocks[blocks.length - 1];
+        if (lastBlock.lang.toLowerCase() !== 'json') {
+            alert('格式错误：第二个代码块必须是 JSON 格式');
+            return;
+        }
 
-      const codeBlock = blocks[0];
-      const code = codeBlock.content;
+        const codeBlock = blocks[0];
+        const code = codeBlock.content;
 
-      if (!code) {
-        alert('格式错误：代码块内容为空');
-        return;
-      }
+        if (!code) {
+            alert('格式错误：代码块内容为空');
+            return;
+        }
 
-      try {
-        ({ segments } = parseExplanations(lastBlock.content));
-      } catch (e) {
-        alert('JSON 格式错误: ' + e.message);
-        return;
-      }
+        try {
+            ({segments} = parseExplanations(lastBlock.content));
+        } catch (e) {
+            alert('JSON 格式错误: ' + e.message);
+            return;
+        }
 
-      const lines = code.split('\n');
-      codeDisplay.innerHTML = '';
+        const lines = code.split('\n');
+        codeDisplay.innerHTML = '';
 
-      // 找出所有多行注释的范围
-      const multilineRanges = findMultilineCommentRanges(code);
+        // 找出所有多行注释的范围
+        const multilineRanges = findMultilineCommentRanges(code);
 
-      // 计算每行的起始和结束位置
-      let charPos = 0;
-      lines.forEach((line, index) => {
-        const lineNum = index + 1;
-        const lineStart = charPos;
-        const lineEnd = charPos + line.length;
-        charPos = lineEnd + 1; // +1 for the newline
+        // 计算每行的起始和结束位置
+        let charPos = 0;
+        lines.forEach((line, index) => {
+            const lineNum = index + 1;
+            const lineStart = charPos;
+            const lineEnd = charPos + line.length;
+            charPos = lineEnd + 1; // +1 for the newline
 
-        const div = document.createElement('div');
-        div.className = 'code-line';
-        div.dataset.line = lineNum;
+            const div = document.createElement('div');
+            div.className = 'code-line';
+            div.dataset.line = lineNum;
 
-        // 检查这行是否在多行注释内
-        const inRange = isInMultilineComment(lineStart, lineEnd, multilineRanges);
+            // 检查这行是否在多行注释内
+            const inRange = isInMultilineComment(lineStart, lineEnd, multilineRanges);
 
-        div.innerHTML = `
+            div.innerHTML = `
           <span class="line-number">${lineNum}</span>
           <span class="line-content">${highlightLine(line, inRange) || ' '}</span>
         `;
-        codeDisplay.appendChild(div);
-      });
+            codeDisplay.appendChild(div);
+        });
 
-      codeDisplay.classList.add('visible');
-      playbackWrapper.classList.add('visible');
-      currentIndex = -1;
-      codeText = ""
-      setStatus('等待播放...');
+        codeDisplay.classList.add('visible');
+        playbackWrapper.classList.add('visible');
+        currentIndex = -1;
+        codeText = ""
+        setStatus('等待播放...');
     }
 
     function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     function findMultilineCommentRanges(code) {
-      const ranges = [];
-      // 匹配多行注释
-      const regex = /(\/\*[\s\S]*?\*\/)/g;
-      let match;
-      while ((match = regex.exec(code)) !== null) {
-        ranges.push({
-          start: match.index,
-          end: match.index + match[0].length,
-          text: match[0],
-          isDoc: match[0].startsWith('/**')
-        });
-      }
-      return ranges;
+        const ranges = [];
+        // 匹配多行注释
+        const regex = /(\/\*[\s\S]*?\*\/)/g;
+        let match;
+        while ((match = regex.exec(code)) !== null) {
+            ranges.push({
+                start: match.index,
+                end: match.index + match[0].length,
+                text: match[0],
+                isDoc: match[0].startsWith('/**')
+            });
+        }
+        return ranges;
     }
 
     function isInMultilineComment(lineStart, lineEnd, ranges) {
-      for (const range of ranges) {
-        // 检查这一行是否与注释范围有交集
-        if (lineStart < range.end && lineEnd > range.start) {
-          return range;
+        for (const range of ranges) {
+            // 检查这一行是否与注释范围有交集
+            if (lineStart < range.end && lineEnd > range.start) {
+                return range;
+            }
         }
-      }
-      return null;
+        return null;
     }
 
     function highlightCode(code) {
-      let html = escapeHtml(code);
+        let html = escapeHtml(code);
 
-      // 高亮多行文档注释 /** */
-      html = html.replace(/(\/\*\*[\s\S]*?\*\/)/g, '<span style="color:#4ec9b0">$1</span>');
+        // 高亮多行文档注释 /** */
+        html = html.replace(/(\/\*\*[\s\S]*?\*\/)/g, '<span style="color:#4ec9b0">$1</span>');
 
-      // 高亮多行普通注释 /* */
-      html = html.replace(/(\/\*[\s\S]*?\*\/)/g, '<span style="color:#6a9955">$1</span>');
+        // 高亮多行普通注释 /* */
+        html = html.replace(/(\/\*[\s\S]*?\*\/)/g, '<span style="color:#6a9955">$1</span>');
 
-      return html;
+        return html;
     }
 
     function highlightLine(line, inMultilineRange) {
-      let html = escapeHtml(line);
+        let html = escapeHtml(line);
 
-      // 如果整行都在多行注释内，返回已处理的内容
-      if (inMultilineRange) {
-        return `<span style="color:${inMultilineRange.isDoc ? '#4ec9b0' : '#6a9955'}">${html}</span>`;
-      }
+        // 如果整行都在多行注释内，返回已处理的内容
+        if (inMultilineRange) {
+            return `<span style="color:${inMultilineRange.isDoc ? '#4ec9b0' : '#6a9955'}">${html}</span>`;
+        }
 
-      // 检查是否有单行注释
-      const singleLineCommentMatch = html.match(/(\/\/[^\n]*)/);
-      if (singleLineCommentMatch) {
-        const commentStart = html.indexOf('//');
-        const beforeComment = html.substring(0, commentStart);
-        const commentPart = html.substring(commentStart);
+        // 检查是否有单行注释
+        const singleLineCommentMatch = html.match(/(\/\/[^\n]*)/);
+        if (singleLineCommentMatch) {
+            const commentStart = html.indexOf('//');
+            const beforeComment = html.substring(0, commentStart);
+            const commentPart = html.substring(commentStart);
 
-        // 对注释前的部分应用关键字和数字高亮
-        let beforeHighlighted = beforeComment;
-        // 高亮字符串
-        beforeHighlighted = beforeHighlighted.replace(/(&quot;[^&]*?&quot;|'[^']*?'|`[^`]*?`)/g, '<span style="color:#ce9178">$1</span>');
-        // 高亮关键字
+            // 对注释前的部分应用关键字和数字高亮
+            let beforeHighlighted = beforeComment;
+            // 高亮字符串
+            beforeHighlighted = beforeHighlighted.replace(/(&quot;[^&]*?&quot;|'[^']*?'|`[^`]*?`)/g, '<span style="color:#ce9178">$1</span>');
+            // 高亮关键字
+            const keywords = /\b(function|const|let|var|if|else|for|while|return|class|import|export|from|async|await|try|catch|throw|new|this|typeof|instanceof|typeof|void|null|undefined|true|false|in|of|switch|case|default|break|continue|do|finally|while)\b/g;
+            beforeHighlighted = beforeHighlighted.replace(keywords, '<span style="color:#569cd6">$1</span>');
+            // 高亮数字
+            beforeHighlighted = beforeHighlighted.replace(/\b(\d+)\b/g, '<span style="color:#b5cea8">$1</span>');
+
+            // 注释部分不变色关键字
+            return beforeHighlighted + `<span style="color:#6a9955">${commentPart}</span>`;
+        }
+
+        // 高亮字符串 (双引号、单引号、模板字符串)
+        html = html.replace(/(&quot;[^&]*?&quot;|'[^']*?'|`[^`]*?`)/g, '<span style="color:#ce9178">$1</span>');
+
+        // 高亮保留关键字
         const keywords = /\b(function|const|let|var|if|else|for|while|return|class|import|export|from|async|await|try|catch|throw|new|this|typeof|instanceof|typeof|void|null|undefined|true|false|in|of|switch|case|default|break|continue|do|finally|while)\b/g;
-        beforeHighlighted = beforeHighlighted.replace(keywords, '<span style="color:#569cd6">$1</span>');
+        html = html.replace(keywords, '<span style="color:#569cd6">$1</span>');
+
         // 高亮数字
-        beforeHighlighted = beforeHighlighted.replace(/\b(\d+)\b/g, '<span style="color:#b5cea8">$1</span>');
+        html = html.replace(/\b(\d+)\b/g, '<span style="color:#b5cea8">$1</span>');
 
-        // 注释部分不变色关键字
-        return beforeHighlighted + `<span style="color:#6a9955">${commentPart}</span>`;
-      }
-
-      // 高亮字符串 (双引号、单引号、模板字符串)
-      html = html.replace(/(&quot;[^&]*?&quot;|'[^']*?'|`[^`]*?`)/g, '<span style="color:#ce9178">$1</span>');
-
-      // 高亮保留关键字
-      const keywords = /\b(function|const|let|var|if|else|for|while|return|class|import|export|from|async|await|try|catch|throw|new|this|typeof|instanceof|typeof|void|null|undefined|true|false|in|of|switch|case|default|break|continue|do|finally|while)\b/g;
-      html = html.replace(keywords, '<span style="color:#569cd6">$1</span>');
-
-      // 高亮数字
-      html = html.replace(/\b(\d+)\b/g, '<span style="color:#b5cea8">$1</span>');
-
-      return html;
+        return html;
     }
 
     function setStatus(text, active = false) {
-      status.textContent = text;
-      status.className = 'status' + (active ? ' active' : '');
+        status.textContent = text;
+        status.className = 'status' + (active ? ' active' : '');
     }
 
     function highlightLines(lineNumbers) {
-      document.querySelectorAll('.code-line').forEach(el => {
-        el.classList.remove('highlight');
-      });
-      lineNumbers.forEach(num => {
-        const lineEl = document.querySelector(`.code-line[data-line="${num}"]`);
-        if (lineEl) lineEl.classList.add('highlight');
-      });
-      if (lineNumbers.length > 0) {
-        const firstEl = document.querySelector(`.code-line[data-line="${lineNumbers[0]}"]`);
-        if (firstEl) firstEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
+        document.querySelectorAll('.code-line').forEach(el => {
+            el.classList.remove('highlight');
+        });
+        lineNumbers.forEach(num => {
+            const lineEl = document.querySelector(`.code-line[data-line="${num}"]`);
+            if (lineEl) lineEl.classList.add('highlight');
+        });
+        if (lineNumbers.length > 0) {
+            const firstEl = document.querySelector(`.code-line[data-line="${lineNumbers[0]}"]`);
+            if (firstEl) firstEl.scrollIntoView({behavior: 'smooth', block: 'center'});
+        }
     }
 
     function getSelectedVoice() {
-      const index = Number(voiceSelect.value);
-      return voices[index] || voices[0];
+        const index = Number(voiceSelect.value);
+        return voices[index] || voices[0];
     }
 
     function speakText(text, onEnd) {
-      if (!text) {
-        onEnd();
-        return;
-      }
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.voice = getSelectedVoice();
-      utterance.rate = parseFloat(speedRange.value);
-      utterance.pitch = 1.0;
-
-      utterance.onend = () => {
-        if (!currentUtteranceCancelled) {
-          onEnd();
+        if (!text) {
+            onEnd();
+            return;
         }
-        currentUtteranceCancelled = false;
-      };
-      utterance.onerror = (e) => {
-        if (!currentUtteranceCancelled && e.error !== 'interrupted') {
-          console.error('TTS error:', e);
-          onEnd();
+        let useStudentVoice = false
+        if (text.includes("student: ")) {
+            useStudentVoice = true
         }
-        currentUtteranceCancelled = false;
-      };
+        text = text.replace("teacher: ", "").replace("student: ", "")
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.voice = useStudentVoice ? studentVoice : getSelectedVoice();
+        utterance.rate = parseFloat(speedRange.value);
+        utterance.pitch = 1.0;
 
-      currentUtterance = utterance;
-      currentUtteranceCancelled = false;
-      speechSynthesis.speak(utterance);
+        utterance.onend = () => {
+            if (!currentUtteranceCancelled) {
+                onEnd();
+            }
+            currentUtteranceCancelled = false;
+        };
+        utterance.onerror = (e) => {
+            if (!currentUtteranceCancelled && e.error !== 'interrupted') {
+                console.error('TTS error:', e);
+                onEnd();
+            }
+            currentUtteranceCancelled = false;
+        };
+
+        currentUtterance = utterance;
+        currentUtteranceCancelled = false;
+        speechSynthesis.speak(utterance);
     }
 
     function playNext() {
-      if (!isPlaying || isPaused) return;
+        if (!isPlaying || isPaused) return;
 
-      if (currentIndex >= segments.length) {
-        isPlaying = false;
-        isPaused = false;
-        setStatus('讲解完成');
-        playBtn.disabled = false;
-        pauseBtn.disabled = true;
-        document.querySelectorAll('.code-line').forEach(el => el.classList.remove('highlight'));
-        subtitle.classList.remove('visible');
-        subtitle.textContent = '';
-        return;
-      }
+        if (currentIndex >= segments.length) {
+            isPlaying = false;
+            isPaused = false;
+            setStatus('讲解完成');
+            playBtn.disabled = false;
+            pauseBtn.disabled = true;
+            document.querySelectorAll('.code-line').forEach(el => el.classList.remove('highlight'));
+            subtitle.classList.remove('visible');
+            subtitle.textContent = '';
+            return;
+        }
 
-      const segment = segments[currentIndex];
-      highlightLines(segment.lineNumbers);
+        const segment = segments[currentIndex];
+        highlightLines(segment.lineNumbers);
 
-      const lineRange = segment.lineNumbers.length > 1
-        ? `${segment.lineNumbers[0]}-${segment.lineNumbers[segment.lineNumbers.length - 1]}`
-        : `${segment.lineNumbers[0]}`;
-      setStatus(`讲解第 ${lineRange} 行...`, true);
-      subtitle.textContent = segment.explanation;
-      subtitle.classList.add('visible');
+        const lineRange = segment.lineNumbers.length > 1
+            ? `${segment.lineNumbers[0]}-${segment.lineNumbers[segment.lineNumbers.length - 1]}`
+            : `${segment.lineNumbers[0]}`;
+        setStatus(`讲解第 ${lineRange} 行...`, true);
+        subtitle.textContent = segment.explanation;
+        subtitle.classList.add('visible');
 
-      speakText(segment.explanation, () => {
-        currentIndex++;
-        highlightTimeout = setTimeout(playNext, 300);
-      });
+        speakText(segment.explanation, () => {
+            currentIndex++;
+            highlightTimeout = setTimeout(playNext, 300);
+        });
     }
 
     function startPlay() {
-      if (currentIndex < 0 || currentIndex >= segments.length) {
-        currentIndex = 0;
-      }
-      isPlaying = true;
-      isPaused = false;
-      playBtn.disabled = true;
-      pauseBtn.disabled = false;
-      playNext();
+        if (currentIndex < 0 || currentIndex >= segments.length) {
+            currentIndex = 0;
+        }
+        isPlaying = true;
+        isPaused = false;
+        playBtn.disabled = true;
+        pauseBtn.disabled = false;
+        playNext();
     }
 
     generateBtn.addEventListener('click', generateCodeDisplay);
 
     playBtn.addEventListener('click', () => {
-      if (isPaused) {
-        speechSynthesis.resume();
-        isPaused = false;
-        pauseBtn.textContent = '暂停';
-        const seg = segments[currentIndex];
-        const lineRange = seg.lineNumbers.length > 1
-          ? `${seg.lineNumbers[0]}-${seg.lineNumbers[seg.lineNumbers.length - 1]}`
-          : `${seg.lineNumbers[0]}`;
-        setStatus(`讲解第 ${lineRange} 行...`, true);
-      } else {
-        startPlay();
-      }
+        if (isPaused) {
+            speechSynthesis.resume();
+            isPaused = false;
+            pauseBtn.textContent = '暂停';
+            const seg = segments[currentIndex];
+            const lineRange = seg.lineNumbers.length > 1
+                ? `${seg.lineNumbers[0]}-${seg.lineNumbers[seg.lineNumbers.length - 1]}`
+                : `${seg.lineNumbers[0]}`;
+            setStatus(`讲解第 ${lineRange} 行...`, true);
+        } else {
+            startPlay();
+        }
     });
 
     pauseBtn.addEventListener('click', () => {
-      if (!isPlaying) return;
-      if (isPaused) {
-        speechSynthesis.resume();
-        isPaused = false;
-        pauseBtn.textContent = '暂停';
-        const seg = segments[currentIndex];
-        const lineRange = seg.lineNumbers.length > 1
-          ? `${seg.lineNumbers[0]}-${seg.lineNumbers[seg.lineNumbers.length - 1]}`
-          : `${seg.lineNumbers[0]}`;
-        setStatus(`讲解第 ${lineRange} 行...`, true);
-      } else {
-        speechSynthesis.pause();
-        isPaused = true;
-        pauseBtn.textContent = '继续';
-        setStatus('已暂停');
-      }
+        if (!isPlaying) return;
+        if (isPaused) {
+            speechSynthesis.resume();
+            isPaused = false;
+            pauseBtn.textContent = '暂停';
+            const seg = segments[currentIndex];
+            const lineRange = seg.lineNumbers.length > 1
+                ? `${seg.lineNumbers[0]}-${seg.lineNumbers[seg.lineNumbers.length - 1]}`
+                : `${seg.lineNumbers[0]}`;
+            setStatus(`讲解第 ${lineRange} 行...`, true);
+        } else {
+            speechSynthesis.pause();
+            isPaused = true;
+            pauseBtn.textContent = '继续';
+            setStatus('已暂停');
+        }
     });
 
     stopBtn.addEventListener('click', () => {
-      currentUtteranceCancelled = true;
-      speechSynthesis.cancel();
-      clearTimeout(highlightTimeout);
-      isPlaying = false;
-      isPaused = false;
-      playBtn.disabled = false;
-      pauseBtn.disabled = true;
-      pauseBtn.textContent = '暂停';
-      setStatus('已停止');
-      document.querySelectorAll('.code-line').forEach(el => el.classList.remove('highlight'));
-      subtitle.classList.remove('visible');
-      subtitle.textContent = '';
+        currentUtteranceCancelled = true;
+        speechSynthesis.cancel();
+        clearTimeout(highlightTimeout);
+        isPlaying = false;
+        isPaused = false;
+        playBtn.disabled = false;
+        pauseBtn.disabled = true;
+        pauseBtn.textContent = '暂停';
+        setStatus('已停止');
+        document.querySelectorAll('.code-line').forEach(el => el.classList.remove('highlight'));
+        subtitle.classList.remove('visible');
+        subtitle.textContent = '';
     });
 
     preBtn.addEventListener('click', () => {
-      if (segments.length === 0 || currentIndex < 0) return;
-      currentUtteranceCancelled = true;
-      speechSynthesis.cancel();
-      clearTimeout(highlightTimeout);
+        if (segments.length === 0 || currentIndex < 0) return;
+        currentUtteranceCancelled = true;
+        speechSynthesis.cancel();
+        clearTimeout(highlightTimeout);
 
-      let segmentIndex = currentIndex - 1;
-      if (segmentIndex < 0) {
-        segmentIndex = segments.length - 1;
-      }
-      currentIndex = segmentIndex;
+        let segmentIndex = currentIndex - 1;
+        if (segmentIndex < 0) {
+            segmentIndex = segments.length - 1;
+        }
+        currentIndex = segmentIndex;
 
-      const segment = segments[segmentIndex];
-      highlightLines(segment.lineNumbers);
+        const segment = segments[segmentIndex];
+        highlightLines(segment.lineNumbers);
 
-      const lineRange = segment.lineNumbers.length > 1
-        ? `${segment.lineNumbers[0]}-${segment.lineNumbers[segment.lineNumbers.length - 1]}`
-        : `${segment.lineNumbers[0]}`;
-      setStatus(`讲解第 ${lineRange} 行...`, true);
-      subtitle.textContent = segment.explanation;
-      subtitle.classList.add('visible');
+        const lineRange = segment.lineNumbers.length > 1
+            ? `${segment.lineNumbers[0]}-${segment.lineNumbers[segment.lineNumbers.length - 1]}`
+            : `${segment.lineNumbers[0]}`;
+        setStatus(`讲解第 ${lineRange} 行...`, true);
+        subtitle.textContent = segment.explanation;
+        subtitle.classList.add('visible');
 
-      isPlaying = true;
-      isPaused = false;
-      playBtn.disabled = true;
-      pauseBtn.disabled = false;
-
-      speakText(segment.explanation, () => {
-        isPlaying = false;
+        isPlaying = true;
         isPaused = false;
-        playBtn.disabled = false;
-        pauseBtn.disabled = true;
-        setStatus('等待播放...');
-      });
+        playBtn.disabled = true;
+        pauseBtn.disabled = false;
+
+        speakText(segment.explanation, () => {
+            isPlaying = false;
+            isPaused = false;
+            playBtn.disabled = false;
+            pauseBtn.disabled = true;
+            setStatus('等待播放...');
+        });
     });
 
     nextBtn.addEventListener('click', () => {
-      if (segments.length === 0) return;
-      currentUtteranceCancelled = true;
-      speechSynthesis.cancel();
-      clearTimeout(highlightTimeout);
+        if (segments.length === 0) return;
+        currentUtteranceCancelled = true;
+        speechSynthesis.cancel();
+        clearTimeout(highlightTimeout);
 
-      let segmentIndex = currentIndex < 0 ? 0 : currentIndex + 1;
-      if (segmentIndex >= segments.length) {
-        segmentIndex = 0;
-      }
-      currentIndex = segmentIndex;
+        let segmentIndex = currentIndex < 0 ? 0 : currentIndex + 1;
+        if (segmentIndex >= segments.length) {
+            segmentIndex = 0;
+        }
+        currentIndex = segmentIndex;
 
-      const segment = segments[segmentIndex];
-      highlightLines(segment.lineNumbers);
+        const segment = segments[segmentIndex];
+        highlightLines(segment.lineNumbers);
 
-      const lineRange = segment.lineNumbers.length > 1
-        ? `${segment.lineNumbers[0]}-${segment.lineNumbers[segment.lineNumbers.length - 1]}`
-        : `${segment.lineNumbers[0]}`;
-      setStatus(`讲解第 ${lineRange} 行...`, true);
-      subtitle.textContent = segment.explanation;
-      subtitle.classList.add('visible');
+        const lineRange = segment.lineNumbers.length > 1
+            ? `${segment.lineNumbers[0]}-${segment.lineNumbers[segment.lineNumbers.length - 1]}`
+            : `${segment.lineNumbers[0]}`;
+        setStatus(`讲解第 ${lineRange} 行...`, true);
+        subtitle.textContent = segment.explanation;
+        subtitle.classList.add('visible');
 
-      isPlaying = true;
-      isPaused = false;
-      playBtn.disabled = true;
-      pauseBtn.disabled = false;
-
-      speakText(segment.explanation, () => {
-        isPlaying = false;
+        isPlaying = true;
         isPaused = false;
-        playBtn.disabled = false;
-        pauseBtn.disabled = true;
-        setStatus('等待播放...');
-      });
+        playBtn.disabled = true;
+        pauseBtn.disabled = false;
+
+        speakText(segment.explanation, () => {
+            isPlaying = false;
+            isPaused = false;
+            playBtn.disabled = false;
+            pauseBtn.disabled = true;
+            setStatus('等待播放...');
+        });
     });
-  </script>
+</script>
 </body>
 </html>
