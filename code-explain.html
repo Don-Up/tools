@@ -273,15 +273,15 @@
 
         <div class="tts-row">
             <div class="section">
-                <label for="voiceSelect">TTS 语音</label>
+                <label for="voiceSelect">TTS Voice</label>
                 <select id="voiceSelect">
-                    <option value="">加载中...</option>
+                    <option value="">loading...</option>
                 </select>
             </div>
         </div>
 
         <div class="section" style="margin-top: 18px;">
-            <label for="speedRange">语速: <span id="speedValue">1.0</span>x</label>
+            <label for="speedRange">Speed: <span id="speedValue">1.0</span>x</label>
             <input type="range" id="speedRange" min="0.5" max="2.0" step="0.1" value="1.0" style="width: 200px;">
         </div>
 
@@ -294,15 +294,15 @@
 
     <div class="playback-wrapper" id="playbackWrapper">
         <div class="controls" id="controls">
-            <button class="btn-success" id="codeBtn">读取</button>
-            <button class="btn-success" id="generateBtn">生成</button>
-            <button class="btn-primary" id="playBtn">播放</button>
-            <button class="btn-secondary" id="pauseBtn" disabled>暂停</button>
-            <button class="btn-danger" id="stopBtn">停止</button>
+            <button class="btn-success" id="codeBtn">Read</button>
+            <button class="btn-success" id="generateBtn">Gen</button>
+            <button class="btn-primary" id="playBtn">Play</button>
+            <button class="btn-secondary" id="pauseBtn" disabled>Pause</button>
+            <button class="btn-danger" id="stopBtn">Stop</button>
             <button class="btn-accent" id="preBtn">Pre</button>
             <button class="btn-accent" id="nextBtn">Next</button>
         </div>
-        <span class="status" id="status" style="display: none">等待播放...</span>
+        <span class="status" id="status" style="display: none">Waiting...</span>
     </div>
 
     <div class="subtitle" id="subtitle"></div>
@@ -322,8 +322,10 @@
     const stopBtn = document.getElementById('stopBtn');
     const status = document.getElementById('status');
     const subtitle = document.getElementById('subtitle');
-    const studentName = "Microsoft Xiaoyi Online"
-    let studentVoice = null
+    const studentNameZH = "Microsoft Xiaoyi Online"
+    const studentNameEN = "Microsoft Clara Online"
+    let studentVoiceZH = null
+    let studentVoiceEN = null
 
     let voices = [];
     let isPlaying = false;
@@ -347,9 +349,11 @@
 
         voices.forEach((voice) => {
             console.log(voice.name)
-            if (studentVoice === null && voice.name.includes(studentName)) {
-                studentVoice = voice
-                console.log("已复制")
+            if (studentVoiceZH === null && voice.name.includes(studentNameZH)) {
+                studentVoiceZH = voice
+            }
+            if (studentVoiceEN === null && voice.name.includes(studentNameEN)) {
+                studentVoiceEN = voice
             }
             const option = document.createElement('option');
             option.value = voices.indexOf(voice);
@@ -699,7 +703,7 @@
         }
         text = text.replace("teacher: ", "").replace("student: ", "")
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.voice = useStudentVoice ? studentVoice : getSelectedVoice();
+        utterance.voice = useStudentVoice ? (/[\u4e00-\u9fa5]/.test(text) ? studentVoiceZH : studentVoiceEN) : getSelectedVoice();
         utterance.rate = parseFloat(speedRange.value);
         utterance.pitch = 1.0;
 
