@@ -128,6 +128,24 @@
             background: #f44336;
         }
 
+        .btn-success {
+            background: #1565c0;
+            color: #fff;
+        }
+
+        .btn-success:hover {
+            background: #0d47a1;
+        }
+
+        .btn-accent {
+            background: #2e7d32;
+            color: #fff;
+        }
+
+        .btn-accent:hover {
+            background: #1b5e20;
+        }
+
         .code-display {
             background: #1e1e1e;
             border: 1px solid #444;
@@ -140,7 +158,7 @@
         }
 
         .code-display.visible {
-            display: block;
+            display: block;,
         }
 
         .code-line {
@@ -276,13 +294,13 @@
 
     <div class="playback-wrapper" id="playbackWrapper">
         <div class="controls" id="controls">
-            <button class="btn-primary" id="codeBtn">读取</button>
-            <button class="btn-primary" id="generateBtn">生成</button>
+            <button class="btn-success" id="codeBtn">读取</button>
+            <button class="btn-success" id="generateBtn">生成</button>
             <button class="btn-primary" id="playBtn">播放</button>
             <button class="btn-secondary" id="pauseBtn" disabled>暂停</button>
             <button class="btn-danger" id="stopBtn">停止</button>
-            <button class="btn-primary" id="preBtn">Pre</button>
-            <button class="btn-primary" id="nextBtn">Next</button>
+            <button class="btn-accent" id="preBtn">Pre</button>
+            <button class="btn-accent" id="nextBtn">Next</button>
         </div>
         <span class="status" id="status" style="display: none">等待播放...</span>
     </div>
