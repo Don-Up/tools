@@ -264,6 +264,10 @@
         .subtitle.visible {
             display: block;
         }
+
+        b {
+            color: gold;
+        }
     </style>
 </head>
 <body>
@@ -748,7 +752,7 @@
             ? `${segment.lineNumbers[0]}-${segment.lineNumbers[segment.lineNumbers.length - 1]}`
             : `${segment.lineNumbers[0]}`;
         setStatus(`讲解第 ${lineRange} 行...`, true);
-        subtitle.textContent = segment.explanation;
+        subtitle.innerHTML = segment.explanation.replace(/`([^`]*)`/g, '<b>$1</b>');
         subtitle.classList.add('visible');
 
         speakText(segment.explanation, () => {
@@ -838,7 +842,7 @@
             ? `${segment.lineNumbers[0]}-${segment.lineNumbers[segment.lineNumbers.length - 1]}`
             : `${segment.lineNumbers[0]}`;
         setStatus(`讲解第 ${lineRange} 行...`, true);
-        subtitle.textContent = segment.explanation;
+        subtitle.innerHTML = segment.explanation.replace(/`([^`]*)`/g, '<b>$1</b>');
         subtitle.classList.add('visible');
 
         isPlaying = true;
@@ -874,7 +878,7 @@
             ? `${segment.lineNumbers[0]}-${segment.lineNumbers[segment.lineNumbers.length - 1]}`
             : `${segment.lineNumbers[0]}`;
         setStatus(`讲解第 ${lineRange} 行...`, true);
-        subtitle.textContent = segment.explanation;
+        subtitle.innerHTML = segment.explanation.replace(/`([^`]*)`/g, '<b>$1</b>');
         subtitle.classList.add('visible');
 
         isPlaying = true;
