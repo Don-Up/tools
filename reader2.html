@@ -1087,7 +1087,7 @@
     }
 
     function processText(input) {
-        input = input.replaceAll("<{", "<small>|").replaceAll("}>", "|</small>")
+        input = input.replaceAll("<{", "<small>| ").replaceAll("}>", " |</small>")
 
 
         const contentDiv = document.getElementById("content");

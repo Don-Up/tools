@@ -501,6 +501,20 @@
     const timerList = document.getElementById('timerList');
     const dingSound = document.getElementById('dingSound');
 
+    // Click on empty card name input to paste clipboard
+    cardNameInput.addEventListener('click', async () => {
+        if (!cardNameInput.value.trim()) {
+            try {
+                const text = await navigator.clipboard.readText();
+                if (text && text.trim()) {
+                    cardNameInput.value = text.trim();
+                }
+            } catch (err) {
+                // Clipboard access denied or empty
+            }
+        }
+    });
+
     let isFocusMode = false;
     let isCountdownVisible = true;
     let isTimerHidden = false;
@@ -1378,13 +1392,13 @@ ${getName(timer)}
                 // 显示完整的首单词，第二个单词的首字母以及一些虚词，其它仅显示长度
                 if (w.length === 1) return w
                 if (i === 0) {
-                    return w.substring(1) + " "
+                    return w.substring(1, 4) + (w.length - 1) + " "
                 } else if (stopWords.includes(w)) {
                     return w + " "
                 } else if (i === 1 || i === 2 || i === words.length - 1) {
-                    return w[0] + w.length + (w.endsWith(",") ? ", " : " ")
+                    return w.substring(0, 2) + w.length + (w.endsWith(",") ? ", " : (w.endsWith("ly")?"ly ":" "))
                 } else {
-                    return w.length + (w.endsWith(",") ? ", " : " ")
+                    return w.length + (w.endsWith(",") ? ", " : (w.endsWith("ly")?"ly ":" "))
                 }
             } else if (match.startsWith("*")) {
                 if (i === 0) {
