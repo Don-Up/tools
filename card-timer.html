@@ -100,7 +100,7 @@
         }
 
         #confirmBtn {
-            width: calc(100% - 110px);
+            width: calc(100% - 170px);
             padding: 12px;
             font-size: 16px;
             background: #3a86ff;
@@ -118,7 +118,7 @@
             width: 100px;
             padding: 12px;
             font-size: 16px;
-            background: #444;
+            background: #2e7d32;
             color: #fff;
             border: none;
             border-radius: 4px;
@@ -126,7 +126,22 @@
         }
 
         #exportBtn:hover {
-            background: #555;
+            background: #388e3c;
+        }
+
+        #clearBtn {
+            width: 60px;
+            padding: 12px;
+            font-size: 16px;
+            background: #c62828;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #clearBtn:hover {
+            background: #d32f2f;
         }
 
         .timer-list {
@@ -456,6 +471,7 @@
         <div style="display: flex; gap: 10px;">
             <button id="confirmBtn">Confirm</button>
             <button id="exportBtn">Export</button>
+            <button id="clearBtn">Clear</button>
         </div>
     </div>
 
@@ -687,6 +703,27 @@
         }).catch(err => {
             console.error('Failed to copy:', err);
         });
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', () => {
+        if (timers.length === 0) return;
+        if (!confirm('Clear all items?')) return;
+
+        // Clear all intervals
+        Object.values(timerIntervals).forEach(interval => clearInterval(interval));
+        timerIntervals = {};
+
+        // Clear timers array
+        timers = [];
+
+        // Remove all cards from DOM
+        timerList.innerHTML = '';
+
+        // Exit focus mode if active
+        isFocusMode = false;
+        timerList.classList.remove('focus-mode');
+
+        updateTimerStatus();
     });
 
     function convertText(text) {
