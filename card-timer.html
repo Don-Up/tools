@@ -640,6 +640,9 @@
                 } else {
                     timerList.appendChild(card);
                 }
+                // Re-render to show name and buttons when un-promoted
+                card.remove();
+                renderTimer(timer);
             }
         } else {
             // Regular click: blue background, move to top or toggle focus mode
