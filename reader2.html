@@ -1289,6 +1289,9 @@
                 if(event.altKey) {
                     copyText = copyText.replace("| ", "|~").replace(" |", "~~|")
                 }
+                if(event.ctrlKey) {
+                    copyText = copyText.split("|")[0]+" "
+                }
                 navigator.clipboard.writeText(copyText).then(() => {
                     // Optional: brief visual feedback could be added here
                 }).catch(err => {
