@@ -629,6 +629,9 @@
             if (timer.isPromoted) {
                 card.classList.add('promoted');
                 timerList.appendChild(card);
+                // Re-render to hide name and buttons for promoted card
+                card.remove();
+                renderTimer(timer);
             } else {
                 card.classList.remove('promoted');
                 const firstPromoted = timerList.querySelector('.timer-card.promoted');
@@ -915,11 +918,22 @@
             status: 'running',
             isNameHidden: false,
             isPinned: false,
-            isPromoted: false
+            isPromoted: false,
+            nameDelay: true
         };
 
         timers.unshift(timer);
         renderTimer(timer);
+
+        // Show name after 1 second
+        setTimeout(() => {
+            timer.nameDelay = false;
+            const card = document.getElementById(`timer-${timer.id}`);
+            if (card) {
+                card.remove();
+            }
+            renderTimer(timer);
+        }, 1000);
 
         if (durationSeconds === 0) {
             // Immediately end timer for 0 second duration
@@ -969,11 +983,12 @@
             ? `<span class="timer-countdown${countdownClass}" id="countdown-${timer.id}">${mins}:${secs.toString().padStart(2, '0')}</span>`
             : `<span class="timer-countdown${countdownClass}" id="countdown-${timer.id}">${mins}:${secs.toString().padStart(2, '0')}</span>`;
 
-        const nameDisplay = timer.status === 'ended' ? (timer.isNameHidden ? 'none' : 'inline') : 'none';
+        const nameDisplay = timer.nameDelay ? 'inline' : (timer.status === 'ended' ? (timer.isNameHidden ? 'none' : 'inline') : 'none');
+        const promoted = timer.isPromoted;
         card.innerHTML = `
                 <div class="timer-left">
                     <div class="timer-info">
-                        <span class="timer-name" title="${timer.name}" onclick="handleNameClick(${timer.id}, event)" style="cursor:pointer;display:${nameDisplay}">
+                        <span class="timer-name" title="${timer.name}" onclick="handleNameClick(${timer.id}, event)" style="cursor:pointer;display:${promoted ? 'none' : nameDisplay}">
 ${getName(timer)}
 </span>
                         <span class="timer-duration" onclick="toggleTimerName(${timer.id})" style="cursor:pointer;user-select:none">${formattedDuration}</span>
@@ -986,12 +1001,12 @@ ${getName(timer)}
                 </div>
                 <div class="timer-right">
                     <div class="btn-row-top">
-                        ${timer.status === 'ended' && !timer.buttonsDelay && timer.answer ? `<button class="answer-btn" onclick="showAnswer(${timer.id}, event)">Answer</button>` : ''}
-                        ${timer.status === 'ended' && !timer.buttonsDelay ? `<button class="new-min-btn" onclick="openNewMinModal(${timer.id})">New Min</button>` : ''}
-                        ${timer.status === 'ended' && !timer.buttonsDelay ? `<button class="restart-btn" onclick="restartTimer(${timer.id})">Restart</button>` : ''}
-                        ${timer.status === 'ended' && !timer.buttonsDelay ? `<button class="delete-btn" onclick="deleteTimer(${timer.id})">&times;</button>` : ''}
+                        ${timer.status === 'ended' && !timer.buttonsDelay && !promoted && timer.answer ? `<button class="answer-btn" onclick="showAnswer(${timer.id}, event)">Answer</button>` : ''}
+                        ${timer.status === 'ended' && !timer.buttonsDelay && !promoted ? `<button class="new-min-btn" onclick="openNewMinModal(${timer.id})">New Min</button>` : ''}
+                        ${timer.status === 'ended' && !timer.buttonsDelay && !promoted ? `<button class="restart-btn" onclick="restartTimer(${timer.id})">Restart</button>` : ''}
+                        ${timer.status === 'ended' && !timer.buttonsDelay && !promoted ? `<button class="delete-btn" onclick="deleteTimer(${timer.id})">&times;</button>` : ''}
                     </div>
-                    ${timer.status === 'ended' && !timer.buttonsDelay ? `
+                    ${timer.status === 'ended' && !timer.buttonsDelay && !promoted ? `
                     <div class="btn-row-bottom">
                         <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 1)">1m</button>
                         <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 2)">2m</button>
