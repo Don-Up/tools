@@ -634,6 +634,7 @@
                     document.querySelectorAll(".text-block").forEach(textBlock => {
                         textBlock.style.fontFamily = currentFont;
                     });
+
                     for (let element of document.getElementsByTagName("blockquote")) {
                         element.style.fontFamily = currentFont;
                     }
@@ -1088,6 +1089,7 @@
 
     function processText(input) {
         input = input.replaceAll("<{", "<small>| ").replaceAll("}>", " |</small>")
+            .replaceAll("-|", "<span class='s'>").replaceAll("|-", "</span>")
 
 
         const contentDiv = document.getElementById("content");
@@ -1279,6 +1281,21 @@
         }, 100)
         contentDiv.style.padding = "70px 20px 20px";
         contentWrapper?.scrollIntoView({behavior: "smooth"});
+
+        document.querySelectorAll(".s").forEach(sentence => {
+            sentence.addEventListener("click", (event) => {
+                event.stopPropagation()
+                let copyText = sentence.textContent
+                if(event.altKey) {
+                    copyText = copyText.replace("| ", "|~").replace(" |", "~~|")
+                }
+                navigator.clipboard.writeText(copyText).then(() => {
+                    // Optional: brief visual feedback could be added here
+                }).catch(err => {
+                    console.error('Failed to copy:', err);
+                });
+            })
+        })
     }
 
     const e2CheckBox = document.getElementById("e2CheckBox")
