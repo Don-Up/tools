@@ -1286,12 +1286,19 @@
             sentence.addEventListener("click", (event) => {
                 event.stopPropagation()
                 let copyText = sentence.textContent
+                if(event.ctrlKey && event.altKey) {
+                    copyText = copyText.split("|")[0]+" "
+                }
+
+                if(event.ctrlKey) {
+                    playText(copyText.split("|")[1].toString(), null)
+                    return
+                }
+
                 if(event.altKey) {
                     copyText = copyText.replace("| ", "|~").replace(" |", "~~|")
                 }
-                if(event.ctrlKey) {
-                    copyText = copyText.split("|")[0]+" "
-                }
+
                 navigator.clipboard.writeText(copyText).then(() => {
                     // Optional: brief visual feedback could be added here
                 }).catch(err => {
