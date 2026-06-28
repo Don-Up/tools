@@ -40,13 +40,80 @@
             line-height: 1.625rem;
         }
 
+        /* Tab styles */
+        .tab-container {
+            display: flex;
+            align-items: center;
+            padding: 10px 20px;
+            background: #252525;
+            border-bottom: 1px solid #333;
+            gap: 5px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 8px 16px;
+            background: #333;
+            color: #aaa;
+            border: none;
+            border-radius: 4px 4px 0 0;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            background: #444;
+            color: #ddd;
+        }
+
+        .tab.active {
+            background: #1e1e1e;
+            color: #fff;
+        }
+
+        .tab-close {
+            margin-left: 8px;
+            color: #888;
+            font-size: 12px;
+        }
+
+        .tab-close:hover {
+            color: #ff6b6b;
+        }
+
+        .add-tab-btn {
+            padding: 8px 12px;
+            background: #2a2a2a;
+            color: #888;
+            border: 1px dashed #444;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .add-tab-btn:hover {
+            background: #333;
+            color: #aaa;
+            border-color: #555;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
         /* 隐藏原始文本容器 */
         #source-text {
             display: none;
         }
 
         /* 思维导图容器 */
-        #mindmap-container {
+        .mindmap-container {
             width: 100%;
             max-width: 60%;
             margin: 0 auto;
@@ -181,7 +248,7 @@
         }
 
         /* 提示文本样式 */
-        #paste-hint {
+        .paste-hint {
             text-align: center;
             color: #999;
             font-size: 16px;
@@ -190,7 +257,7 @@
 
         /* 移动端适配 */
         @media (max-width: 768px) {
-            #mindmap-container {
+            .mindmap-container {
                 margin: 10px 0;
                 max-width: 100%;
             }
@@ -225,7 +292,7 @@
                 margin: 0 1px;
             }
 
-            #paste-hint {
+            .paste-hint {
                 font-size: 14px;
                 margin: 30px 0;
             }
@@ -233,25 +300,205 @@
     </style>
 </head>
 <body>
-<!-- 粘贴提示 -->
-<div id="paste-hint">按下 Ctrl+V 粘贴内容生成思维导图</div>
+<!-- Tab container -->
+<div class="tab-container" id="tabContainer">
+    <button class="add-tab-btn" id="addTabBtn">+ Add Tab</button>
+</div>
+
+<!-- Tab contents container -->
+<div id="tabContents">
+    <!-- Tab contents will be added here dynamically -->
+</div>
 
 <!-- 原始文本容器（隐藏） -->
 <div id="source-text"></div>
 
-<!--<hr style="border-color: #555; margin: 20px auto; max-width: 90%;">-->
-
-<!-- 思维导图渲染容器 -->
-<div id="mindmap-container"></div>
+<!-- Audio for timer notification -->
+<audio id="dingSound" src="mp3/bounce.mp3"></audio>
 
 <script>
+    // Tab management
+    let tabCount = 0;
+    let activeTabId = null;
+
+    // Timer management for inputs
+    const inputTimers = {};
+
+    // Add notification indicator to tab
+    function addTabNotification(tabId) {
+        const tab = document.querySelector(`.tab[data-tab-id="${tabId}"]`);
+        if (tab && !tab.textContent.includes('💡')) {
+            const closeBtn = tab.querySelector('.tab-close');
+            const tabName = tab.dataset.tabName || tab.textContent.replace('×', '').trim().replace('💡', '').trim();
+            tab.dataset.tabName = tabName;
+            if (closeBtn) {
+                tab.innerHTML = `${tabName} 💡<span class="tab-close" data-close="${tabId}">×</span>`;
+            }
+        }
+    }
+
+    // Clear notification indicator from tab
+    function clearTabNotification(tabId) {
+        const tab = document.querySelector(`.tab[data-tab-id="${tabId}"]`);
+        if (tab && tab.textContent.includes('💡')) {
+            const closeBtn = tab.querySelector('.tab-close');
+            const tabName = tab.dataset.tabName || tab.textContent.replace('×', '').trim().replace('💡', '').trim();
+            if (closeBtn) {
+                tab.innerHTML = `${tabName}<span class="tab-close" data-close="${tabId}">×</span>`;
+            }
+        }
+    }
+
+    // Helper function to start timer for an input
+    function startTimerForInput(input, minutes) {
+        const totalSeconds = minutes * 60;
+        input.dataset.timerStarted = 'true';
+        input.dataset.timerTotalSeconds = totalSeconds;
+        input.dataset.timerOriginal = `${minutes}m`;
+        input.dataset.timerStartTime = Date.now();
+        input.style.color = "";
+        input.style.background = "";
+
+        const timerId = setInterval(() => {
+            const elapsed = Math.floor((Date.now() - parseInt(input.dataset.timerStartTime, 10)) / 1000);
+            const remaining = parseInt(input.dataset.timerTotalSeconds, 10) - elapsed;
+
+            if (remaining <= 0) {
+                clearInterval(timerId);
+                delete inputTimers[input.dataset.timerId];
+                input.value = input.dataset.timerOriginal || '';
+                input.style.color = "";
+                input.style.background = "";
+                delete input.dataset.timerStarted;
+                delete input.dataset.timerTotalSeconds;
+                delete input.dataset.timerOriginal;
+                delete input.dataset.timerStartTime;
+                delete input.dataset.timerId;
+                const ding = document.getElementById('dingSound');
+                if (ding) ding.play();
+                const tabContent = input.closest('.tab-content');
+                if (tabContent) {
+                    addTabNotification(tabContent.dataset.tabId);
+                }
+            } else {
+                const mins = Math.floor(remaining / 60);
+                const secs = remaining % 60;
+                input.value = `${mins}:${secs.toString().padStart(2, '0')}`;
+            }
+        }, 250);
+
+        input.dataset.timerId = timerId;
+        inputTimers[timerId] = { input, interval: timerId };
+    }
+
+    const tabContainer = document.getElementById('tabContainer');
+    const tabContents = document.getElementById('tabContents');
+    const addTabBtn = document.getElementById('addTabBtn');
+
+    function createTab(name, id) {
+        const tab = document.createElement('button');
+        tab.className = 'tab active';
+        tab.dataset.tabId = id;
+        tab.innerHTML = `${name}<span class="tab-close" data-close="${id}">×</span>`;
+
+        tab.addEventListener('click', (e) => {
+            if (e.target.classList.contains('tab-close')) {
+                closeTab(e.target.dataset.close);
+            } else if (e.ctrlKey && e.altKey && e.shiftKey) {
+                // Ctrl+Alt+Shift click on tab: start 10m timer for all inputs
+                const tabContent = document.getElementById(`tab-content-${id}`);
+                if (tabContent) {
+                    tabContent.querySelectorAll('input').forEach(input => {
+                        startTimerForInput(input, 10);
+                    });
+                }
+            } else if (e.ctrlKey && e.altKey) {
+                // Ctrl+Alt click on tab: start 2m timer for all inputs
+                const tabContent = document.getElementById(`tab-content-${id}`);
+                if (tabContent) {
+                    tabContent.querySelectorAll('input').forEach(input => {
+                        startTimerForInput(input, 2);
+                    });
+                }
+            } else if (e.altKey) {
+                // Alt + click to rename tab
+                const newName = prompt('Enter new tab name:', tab.textContent.replace('×', '').trim());
+                if (newName && newName.trim()) {
+                    tab.innerHTML = `${newName.trim()}<span class="tab-close" data-close="${id}">×</span>`;
+                }
+            } else {
+                switchTab(id);
+            }
+        });
+
+        tabContainer.insertBefore(tab, addTabBtn);
+    }
+
+    function createTabContent(id) {
+        const content = document.createElement('div');
+        content.className = 'tab-content active';
+        content.id = `tab-content-${id}`;
+        content.innerHTML = `
+            <div class="paste-hint" id="paste-hint-${id}">按下 Ctrl+V 粘贴内容生成思维导图</div>
+            <div class="mindmap-container" id="mindmap-container-${id}"></div>
+        `;
+        tabContents.appendChild(content);
+        content.dataset.tabId = id;
+        return content;
+    }
+
+    function switchTab(id) {
+        // Update tab appearance
+        document.querySelectorAll('.tab').forEach(t => {
+            t.classList.toggle('active', t.dataset.tabId === id);
+        });
+
+        // Update tab content visibility
+        document.querySelectorAll('.tab-content').forEach(c => {
+            c.classList.toggle('active', c.id === `tab-content-${id}`);
+        });
+
+        activeTabId = id;
+    }
+
+    function closeTab(id) {
+        const tab = document.querySelector(`.tab[data-tab-id="${id}"]`);
+        const content = document.getElementById(`tab-content-${id}`);
+
+        if (!tab || !content) return;
+
+        const wasActive = activeTabId === id;
+        const isLastTab = document.querySelectorAll('.tab').length <= 1;
+
+        tab.remove();
+        content.remove();
+
+        if (isLastTab) {
+            addNewTab();
+        } else if (wasActive) {
+            const remainingTabs = document.querySelectorAll('.tab');
+            if (remainingTabs.length > 0) {
+                switchTab(remainingTabs[remainingTabs.length - 1].dataset.tabId);
+            }
+        }
+    }
+
+    function addNewTab() {
+        tabCount++;
+        const tabId = `tab-${tabCount}`;
+        const tabName = `Mindmap${tabCount}`;
+        createTab(tabName, tabId);
+        createTabContent(tabId);
+        switchTab(tabId);
+    }
+
+    addTabBtn.addEventListener('click', addNewTab);
+
     let avaVoice = null
-    // 文本转语音函数
     function speakText(text, force = false) {
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
-            // 设置语音角色为 Microsoft Ava Online (Natural)
             if(!avaVoice){
                 const voices = window.speechSynthesis.getVoices();
                 avaVoice = voices.find(voice => voice.name === "Microsoft Ava Online (Natural) - English (United States)");
@@ -270,7 +517,7 @@
     }
 
     // 核心功能：解析文本并生成思维导图
-    function initMindmap() {
+    function initMindmap(tabId) {
         const sourceDiv = document.getElementById('source-text');
         if (!sourceDiv) {
             alert('未找到指定ID的div！');
@@ -283,7 +530,8 @@
         }
 
         // 隐藏粘贴提示
-        document.getElementById('paste-hint').style.display = 'none';
+        const pasteHint = document.getElementById(`paste-hint-${tabId}`);
+        if (pasteHint) pasteHint.style.display = 'none';
 
         const textLines = rawText.split('\n').map(line => line.trim()).filter(line => line);
 
@@ -311,7 +559,8 @@
         });
 
         // 渲染思维导图
-        const container = document.getElementById('mindmap-container');
+        const container = document.getElementById(`mindmap-container-${tabId}`);
+        if (!container) return;
         container.innerHTML = '';
 
         const ul = document.createElement('ul');
@@ -330,21 +579,22 @@
                     speakText(node.originalContent);
                 });
                 ul.appendChild(li);
-                // 添加换行符，保证每个节点单独一行
                 const br = document.createElement('br');
                 ul.appendChild(br);
             }
         });
 
         container.appendChild(ul);
-        initInputs();
+        initInputs(tabId);
     }
 
     // 初始化输入框功能
-    function initInputs() {
+    function initInputs(tabId) {
         let initialInputLength = 0;
+        const container = document.getElementById(`mindmap-container-${tabId}`);
+        if (!container) return;
 
-        document.querySelectorAll('input').forEach((input, index) => {
+        container.querySelectorAll('input').forEach((input, index) => {
             if (input.id === "inpInterval" || input.id === "useTTS") return;
 
             let answer = input.dataset.answer.trim();
@@ -354,11 +604,7 @@
             if (len > 0) {
                 let temp = "";
                 for (let i = 0; i < answerArray.length; i++) {
-                    if (answerArray[i].length <= 1) {
-                        temp += (answerArray[i] + " ");
-                    } else {
-                        temp += (answerArray[i][0] + answerArray[i].length + " ");
-                    }
+                    temp += (answerArray[i].length + " ");
                 }
                 input.placeholder = temp.trim();
             }
@@ -382,6 +628,56 @@
                 const userInput = input.value.toLowerCase();
                 input.dataset.charIndex = String(userInput.length);
 
+                // Check for timer pattern (e.g., "1m", "2m", "10m")
+                const timerMatch = userInput.match(/^(\d+)m$/);
+                if (timerMatch && !input.dataset.timerStarted) {
+                    const minutes = parseInt(timerMatch[1], 10);
+                    const totalSeconds = minutes * 60;
+
+                    input.dataset.timerStarted = 'true';
+                    input.dataset.timerTotalSeconds = totalSeconds;
+                    input.dataset.timerOriginal = userInput;
+                    input.dataset.timerStartTime = Date.now();
+                    input.style.color = "";
+                    input.style.background = "";
+
+                    const timerId = setInterval(() => {
+                        const elapsed = Math.floor((Date.now() - parseInt(input.dataset.timerStartTime, 10)) / 1000);
+                        const remaining = parseInt(input.dataset.timerTotalSeconds, 10) - elapsed;
+
+                        if (remaining <= 0) {
+                            // Timer finished
+                            clearInterval(timerId);
+                            delete inputTimers[input.dataset.timerId];
+                            input.value = input.dataset.timerOriginal || '';
+                            input.style.color = "";
+                            input.style.background = "";
+                            delete input.dataset.timerStarted;
+                            delete input.dataset.timerTotalSeconds;
+                            delete input.dataset.timerOriginal;
+                            delete input.dataset.timerStartTime;
+                            delete input.dataset.timerId;
+                            // Play sound
+                            const ding = document.getElementById('dingSound');
+                            if (ding) ding.play();
+                            // Add notification indicator to tab
+                            const tabContent = input.closest('.tab-content');
+                            if (tabContent) {
+                                addTabNotification(tabContent.dataset.tabId);
+                            }
+                        } else {
+                            // Display remaining time as mm:ss
+                            const mins = Math.floor(remaining / 60);
+                            const secs = remaining % 60;
+                            input.value = `${mins}:${secs.toString().padStart(2, '0')}`;
+                        }
+                    }, 250);
+
+                    input.dataset.timerId = timerId;
+                    inputTimers[timerId] = { input, interval: timerId };
+                    return;
+                }
+
                 if (targetString) {
                     if (userInput.replaceAll(" ", "") === targetString.replaceAll(" ", "")) {
                         input.style.color = 'yellow';
@@ -404,11 +700,36 @@
                 event.preventDefault();
                 event.stopPropagation();
 
+                // Clear notification indicator from tab
+                const tabContent = input.closest('.tab-content');
+                if (tabContent) {
+                    clearTabNotification(tabContent.dataset.tabId);
+                }
+
+                // Cancel timer if running
+                if (input.dataset.timerId) {
+                    const timerId = parseInt(input.dataset.timerId, 10);
+                    clearInterval(timerId);
+                    delete inputTimers[timerId];
+                    input.value = '';
+                    input.style.color = "#333";
+                    input.style.background = "lightgrey";
+                    delete input.dataset.timerStarted;
+                    delete input.dataset.timerTotalSeconds;
+                    delete input.dataset.timerOriginal;
+                    delete input.dataset.timerStartTime;
+                    delete input.dataset.timerId;
+                    return;
+                }
+
                 if (document.activeElement === input) {
                     const placeholderValue = answer;
 
-                    if (event.shiftKey && event.ctrlKey) {
-                        document.querySelectorAll('input').forEach(input => {
+                    if (event.shiftKey && event.ctrlKey && event.altKey) {
+                        // Ctrl+Shift+Alt: start 10m timer
+                        startTimerForInput(input, 10);
+                    } else if (event.shiftKey && event.ctrlKey) {
+                        container.querySelectorAll('input').forEach(input => {
                             if (input.id === "inpInterval" || input.id === "useTTS") return;
                             input.value = "";
                             input.dataset.charIndex = "0";
@@ -416,45 +737,31 @@
                             input.style.color = "#333";
                             input.style.background = "lightgrey";
                         });
-                    } else if (event.ctrlKey) {
-                        input.value = "";
-                        input.dataset.charIndex = "0";
-                        input.dataset.wordIndex = "0";
-                        input.style.color = "#333";
-                        input.style.background = "lightgrey";
+                    } else if (event.ctrlKey && event.altKey) {
+                        // Ctrl+Alt: start 2m timer
+                        startTimerForInput(input, 2);
                     } else if (event.shiftKey) {
-                        document.querySelectorAll('input').forEach(input => {
+                        container.querySelectorAll('input').forEach(input => {
                             if (input.id === "inpInterval" || input.id === "useTTS") return;
                             input.value = input.dataset.answer;
                             input.dataset.charIndex = String(input.dataset.answer.length);
                             input.style.color = 'yellow';
                         });
                     } else if (event.altKey) {
-                        if (!input.value) {
-                            const hint = placeholderValue.split(" ").map(item => item[0] + item.length).join(" ");
-                            input.value = hint;
-                            input.dataset.charIndex = String(hint.length);
-                        } else {
-                            input.value = placeholderValue;
-                            input.dataset.charIndex = String(placeholderValue.length);
-                            input.style.color = 'yellow';
-                            speakText(input.value, true);
-                        }
+                        // Alt+click only focuses, no other action
+                        return;
+                    } else if (event.ctrlKey) {
+                        input.value = "";
+                        input.dataset.charIndex = "0";
+                        input.dataset.wordIndex = "0";
+                        input.style.color = "#333";
+                        input.style.background = "lightgrey";
                     } else {
-                        let wordIndex = Number(input.dataset.wordIndex);
-                        const words = input.dataset.answer.split(" ");
-
-                        if (wordIndex < words.length) {
-                            input.value = words.slice(0, wordIndex + 1).join(" ");
-                            wordIndex++;
-                            input.dataset.wordIndex = String(wordIndex);
-                            input.dataset.charIndex = String(input.value.length);
-
-                            if (input.value === input.dataset.answer) {
-                                input.style.color = 'yellow';
-                                input.style.background = '#666';
-                            }
-                        }
+                        // Show full answer at once
+                        input.value = input.dataset.answer;
+                        input.dataset.charIndex = String(input.dataset.answer.length);
+                        input.style.color = 'yellow';
+                        input.style.background = '#666';
                     }
                 }
             });
@@ -478,7 +785,7 @@
                             }
                         }
                     } else if (event.key === 'F4') {
-                        document.querySelectorAll('input').forEach(input => {
+                        container.querySelectorAll('input').forEach(input => {
                             if (input.id === "inpInterval" || input.id === "useTTS") return;
                             input.value = input.dataset.answer.substring(0, initialInputLength);
                         });
@@ -490,7 +797,7 @@
                         input.dataset.charIndex = String(placeholderValue.length);
                         input.style.color = 'yellow';
                     } else if (event.key === 'F6') {
-                        document.querySelectorAll('input').forEach(input => {
+                        container.querySelectorAll('input').forEach(input => {
                             if (input.id === "inpInterval" || input.id === "useTTS") return;
                             input.value = input.dataset.answer;
                             input.dataset.charIndex = String(input.dataset.answer.length);
@@ -504,18 +811,22 @@
 
     // 监听全局Ctrl+V粘贴事件
     document.addEventListener('keydown', async (e) => {
-        // 检测Ctrl+V组合键
+        // Skip if user is typing in an input field
+        const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+        if (activeTag === 'input' || activeTag === 'textarea') {
+            return;
+        }
+
         if (e.ctrlKey && e.key === 'v') {
-            e.preventDefault(); // 阻止默认粘贴行为
+            e.preventDefault();
+
+            if (!activeTabId) return;
 
             try {
-                // 获取剪贴板内容
                 const clipboardText = await navigator.clipboard.readText();
                 if (clipboardText.trim()) {
-                    // 将剪贴板内容写入隐藏容器
                     document.getElementById('source-text').innerHTML = clipboardText.trim();
-                    // 生成思维导图
-                    initMindmap();
+                    initMindmap(activeTabId);
                 } else {
                     alert('剪贴板为空，请复制内容后再粘贴！');
                 }
@@ -526,10 +837,9 @@
         }
     });
 
-    // 兼容处理：如果浏览器不支持navigator.clipboard，提供备选方案
+    // 兼容处理：如果浏览器不支持navigator.clipboard
     if (!navigator.clipboard) {
         console.warn('当前浏览器不支持Clipboard API，将使用备选方案');
-        // 创建隐藏的输入框用于接收粘贴内容
         const hiddenInput = document.createElement('input');
         hiddenInput.style.position = 'fixed';
         hiddenInput.style.opacity = '0';
@@ -537,14 +847,15 @@
         document.body.appendChild(hiddenInput);
 
         document.addEventListener('keydown', (e) => {
+            if (activeTag === 'input' || activeTag === 'textarea') return;
+
             if (e.ctrlKey && e.key === 'v') {
                 e.preventDefault();
                 hiddenInput.focus();
-                // 延迟执行，确保粘贴完成
                 setTimeout(() => {
                     if (hiddenInput.value.trim()) {
                         document.getElementById('source-text').innerHTML = hiddenInput.value.trim();
-                        initMindmap();
+                        initMindmap(activeTabId);
                         hiddenInput.value = '';
                     } else {
                         alert('剪贴板为空，请复制内容后再粘贴！');
@@ -553,6 +864,9 @@
             }
         });
     }
+
+    // Initialize with one tab
+    addNewTab();
 </script>
 </body>
 </html>

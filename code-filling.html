@@ -82,7 +82,7 @@
             display: none;
             position: absolute;
             margin-top: 180px;
-            padding-left: 25%;
+            padding-left:
             padding-right: 25%;
             width: 100%;
             box-sizing: border-box;
@@ -120,7 +120,9 @@
         </div>
     </div>
 
-    <div id="tabContents">
+    <audio id="dingSound" src="mp3/bounce.mp3"></audio>
+
+<div id="tabContents">
         <!-- Tab contents will be added here dynamically -->
     </div>
 </div>
@@ -143,6 +145,12 @@
     });
 
     document.addEventListener("keydown",  (e) => {
+        // Skip if user is typing in an input field
+        const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+        if (activeTag === 'input' || activeTag === 'textarea') {
+            return;
+        }
+
         console.log(e.key)
         if (e.keyCode === 32) {
             e.preventDefault();
@@ -299,6 +307,59 @@
     let tabCount = 0;
     let activeTabId = null;
 
+    // Timer management for inputs
+    const inputTimers = {};
+
+    // Helper function to start timer for an input
+    function startTimerForInput(input, minutes) {
+        const totalSeconds = minutes * 60;
+        input.dataset.timerStarted = 'true';
+        input.dataset.timerTotalSeconds = totalSeconds;
+        input.dataset.timerOriginal = `${minutes}m`;
+        input.dataset.timerStartTime = Date.now();
+        input.className = '';
+
+        const timerId = setInterval(() => {
+            const elapsed = Math.floor((Date.now() - parseInt(input.dataset.timerStartTime, 10)) / 1000);
+            const remaining = parseInt(input.dataset.timerTotalSeconds, 10) - elapsed;
+
+            if (remaining <= 0) {
+                clearInterval(timerId);
+                delete inputTimers[input.dataset.timerId];
+                input.value = input.dataset.timerOriginal || '';
+                input.className = 'orange';
+                input.style.background = '';
+                delete input.dataset.timerStarted;
+                delete input.dataset.timerTotalSeconds;
+                delete input.dataset.timerOriginal;
+                delete input.dataset.timerStartTime;
+                delete input.dataset.timerId;
+                const ding = document.getElementById('dingSound');
+                if (ding) ding.play();
+                const tabContent = input.closest('.tab-content');
+                if (tabContent) {
+                    const tabId = tabContent.dataset.tabId;
+                    const tab = document.querySelector(`.tab[data-tab-id="${tabId}"]`);
+                    if (tab && !tab.textContent.includes('💡')) {
+                        const closeBtn = tab.querySelector('.tab-close');
+                        const tabName = tab.dataset.tabName || tab.textContent.replace('×', '').trim().replace('💡', '').trim();
+                        tab.dataset.tabName = tabName;
+                        if (closeBtn) {
+                            tab.innerHTML = `${tabName} 💡<span class="tab-close" data-close="${tabId}">×</span>`;
+                        }
+                    }
+                }
+            } else {
+                const mins = Math.floor(remaining / 60);
+                const secs = remaining % 60;
+                input.value = `${mins}:${secs.toString().padStart(2, '0')}`;
+            }
+        }, 250);
+
+        input.dataset.timerId = timerId;
+        inputTimers[timerId] = { input, interval: timerId };
+    }
+
     const tabContainer = document.getElementById('tabContainer');
     const tabContents = document.getElementById('tabContents');
     const addTabBtn = document.getElementById('addTabBtn');
@@ -312,6 +373,22 @@
         tab.addEventListener('click', (e) => {
             if (e.target.classList.contains('tab-close')) {
                 closeTab(e.target.dataset.close);
+            } else if (e.ctrlKey && e.altKey && e.shiftKey) {
+                // Ctrl+Alt+Shift click on tab: start 10m timer for all inputs
+                const tabContent = document.getElementById(`tab-content-${id}`);
+                if (tabContent) {
+                    tabContent.querySelectorAll('input').forEach(input => {
+                        startTimerForInput(input, 10);
+                    });
+                }
+            } else if (e.ctrlKey && e.altKey) {
+                // Ctrl+Alt click on tab: start 2m timer for all inputs
+                const tabContent = document.getElementById(`tab-content-${id}`);
+                if (tabContent) {
+                    tabContent.querySelectorAll('input').forEach(input => {
+                        startTimerForInput(input, 2);
+                    });
+                }
             } else if (e.altKey) {
                 // Alt + click to rename tab
                 const newName = prompt('Enter new tab name:', tab.textContent.replace('×', '').trim());
@@ -333,6 +410,8 @@
         content.id = `tab-content-${id}`;
         content.innerHTML = `<pre><code id="code-${id}" style="line-height: 1.5;white-space: pre-wrap;word-break: break-word"></code></pre>`;
         tabContents.appendChild(content);
+        // Store tab reference for timer notifications
+        content.dataset.tabId = id;
         return content;
     }
 
@@ -405,18 +484,8 @@
             const clipboardText = navigator.clipboard.readText();
 
             clipboardText.then(text => {
-                const escapedText = text.replace(/<input\b[^>]*>|[&<>]/g, match => {
-                    if (match.startsWith('<input')) return match;
-
-                    switch (match) {
-                        case '&': return '&amp;';
-                        case '<': return '&lt;';
-                        case '>': return '&gt;';
-                        default: return match;
-                    }
-                });
-
-                codeElement.innerHTML = escapedText;
+                // Set innerHTML directly - browser will parse <input> tags as actual elements
+                codeElement.innerHTML = text;
                 highlightElement(codeElement);
                 setUpCodeElement(codeElement);
                 window.scrollTo(0, 0);
@@ -432,12 +501,14 @@
 
         html = html.replace(/^###\s*(.*)$/gm, '<h3>$1</h3>');
 
+        // Protect input tags first
         const inputTags = [];
         html = html.replace(/<input[^>]*>/g, (m) => {
             inputTags.push(m);
             return `__INPUT_${inputTags.length - 1}__`;
         });
 
+        // Process comments
         const commentTags = [];
         html = html.replace(/\/\*[\s\S]*?\*\//g, (m) => {
             commentTags.push(`<span class="comment1">${m}</span>`);
@@ -448,12 +519,14 @@
             return `__COMMENT_${commentTags.length - 1}__`;
         });
 
+        // Now process keywords (they won't affect input placeholders since inputs are protected)
         const keywords = ['function', 'var', 'let', 'const', 'return', 'class', 'async', 'await', 'log', 'get', 'set'];
         html = html.replace(new RegExp(`\\b(${keywords.join('|')})\\b`, 'g'), '<span class="keyword">$1</span>');
 
         const keywords1 = ['for', 'while', 'if', 'else', 'null', 'true', 'false', 'this', 'constructor', 'new', 'try', 'catch', 'implements', 'export', 'import', 'from', 'static'];
         html = html.replace(new RegExp(`\\b(${keywords1.join('|')})\\b`, 'g'), '<span class="keyword1">$1</span>');
 
+        // Restore comments and inputs
         html = html.replace(/__COMMENT_(\d+)__/g, (_, i) => commentTags[i]);
         html = html.replace(/__INPUT_(\d+)__/g, (_, i) => inputTags[i]);
 
@@ -494,7 +567,7 @@
             return true;
         }
 
-        codeElement.querySelectorAll('code input').forEach((input, index) => {
+        codeElement.querySelectorAll('input').forEach((input, index) => {
             input.placeholder = input.placeholder.trim();
 
             const length = input.placeholder.length;
@@ -515,6 +588,62 @@
 
                 input.dataset.charIndex = userInput.length;
 
+                // Check for timer pattern (e.g., "1m", "2m", "10m")
+                const timerMatch = userInput.match(/^(\d+)m$/);
+                if (timerMatch && !input.dataset.timerStarted) {
+                    const minutes = parseInt(timerMatch[1], 10);
+                    const totalSeconds = minutes * 60;
+
+                    input.dataset.timerStarted = 'true';
+                    input.dataset.timerTotalSeconds = totalSeconds;
+                    input.dataset.timerOriginal = userInput;
+                    input.dataset.timerStartTime = Date.now();
+
+                    const timerId = setInterval(() => {
+                        const elapsed = Math.floor((Date.now() - parseInt(input.dataset.timerStartTime, 10)) / 1000);
+                        const remaining = parseInt(input.dataset.timerTotalSeconds, 10) - elapsed;
+
+                        if (remaining <= 0) {
+                            // Timer finished
+                            clearInterval(timerId);
+                            delete inputTimers[input.dataset.timerId];
+                            input.value = input.dataset.timerOriginal || '';
+                            input.className = 'orange';
+                            delete input.dataset.timerStarted;
+                            delete input.dataset.timerTotalSeconds;
+                            delete input.dataset.timerOriginal;
+                            delete input.dataset.timerStartTime;
+                            delete input.dataset.timerId;
+                            // Play sound
+                            const ding = document.getElementById('dingSound');
+                            if (ding) ding.play();
+                            // Add notification indicator to tab
+                            const tabContent = input.closest('.tab-content');
+                            if (tabContent) {
+                                const tabId = tabContent.dataset.tabId;
+                                const tab = document.querySelector(`.tab[data-tab-id="${tabId}"]`);
+                                if (tab && !tab.textContent.includes('💡')) {
+                                    const closeBtn = tab.querySelector('.tab-close');
+                                    const tabName = tab.dataset.tabName || tab.textContent.replace('×', '').trim().replace('💡', '').trim();
+                                    tab.dataset.tabName = tabName;
+                                    if (closeBtn) {
+                                        tab.innerHTML = `${tabName} 💡<span class="tab-close" data-close="${tabId}">×</span>`;
+                                    }
+                                }
+                            }
+                        } else {
+                            // Display remaining time as mm:ss
+                            const mins = Math.floor(remaining / 60);
+                            const secs = remaining % 60;
+                            input.value = `${mins}:${secs.toString().padStart(2, '0')}`;
+                        }
+                    }, 250);
+
+                    input.dataset.timerId = timerId;
+                    inputTimers[timerId] = { input, interval: timerId };
+                    return;
+                }
+
                 if (userInput.replaceAll(" ", "").toLowerCase() === targetString.replaceAll(" ", "").toLowerCase()) {
                     input.className = 'orange';
                 } else if (isFuzzyPrefix(userInput, targetString)) {
@@ -532,12 +661,138 @@
 
             input.addEventListener('click', (event) => {
                 event.preventDefault();
+
+                // Clear notification indicator from tab
+                const tabContent = input.closest('.tab-content');
+                if (tabContent) {
+                    const tabId = tabContent.dataset.tabId;
+                    const tab = document.querySelector(`.tab[data-tab-id="${tabId}"]`);
+                    if (tab && tab.textContent.includes('💡')) {
+                        const closeBtn = tab.querySelector('.tab-close');
+                        const tabName = tab.dataset.tabName || tab.textContent.replace('×', '').trim().replace('💡', '').trim();
+                        if (closeBtn) {
+                            tab.innerHTML = `${tabName}<span class="tab-close" data-close="${tabId}">×</span>`;
+                        }
+                    }
+                }
+
+                // Cancel timer if running
+                if (input.dataset.timerId) {
+                    const timerId = parseInt(input.dataset.timerId, 10);
+                    clearInterval(timerId);
+                    delete inputTimers[timerId];
+                    input.value = '';
+                    input.className = '';
+                    delete input.dataset.timerStarted;
+                    delete input.dataset.timerTotalSeconds;
+                    delete input.dataset.timerOriginal;
+                    delete input.dataset.timerStartTime;
+                    delete input.dataset.timerId;
+                    return;
+                }
+
                 const placeholderValue = input.placeholder;
-                if (event.shiftKey && event.ctrlKey) {
+                if (event.shiftKey && event.ctrlKey && event.altKey) {
+                    // Ctrl+Shift+Alt: start 10m timer
+                    const totalSeconds = 10 * 60;
+                    input.dataset.timerStarted = 'true';
+                    input.dataset.timerTotalSeconds = totalSeconds;
+                    input.dataset.timerOriginal = '10m';
+                    input.dataset.timerStartTime = Date.now();
+                    input.className = '';
+
+                    const timerId = setInterval(() => {
+                        const elapsed = Math.floor((Date.now() - parseInt(input.dataset.timerStartTime, 10)) / 1000);
+                        const remaining = parseInt(input.dataset.timerTotalSeconds, 10) - elapsed;
+
+                        if (remaining <= 0) {
+                            clearInterval(timerId);
+                            delete inputTimers[input.dataset.timerId];
+                            input.value = input.dataset.timerOriginal || '';
+                            input.className = 'orange';
+                            input.style.background = '';
+                            delete input.dataset.timerStarted;
+                            delete input.dataset.timerTotalSeconds;
+                            delete input.dataset.timerOriginal;
+                            delete input.dataset.timerStartTime;
+                            delete input.dataset.timerId;
+                            const ding = document.getElementById('dingSound');
+                            if (ding) ding.play();
+                            const tabContent = input.closest('.tab-content');
+                            if (tabContent) {
+                                const tabId = tabContent.dataset.tabId;
+                                const tab = document.querySelector(`.tab[data-tab-id="${tabId}"]`);
+                                if (tab && !tab.textContent.includes('💡')) {
+                                    const closeBtn = tab.querySelector('.tab-close');
+                                    const tabName = tab.dataset.tabName || tab.textContent.replace('×', '').trim().replace('💡', '').trim();
+                                    tab.dataset.tabName = tabName;
+                                    if (closeBtn) {
+                                        tab.innerHTML = `${tabName} 💡<span class="tab-close" data-close="${tabId}">×</span>`;
+                                    }
+                                }
+                            }
+                        } else {
+                            const mins = Math.floor(remaining / 60);
+                            const secs = remaining % 60;
+                            input.value = `${mins}:${secs.toString().padStart(2, '0')}`;
+                        }
+                    }, 250);
+
+                    input.dataset.timerId = timerId;
+                    inputTimers[timerId] = { input, interval: timerId };
+                } else if (event.shiftKey && event.ctrlKey) {
                     codeElement.querySelectorAll("input").forEach(input => {
                         input.value = "";
                         input.dataset.charIndex = 0;
                     });
+                } else if (event.ctrlKey && event.altKey) {
+                    // Ctrl+Alt: start 2m timer
+                    const totalSeconds = 2 * 60;
+                    input.dataset.timerStarted = 'true';
+                    input.dataset.timerTotalSeconds = totalSeconds;
+                    input.dataset.timerOriginal = '2m';
+                    input.dataset.timerStartTime = Date.now();
+                    input.className = '';
+
+                    const timerId = setInterval(() => {
+                        const elapsed = Math.floor((Date.now() - parseInt(input.dataset.timerStartTime, 10)) / 1000);
+                        const remaining = parseInt(input.dataset.timerTotalSeconds, 10) - elapsed;
+
+                        if (remaining <= 0) {
+                            clearInterval(timerId);
+                            delete inputTimers[input.dataset.timerId];
+                            input.value = input.dataset.timerOriginal || '';
+                            input.className = 'orange';
+                            input.style.background = '';
+                            delete input.dataset.timerStarted;
+                            delete input.dataset.timerTotalSeconds;
+                            delete input.dataset.timerOriginal;
+                            delete input.dataset.timerStartTime;
+                            delete input.dataset.timerId;
+                            const ding = document.getElementById('dingSound');
+                            if (ding) ding.play();
+                            const tabContent = input.closest('.tab-content');
+                            if (tabContent) {
+                                const tabId = tabContent.dataset.tabId;
+                                const tab = document.querySelector(`.tab[data-tab-id="${tabId}"]`);
+                                if (tab && !tab.textContent.includes('💡')) {
+                                    const closeBtn = tab.querySelector('.tab-close');
+                                    const tabName = tab.dataset.tabName || tab.textContent.replace('×', '').trim().replace('💡', '').trim();
+                                    tab.dataset.tabName = tabName;
+                                    if (closeBtn) {
+                                        tab.innerHTML = `${tabName} 💡<span class="tab-close" data-close="${tabId}">×</span>`;
+                                    }
+                                }
+                            }
+                        } else {
+                            const mins = Math.floor(remaining / 60);
+                            const secs = remaining % 60;
+                            input.value = `${mins}:${secs.toString().padStart(2, '0')}`;
+                        }
+                    }, 250);
+
+                    input.dataset.timerId = timerId;
+                    inputTimers[timerId] = { input, interval: timerId };
                 } else if (event.shiftKey) {
                     codeElement.querySelectorAll("input").forEach(input => {
                         input.value = input.placeholder;
