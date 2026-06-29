@@ -651,7 +651,7 @@
                             delete inputTimers[input.dataset.timerId];
                             input.value = input.dataset.timerOriginal || '';
                             input.style.color = "";
-                            input.style.background = "";
+                            input.style.background = "#ff6666";
                             delete input.dataset.timerStarted;
                             delete input.dataset.timerTotalSeconds;
                             delete input.dataset.timerOriginal;
@@ -746,6 +746,7 @@
                             input.value = input.dataset.answer;
                             input.dataset.charIndex = String(input.dataset.answer.length);
                             input.style.color = 'yellow';
+                            input.style.background = '#666';
                         });
                     } else if (event.altKey) {
                         // Alt+click only focuses, no other action

@@ -328,7 +328,7 @@
                 delete inputTimers[input.dataset.timerId];
                 input.value = input.dataset.timerOriginal || '';
                 input.className = 'orange';
-                input.style.background = '';
+                input.style.background = '#ff6666';
                 delete input.dataset.timerStarted;
                 delete input.dataset.timerTotalSeconds;
                 delete input.dataset.timerOriginal;
@@ -609,6 +609,7 @@
                             delete inputTimers[input.dataset.timerId];
                             input.value = input.dataset.timerOriginal || '';
                             input.className = 'orange';
+                            input.style.background = '#ff6666';
                             delete input.dataset.timerStarted;
                             delete input.dataset.timerTotalSeconds;
                             delete input.dataset.timerOriginal;
