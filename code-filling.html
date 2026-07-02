@@ -81,9 +81,9 @@
         .tab-content {
             display: none;
             position: absolute;
-            margin-top: 180px;
-            padding-left:
-            padding-right: 25%;
+            margin-top: 120px;
+            padding-left: 20px;
+            padding-right: 20px;
             width: 100%;
             box-sizing: border-box;
         }
@@ -104,16 +104,6 @@
         <div style="font-weight: bold;text-align:center;font-size: 30px;padding: 10px 0">
             CODE FILLING
         </div>
-        <div style="display: flex;height: 30px;align-items: center;width: 100%;">
-            <select id="voice-select" style="margin-left: auto;">
-            </select>
-            <div style="margin-left: 20px; display: flex;margin-top: 0px;margin-right: auto;">
-                <label for="rate-slider">Speed:</label>
-                <input type="range" id="rate-slider" min="0.5" max="2" step="0.1" value="1" style="margin-left: 10px;">
-                <span id="rate-value" style="margin-left: 10px;">1.0</span>
-            </div>
-        </div>
-
         <div class="tab-container" id="tabContainer">
             <!-- Tabs will be added here dynamically -->
             <button class="add-tab-btn" id="addTabBtn">+ Add Tab</button>
@@ -129,100 +119,6 @@
 
 
 <script>
-    const defaultVoiceName = localStorage.getItem('selectedVoice') || "Microsoft Brian Online (Natural) - English (United States)";
-
-    let isSpeaking = false;
-    const select = document.getElementById('voice-select');
-    select.innerHTML = '<option value="">Loading...</option>';
-    select.addEventListener('change', () => {
-        const selectedVoiceName = select.value;
-        localStorage.setItem('selectedVoice', selectedVoiceName);
-        const voices = window.speechSynthesis.getVoices();
-        const voice = voices.find(voice => voice.name === selectedVoiceName);
-        if (voice) {
-            selectVoice = voice;
-        }
-    });
-
-    document.addEventListener("keydown",  (e) => {
-        // Skip if user is typing in an input field
-        const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
-        if (activeTag === 'input' || activeTag === 'textarea') {
-            return;
-        }
-
-        console.log(e.key)
-        if (e.keyCode === 32) {
-            e.preventDefault();
-            window.speechSynthesis.cancel();
-            isSpeaking = false;
-        } else if (e.key === 'd'){
-            e.preventDefault();
-            if (!isSpeaking) {
-                isSpeaking = true;
-                window.speechSynthesis.resume();
-            } else {
-                isSpeaking = false;
-                window.speechSynthesis.pause();
-            }
-        }
-    })
-
-    let selectVoice = null
-    let currentRate = parseFloat(localStorage.getItem('speechRate')) || 1.0;
-
-    document.addEventListener('DOMContentLoaded', () => {
-        const rateSlider = document.getElementById('rate-slider');
-        const rateValueSpan = document.getElementById('rate-value');
-
-        if (rateSlider && rateValueSpan) {
-            rateSlider.value = currentRate;
-            rateValueSpan.textContent = currentRate.toFixed(1);
-
-            rateSlider.addEventListener('input', () => {
-                currentRate = parseFloat(rateSlider.value);
-                rateValueSpan.textContent = currentRate.toFixed(1);
-                localStorage.setItem('speechRate', currentRate);
-            });
-        }
-    });
-
-    window.speechSynthesis.onvoiceschanged = () => {
-        const voices = window.speechSynthesis.getVoices();
-
-        select.innerHTML = '';
-
-        voices.forEach(voice => {
-            const option = document.createElement('option');
-            option.value = voice.name;
-            option.textContent = voice.name;
-            select.appendChild(option);
-
-            if (voice.name === defaultVoiceName) {
-                selectVoice = voice;
-            }
-        });
-
-        if (selectVoice) {
-            select.value = selectVoice.name;
-        }
-    };
-
-    function speak(text){
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = currentRate;
-        utterance.voice = selectVoice;
-        utterance.onstart = () => {
-            isSpeaking = true;
-        };
-        utterance.onend = () => {
-            isSpeaking = false;
-        }
-        speechSynthesis.speak(utterance);
-    }
-
-
     function onKeydown(event) {
         if (event.key === 'F3') {
             const comments = document.querySelectorAll(".comment");
@@ -248,57 +144,6 @@
 
     observer.observe(document.body, { childList: true, subtree: true });
     bindKeyEvent();
-</script>
-
-<script>
-    function speakText(text) {
-        if (!text) return;
-
-        window.speechSynthesis.cancel();
-
-        const filteredText = filterText(text);
-        const utterance = new SpeechSynthesisUtterance(filteredText);
-        utterance.rate = 1;
-
-        function findVoice() {
-            const voices = window.speechSynthesis.getVoices();
-            return voices.find(v =>
-                v.name === "Microsoft Aria Online (Natural) - English (United States)" &&
-                v.lang === "en-US"
-            );
-        }
-
-        let voice = findVoice();
-        if (voice) {
-            utterance.voice = voice;
-            window.speechSynthesis.speak(utterance);
-        } else {
-            window.speechSynthesis.onvoiceschanged = () => {
-                voice = findVoice();
-                utterance.voice = voice || null;
-                utterance.lang = voice ? voice.lang : "zh-CN";
-                window.speechSynthesis.speak(utterance);
-                window.speechSynthesis.onvoiceschanged = null;
-            };
-        }
-    }
-
-    function filterText(text) {
-        return text;
-    }
-
-    function setupTTS() {
-        const front = document.querySelector("#read");
-        if (front) {
-            const title = front.innerText || front.textContent;
-            speakText(title);
-        }
-    }
-
-    if (typeof ankiDeckObserverAttached === "undefined") {
-        document.addEventListener("anki-show", setupTTS);
-        window.ankiDeckObserverAttached = true;
-    }
 </script>
 
 
@@ -711,7 +556,7 @@
                             delete inputTimers[input.dataset.timerId];
                             input.value = input.dataset.timerOriginal || '';
                             input.className = 'orange';
-                            input.style.background = '';
+                            input.style.background = '#ff6666';
                             delete input.dataset.timerStarted;
                             delete input.dataset.timerTotalSeconds;
                             delete input.dataset.timerOriginal;
@@ -764,7 +609,7 @@
                             delete inputTimers[input.dataset.timerId];
                             input.value = input.dataset.timerOriginal || '';
                             input.className = 'orange';
-                            input.style.background = '';
+                            input.style.background = '#ff6666';
                             delete input.dataset.timerStarted;
                             delete input.dataset.timerTotalSeconds;
                             delete input.dataset.timerOriginal;
