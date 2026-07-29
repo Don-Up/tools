@@ -115,16 +115,19 @@
         const fallbackEl = document.getElementById('fallback');
         const fallbackInput = document.getElementById('fallback-input');
         const toastEl = document.getElementById('toast');
+        const TOAST_FADE_MS = 250;
         let toastTimer = null;
+        let toastHideTimer = null;
 
         function showToast(msg, ms = 1500) {
+            clearTimeout(toastTimer);
+            clearTimeout(toastHideTimer);
             toastEl.textContent = msg;
             toastEl.hidden = false;
             requestAnimationFrame(() => toastEl.classList.add('visible'));
-            clearTimeout(toastTimer);
             toastTimer = setTimeout(() => {
                 toastEl.classList.remove('visible');
-                setTimeout(() => { toastEl.hidden = true; }, 250);
+                toastHideTimer = setTimeout(() => { toastEl.hidden = true; }, TOAST_FADE_MS);
             }, ms);
         }
 
@@ -135,6 +138,17 @@
 
         function hideFallback() {
             fallbackEl.hidden = true;
+        }
+
+        function renderText(text) {
+            if (!text || text.trim() === '') {
+                showToast('Nothing to paste');
+                return;
+            }
+            hideFallback();
+            resultEl.replaceChildren(); // clear prior render
+            // MaskRenderer.render() is wired in Task 3.
+            resultEl.textContent = text; // placeholder until Task 3
         }
 
         async function readClipboard() {
@@ -153,18 +167,11 @@
         async function handlePasteFromClipboard() {
             const text = await readClipboard();
             if (text === null) return;
-            const trimmed = text.trim();
-            if (trimmed === '') {
-                showToast('Nothing to paste');
-                return;
-            }
-            hideFallback();
-            // MaskRenderer.render() is wired in Task 3.
-            resultEl.innerHTML = '';
-            resultEl.textContent = text; // placeholder until Task 3
+            renderText(text);
         }
 
         window.addEventListener('keydown', (e) => {
+            if (e.target === fallbackInput) return; // let the textarea's native paste through
             if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V') && !e.shiftKey && !e.altKey) {
                 e.preventDefault();
                 handlePasteFromClipboard();
@@ -174,14 +181,7 @@
         fallbackInput.addEventListener('paste', (e) => {
             const text = (e.clipboardData || window.clipboardData).getData('text/plain');
             e.preventDefault();
-            const trimmed = (text || '').trim();
-            if (trimmed === '') {
-                showToast('Nothing to paste');
-                return;
-            }
-            hideFallback();
-            resultEl.innerHTML = '';
-            resultEl.textContent = text; // placeholder until Task 3
+            renderText(text || '');
         });
     </script>
 </body>
