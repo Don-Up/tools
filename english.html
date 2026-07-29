@@ -111,7 +111,78 @@
     </div>
     <div id="toast" class="toast" hidden></div>
     <script>
-        // Clipboard wiring and renderer land in Tasks 2-3.
+        const resultEl = document.getElementById('result');
+        const fallbackEl = document.getElementById('fallback');
+        const fallbackInput = document.getElementById('fallback-input');
+        const toastEl = document.getElementById('toast');
+        let toastTimer = null;
+
+        function showToast(msg, ms = 1500) {
+            toastEl.textContent = msg;
+            toastEl.hidden = false;
+            requestAnimationFrame(() => toastEl.classList.add('visible'));
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                toastEl.classList.remove('visible');
+                setTimeout(() => { toastEl.hidden = true; }, 250);
+            }, ms);
+        }
+
+        function showFallback(msg) {
+            if (msg) showToast(msg, 2500);
+            fallbackEl.hidden = false;
+        }
+
+        function hideFallback() {
+            fallbackEl.hidden = true;
+        }
+
+        async function readClipboard() {
+            if (!navigator.clipboard || !navigator.clipboard.readText) {
+                showFallback('Clipboard API not available. Paste into the box below.');
+                return null;
+            }
+            try {
+                return await navigator.clipboard.readText();
+            } catch (err) {
+                showFallback('Clipboard read failed: ' + (err && err.message ? err.message : err));
+                return null;
+            }
+        }
+
+        async function handlePasteFromClipboard() {
+            const text = await readClipboard();
+            if (text === null) return;
+            const trimmed = text.trim();
+            if (trimmed === '') {
+                showToast('Nothing to paste');
+                return;
+            }
+            hideFallback();
+            // MaskRenderer.render() is wired in Task 3.
+            resultEl.innerHTML = '';
+            resultEl.textContent = text; // placeholder until Task 3
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V') && !e.shiftKey && !e.altKey) {
+                e.preventDefault();
+                handlePasteFromClipboard();
+            }
+        });
+
+        fallbackInput.addEventListener('paste', (e) => {
+            const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+            e.preventDefault();
+            const trimmed = (text || '').trim();
+            if (trimmed === '') {
+                showToast('Nothing to paste');
+                return;
+            }
+            hideFallback();
+            resultEl.innerHTML = '';
+            resultEl.textContent = text; // placeholder until Task 3
+        });
     </script>
 </body>
 </html>
