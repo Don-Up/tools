@@ -140,15 +140,60 @@
             fallbackEl.hidden = true;
         }
 
+        const MaskRenderer = {
+            WORD_RE: /[A-Za-z]{2,}/,
+            SPLIT_RE: /(\([^)]*\)|[A-Za-z]+|\s+|[^A-Za-z()\s])/g,
+
+            tokenize(text) {
+                const out = [];
+                let m;
+                this.SPLIT_RE.lastIndex = 0;
+                while ((m = this.SPLIT_RE.exec(text)) !== null) {
+                    out.push(m[0]);
+                }
+                return out;
+            },
+
+            renderInsideParens(groupText) {
+                const frag = document.createDocumentFragment();
+                const parts = groupText.split(/([A-Za-z]+|\s+|[^A-Za-z\s])/g).filter(Boolean);
+                for (const part of parts) {
+                    if (this.WORD_RE.test(part)) {
+                        const span = document.createElement('span');
+                        span.className = 'word';
+                        span.dataset.w = part;
+                        span.textContent = part;
+                        frag.appendChild(span);
+                    } else {
+                        frag.appendChild(document.createTextNode(part));
+                    }
+                }
+                return frag;
+            },
+
+            render(text) {
+                const frag = document.createDocumentFragment();
+                const tokens = this.tokenize(text);
+                for (const tok of tokens) {
+                    if (tok.startsWith('(') && tok.endsWith(')')) {
+                        frag.appendChild(document.createTextNode('('));
+                        frag.appendChild(this.renderInsideParens(tok.slice(1, -1)));
+                        frag.appendChild(document.createTextNode(')'));
+                    } else {
+                        frag.appendChild(document.createTextNode(tok));
+                    }
+                }
+                return frag;
+            },
+        };
+
         function renderText(text) {
             if (!text || text.trim() === '') {
                 showToast('Nothing to paste');
                 return;
             }
             hideFallback();
-            resultEl.replaceChildren(); // clear prior render
-            // MaskRenderer.render() is wired in Task 3.
-            resultEl.textContent = text; // placeholder until Task 3
+            resultEl.replaceChildren(MaskRenderer.render(text));
         }
 
         async function readClipboard() {
