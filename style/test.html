@@ -1,213 +1,463 @@
-<div id="front-content" style="height: 80vh;display: flex;justify-items: center;align-items: center">
-    <div style="margin-left: auto;margin-right: auto;">
-        <div style="display: flex; flex-direction: column; align-items: center;gap: 20px">
-            <h1 id="front" style="text-align: center">{{Front}}</h1>
-            {{Code}}
-            <div id="answer" style="line-height:2">{{Answer}}</div>
-        </div>
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>剪贴板 · 括号英文遮盖</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background: #f5f7fc;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+            padding: 1.5rem;
+            margin: 0;
+        }
+        .card {
+            max-width: 880px;
+            width: 100%;
+            background: #ffffff;
+            border-radius: 2rem;
+            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15), 0 8px 24px -6px rgba(0, 0, 0, 0.05);
+            padding: 2rem 2rem 2.5rem;
+            transition: box-shadow 0.2s;
+        }
+        h1 {
+            font-weight: 600;
+            font-size: 1.6rem;
+            letter-spacing: -0.01em;
+            color: #0b1a33;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.4rem;
+        }
+        .sub {
+            color: #4a5b7a;
+            font-size: 0.9rem;
+            border-left: 3px solid #7c8db0;
+            padding-left: 0.8rem;
+            margin-bottom: 1.8rem;
+            font-weight: 400;
+        }
+        .shortcut-hint {
+            background: #eef2f9;
+            border-radius: 40px;
+            padding: 0.3rem 1rem;
+            display: inline-block;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #1f3a6b;
+            letter-spacing: 0.3px;
+            margin-bottom: 1.2rem;
+        }
+        .clip-area {
+            background: #f8faff;
+            border: 2px dashed #cbd5e1;
+            border-radius: 1.4rem;
+            padding: 1.8rem 1.8rem 1.8rem 1.8rem;
+            min-height: 140px;
+            transition: background 0.15s, border-color 0.2s;
+            position: relative;
+        }
+        .clip-area:focus-within {
+            border-color: #4f7df3;
+            background: #f4f8ff;
+        }
+        .clip-content {
+            font-size: 1.1rem;
+            line-height: 1.7;
+            color: #0b1a33;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .clip-content:empty::before {
+            content: "按 Ctrl+V 粘贴内容";
+            color: #8b9bb8;
+            font-weight: 400;
+            letter-spacing: 0.2px;
+        }
+        .clip-content:empty {
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #8b9bb8;
+        }
+        .placeholder-text {
+            color: #8b9bb8;
+            font-weight: 400;
+        }
+        .status-badge {
+            margin-top: 1.2rem;
+            display: flex;
+            justify-content: flex-end;
+            font-size: 0.85rem;
+            color: #3d5a78;
+            background: #ecf1f9;
+            padding: 0.3rem 1.2rem;
+            border-radius: 30px;
+            width: fit-content;
+            margin-left: auto;
+            gap: 0.4rem;
+            align-items: center;
+        }
+        .status-badge span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #7c8db0;
+        }
+        .status-badge.active span {
+            background: #2b7b4b;
+            box-shadow: 0 0 0 2px #b6e0c9;
+        }
+        .footnote {
+            margin-top: 1.8rem;
+            font-size: 0.85rem;
+            color: #5b6f8e;
+            border-top: 1px solid #e2eaf2;
+            padding-top: 1.2rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .footnote code {
+            background: #e6edf6;
+            padding: 0.2rem 0.7rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: #1f3a6b;
+        }
+        .btn-clear {
+            background: transparent;
+            border: 1px solid #d0dceb;
+            padding: 0.3rem 1.2rem;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            color: #3f5a7a;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+        .btn-clear:hover {
+            background: #e3ebf6;
+            border-color: #a5b9d4;
+        }
+        /* 括号内英文单词遮盖 + 悬浮效果 */
+        .bracket-cover {
+            display: inline;
+            position: relative;
+            white-space: pre-wrap;
+        }
+        .bracket-cover .word-cover {
+            display: inline-block;
+            position: relative;
+            font-weight: 500;
+            color: #0b1a33;
+            transition: color 0.1s;
+        }
+        /* 遮盖层：只显示首字母，其余字母用背景色遮盖（类似遮挡） */
+        .bracket-cover .word-cover .covered {
+            display: inline-block;
+            position: relative;
+            color: transparent;
+            background: #d9e2f0;
+            border-radius: 4px;
+            padding: 0 1px;
+            margin: 0 0px;
+            letter-spacing: 0.2px;
+            transition: background 0.2s, color 0.2s;
+            background-clip: text;    /* 让背景只覆盖文字区域，但更稳健使用背景遮盖文字 */
+            -webkit-background-clip: text;
+            background-color: #d9e2f0;
+            color: transparent;       /* 文字透明，背景色显示为遮盖 */
+            border-radius: 2px;
+            box-decoration-break: clone;
+            -webkit-box-decoration-break: clone;
+        }
+        /* 首字母保留正常颜色 */
+        .bracket-cover .word-cover .first-letter {
+            display: inline-block;
+            color: #0b1a33;
+            font-weight: 600;
+            background: transparent;
+        }
+        /* 悬浮时去除遮罩：显示全部字母 */
+        .bracket-cover .word-cover:hover .covered {
+            background: transparent !important;
+            color: #0b1a33 !important;
+            -webkit-background-clip: unset;
+            background-clip: unset;
+            background-color: transparent !important;
+        }
+        .bracket-cover .word-cover:hover {
+            background: #f0f5ff;
+            border-radius: 4px;
+        }
+        /* 针对括号样式微调 */
+        .bracket-cover .bracket-symbol {
+            color: #2b4a7a;
+            font-weight: 400;
+        }
+        /* 示例样式：更清晰 */
+        .demo-note {
+            background: #f1f6fe;
+            border-radius: 1rem;
+            padding: 0.6rem 1.2rem;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: #1e3a6a;
+        }
+        .demo-note strong {
+            background: #d9e5f5;
+            padding: 0.1rem 0.4rem;
+            border-radius: 12px;
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h1>📋 括号 · 英文遮盖</h1>
+    <div class="sub">对 <code>( )</code> 内部的英文单词仅显示首字母，其余字母遮盖，悬浮显示全部</div>
+
+    <div class="shortcut-hint">⌨️ Ctrl + V 粘贴剪贴板</div>
+
+    <!-- 显示剪贴板内容区域 -->
+    <div class="clip-area" id="clipArea" role="textbox" tabindex="0" aria-label="粘贴区域">
+        <div class="clip-content" id="clipContent"></div>
+    </div>
+
+    <div class="status-badge" id="statusBadge">
+        <span></span> 就绪
+    </div>
+
+    <div class="footnote">
+        <span><code> (hello) </code> → <span style="background:#eef2f9; padding:0.1rem 0.6rem; border-radius:20px;">(h•••••)</span> 悬停查看</span>
+        <button class="btn-clear" id="clearBtn">清空内容</button>
+    </div>
+
+    <!-- 简单demo说明 -->
+    <div class="demo-note">
+        💡 粘贴内容中所有 <strong>( 英文单词 )</strong> 都会被处理，支持多个括号，中英文混合。
     </div>
 </div>
 
-
 <script>
-    const codeElement = document.querySelector("code")
-    if(codeElement){
-        const newHTML = codeElement.innerHTML.replaceAll("<", "&lt;").replaceAll(">", "&gt;")
-        codeElement.innerHTML = newHTML
-    }
+    (function() {
+        // DOM 元素
+        const clipContent = document.getElementById('clipContent');
+        const statusBadge = document.getElementById('statusBadge');
+        const clearBtn = document.getElementById('clearBtn');
 
-    function init(){
-        let answer = document.getElementById('answer');
-        let originalText = answer.textContent;
-        if(!originalText) answer.style.display = "none";
-        if (!originalText.includes("~")) {
-            answer.innerHTML = `<input placeholder='${originalText}'>`
-        } else {
-            let newHTML = originalText.replace(/~~/g, '">').replace(/~/g, `<input placeholder="`).replace(/[；;]/g, '<br>');
-            answer.innerHTML = newHTML;
+        // ---------- 核心处理：对括号内的英文单词进行遮盖 ----------
+        function processBracketWords(text) {
+            if (!text) return '';
+
+            // 正则匹配括号内的内容（非贪婪）: 匹配 ( 和 ) 之间的内容，但不包括嵌套括号（只匹配最内层）
+            // 使用 /\(([^()]*)\)/g  匹配括号内不包含括号的内容
+            const bracketRegex = /\(([^()]*)\)/g;
+
+            // 先整体替换，保留括号边界，只处理内部英文单词
+            let result = text.replace(bracketRegex, function(match, innerContent) {
+                // innerContent 是括号内的原始字符串 (不包含括号)
+                // 对 innerContent 中的英文单词进行处理: 只保留首字母，其余字母遮盖
+                const processedInner = processEnglishWordsInText(innerContent);
+                // 重新组合括号
+                return `(${processedInner})`;
+            });
+
+            return result;
         }
-        var initialInputLength = 0
-        document.querySelectorAll('input').forEach((input, index) => {
-            input.placeholder = input.placeholder.trim();
 
-            const length = input.placeholder.length//input.getAttribute('placeholder').length
-            let width = Math.max(length * 10, 100)
-            width = Math.min(width, 1000)
-            input.style.width = width + 'px'
+        // 处理一段文本中的英文单词 (只处理连续的英文字母)
+        function processEnglishWordsInText(text) {
+            if (!text) return '';
 
-            input.dataset.charIndex = 0; // 初始化字符索引为0
-            input.dataset.wordIndex = 0;
-            input.value = input.placeholder.substring(0, initialInputLength)
-            input.dataset.charIndex = input.value.length;
-            if (index === 0) {
-                input.focus()
+            // 匹配连续的英文单词 [A-Za-z]+
+            const wordRegex = /[A-Za-z]+/g;
+
+            let processed = text.replace(wordRegex, function(word) {
+                if (word.length === 0) return word;
+                // 首字母保留，其余字母用遮盖包裹
+                const firstLetter = word.charAt(0);
+                const rest = word.slice(1);
+                if (rest.length === 0) {
+                    // 只有一个字母，无需遮盖
+                    return `<span class="word-cover"><span class="first-letter">${firstLetter}</span></span>`;
+                }
+                // 其余字母放在 covered 容器中
+                return `<span class="word-cover"><span class="first-letter">${firstLetter}</span><span class="covered">${rest}</span></span>`;
+            });
+
+            return processed;
+        }
+
+        // ---------- 渲染内容 (将处理后的HTML插入) ----------
+        function renderContent(rawText) {
+            if (!rawText || rawText.trim() === '') {
+                clipContent.innerHTML = '';
+                statusBadge.innerHTML = `<span></span> 空内容`;
+                statusBadge.classList.remove('active');
+                return;
             }
-            // 监听输入事件
-            input.addEventListener('input', () => {
-                const targetString = input.placeholder; // 使用 placeholder 作为目标字符串
-                const userInput = input.value;
 
-                // 更新字符索引为当前输入字符数
-                input.dataset.charIndex = userInput.length;
+            // 1. 先对括号内的英文单词进行遮盖处理 (返回带HTML的字符串)
+            const processedHtml = processBracketWords(rawText);
 
-                // 只有当 placeholder 存在时才进行颜色变换
-                if (userInput.toLowerCase() === targetString.toLowerCase()) {
-                    input.className = 'orange'; // 完全正确
-                } else if (targetString.startsWith(userInput)) {
-                    input.className = 'green'; // 前缀正确/容错通过
-                    // Replace the existing conditions with these:
-                    if (targetString.startsWith(userInput + " the ")) {
-                        input.value = userInput + " the ";
-                        let charIndex = parseInt(input.dataset.charIndex, 10);
-                        input.dataset.charIndex = charIndex + 5
-                    } else if (targetString.startsWith(userInput + " ")) {
-                        input.value = userInput + " ";
-                        let charIndex = parseInt(input.dataset.charIndex, 10);
-                        input.dataset.charIndex = charIndex + 1
-                    }
+            // 2. 将处理后的HTML插入 (需要确保XSS安全, 但这里我们可控, 且只处理文本, 无用户注入风险)
+            //    但为了安全, 我们不对原始文本做额外转义, 因为processBracketWords只操作匹配的文本,
+            //    我们最好将原始文本进行HTML转义后再处理, 但流程中我们需要保留原始文本结构。
+            //    更好的方式: 将文本转义后，再进行替换。 但是括号和英文单词都是纯文本，没有危险标签。
+            //    但为稳健, 在此处对非替换部分进行转义 —— 但我们已经使用正则替换保留了原文本结构，所以手动转义：
+            //    实际上 processBracketWords 内部对匹配部分进行替换，但原文本中的 '<', '>' 等需要转义。
+            //    我们重构：先对整个文本进行HTML转义，再处理括号内的英文。
+            //    但为了保留原文本中的特殊字符，我们转义整个文本。
+            const escapedText = escapeHtml(rawText);
+            // 重新处理转义后的文本（因为转义后括号和英文保持原样, 但 & 等被转义, 不影响正则匹配）
+            // 但正则匹配 [A-Za-z] 不受影响。
+            const finalHtml = processBracketWords(escapedText);
+
+            clipContent.innerHTML = finalHtml;
+            statusBadge.innerHTML = `<span></span> 已粘贴 (${rawText.length} 字符)`;
+            statusBadge.classList.add('active');
+        }
+
+        // 简单的HTML转义
+        function escapeHtml(unsafe) {
+            if (!unsafe) return '';
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // ---------- 从剪贴板读取文本 ----------
+        async function pasteFromClipboard() {
+            try {
+                // 读取剪贴板文本
+                const text = await navigator.clipboard.readText();
+                if (text !== undefined && text !== null) {
+                    renderContent(text);
                 } else {
-                    input.className = 'red'; // 错误
+                    // 某些情况可能返回空字符串
+                    renderContent('');
                 }
-
-            });
-
-            // 监听获取焦点事件
-            input.addEventListener('focus', () => {
-                input.dataset.charIndex = input.value.length; // 设置charIndex为当前输入字符数
-                const length = input.value.length;
-                input.setSelectionRange(length, length);
-            });
-
-            // 处理点击事件
-            input.addEventListener('click', () => {
-                event.preventDefault();
-                const placeholderValue = input.placeholder;
-                let charIndex = parseInt(input.dataset.charIndex, 10); // 获取当前字符索引
-
-                if (placeholderValue && charIndex < placeholderValue.length) {
-                    input.value += placeholderValue.charAt(charIndex); // 添加当前字符
-                    charIndex++; // 更新字符索引
-                    input.dataset.charIndex = charIndex; // 存储新的索引
-                    if (charIndex === input.placeholder.length) {
-                        input.className = 'orange';
-                    }
-                }
-            });
-
-            input.addEventListener('keydown', (event) => {
-                if (document.activeElement === input) {
-                    if (event.key === '`') {
-                        event.preventDefault();
-                        let charIndex = parseInt(input.dataset.charIndex, 10); // 获取当前字符索引
-
-                        if (input.placeholder && charIndex < input.placeholder.length) {
-                            input.value += input.placeholder.charAt(charIndex); // 添加当前字符
-                            charIndex++; // 更新字符索引
-                            input.dataset.charIndex = charIndex; // 存储新的索引
-                            if (charIndex === input.placeholder.length) {
-                                input.className = 'orange';
-                            }
-                        }
-                    } else if (event.key === 'F4') {
-                        document.querySelectorAll('input').forEach(input => {
-                            input.value = answer.substring(0, initialInputLength)
-                        })
-                    } else if (event.key === 'F3') {
-                        input.blur()
-                    } else if (event.key === 'F2') {
-                        input.value = input.placeholder; // 显示完整的placeholder值
-                        input.dataset.charIndex = input.placeholder.length; // 更新字符索引为placeholder的长度
-                        input.className = 'orange';
-                    }
-                }
-            });
-
-            // 处理长按显示完整的 placeholder
-            let longPressTimeout;
-
-            input.addEventListener('mousedown', () => {
-                longPressTimeout = setTimeout(() => {
-                    const placeholderValue = input.placeholder;
-                    input.value = placeholderValue; // 显示完整的placeholder值
-                    input.dataset.charIndex = placeholderValue.length; // 更新字符索引为placeholder的长度
-                    input.className = 'orange';
-                }, 600); // 设置长按时间，例如600毫秒
-            });
-
-            input.addEventListener('mouseup', () => {
-                clearTimeout(longPressTimeout); // 取消长按显示操作
-            });
-
-            input.addEventListener('mouseleave', () => {
-                clearTimeout(longPressTimeout); // 取消长按显示操作
-            });
-
-        });
-    }
-
-    function setupTTS() {
-        // 朗读指定文本
-        function speakText(text) {
-            if (!text) return;
-
-            // 停止当前播放（防止堆积）
-            window.speechSynthesis.cancel();
-
-            const filteredText = filterText(text);
-            const utterance = new SpeechSynthesisUtterance(filteredText);
-            utterance.rate = 4;
-
-            function findVoice() {
-                const voices = window.speechSynthesis.getVoices();
-                return voices.find(v =>
-                    v.name === "Microsoft Yaoyao - Chinese (Simplified, PRC)" &&
-                    v.lang === "zh-CN"
-                );
+            } catch (err) {
+                // 用户拒绝权限 或 剪贴板不可用
+                console.warn('剪贴板读取失败:', err);
+                clipContent.innerHTML = '⚠️ 无法读取剪贴板，请确保已授予权限或手动粘贴。';
+                statusBadge.innerHTML = `<span></span> 读取失败`;
+                statusBadge.classList.remove('active');
+                // 回退方案： 也可使用 fallback 但这里仅提示
+                // 但用户可以通过 Ctrl+V 触发 paste 事件, 但建议用户手动触发。
+                // 不过使用 navigator.clipboard 我们也可捕捉错误。
+                // 另外 fallback: 监听 paste 事件
             }
+        }
 
-            // 尝试找到指定语音
-            let voice = findVoice();
-            if (voice) {
-                utterance.voice = voice;
-                window.speechSynthesis.speak(utterance);
+        // ---------- 监听全局粘贴事件 (Ctrl+V) ----------
+        function handlePasteEvent(e) {
+            // 如果用户按了 Ctrl+V 或 粘贴
+            // 注意：有些浏览器可能阻止读取剪贴板, 但我们可以用 event.clipboardData
+            const clipboardData = e.clipboardData || window.clipboardData;
+            if (clipboardData) {
+                const text = clipboardData.getData('text/plain');
+                if (text !== undefined && text !== null) {
+                    // 阻止默认的粘贴行为，因为我们自己处理
+                    e.preventDefault();
+                    renderContent(text);
+                    statusBadge.innerHTML = `<span></span> 已粘贴 (${text.length} 字符)`;
+                    statusBadge.classList.add('active');
+                }
             } else {
-                // 等待语音加载
-                window.speechSynthesis.onvoiceschanged = () => {
-                    voice = findVoice();
-                    utterance.voice = voice || null;
-                    utterance.lang = voice ? voice.lang : "zh-CN";
-                    window.speechSynthesis.speak(utterance);
-                    // 移除监听器，防止多次触发
-                    window.speechSynthesis.onvoiceschanged = null;
-                };
+                // 如果无法获取，尝试 navigator.clipboard (但通常在paste事件里不用)
+                // 但我们可以静默尝试
+                navigator.clipboard.readText().then(text => {
+                    if (text) {
+                        renderContent(text);
+                        statusBadge.innerHTML = `<span></span> 已粘贴 (${text.length} 字符)`;
+                        statusBadge.classList.add('active');
+                    }
+                }).catch(() => {});
             }
         }
 
-        // 过滤文本函数
-        function filterText(text) {
-            let filtered = text.split('。')[0];
-            filtered = filtered.replace(/[\(\[\{〈《「『【].*?[\)\]\}〉》」』】]/g, '');
-            return filtered.trim();
+        // 全局键盘监听 Ctrl+V (额外备用)
+        function onKeydown(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+                // 如果用户焦点在clipArea 或者全局, 我们通过paste事件处理，这里不需要再调用
+                // 但有些浏览器可能不触发paste事件? 实际上都会触发，但防止有些情况我们主动处理
+                // 但以防万一 我们可以用setTimeout尝试主动读取 但会造成重复，所以还是依赖paste事件
+                // 但某些浏览器在 非编辑区域 可能不会触发 paste 事件, 所以我们在全局捕获
+                // 但是为了更好体验, 我们使用 paste 事件。同时为了安全性只处理clipboard。
+                // 但这里不再额外重复处理，因为paste事件监听已经绑定了
+                // 但为了让Ctrl+V在任意位置生效，我们确保监听全局paste。
+                // 在document上绑定paste, 但为了避免干扰, 我们只处理自己的逻辑。
+            }
         }
 
-        // 获取文本内容
-        const front = document.querySelector("#front");
-        if (front) {
-            const title = front.innerText || front.textContent;
-            speakText(title);
+        // ---------- 清空内容 ----------
+        function clearContent() {
+            clipContent.innerHTML = '';
+            statusBadge.innerHTML = `<span></span> 已清空`;
+            statusBadge.classList.remove('active');
+            // 如果有剪贴板内容，不主动清空剪贴板
         }
-    }
 
-    // ✅ 保证每次显示新卡时都重新朗读
-    if (typeof ankiDeckObserverAttached === "undefined") {
-        document.addEventListener("anki-show", () => {
-            init();
-            setupTTS();
-        });
-        window.ankiDeckObserverAttached = true;
-    }
+        // ---------- 初始化 ----------
+        function init() {
+            // 设置初始占位
+            clipContent.innerHTML = '';
+            statusBadge.innerHTML = `<span></span> 就绪`;
+            statusBadge.classList.remove('active');
 
-    init()
-    // 立即执行一次（用于首张卡片）
-    setupTTS();
+            // 监听 paste 事件 (全局)
+            document.addEventListener('paste', handlePasteEvent);
+
+            // 监听键盘 (仅为了视觉反馈，不重复处理)
+            document.addEventListener('keydown', onKeydown);
+
+            // 清空按钮
+            clearBtn.addEventListener('click', clearContent);
+
+            // 额外: 点击区域 聚焦 (方便键盘)
+            document.getElementById('clipArea').addEventListener('click', function() {
+                this.focus();
+            });
+
+            // 如果用户想通过 Ctrl+V 在任意位置粘贴，我们用全局paste已经可以。
+            // 另外，对于某些浏览器权限，显示提示。
+            // 检查是否支持剪贴板 API (仅作为展示)
+            if (!navigator.clipboard) {
+                // 不支持剪贴板API, 但paste事件依然可用
+                console.log('Clipboard API 不可用，使用paste事件');
+            }
+
+            // 测试demo: 显示一段示例内容 (但保留空状态)
+            // 在初始状态显示一个示例? 但是为了空状态，不加。
+            // 显示一条示例提示
+            // 添加一个示例内容方便测试 (可选)，但是更好是用户自己粘贴。
+            // 为了演示我们加上一段示例文本 (注释掉)
+            /*
+            const demoText = '示例文本 (Hello World) 以及 (Apple) 和 (Banana) 还有 (AI) 和 (JavaScript)';
+            renderContent(demoText);
+            */
+        }
+
+        // 启动
+        init();
+    })();
 </script>
+</body>
+</html>

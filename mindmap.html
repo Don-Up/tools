@@ -368,7 +368,7 @@
                 delete inputTimers[input.dataset.timerId];
                 input.value = input.dataset.timerOriginal || '';
                 input.style.color = "";
-                input.style.background = "";
+                input.style.background = "#ff6666";
                 delete input.dataset.timerStarted;
                 delete input.dataset.timerTotalSeconds;
                 delete input.dataset.timerOriginal;
@@ -495,14 +495,33 @@
     addTabBtn.addEventListener('click', addNewTab);
 
     let avaVoice = null
-    function speakText(text, force = false) {
+
+    function loadVoices() {
+        return new Promise((resolve) => {
+            // 先尝试直接获取
+            let voices = window.speechSynthesis.getVoices();
+            if (voices.length > 0) {
+                resolve(voices);
+                return;
+            }
+
+            // 如果为空，监听加载完成事件
+            window.speechSynthesis.onvoiceschanged = function() {
+                voices = window.speechSynthesis.getVoices();
+                resolve(voices);
+            };
+        });
+    }
+
+    loadVoices().then(voices => {
+        avaVoice = voices.find(voice => voice.name === "Microsoft Ava Online (Natural) - English (United States)");
+    })
+
+    function speakText(text, force = false, element = null) {
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
-            if(!avaVoice){
-                const voices = window.speechSynthesis.getVoices();
-                avaVoice = voices.find(voice => voice.name === "Microsoft Ava Online (Natural) - English (United States)");
-            }
+
             if (avaVoice) {
                 utterance.voice = avaVoice;
             }
@@ -510,6 +529,10 @@
             utterance.rate = 1;
             utterance.volume = 1;
             utterance.pitch = 1;
+            utterance.onend = () => {
+                if(element) element.style.visibility = "visible"
+            }
+            if(element) element.style.visibility = "hidden"
             window.speechSynthesis.speak(utterance);
         } else {
             alert('您的浏览器不支持文本朗读功能');
@@ -576,7 +599,7 @@
                 li.className = `mindmap-node node-level-${node.level}`;
                 li.innerHTML = node.content;
                 li.addEventListener("click", () => {
-                    speakText(node.originalContent);
+                    speakText(node.originalContent, false, li);
                 });
                 ul.appendChild(li);
                 const br = document.createElement('br');

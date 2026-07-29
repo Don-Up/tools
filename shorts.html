@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Shorts Player</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #0f0f0f;
+            color: #ffffff;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 60px);
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .video-section {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-section iframe {
+            width: 100%;
+            height: 100%;
+            max-width: 900px;
+            border-radius: 12px;
+        }
+
+        .caption-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #1a1a1a;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .caption-header {
+            padding: 16px 20px;
+            background: #252525;
+            border-bottom: 1px solid #333;
+        }
+
+        .caption-header h2 {
+            font-size: 16px;
+            font-weight: 500;
+            color: #aaa;
+        }
+
+        .caption-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            font-size: 16px;
+            line-height: 1.8;
+        }
+
+        .caption-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .caption-content::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        .caption-content::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 3px;
+        }
+
+        .caption-content p {
+            margin-bottom: 12px;
+        }
+
+        .caption-content blockquote {
+            margin: 8px 0;
+            padding: 10px 16px;
+            background: #252525;
+            border-left: 4px solid #4a9eff;
+            border-radius: 0 8px 8px 0;
+            color: #ccc;
+            font-style: italic;
+            font-size: 15px;
+        }
+
+        .caption-content strong {
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .no-caption {
+            color: #666;
+            font-style: italic;
+        }
+
+        .controls {
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            background: #1a1a1a;
+            border-top: 1px solid #333;
+        }
+
+        .controls button {
+            background: #333;
+            color: #fff;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .controls button:hover {
+            background: #444;
+        }
+
+        .controls button:disabled {
+            background: #222;
+            color: #555;
+            cursor: not-allowed;
+        }
+
+        .controls .counter {
+            font-size: 16px;
+            color: #aaa;
+            min-width: 60px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="video-section">
+            <iframe id="videoFrame" src="" allowfullscreen></iframe>
+        </div>
+        <div class="caption-section">
+            <div class="caption-header">
+                <h2 id="captionTitle">字幕</h2>
+            </div>
+            <div class="caption-content" id="captionContent">
+                <p class="no-caption">加载中...</p>
+            </div>
+        </div>
+    </div>
+    <div class="controls">
+        <button id="preBtn">Pre</button>
+        <span class="counter" id="counter">1 / 2</span>
+        <button id="nextBtn">Next</button>
+    </div>
+
+    <script>
+        const shortLinks = ["DiLKtiUiOUE", "RuqoNLKBgnk"];
+        let currentIndex = 0;
+
+        const videoFrame = document.getElementById('videoFrame');
+        const captionContent = document.getElementById('captionContent');
+        const captionTitle = document.getElementById('captionTitle');
+        const counter = document.getElementById('counter');
+        const preBtn = document.getElementById('preBtn');
+        const nextBtn = document.getElementById('nextBtn');
+
+        function parseMarkdown(text) {
+            const lines = text.split('\n');
+            let html = '';
+            let inBlockquote = false;
+            let blockquoteContent = [];
+
+            for (let line of lines) {
+                if (line.trim().startsWith('>')) {
+                    if (!inBlockquote) {
+                        inBlockquote = true;
+                    }
+                    blockquoteContent.push(line.trim().substring(1).trim());
+                } else {
+                    if (inBlockquote) {
+                        html += `<blockquote>${blockquoteContent.join(' ')}</blockquote>`;
+                        blockquoteContent = [];
+                        inBlockquote = false;
+                    }
+                    if (line.trim()) {
+                        const boldText = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+                        html += `<p>${boldText}</p>`;
+                    } else {
+                        html += '<br>';
+                    }
+                }
+            }
+
+            if (inBlockquote) {
+                html += `<blockquote>${blockquoteContent.join(' ')}</blockquote>`;
+            }
+
+            return html;
+        }
+
+        async function loadCaption(videoId) {
+            try {
+                const response = await fetch(`captions/${videoId}.md`);
+                if (response.ok) {
+                    const text = await response.text();
+                    captionContent.innerHTML = parseMarkdown(text);
+                } else {
+                    captionContent.innerHTML = '<p class="no-caption">字幕不存在</p>';
+                }
+            } catch (error) {
+                captionContent.innerHTML = '<p class="no-caption">字幕不存在</p>';
+            }
+        }
+
+        function updateVideo() {
+            const videoId = shortLinks[currentIndex];
+            videoFrame.src = `https://www.youtube.com/embed/${videoId}`;
+            captionTitle.textContent = `字幕 - ${videoId}`;
+            loadCaption(videoId);
+            captionContent.scrollTop = 0;
+            counter.textContent = `${currentIndex + 1} / ${shortLinks.length}`;
+            preBtn.disabled = currentIndex === 0;
+            nextBtn.disabled = currentIndex === shortLinks.length - 1;
+        }
+
+        preBtn.addEventListener('click', () => {
+            if (currentIndex > 0) {
+                currentIndex--;
+                updateVideo();
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (currentIndex < shortLinks.length - 1) {
+                currentIndex++;
+                updateVideo();
+            }
+        });
+
+        updateVideo();
+    </script>
+</body>
+</html>

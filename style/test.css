@@ -1,0 +1,370 @@
+:root {
+    --bg-color:  #363B40;
+    --side-bar-bg-color: #2E3033;
+    --text-color: #b8bfc6;
+
+    --select-text-bg-color:#4a89dc;
+
+    --item-hover-bg-color: #0a0d16;
+    --control-text-color: #b7b7b7;
+    --control-text-hover-color: #eee;
+    --window-border: 1px solid #555;
+
+    --active-file-bg-color: rgb(34, 34, 34);
+    --active-file-border-color: #8d8df0;
+
+    --primary-color: #a3d5fe;
+
+    --active-file-text-color: white;
+    --item-hover-bg-color: #70717d;
+    --item-hover-text-color: white;
+    --primary-color: #6dc1e7;
+
+    --rawblock-edit-panel-bd: #333;
+
+    --search-select-bg-color: #428bca;
+}
+
+html {
+    font-size: 18px;
+    -webkit-font-smoothing: antialiased;
+}
+
+.card {
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    background: #363B40;
+    background: var(--bg-color);
+    fill: currentColor;
+    line-height: 1.625rem;
+    margin-top: 1%;
+}
+
+h2 {
+    color:gold;
+}
+
+h3 {
+    color:lightgreen;
+}
+
+input::placeholder {
+    opacity: 1; /* Changed from 0 to 1 so the placeholder is visible */
+    color: #999;
+}
+/* 隐藏原始文本容器 */
+#source-text {
+    display: none;
+}
+
+/* 行内input样式 */
+.mindmap-node input {
+    border: none;
+    border-radius: 3px;
+    padding: 2px 6px;
+    outline: none;
+    font-size: inherit;
+    color: #333;
+    background: lightgrey;
+    margin: 0 2px;
+    font-family: 微软雅黑;
+    text-align: center
+}
+
+/* 思维导图容器 - 通用样式（PC端） */
+#mindmap-container {
+    margin: 20px 20%;
+    padding: 0px;
+    font-family: Arial, sans-serif;
+}
+
+/* 思维导图节点通用样式（提取公共样式，减少冗余） */
+.mindmap-node {
+    margin: 8px 0;
+    padding: 4px 6px;
+    border-radius: 4px;
+    list-style: none;
+    line-height: 1.5;
+    position: relative; /* 所有节点都开启相对定位，方便连接线 */
+}
+
+/* 根节点（层级0） */
+.node-level-0 {
+    font-size: 18px;
+    font-weight: bold;
+    background: #4285f4;
+    color: white;
+    margin-left: 0;
+}
+
+/* 一级子节点（** → 层级1） */
+.node-level-1 {
+    font-size: 15px;
+    background: #80752c;
+    color: white;
+    margin-left: 30px;
+    font-weight: bold;
+}
+
+/* 二级子节点（*** → 层级2） */
+.node-level-2 {
+    font-size: 14px;
+    background: #1d953f;
+    color: #eee;
+    margin-left: 60px;
+    line-height: 2;
+}
+
+/* 三级子节点（**** → 层级3） */
+.node-level-3 {
+    font-size: 12px;
+    background: #abc88b;
+    color: #333;
+    margin-left: 90px;
+}
+
+/* 四级子节点（***** → 层级4） */
+.node-level-4 {
+    font-size: 11px;
+    background: #fedcbd;
+    color: #333;
+    margin-left: 120px;
+}
+
+/* 适配移动端（屏幕宽度小于768px时生效） */
+@media (max-width: 768px) {
+    #mindmap-container {
+        /* 移动端的margin改为10px 2% */
+        margin: 10px 0%;
+    }
+
+    /* 根节点（层级0） */
+    .node-level-0 {
+        font-size: 15px;
+        font-weight: bold;
+        background: #4285f4;
+        color: white;
+        margin-left: -20px;
+    }
+
+
+    /* 一级子节点（** → 层级1） */
+    .node-level-1 {
+        font-size: 14px;
+        background: #80752c;
+        color: white;
+        margin-left: 20px;
+        font-weight: bold;
+    }
+
+    /* 二级子节点（*** → 层级2） */
+    .node-level-2 {
+        font-size: 12px;
+        background: #1d953f;
+        color: #eee;
+        margin-left: 40px;
+        line-height: 2.5;
+    }
+
+    /* 三级子节点（**** → 层级3） */
+    .node-level-3 {
+        font-size: 10px;
+        background: #abc88b;
+        color: #333;
+        margin-left: 60px;
+    }
+
+    /* 四级子节点（***** → 层级4） */
+    .node-level-4 {
+        font-size: 9px;
+        background: #fedcbd;
+        color: #333;
+        margin-left: 80px;
+    }
+
+    .mindmap-node input {
+        border: none;
+        border-radius: 3px;
+        padding: 1px 3px;
+        outline: none;
+        font-size: inherit;
+        color: #333;
+        background: lightgrey;
+        margin: 0 1px;
+        font-family: 微软雅黑;
+        text-align: center
+    }
+
+}
+
+/* 层级连接线（通用逻辑：层级n，left = -30px，width=30px；层级每+1，left-30，width+30） */
+.node-level-1::before {
+    content: '';
+    position: absolute;
+    left: -20px;
+    top: 50%;
+    width: 20px;
+    height: 1px;
+    background: #999;
+}
+.node-level-2::before {
+    content: '';
+    position: absolute;
+    left: -30px;
+    top: 50%;
+    width: 30px;
+    height: 1px;
+    background: #999;
+}
+.node-level-3::before {
+    content: '';
+    position: absolute;
+    left: -40px;
+    top: 50%;
+    width: 40px;
+    height: 1px;
+    background: #999;
+}
+.node-level-4::before {
+    content: '';
+    position: absolute;
+    left: -50px;
+    top: 50%;
+    width: 50px;
+    height: 1px;
+    background: #999;
+}
+
+.mindmap-node input::selection {
+    background-color: lightgrey;
+    color: #333; /* Maintains text color during selection */
+}
+
+.mindmap-node input::-moz-selection {
+    background-color: lightgrey;
+    color: #333;
+}
+
+.mask-container {
+    position: relative;
+    background: #2c2c2c; /* Container background (optional) */
+    overflow: hidden; /* Ensures the mask stays within bounds */
+    margin: 0 20%
+}
+
+/* Grey mask (covers text by default) */
+.mask-container::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #363636; /* Solid grey (no transparency) */
+    transition: opacity 0.3s ease;
+}
+
+/* Text styling (hidden by default) */
+.masked-text {
+    opacity: 0; /* Start invisible */
+    z-index: 1; /* Ensures text is above the mask when visible */
+    transition: opacity 0.3s ease;
+    color: white; /* Optional: improves readability */
+}
+
+/* Hover effect: Hide mask and show text */
+.mask-container:hover::before {
+    display: none; /* Mask disappears */
+}
+
+.mask-container:hover .masked-text {
+    display: block; /* Text appears */
+}
+
+.word {
+    position: relative;
+    display: inline-block; /* 保持伪元素和文本的大小一致 */
+    line-height:2
+}
+
+.word::before {
+    content: ""; /* 生成伪元素 */
+    position: absolute;
+    top: 5px;
+    left: 0;
+    right: 0;
+    bottom: 5px;
+    background: #454545;
+    opacity: 1; /* 默认显示遮罩 */
+    pointer-events: none; /* 让鼠标事件穿透到下层元素 */
+    border-radius: 2px;
+}
+
+.word:hover::before {
+    opacity: 0; /* 悬停时隐藏遮罩 */
+}
+
+code {
+    background: #2c2c2c;
+    line-height:1.1;
+    font-size: 12px
+}
+
+pre {
+    /* 1. 限制高度为 40vh（视口高度的 40%） */
+    max-height: 80vh;
+    /* 2. 超出高度时垂直滚动，水平溢出可选（如代码过长时横向滚动） */
+    overflow-y: auto;
+    overflow-x: auto; /* 可选：代码行过长时横向滚动，避免内容换行 */
+    margin-top:-20px;
+    /* 可选优化：提升体验 */
+    white-space: pre; /* 保留 <pre> 原有的换行/空格，不自动换行 */
+    word-wrap: normal; /* 配合 white-space: pre，禁止长单词换行 */
+    padding: 8px 12px; /* 内边距，避免内容贴边 */
+    border-radius: 4px; /* 圆角，美化样式 */
+    font-family: monospace; /* 等宽字体，符合代码展示习惯 */
+}
+
+/* 全局表格边框 */
+table {
+    border-collapse: collapse; /* 合并边框，避免双线 */
+    width: 100%;                /* 可选：表格占满宽度 */
+}
+table, th, td {
+    border: 1px solid #ccc;    /* 边框粗细、样式、颜色 */
+}
+th, td {
+    padding: 3px 4px;           /* 单元格内边距，更美观 */
+    text-align: left;           /* 可选：文字左对齐 */
+}
+
+strong, b {
+    color:gold
+}
+
+blockquote {
+    display:none;
+    margin: 0.2em 0;
+    padding: 0.2em 0.2em;
+    padding-left: 10px;
+    background-color: #4b4b4b; /* 深色背景，和你的截图色调匹配 */
+    border-left: 4px solid #ffcc00; /* 左侧高亮黄线，呼应标题色 */
+    border-radius: 4px;
+    color: #e0e0e0; /* 浅灰色文字，保证可读性 */
+    font-size: 0.8em;
+    line-height: 1.6;
+    font-style: italic; /* 轻微斜体，区分正文 */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3); /* 轻微阴影，增强层次感 */
+}
+
+blockquote p {
+    margin: 0.5em 0; /* 控制内部段落间距 */
+}
+
+li div div {
+    font-size: 12px
+}
+
+p {
+    cursor: pointer;
+}

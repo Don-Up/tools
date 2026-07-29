@@ -7,7 +7,7 @@
     <style>
         small {
             color: #aaa;
-            font-size: 12px;
+            font-size: 14px;
         }
 
         .word {
@@ -1379,7 +1379,7 @@
         }
 
         // 将所有<b>XX</b>替换为XX
-        finalText = finalText.replace(/<b>(.*?)<\/b>/g, '$1');
+        finalText = finalText.replace(/<b>(.*?)<\/b>/g, '$1').replace(/\|.*?\|/g, '');
         // 将所有的<span class="code-span">XX</span>替换为XX
         finalText = finalText.replace(/<span class="code-span">(.*?)<\/span>/g, '$1');
         finalText = finalText.replace(/[()#*<>`•\/🔹✅🚀🧠🔎❌]/g, " ").trim() + " ";

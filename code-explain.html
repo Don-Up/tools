@@ -701,6 +701,7 @@
             onEnd();
             return;
         }
+        text = text.replace(/\[.*?\]/g, '').replaceAll("<br>", "")
         let useStudentVoice = false
         if (text.includes("student: ")) {
             useStudentVoice = true
