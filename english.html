@@ -72,6 +72,10 @@
             background: transparent;
             color: inherit;
         }
+        body.reveal-all .word-rest {
+            background: transparent;
+            color: inherit;
+        }
         .fallback {
             margin-top: 16px;
         }
@@ -108,7 +112,7 @@
 <body>
     <div class="app">
         <h1>English Mask</h1>
-        <p class="hint">Press <kbd>Ctrl</kbd>+<kbd>V</kbd> (or <kbd>&#x2318;</kbd>+<kbd>V</kbd>) anywhere on this page.</p>
+        <p class="hint">Press <kbd>Ctrl</kbd>+<kbd>V</kbd> (or <kbd>&#x2318;</kbd>+<kbd>V</kbd>) to paste. Press <kbd>S</kbd> to toggle masks.</p>
         <div id="result" class="result"></div>
         <div id="fallback" class="fallback" hidden>
             <p class="hint">Clipboard API unavailable. Paste here instead:</p>
@@ -258,6 +262,15 @@
 
         window.addEventListener('keydown', (e) => {
             if (e.target === fallbackInput) return; // let the textarea's native paste through
+
+            // S toggles reveal-all (no modifiers, not composing)
+            if (!e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey && !e.isComposing &&
+                (e.key === 's' || e.key === 'S')) {
+                e.preventDefault();
+                document.body.classList.toggle('reveal-all');
+                return;
+            }
+
             if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V') && !e.shiftKey && !e.altKey) {
                 e.preventDefault();
                 handlePasteFromClipboard();
