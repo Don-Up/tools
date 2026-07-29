@@ -55,13 +55,20 @@
         }
         .word {
             display: inline-block;
-            border-radius: 2px;
+            position: relative;
+        }
+        .word-first {
+            color: inherit;
+        }
+        .word-rest {
+            display: inline-block;
             background: var(--mask-bg);
             color: transparent;
             user-select: none;
+            border-radius: 2px;
             transition: background-color .15s ease, color .15s ease;
         }
-        .word:hover {
+        .word:hover .word-rest {
             background: transparent;
             color: inherit;
         }
@@ -186,11 +193,18 @@
                 const parts = groupText.split(/([A-Za-z0-9]+|\s+|[^A-Za-z0-9\s])/g).filter(Boolean);
                 for (const part of parts) {
                     if (this.WORD_RE.test(part)) {
-                        const span = document.createElement('span');
-                        span.className = 'word';
-                        span.dataset.w = part;
-                        span.textContent = part;
-                        frag.appendChild(span);
+                        const wrap = document.createElement('span');
+                        wrap.className = 'word';
+                        wrap.dataset.w = part;
+                        const first = document.createElement('span');
+                        first.className = 'word-first';
+                        first.textContent = part[0];
+                        const rest = document.createElement('span');
+                        rest.className = 'word-rest';
+                        rest.textContent = part.slice(1);
+                        wrap.appendChild(first);
+                        wrap.appendChild(rest);
+                        frag.appendChild(wrap);
                     } else {
                         frag.appendChild(document.createTextNode(part));
                     }
