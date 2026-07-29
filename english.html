@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Mask</title>
+    <style>
+        :root {
+            --bg: #121212;
+            --panel: #1e1e1e;
+            --border: #333;
+            --text: #e0e0e0;
+            --muted: #aaa;
+            --mask-bg: #454545;
+            --accent: #6aa9ff;
+        }
+        * { box-sizing: border-box; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: Arial, sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 32px 16px;
+        }
+        .app {
+            max-width: 880px;
+            width: 100%;
+        }
+        h1 {
+            margin: 0 0 4px;
+            font-size: 22px;
+        }
+        .hint {
+            color: var(--muted);
+            font-size: 14px;
+            margin: 0 0 16px;
+        }
+        .result {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 20px 24px;
+            min-height: 220px;
+            font-size: 20px;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .result:empty::before {
+            content: "Press Ctrl+V to paste text. Words inside ( ... ) will be masked.";
+            color: var(--muted);
+            font-size: 16px;
+        }
+        .word {
+            display: inline-block;
+            border-radius: 2px;
+            background: var(--mask-bg);
+            color: transparent;
+            user-select: none;
+            transition: background-color .15s ease, color .15s ease;
+        }
+        .word:hover {
+            background: transparent;
+            color: inherit;
+        }
+        .fallback {
+            margin-top: 16px;
+        }
+        .fallback textarea {
+            width: 100%;
+            min-height: 80px;
+            background: var(--panel);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 10px;
+            font-size: 16px;
+            font-family: inherit;
+        }
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: 32px;
+            transform: translateX(-50%);
+            background: #2a2a2a;
+            color: var(--text);
+            padding: 10px 16px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            font-size: 14px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .2s ease;
+        }
+        .toast.visible { opacity: 1; }
+        [hidden] { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <h1>English Mask</h1>
+        <p class="hint">Press <kbd>Ctrl</kbd>+<kbd>V</kbd> (or <kbd>&#x2318;</kbd>+<kbd>V</kbd>) anywhere on this page.</p>
+        <div id="result" class="result"></div>
+        <div id="fallback" class="fallback" hidden>
+            <p class="hint">Clipboard API unavailable. Paste here instead:</p>
+            <textarea id="fallback-input" placeholder="Paste with Ctrl+V..."></textarea>
+        </div>
+    </div>
+    <div id="toast" class="toast" hidden></div>
+    <script>
+        // Clipboard wiring and renderer land in Tasks 2-3.
+    </script>
+</body>
+</html>
