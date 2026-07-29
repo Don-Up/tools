@@ -142,14 +142,40 @@
 
         const MaskRenderer = {
             WORD_RE: /[A-Za-z]{2,}/,
-            SPLIT_RE: /(\([^)]*\)|[A-Za-z]+|\s+|[^A-Za-z()\s])/g,
+            RUN_RE: /([A-Za-z]+|\s+|[^A-Za-z\s()])/g,
 
             tokenize(text) {
                 const out = [];
-                let m;
-                this.SPLIT_RE.lastIndex = 0;
-                while ((m = this.SPLIT_RE.exec(text)) !== null) {
-                    out.push(m[0]);
+                const len = text.length;
+                let i = 0;
+                while (i < len) {
+                    const ch = text[i];
+                    if (ch === '(') {
+                        let depth = 1;
+                        let j = i + 1;
+                        while (j < len && depth > 0) {
+                            if (text[j] === '(') depth++;
+                            else if (text[j] === ')') depth--;
+                            if (depth > 0) j++;
+                        }
+                        if (depth === 0) {
+                            out.push(text.slice(i, j + 1));
+                            i = j + 1;
+                            continue;
+                        }
+                        out.push(ch);
+                        i++;
+                        continue;
+                    }
+                    this.RUN_RE.lastIndex = i;
+                    const m = this.RUN_RE.exec(text);
+                    if (m && m.index === i) {
+                        out.push(m[0]);
+                        i = m.index + m[0].length;
+                    } else {
+                        out.push(ch);
+                        i++;
+                    }
                 }
                 return out;
             },
