@@ -285,14 +285,40 @@ Add this function near the top of the `<script>` (right after the `toastTimer = 
 ```js
         const MaskRenderer = {
             WORD_RE: /[A-Za-z]{2,}/,
-            SPLIT_RE: /(\([^)]*\)|[A-Za-z]+|\s+|[^A-Za-z()\s])/g,
+            RUN_RE: /([A-Za-z]+|\s+|[^A-Za-z\s()])/g,
 
             tokenize(text) {
                 const out = [];
-                let m;
-                this.SPLIT_RE.lastIndex = 0;
-                while ((m = this.SPLIT_RE.exec(text)) !== null) {
-                    out.push(m[0]);
+                const len = text.length;
+                let i = 0;
+                while (i < len) {
+                    const ch = text[i];
+                    if (ch === '(') {
+                        let depth = 1;
+                        let j = i + 1;
+                        while (j < len && depth > 0) {
+                            if (text[j] === '(') depth++;
+                            else if (text[j] === ')') depth--;
+                            if (depth > 0) j++;
+                        }
+                        if (depth === 0) {
+                            out.push(text.slice(i, j + 1));
+                            i = j + 1;
+                            continue;
+                        }
+                        out.push(ch);
+                        i++;
+                        continue;
+                    }
+                    this.RUN_RE.lastIndex = i;
+                    const m = this.RUN_RE.exec(text);
+                    if (m && m.index === i) {
+                        out.push(m[0]);
+                        i = m.index + m[0].length;
+                    } else {
+                        out.push(ch);
+                        i++;
+                    }
                 }
                 return out;
             },
@@ -352,7 +378,7 @@ Run: open `english.html`, paste `Hello (world this is) a test (3rd one) (A) (你
 Expected:
 - `Hello` and `a test` show fully.
 - `world`, `this`, `is` show only first letter with dark mask background; hover reveals the full word.
-- `3rd one` shows fully (digit, 1-letter `one`).
+- `3rd` shows fully (digit); `one` is masked (3 letters).
 - `A` shows fully (1-letter).
 - `你好` shows fully (non-Latin).
 - Newlines from the clipboard are preserved (the panel uses `white-space: pre-wrap`).
