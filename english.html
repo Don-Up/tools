@@ -141,7 +141,7 @@
         }
 
         const MaskRenderer = {
-            WORD_RE: /[A-Za-z]{2,}/,
+            WORD_RE: /^[A-Za-z]{2,}$/,
             RUN_RE: /([A-Za-z]+|\s+|[^A-Za-z\s()])/g,
 
             tokenize(text) {
@@ -182,7 +182,7 @@
 
             renderInsideParens(groupText) {
                 const frag = document.createDocumentFragment();
-                const parts = groupText.split(/([A-Za-z]+|\s+|[^A-Za-z\s])/g).filter(Boolean);
+                const parts = groupText.split(/([A-Za-z0-9]+|\s+|[^A-Za-z0-9\s])/g).filter(Boolean);
                 for (const part of parts) {
                     if (this.WORD_RE.test(part)) {
                         const span = document.createElement('span');
