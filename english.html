@@ -12,7 +12,6 @@
             --text: #e0e0e0;
             --muted: #aaa;
             --mask-bg: #454545;
-            --accent: #6aa9ff;
         }
         * { box-sizing: border-box; }
         body {
@@ -115,6 +114,8 @@
         const fallbackEl = document.getElementById('fallback');
         const fallbackInput = document.getElementById('fallback-input');
         const toastEl = document.getElementById('toast');
+        // Must match the .toast `transition: opacity .2s ease` in <style>.
+        // 250ms is slightly above the 200ms transition to absorb jank.
         const TOAST_FADE_MS = 250;
         let toastTimer = null;
         let toastHideTimer = null;
