@@ -304,6 +304,7 @@
             <button class="btn-secondary" id="pauseBtn" disabled>Pause</button>
             <button class="btn-danger" id="stopBtn">Stop</button>
             <button class="btn-accent" id="preBtn">Pre</button>
+            <button class="btn-accent" id="replayBtn">Replay</button>
             <button class="btn-accent" id="nextBtn">Next</button>
         </div>
         <span class="status" id="status" style="display: none">Waiting...</span>
@@ -324,6 +325,7 @@
     const playBtn = document.getElementById('playBtn');
     const pauseBtn = document.getElementById('pauseBtn');
     const stopBtn = document.getElementById('stopBtn');
+    const replayBtn = document.getElementById('replayBtn');
     const status = document.getElementById('status');
     const subtitle = document.getElementById('subtitle');
     const studentNameZH = "Microsoft Xiaoyi Online"
@@ -843,6 +845,36 @@
             ? `${segment.lineNumbers[0]}-${segment.lineNumbers[segment.lineNumbers.length - 1]}`
             : `${segment.lineNumbers[0]}`;
         setStatus(`讲解第 ${lineRange} 行...`, true);
+        subtitle.innerHTML = segment.explanation.replace(/`([^`]*)`/g, '<b>$1</b>');
+        subtitle.classList.add('visible');
+
+        isPlaying = true;
+        isPaused = false;
+        playBtn.disabled = true;
+        pauseBtn.disabled = false;
+
+        speakText(segment.explanation, () => {
+            isPlaying = false;
+            isPaused = false;
+            playBtn.disabled = false;
+            pauseBtn.disabled = true;
+            setStatus('等待播放...');
+        });
+    });
+
+    replayBtn.addEventListener('click', () => {
+        if (segments.length === 0 || currentIndex < 0 || currentIndex >= segments.length) return;
+        currentUtteranceCancelled = true;
+        speechSynthesis.cancel();
+        clearTimeout(highlightTimeout);
+
+        const segment = segments[currentIndex];
+        highlightLines(segment.lineNumbers);
+
+        const lineRange = segment.lineNumbers.length > 1
+            ? `${segment.lineNumbers[0]}-${segment.lineNumbers[segment.lineNumbers.length - 1]}`
+            : `${segment.lineNumbers[0]}`;
+        setStatus(`重播第 ${lineRange} 行...`, true);
         subtitle.innerHTML = segment.explanation.replace(/`([^`]*)`/g, '<b>$1</b>');
         subtitle.classList.add('visible');
 
