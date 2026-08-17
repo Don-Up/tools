@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>代码行号标注器 · 暗黑</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0b0e14;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+            padding: 1.5rem;
+        }
+
+        .card {
+            background: #141a24;
+            border-radius: 2rem;
+            padding: 2.5rem 2rem 2rem 2rem;
+            max-width: 820px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.04);
+            transition: box-shadow 0.2s;
+        }
+
+        h1 {
+            color: #e8edf5;
+            font-weight: 500;
+            font-size: 1.8rem;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        h1 small {
+            font-size: 0.9rem;
+            font-weight: 400;
+            color: #7d8ba0;
+            margin-left: 0.5rem;
+            letter-spacing: 0.2px;
+        }
+
+        .sub {
+            color: #7d8ba0;
+            font-size: 0.9rem;
+            border-left: 3px solid #2f3b4c;
+            padding-left: 1rem;
+            margin-bottom: 2rem;
+            line-height: 1.5;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2.2rem;
+        }
+
+        .btn {
+            background: #1f2a38;
+            border: none;
+            padding: 0.85rem 2rem;
+            border-radius: 60px;
+            font-family: inherit;
+            font-weight: 500;
+            font-size: 1rem;
+            color: #d3dcec;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+            letter-spacing: 0.3px;
+            border: 1px solid #2a3648;
+        }
+
+        .btn-primary {
+            background: #2f7bff;
+            border-color: #3f8aff;
+            color: #fff;
+            box-shadow: 0 6px 14px rgba(47, 123, 255, 0.25);
+        }
+
+        .btn-primary:hover {
+            background: #3f8aff;
+            transform: scale(1.01);
+            box-shadow: 0 8px 20px rgba(47, 123, 255, 0.35);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.97);
+        }
+
+        .btn-secondary {
+            background: #1f2a38;
+            border-color: #314159;
+        }
+
+        .btn-secondary:hover {
+            background: #2c3a4e;
+            border-color: #4a5e7a;
+            color: #f0f4ff;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            pointer-events: none;
+            filter: grayscale(0.5);
+        }
+
+        .status-badge {
+            background: #10161e;
+            border-radius: 40px;
+            padding: 0.2rem 1.2rem;
+            font-size: 0.8rem;
+            color: #b3c2d9;
+            border: 1px solid #293544;
+            display: inline-block;
+            margin-left: 0.8rem;
+        }
+
+        .preview-area {
+            background: #0e131c;
+            border-radius: 1.4rem;
+            padding: 1.5rem;
+            border: 1px solid #26303f;
+            box-shadow: inset 0 6px 12px rgba(0, 0, 0, 0.6);
+            margin-top: 0.8rem;
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #7d8ba0;
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px dashed #26303f;
+            margin-bottom: 1.2rem;
+        }
+
+        .preview-header span:last-child {
+            background: #1b2330;
+            padding: 0.2rem 1rem;
+            border-radius: 30px;
+            font-size: 0.7rem;
+            color: #b3c2d9;
+        }
+
+        #outputCode {
+            font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+            font-size: 0.9rem;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: #dce4f0;
+            min-height: 180px;
+            max-height: 480px;
+            overflow-y: auto;
+            padding: 0.2rem 0.2rem 0.2rem 0;
+            background: transparent;
+            border: none;
+            outline: none;
+            resize: none;
+            width: 100%;
+            scrollbar-width: thin;
+            scrollbar-color: #2f3b4c #0e131c;
+        }
+
+        #outputCode::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #outputCode::-webkit-scrollbar-track {
+            background: #0e131c;
+        }
+
+        #outputCode::-webkit-scrollbar-thumb {
+            background: #2f3b4c;
+            border-radius: 12px;
+        }
+
+        .copy-hint {
+            color: #5b6e89;
+            font-size: 0.8rem;
+            margin-top: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            border-top: 1px solid #1f2a38;
+            padding-top: 1.2rem;
+        }
+
+        .copy-hint i {
+            font-style: normal;
+            background: #1b2330;
+            padding: 0.1rem 0.6rem;
+            border-radius: 30px;
+            font-size: 0.7rem;
+            color: #a0b3cc;
+        }
+
+        .toast-message {
+            position: fixed;
+            bottom: 2.5rem;
+            left: 50%;
+            transform: translateX(-50%) scale(0.95);
+            background: #1f2a38;
+            backdrop-filter: blur(6px);
+            padding: 0.8rem 2rem;
+            border-radius: 60px;
+            border: 1px solid #3f5270;
+            color: #e8edf5;
+            font-size: 0.95rem;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8);
+            opacity: 0;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            pointer-events: none;
+            font-weight: 400;
+            letter-spacing: 0.3px;
+        }
+
+        .toast-message.show {
+            opacity: 1;
+            transform: translateX(-50%) scale(1);
+        }
+
+        .empty-state {
+            color: #4d607c;
+            font-style: italic;
+            font-weight: 300;
+        }
+
+        @media (max-width: 550px) {
+            .card {
+                padding: 1.8rem 1.2rem;
+            }
+            .btn {
+                padding: 0.7rem 1.2rem;
+                font-size: 0.9rem;
+            }
+            h1 {
+                font-size: 1.4rem;
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h1>
+        ⌨️ 行号标注器
+        <small># 暗黑版</small>
+    </h1>
+    <div class="sub">
+        ⚡ 读取剪贴板 → 逐行标注序号 (含空行) → 自动写回剪贴板
+    </div>
+
+    <div class="btn-group">
+        <button class="btn btn-primary" id="processBtn">
+            <span>📋 处理剪贴板</span>
+            <span class="status-badge" id="statusBadge">就绪</span>
+        </button>
+        <button class="btn btn-secondary" id="clearBtn">
+            🗑️ 清空预览
+        </button>
+    </div>
+
+    <div class="preview-area">
+        <div class="preview-header">
+            <span>📄 标注结果</span>
+            <span id="lineCount">0 行</span>
+        </div>
+        <div id="outputWrapper">
+            <pre id="outputCode"><span class="empty-state">// 点击 “处理剪贴板” 开始</span></pre>
+        </div>
+        <div class="copy-hint">
+            <span>📌 结果已自动复制到剪贴板</span>
+            <i id="copyStatus">等待操作</i>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="toast-message">✨ 已复制到剪贴板</div>
+
+<script>
+    (function() {
+        "use strict";
+
+        // DOM 元素
+        const processBtn = document.getElementById('processBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const outputPre = document.getElementById('outputCode');
+        const lineCountSpan = document.getElementById('lineCount');
+        const copyStatus = document.getElementById('copyStatus');
+        const statusBadge = document.getElementById('statusBadge');
+        const toast = document.getElementById('toast');
+
+        // 辅助函数：更新状态徽章
+        function setStatus(text, isWorking = false) {
+            statusBadge.textContent = text;
+            if (isWorking) {
+                statusBadge.style.color = '#8ab4ff';
+                statusBadge.style.borderColor = '#3f8aff';
+            } else {
+                statusBadge.style.color = '#b3c2d9';
+                statusBadge.style.borderColor = '#293544';
+            }
+        }
+
+        // 显示 Toast 消息 (2.2s)
+        function showToast(msg) {
+            toast.textContent = msg || '✨ 已复制到剪贴板';
+            toast.classList.add('show');
+            clearTimeout(window.toastTimer);
+            window.toastTimer = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2200);
+        }
+
+        // 核心: 为每一行添加行号 (包含空行)
+        function addLineNumbers(code) {
+            if (!code) return '';
+
+            // 按行分割，保留末尾空行 (使用 split 并保留所有元素)
+            const lines = code.split('\n');
+            // 如果末尾有换行，split 会产生最后一个空字符串，保留它
+            // 但我们需要保留所有行，包括空行。 同时确保不会丢失最后的空行
+            // 注意: 如果 code 以换行结尾，split('\n') 会在最后产生一个空字符串, 这符合预期。
+            // 但如果 code 为空字符串，split 返回 ['']，我们需要特殊处理。
+            if (lines.length === 1 && lines[0] === '' && code === '') {
+                return ''; // 完全空字符串, 无内容
+            }
+
+            let numbered = '';
+            for (let i = 0; i < lines.length; i++) {
+                const lineContent = lines[i];
+                // 行号从 1 开始
+                const lineNumber = i + 1;
+                // 保留原始行内容 (包括空行)
+                numbered += lineNumber + ' ' + lineContent;
+                // 除了最后一行，添加换行符
+                if (i < lines.length - 1) {
+                    numbered += '\n';
+                }
+            }
+            return numbered;
+        }
+
+        // 读取剪贴板并处理
+        async function processClipboard() {
+            try {
+                setStatus('读取中...', true);
+                processBtn.disabled = true;
+
+                // 1. 读取剪贴板文本
+                let text = '';
+                try {
+                    text = await navigator.clipboard.readText();
+                } catch (clipError) {
+                    // 如果剪贴板读取失败 (权限/安全)
+                    console.warn('剪贴板读取失败:', clipError);
+                    // 尝试用 fallback (仅限安全上下文)
+                    if (document.queryCommandSupported && document.queryCommandSupported('paste')) {
+                        // 部分浏览器支持, 但通常需要用户手势, 但这里我们直接显示错误
+                        throw new Error('无法读取剪贴板，请确保页面在安全上下文 (HTTPS) 且已授予权限。');
+                    } else {
+                        throw new Error('剪贴板读取被拒绝，请手动粘贴或检查浏览器权限。');
+                    }
+                }
+
+                // 如果剪贴板内容为空
+                if (text === undefined || text === null) {
+                    text = '';
+                }
+
+                // 2. 处理标注
+                const numbered = addLineNumbers(text);
+
+                // 3. 更新预览
+                if (numbered === '') {
+                    outputPre.innerHTML = `<span class="empty-state">// 剪贴板内容为空</span>`;
+                    lineCountSpan.textContent = '0 行';
+                    copyStatus.textContent = '无内容';
+                } else {
+                    // 显示纯文本 (保留空格/格式)
+                    outputPre.textContent = numbered;
+                    // 计算行数 (实际行数)
+                    const lineCount = numbered.split('\n').length;
+                    lineCountSpan.textContent = lineCount + ' 行';
+                    copyStatus.textContent = '✅ 已自动复制';
+                }
+
+                // 4. 自动写入剪贴板 (如果内容非空)
+                if (numbered && numbered.length > 0) {
+                    try {
+                        await navigator.clipboard.writeText(numbered);
+                        // 显示成功toast
+                        showToast('✅ 已复制到剪贴板');
+                        copyStatus.textContent = '✅ 已复制';
+                        setStatus('已复制', false);
+                    } catch (writeError) {
+                        console.warn('写入剪贴板失败:', writeError);
+                        // 降级方案：使用 execCommand (已弃用但兼容)
+                        try {
+                            const textArea = document.createElement('textarea');
+                            textArea.value = numbered;
+                            textArea.style.position = 'fixed';
+                            textArea.style.opacity = '0';
+                            document.body.appendChild(textArea);
+                            textArea.select();
+                            const success = document.execCommand('copy');
+                            document.body.removeChild(textArea);
+                            if (success) {
+                                showToast('✅ 已复制 (备用)');
+                                copyStatus.textContent = '✅ 已复制 (备用)';
+                                setStatus('已复制', false);
+                            } else {
+                                throw new Error('execCommand 复制失败');
+                            }
+                        } catch (fallbackError) {
+                            console.error('备用复制也失败:', fallbackError);
+                            copyStatus.textContent = '⚠️ 复制失败，请手动复制';
+                            setStatus('复制失败', false);
+                            showToast('⚠️ 复制失败，请手动复制');
+                        }
+                    }
+                } else {
+                    // 空内容，清空剪贴板? 不操作，但提示
+                    copyStatus.textContent = '⏳ 无内容可复制';
+                    setStatus('无内容', false);
+                }
+
+                processBtn.disabled = false;
+            } catch (error) {
+                console.error('处理出错:', error);
+                outputPre.innerHTML = `<span class="empty-state" style="color:#d67a7a;">// 错误: ${error.message || '未知错误'}</span>`;
+                lineCountSpan.textContent = '错误';
+                copyStatus.textContent = '❌ 失败';
+                setStatus('错误', false);
+                processBtn.disabled = false;
+                showToast('❌ 处理失败: ' + (error.message || '未知错误'));
+            }
+        }
+
+        // 清空预览 (不修改剪贴板)
+        function clearPreview() {
+            outputPre.innerHTML = `<span class="empty-state">// 点击 “处理剪贴板” 开始</span>`;
+            lineCountSpan.textContent = '0 行';
+            copyStatus.textContent = '等待操作';
+            setStatus('就绪', false);
+            // 不清除剪贴板, 仅清空预览
+            // 可选: 显示一个临时提示
+            showToast('🗑️ 预览已清空');
+        }
+
+        // 监听按钮
+        processBtn.addEventListener('click', processClipboard);
+        clearBtn.addEventListener('click', clearPreview);
+
+        // 初始化：如果剪贴板有内容但未处理，保持空状态。
+        // 页面加载时尝试读取剪贴板? 不自动读取, 尊重用户隐私。
+        // 但我们可以加一个小提示: 按需点击。
+        console.log('🔮 代码行号标注器已加载，点击按钮处理剪贴板。');
+
+        // 附加：键盘快捷键 (Ctrl+Enter 或 Command+Enter 触发处理)
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                if (!processBtn.disabled) {
+                    processBtn.click();
+                }
+            }
+            // Ctrl+Shift+C 清空? 怕冲突, 留给用户自行点击。
+        });
+
+        // 适应内容高度 (自动)
+        function adjustOutputHeight() {
+            if (outputPre) {
+                // 不强制高度, 用 max-height 滚动
+            }
+        }
+        // 初始调整
+        adjustOutputHeight();
+
+        // 如果浏览器不支持 clipboard API，显示提示
+        if (!navigator.clipboard) {
+            console.warn('当前浏览器不支持 navigator.clipboard, 可能无法读取剪贴板');
+            setStatus('不支持API', false);
+        } else {
+            // 检查权限 (仅提示)
+            if (navigator.permissions && navigator.permissions.query) {
+                navigator.permissions.query({ name: 'clipboard-read' }).then(result => {
+                    if (result.state === 'denied') {
+                        console.warn('剪贴板读取权限被拒绝，请手动授予。');
+                        setStatus('权限拒绝', false);
+                    }
+                }).catch(() => {});
+            }
+        }
+
+        // 额外: 如果页面通过 https 或 localhost 运行, 大部分功能正常。
+    })();
+</script>
+</body>
+</html>
