@@ -408,6 +408,13 @@
     ttsToggle.checked = ttsEnabled;
     ttsEnabledEn = localStorage.getItem(STORAGE_KEY_TTS_EN) === "true";
     ttsToggleEn.checked = ttsEnabledEn;
+    const savedMode = localStorage.getItem(STORAGE_KEY_MODE);
+    if (savedMode === "2") {
+        currentMode = 2;
+    }
+    modeRadios.forEach(radio => {
+        radio.checked = parseInt(radio.value, 10) === currentMode;
+    });
     const savedCnRate = parseFloat(localStorage.getItem(STORAGE_KEY_RATE_CN));
     if (!isNaN(savedCnRate) && savedCnRate >= 1 && savedCnRate <= 3) {
         cnRate = savedCnRate;
