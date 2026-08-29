@@ -379,6 +379,15 @@
                 showError(`剪贴板读取失败: ${err.message || err}`);
             }
         }
+        if (e.code === 'KeyS' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+            if (entries.length === 0) return;
+            e.preventDefault();
+            enRevealed = !enRevealed;
+            const showFull = currentMode === 1 || enRevealed;
+            enText.textContent = showFull
+                ? entries[currentIndex][1]
+                : maskEnText(entries[currentIndex][1]);
+        }
         if (entries.length > 0) {
             if (e.code === 'ArrowLeft') {
                 e.preventDefault();
@@ -443,6 +452,20 @@
         enRate = parseFloat(enRateInput.value);
         enRateValue.textContent = enRate.toFixed(1);
         localStorage.setItem(STORAGE_KEY_RATE_EN, String(enRate));
+    });
+    modeRadios.forEach(radio => {
+        radio.addEventListener('change', () => {
+            if (radio.checked) {
+                currentMode = parseInt(radio.value, 10);
+                localStorage.setItem(STORAGE_KEY_MODE, String(currentMode));
+                if (entries.length > 0) {
+                    const showFull = currentMode === 1 || enRevealed;
+                    enText.textContent = showFull
+                        ? entries[currentIndex][1]
+                        : maskEnText(entries[currentIndex][1]);
+                }
+            }
+        });
     });
     window.speechSynthesis.onvoiceschanged = populateVoices;
     render();
