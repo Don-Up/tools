@@ -79,12 +79,32 @@
 <script>
     let entries = [];
     let currentIndex = 0;
+    let errorTimer = null;
 
+    const errorBar = document.getElementById('errorBar');
     const counter = document.getElementById('counter');
     const cnText = document.getElementById('cnText');
     const enText = document.getElementById('enText');
     const hint = document.getElementById('hint');
     const emptyState = document.getElementById('emptyState');
+
+    function showError(msg) {
+        errorBar.textContent = msg;
+        errorBar.style.display = 'block';
+        if (errorTimer) clearTimeout(errorTimer);
+        errorTimer = setTimeout(() => {
+            errorBar.style.display = 'none';
+            errorTimer = null;
+        }, 3000);
+    }
+
+    function clearError() {
+        errorBar.style.display = 'none';
+        if (errorTimer) {
+            clearTimeout(errorTimer);
+            errorTimer = null;
+        }
+    }
 
     function render() {
         if (entries.length === 0) {
@@ -111,20 +131,21 @@
         try {
             parsed = JSON.parse(text);
         } catch (err) {
-            console.error('JSON 解析失败:', err.message);
+            showError(`JSON 解析失败: ${err.message}`);
             return;
         }
         if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-            console.error('JSON 格式错误：必须为对象');
+            showError('JSON 格式错误：必须为对象');
             return;
         }
         const newEntries = Object.entries(parsed);
         if (newEntries.length === 0) {
-            console.error('JSON 不能为空对象');
+            showError('JSON 不能为空对象');
             return;
         }
         entries = newEntries;
         currentIndex = 0;
+        clearError();
         render();
     }
 
@@ -135,7 +156,7 @@
                 const text = await navigator.clipboard.readText();
                 parseAndLoad(text);
             } catch (err) {
-                console.error('剪贴板读取失败:', err.message || err);
+                showError(`剪贴板读取失败: ${err.message || err}`);
             }
         }
     });
