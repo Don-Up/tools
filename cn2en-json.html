@@ -170,6 +170,10 @@
     const ttsToggle = document.getElementById('ttsToggle');
     const voiceSelectEn = document.getElementById('voiceSelectEn');
     const ttsToggleEn = document.getElementById('ttsToggleEn');
+    const cnRateInput = document.getElementById('cnRate');
+    const enRateInput = document.getElementById('enRate');
+    const cnRateValue = document.getElementById('cnRateValue');
+    const enRateValue = document.getElementById('enRateValue');
 
     cnText.addEventListener('click', () => speakCn());
     enText.addEventListener('click', () => {
@@ -249,6 +253,8 @@
     const STORAGE_KEY_TTS = 'cn2en-json:ttsEnabled';
     const STORAGE_KEY_VOICE_EN = 'cn2en-json:voiceEn';
     const STORAGE_KEY_TTS_EN = 'cn2en-json:ttsEnabledEn';
+    const STORAGE_KEY_RATE_CN = 'cn2en-json:rateCn';
+    const STORAGE_KEY_RATE_EN = 'cn2en-json:rateEn';
 
     let voicesCN = [];
     let selectedVoice = null;
@@ -256,6 +262,8 @@
     let voicesEN = [];
     let selectedVoiceEn = null;
     let ttsEnabledEn = false;
+    let cnRate = 1.0;
+    let enRate = 1.0;
 
     function saveState() {
         localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(entries));
@@ -281,6 +289,7 @@
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(entries[currentIndex][0]);
             utterance.voice = selectedVoice;
+            utterance.rate = cnRate;
             if (ttsEnabledEn && selectedVoiceEn) {
                 utterance.onend = () => speakEn();
             }
@@ -294,6 +303,7 @@
         if (!ttsEnabledEn || !selectedVoiceEn) return;
         const utterance = new SpeechSynthesisUtterance(entries[currentIndex][1]);
         utterance.voice = selectedVoiceEn;
+        utterance.rate = enRate;
         window.speechSynthesis.speak(utterance);
     }
 
