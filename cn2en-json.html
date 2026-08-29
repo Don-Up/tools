@@ -269,6 +269,17 @@
     ttsEnabled = localStorage.getItem(STORAGE_KEY_TTS) !== "false";
     ttsToggle.checked = ttsEnabled;
     populateVoices();
+    voiceSelect.addEventListener('change', () => {
+        selectedVoice = voicesCN.find(v => v.name === voiceSelect.value) || null;
+        if (selectedVoice) {
+            localStorage.setItem(STORAGE_KEY_VOICE, selectedVoice.name);
+        }
+    });
+    ttsToggle.addEventListener('change', () => {
+        ttsEnabled = ttsToggle.checked;
+        localStorage.setItem(STORAGE_KEY_TTS, String(ttsEnabled));
+        if (!ttsEnabled) window.speechSynthesis.cancel();
+    });
     window.speechSynthesis.onvoiceschanged = populateVoices;
     render();
 </script>
