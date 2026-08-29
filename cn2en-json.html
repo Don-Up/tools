@@ -76,5 +76,71 @@
     <div id="enText" class="en-text" hidden></div>
     <div id="hint" class="hint">← → 切换</div>
     <div id="emptyState" class="empty-state">按 Ctrl+V 粘贴 JSON 数据</div>
+<script>
+    let entries = [];
+    let currentIndex = 0;
+
+    const counter = document.getElementById('counter');
+    const cnText = document.getElementById('cnText');
+    const enText = document.getElementById('enText');
+    const hint = document.getElementById('hint');
+    const emptyState = document.getElementById('emptyState');
+
+    function render() {
+        if (entries.length === 0) {
+            emptyState.hidden = false;
+            counter.hidden = true;
+            cnText.hidden = true;
+            enText.hidden = true;
+            hint.hidden = true;
+            return;
+        }
+        emptyState.hidden = true;
+        counter.hidden = false;
+        cnText.hidden = false;
+        enText.hidden = false;
+        hint.hidden = false;
+        const [cn, en] = entries[currentIndex];
+        counter.textContent = `${currentIndex + 1}/${entries.length}`;
+        cnText.textContent = cn;
+        enText.textContent = en;
+    }
+
+    function parseAndLoad(text) {
+        let parsed;
+        try {
+            parsed = JSON.parse(text);
+        } catch (err) {
+            console.error('JSON 解析失败:', err.message);
+            return;
+        }
+        if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+            console.error('JSON 格式错误：必须为对象');
+            return;
+        }
+        const newEntries = Object.entries(parsed);
+        if (newEntries.length === 0) {
+            console.error('JSON 不能为空对象');
+            return;
+        }
+        entries = newEntries;
+        currentIndex = 0;
+        render();
+    }
+
+    document.addEventListener('keydown', async function (e) {
+        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyV') {
+            e.preventDefault();
+            try {
+                const text = await navigator.clipboard.readText();
+                parseAndLoad(text);
+            } catch (err) {
+                console.error('剪贴板读取失败:', err.message || err);
+            }
+        }
+    });
+
+    render();
+</script>
 </body>
 </html>
