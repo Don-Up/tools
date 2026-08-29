@@ -280,8 +280,11 @@
         counter.textContent = `${currentIndex + 1}/${entries.length}`;
         cnText.textContent = cn;
         enRevealed = false;
-        const showFull = currentMode === 1 || enRevealed;
-        enText.textContent = showFull ? en : maskEnText(en);
+        if (currentMode === 1) {
+            enText.textContent = en;
+        } else {
+            enText.textContent = maskEnText(en, currentMode === 2);
+        }
         speakCn();
     }
 
@@ -386,10 +389,11 @@
             if (entries.length === 0) return;
             e.preventDefault();
             enRevealed = !enRevealed;
-            const showFull = currentMode === 1 || enRevealed;
-            enText.textContent = showFull
-                ? entries[currentIndex][1]
-                : maskEnText(entries[currentIndex][1]);
+            if (currentMode === 1 || enRevealed) {
+                enText.textContent = entries[currentIndex][1];
+            } else {
+                enText.textContent = maskEnText(entries[currentIndex][1], currentMode === 2);
+            }
         }
         if (entries.length > 0) {
             if (e.code === 'ArrowLeft') {
@@ -469,10 +473,11 @@
                 currentMode = parseInt(radio.value, 10);
                 localStorage.setItem(STORAGE_KEY_MODE, String(currentMode));
                 if (entries.length > 0) {
-                    const showFull = currentMode === 1 || enRevealed;
-                    enText.textContent = showFull
-                        ? entries[currentIndex][1]
-                        : maskEnText(entries[currentIndex][1]);
+                    if (currentMode === 1) {
+                        enText.textContent = entries[currentIndex][1];
+                    } else {
+                        enText.textContent = maskEnText(entries[currentIndex][1], currentMode === 2);
+                    }
                 }
             }
         });
