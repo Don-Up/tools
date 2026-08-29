@@ -128,6 +128,8 @@
     const emptyState = document.getElementById('emptyState');
     const voiceSelect = document.getElementById('voiceSelect');
     const ttsToggle = document.getElementById('ttsToggle');
+    const voiceSelectEn = document.getElementById('voiceSelectEn');
+    const ttsToggleEn = document.getElementById('ttsToggleEn');
 
     cnText.addEventListener('click', () => speakCn());
 
@@ -163,6 +165,18 @@
             selectedVoice = voicesCN[0] || null;
             if (selectedVoice) voiceSelect.value = selectedVoice.name;
         }
+        voicesEN = voices.filter(v => v.lang.startsWith("en-"));
+        voiceSelectEn.innerHTML = voicesEN
+            .map(v => `<option value="${v.name}">${v.name}</option>`)
+            .join("");
+        const savedEn = localStorage.getItem(STORAGE_KEY_VOICE_EN);
+        if (savedEn && voicesEN.find(v => v.name === savedEn)) {
+            voiceSelectEn.value = savedEn;
+            selectedVoiceEn = voicesEN.find(v => v.name === savedEn);
+        } else {
+            selectedVoiceEn = voicesEN[0] || null;
+            if (selectedVoiceEn) voiceSelectEn.value = selectedVoiceEn.name;
+        }
     }
 
     function render() {
@@ -190,10 +204,15 @@
     const STORAGE_KEY_INDEX = 'cn2en-json:index';
     const STORAGE_KEY_VOICE = 'cn2en-json:voice';
     const STORAGE_KEY_TTS = 'cn2en-json:ttsEnabled';
+    const STORAGE_KEY_VOICE_EN = 'cn2en-json:voiceEn';
+    const STORAGE_KEY_TTS_EN = 'cn2en-json:ttsEnabledEn';
 
     let voicesCN = [];
     let selectedVoice = null;
     let ttsEnabled = true;
+    let voicesEN = [];
+    let selectedVoiceEn = null;
+    let ttsEnabledEn = false;
 
     function saveState() {
         localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(entries));
@@ -273,6 +292,8 @@
     loadState();
     ttsEnabled = localStorage.getItem(STORAGE_KEY_TTS) !== "false";
     ttsToggle.checked = ttsEnabled;
+    ttsEnabledEn = localStorage.getItem(STORAGE_KEY_TTS_EN) === "true";
+    ttsToggleEn.checked = ttsEnabledEn;
     populateVoices();
     voiceSelect.addEventListener('change', () => {
         selectedVoice = voicesCN.find(v => v.name === voiceSelect.value) || null;
@@ -284,6 +305,17 @@
         ttsEnabled = ttsToggle.checked;
         localStorage.setItem(STORAGE_KEY_TTS, String(ttsEnabled));
         if (!ttsEnabled) window.speechSynthesis.cancel();
+    });
+    voiceSelectEn.addEventListener('change', () => {
+        selectedVoiceEn = voicesEN.find(v => v.name === voiceSelectEn.value) || null;
+        if (selectedVoiceEn) {
+            localStorage.setItem(STORAGE_KEY_VOICE_EN, selectedVoiceEn.name);
+        }
+    });
+    ttsToggleEn.addEventListener('change', () => {
+        ttsEnabledEn = ttsToggleEn.checked;
+        localStorage.setItem(STORAGE_KEY_TTS_EN, String(ttsEnabledEn));
+        if (!ttsEnabledEn) window.speechSynthesis.cancel();
     });
     window.speechSynthesis.onvoiceschanged = populateVoices;
     render();
