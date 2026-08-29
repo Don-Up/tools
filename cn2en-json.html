@@ -67,10 +67,44 @@
             text-align: center;
         }
         [hidden] { display: none; }
+        .tts-controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 5;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .voice-select {
+            padding: 4px 8px;
+            font-size: 14px;
+            background: #2c2c2c;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+        }
+        .tts-toggle-label {
+            font-size: 14px;
+            color: #888;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+        }
+        .tts-toggle-label input {
+            width: 16px;
+            height: 16px;
+            margin: 0;
+        }
     </style>
 </head>
 <body>
     <div id="errorBar" class="error-bar"></div>
+    <div id="ttsControls" class="tts-controls">
+        <select id="voiceSelect" class="voice-select"></select>
+        <label class="tts-toggle-label"><input type="checkbox" id="ttsToggle" checked> TTS</label>
+    </div>
     <div id="counter" class="counter" hidden></div>
     <div id="cnText" class="cn-text" hidden></div>
     <div id="enText" class="en-text" hidden></div>
