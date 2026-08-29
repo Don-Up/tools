@@ -59,7 +59,7 @@ function maskEnText(text) {
 示例：
 | 输入 | 输出 |
 |------|------|
-| `Compiled languages pre-compile to machine code for speed` | `C_______ l_______ p__-c______ t_ m______ c___ f___ s____` |
+| `Compiled languages pre-compile to machine code for speed` | `C_______ l_______ p__-c______ t_ m______ c___ f__ s____` |
 | `Modern JS engines blend both via JIT` | `M_____ J_ e______ b____ b___ v__ J__` |
 | `don't` | `d__'t` |
 | `a` | `a`（单字母词无下划线） |
