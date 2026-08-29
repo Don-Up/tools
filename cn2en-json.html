@@ -126,6 +126,28 @@
             text-align: right;
             font-variant-numeric: tabular-nums;
         }
+        .mode-controls {
+            position: fixed;
+            top: 100px;
+            left: 20px;
+            z-index: 5;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .mode-radio-label {
+            font-size: 14px;
+            color: #888;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+        }
+        .mode-radio-label input {
+            width: 14px;
+            height: 14px;
+            margin: 0;
+        }
     </style>
 </head>
 <body>
@@ -137,6 +159,10 @@
     <div id="ttsControlsEn" class="tts-controls">
         <select id="voiceSelectEn" class="voice-select"></select>
         <label class="tts-toggle-label"><input type="checkbox" id="ttsToggleEn"> EN TTS</label>
+    </div>
+    <div id="modeControls" class="mode-controls">
+        <label class="mode-radio-label"><input type="radio" name="mode" value="1" checked> Mode 1</label>
+        <label class="mode-radio-label"><input type="radio" name="mode" value="2"> Mode 2</label>
     </div>
     <div id="speedControls" class="speed-controls">
         <div class="speed-row">
