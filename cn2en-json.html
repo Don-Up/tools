@@ -29,9 +29,6 @@
             z-index: 10;
         }
         .counter {
-            position: fixed;
-            top: 20px;
-            right: 20px;
             font-size: 18px;
             color: #888;
         }
@@ -98,6 +95,37 @@
             margin: 0;
         }
         #ttsControlsEn { top: 60px; }
+        .speed-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: flex-end;
+        }
+        .speed-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #888;
+        }
+        .speed-label {
+            font-size: 12px;
+            color: #888;
+            width: 24px;
+        }
+        .rate-slider {
+            width: 100px;
+            cursor: pointer;
+        }
+        .rate-value {
+            min-width: 30px;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
     </style>
 </head>
 <body>
@@ -110,7 +138,19 @@
         <select id="voiceSelectEn" class="voice-select"></select>
         <label class="tts-toggle-label"><input type="checkbox" id="ttsToggleEn"> EN TTS</label>
     </div>
-    <div id="counter" class="counter" hidden></div>
+    <div id="speedControls" class="speed-controls">
+        <div class="speed-row">
+            <span class="speed-label">CN</span>
+            <input type="range" id="cnRate" min="1" max="3" value="1" step="0.1" class="rate-slider">
+            <span id="cnRateValue" class="rate-value">1.0</span>
+        </div>
+        <div class="speed-row">
+            <span class="speed-label">EN</span>
+            <input type="range" id="enRate" min="1" max="3" value="1" step="0.1" class="rate-slider">
+            <span id="enRateValue" class="rate-value">1.0</span>
+        </div>
+        <div id="counter" class="counter" hidden></div>
+    </div>
     <div id="cnText" class="cn-text" hidden></div>
     <div id="enText" class="en-text" hidden></div>
     <div id="hint" class="hint">← → 切换</div>
