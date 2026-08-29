@@ -361,6 +361,18 @@
     ttsToggle.checked = ttsEnabled;
     ttsEnabledEn = localStorage.getItem(STORAGE_KEY_TTS_EN) === "true";
     ttsToggleEn.checked = ttsEnabledEn;
+    const savedCnRate = parseFloat(localStorage.getItem(STORAGE_KEY_RATE_CN));
+    if (!isNaN(savedCnRate) && savedCnRate >= 1 && savedCnRate <= 3) {
+        cnRate = savedCnRate;
+        cnRateInput.value = String(cnRate);
+        cnRateValue.textContent = cnRate.toFixed(1);
+    }
+    const savedEnRate = parseFloat(localStorage.getItem(STORAGE_KEY_RATE_EN));
+    if (!isNaN(savedEnRate) && savedEnRate >= 1 && savedEnRate <= 3) {
+        enRate = savedEnRate;
+        enRateInput.value = String(enRate);
+        enRateValue.textContent = enRate.toFixed(1);
+    }
     populateVoices();
     voiceSelect.addEventListener('change', () => {
         selectedVoice = voicesCN.find(v => v.name === voiceSelect.value) || null;
@@ -383,6 +395,16 @@
         ttsEnabledEn = ttsToggleEn.checked;
         localStorage.setItem(STORAGE_KEY_TTS_EN, String(ttsEnabledEn));
         if (!ttsEnabledEn) window.speechSynthesis.cancel();
+    });
+    cnRateInput.addEventListener('input', () => {
+        cnRate = parseFloat(cnRateInput.value);
+        cnRateValue.textContent = cnRate.toFixed(1);
+        localStorage.setItem(STORAGE_KEY_RATE_CN, String(cnRate));
+    });
+    enRateInput.addEventListener('input', () => {
+        enRate = parseFloat(enRateInput.value);
+        enRateValue.textContent = enRate.toFixed(1);
+        localStorage.setItem(STORAGE_KEY_RATE_EN, String(enRate));
     });
     window.speechSynthesis.onvoiceschanged = populateVoices;
     render();
