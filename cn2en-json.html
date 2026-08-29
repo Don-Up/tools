@@ -163,6 +163,7 @@
     <div id="modeControls" class="mode-controls">
         <label class="mode-radio-label"><input type="radio" name="mode" value="1" checked> Mode 1</label>
         <label class="mode-radio-label"><input type="radio" name="mode" value="2"> Mode 2</label>
+        <label class="mode-radio-label"><input type="radio" name="mode" value="3"> Mode 3</label>
     </div>
     <div id="speedControls" class="speed-controls">
         <div class="speed-row">
@@ -225,9 +226,11 @@
         }
     }
 
-    function maskEnText(text) {
+    function maskEnText(text, preserveFirst) {
         return text.replace(/[a-zA-Z]+/g, (match) =>
-            match[0] + '_'.repeat(match.length - 1)
+            preserveFirst
+                ? match[0] + '_'.repeat(match.length - 1)
+                : '_'.repeat(match.length)
         );
     }
 
