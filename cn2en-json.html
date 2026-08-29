@@ -200,6 +200,7 @@
     const enRateInput = document.getElementById('enRate');
     const cnRateValue = document.getElementById('cnRateValue');
     const enRateValue = document.getElementById('enRateValue');
+    const modeRadios = document.querySelectorAll('input[name="mode"]');
 
     cnText.addEventListener('click', () => speakCn());
     enText.addEventListener('click', () => {
@@ -222,6 +223,12 @@
             clearTimeout(errorTimer);
             errorTimer = null;
         }
+    }
+
+    function maskEnText(text) {
+        return text.replace(/[a-zA-Z]+/g, (match) =>
+            match[0] + '_'.repeat(match.length - 1)
+        );
     }
 
     function populateVoices() {
@@ -269,7 +276,9 @@
         const [cn, en] = entries[currentIndex];
         counter.textContent = `${currentIndex + 1}/${entries.length}`;
         cnText.textContent = cn;
-        enText.textContent = en;
+        enRevealed = false;
+        const showFull = currentMode === 1 || enRevealed;
+        enText.textContent = showFull ? en : maskEnText(en);
         speakCn();
     }
 
@@ -281,6 +290,7 @@
     const STORAGE_KEY_TTS_EN = 'cn2en-json:ttsEnabledEn';
     const STORAGE_KEY_RATE_CN = 'cn2en-json:rateCn';
     const STORAGE_KEY_RATE_EN = 'cn2en-json:rateEn';
+    const STORAGE_KEY_MODE = 'cn2en-json:mode';
 
     let voicesCN = [];
     let selectedVoice = null;
@@ -290,6 +300,8 @@
     let ttsEnabledEn = false;
     let cnRate = 1.0;
     let enRate = 1.0;
+    let currentMode = 1;
+    let enRevealed = false;
 
     function saveState() {
         localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(entries));
