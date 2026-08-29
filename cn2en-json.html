@@ -124,6 +124,8 @@
     const voiceSelect = document.getElementById('voiceSelect');
     const ttsToggle = document.getElementById('ttsToggle');
 
+    cnText.addEventListener('click', () => speakCn());
+
     function showError(msg) {
         errorBar.textContent = msg;
         errorBar.style.display = 'block';
@@ -176,6 +178,7 @@
         counter.textContent = `${currentIndex + 1}/${entries.length}`;
         cnText.textContent = cn;
         enText.textContent = en;
+        speakCn();
     }
 
     const STORAGE_KEY_DATA = 'cn2en-json:data';
@@ -203,6 +206,14 @@
         } catch (err) {
             console.error('恢复状态失败:', err);
         }
+    }
+
+    function speakCn() {
+        if (!ttsEnabled || entries.length === 0 || !selectedVoice) return;
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(entries[currentIndex][0]);
+        utterance.voice = selectedVoice;
+        window.speechSynthesis.speak(utterance);
     }
 
     function parseAndLoad(text) {
