@@ -11,22 +11,70 @@
             background-color: #121212;
             color: #e0e0e0;
             font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
+        .error-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #7a1f1f;
+            color: #fff;
+            padding: 10px;
+            text-align: center;
+            display: none;
+            z-index: 10;
+        }
+        .counter {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            font-size: 18px;
+            color: #888;
+        }
+        .cn-text {
+            font-size: 64px;
+            color: wheat;
+            font-family: 华文细黑, 楷体, serif;
+            text-align: center;
+            padding: 20px;
+            max-width: 90vw;
+            line-height: 1.3;
+        }
+        .en-text {
+            font-size: 48px;
+            color: #e0e0e0;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            max-width: 90vw;
+            line-height: 1.3;
+        }
+        .hint {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 14px;
+            color: #666;
+        }
+        .empty-state {
+            font-size: 24px;
+            color: #888;
+            text-align: center;
+        }
+        [hidden] { display: none; }
     </style>
 </head>
 <body>
-<script>
-    document.addEventListener('keydown', async function (e) {
-        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyV') {
-            e.preventDefault();
-            try {
-                const text = await navigator.clipboard.readText();
-                console.log('剪贴板文本:', text);
-            } catch (err) {
-                console.error('读取剪贴板失败:', err);
-            }
-        }
-    });
-</script>
+    <div id="errorBar" class="error-bar"></div>
+    <div id="counter" class="counter" hidden></div>
+    <div id="cnText" class="cn-text" hidden></div>
+    <div id="enText" class="en-text" hidden></div>
+    <div id="hint" class="hint">← → 切换</div>
+    <div id="emptyState" class="empty-state">按 Ctrl+V 粘贴 JSON 数据</div>
 </body>
 </html>
