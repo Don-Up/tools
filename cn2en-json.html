@@ -132,6 +132,9 @@
     const ttsToggleEn = document.getElementById('ttsToggleEn');
 
     cnText.addEventListener('click', () => speakCn());
+    enText.addEventListener('click', () => {
+        if (ttsEnabledEn && selectedVoiceEn) speakEn();
+    });
 
     function showError(msg) {
         errorBar.textContent = msg;
@@ -233,10 +236,24 @@
     }
 
     function speakCn() {
-        if (!ttsEnabled || entries.length === 0 || !selectedVoice) return;
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(entries[currentIndex][0]);
-        utterance.voice = selectedVoice;
+        if (entries.length === 0) return;
+        if (ttsEnabled && selectedVoice) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(entries[currentIndex][0]);
+            utterance.voice = selectedVoice;
+            if (ttsEnabledEn && selectedVoiceEn) {
+                utterance.onend = () => speakEn();
+            }
+            window.speechSynthesis.speak(utterance);
+        } else if (ttsEnabledEn && selectedVoiceEn) {
+            speakEn();
+        }
+    }
+
+    function speakEn() {
+        if (!ttsEnabledEn || !selectedVoiceEn) return;
+        const utterance = new SpeechSynthesisUtterance(entries[currentIndex][1]);
+        utterance.voice = selectedVoiceEn;
         window.speechSynthesis.speak(utterance);
     }
 
