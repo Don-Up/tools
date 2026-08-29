@@ -159,6 +159,17 @@
                 showError(`剪贴板读取失败: ${err.message || err}`);
             }
         }
+        if (entries.length > 0) {
+            if (e.code === 'ArrowLeft') {
+                e.preventDefault();
+                currentIndex = (currentIndex - 1 + entries.length) % entries.length;
+                render();
+            } else if (e.code === 'ArrowRight') {
+                e.preventDefault();
+                currentIndex = (currentIndex + 1) % entries.length;
+                render();
+            }
+        }
     });
 
     render();
