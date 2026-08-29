@@ -121,6 +121,8 @@
     const enText = document.getElementById('enText');
     const hint = document.getElementById('hint');
     const emptyState = document.getElementById('emptyState');
+    const voiceSelect = document.getElementById('voiceSelect');
+    const ttsToggle = document.getElementById('ttsToggle');
 
     function showError(msg) {
         errorBar.textContent = msg;
@@ -137,6 +139,22 @@
         if (errorTimer) {
             clearTimeout(errorTimer);
             errorTimer = null;
+        }
+    }
+
+    function populateVoices() {
+        const voices = window.speechSynthesis.getVoices();
+        voicesCN = voices.filter(v => v.lang === "zh-CN" && !v.name.includes("PRC"));
+        voiceSelect.innerHTML = voicesCN
+            .map(v => `<option value="${v.name}">${v.name}</option>`)
+            .join("");
+        const saved = localStorage.getItem(STORAGE_KEY_VOICE);
+        if (saved && voicesCN.find(v => v.name === saved)) {
+            voiceSelect.value = saved;
+            selectedVoice = voicesCN.find(v => v.name === saved);
+        } else {
+            selectedVoice = voicesCN[0] || null;
+            if (selectedVoice) voiceSelect.value = selectedVoice.name;
         }
     }
 
@@ -162,6 +180,12 @@
 
     const STORAGE_KEY_DATA = 'cn2en-json:data';
     const STORAGE_KEY_INDEX = 'cn2en-json:index';
+    const STORAGE_KEY_VOICE = 'cn2en-json:voice';
+    const STORAGE_KEY_TTS = 'cn2en-json:ttsEnabled';
+
+    let voicesCN = [];
+    let selectedVoice = null;
+    let ttsEnabled = true;
 
     function saveState() {
         localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(entries));
@@ -231,6 +255,10 @@
     });
 
     loadState();
+    ttsEnabled = localStorage.getItem(STORAGE_KEY_TTS) !== "false";
+    ttsToggle.checked = ttsEnabled;
+    populateVoices();
+    window.speechSynthesis.onvoiceschanged = populateVoices;
     render();
 </script>
 </body>
