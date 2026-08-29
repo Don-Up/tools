@@ -416,8 +416,8 @@
     ttsEnabledEn = localStorage.getItem(STORAGE_KEY_TTS_EN) === "true";
     ttsToggleEn.checked = ttsEnabledEn;
     const savedMode = localStorage.getItem(STORAGE_KEY_MODE);
-    if (savedMode === "2") {
-        currentMode = 2;
+    if (savedMode === "2" || savedMode === "3") {
+        currentMode = parseInt(savedMode, 10);
     }
     modeRadios.forEach(radio => {
         radio.checked = parseInt(radio.value, 10) === currentMode;
