@@ -126,6 +126,27 @@
         enText.textContent = en;
     }
 
+    const STORAGE_KEY_DATA = 'cn2en-json:data';
+    const STORAGE_KEY_INDEX = 'cn2en-json:index';
+
+    function saveState() {
+        localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(entries));
+        localStorage.setItem(STORAGE_KEY_INDEX, String(currentIndex));
+    }
+
+    function loadState() {
+        try {
+            const data = localStorage.getItem(STORAGE_KEY_DATA);
+            const index = localStorage.getItem(STORAGE_KEY_INDEX);
+            if (data && index !== null) {
+                entries = JSON.parse(data);
+                currentIndex = parseInt(index, 10) || 0;
+            }
+        } catch (err) {
+            console.error('恢复状态失败:', err);
+        }
+    }
+
     function parseAndLoad(text) {
         let parsed;
         try {
@@ -146,6 +167,7 @@
         entries = newEntries;
         currentIndex = 0;
         clearError();
+        saveState();
         render();
     }
 
@@ -163,15 +185,18 @@
             if (e.code === 'ArrowLeft') {
                 e.preventDefault();
                 currentIndex = (currentIndex - 1 + entries.length) % entries.length;
+                saveState();
                 render();
             } else if (e.code === 'ArrowRight') {
                 e.preventDefault();
                 currentIndex = (currentIndex + 1) % entries.length;
+                saveState();
                 render();
             }
         }
     });
 
+    loadState();
     render();
 </script>
 </body>
