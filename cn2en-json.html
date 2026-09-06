@@ -242,7 +242,7 @@
 
     function populateVoices() {
         const voices = window.speechSynthesis.getVoices();
-        voicesCN = voices.filter(v => v.lang === "zh-CN" && !v.name.includes("PRC"));
+        voicesCN = voices.filter(v => v.lang === "zh-CN");//&& !v.name.includes("PRC")
         voiceSelect.innerHTML = voicesCN
             .map(v => `<option value="${v.name}">${v.name}</option>`)
             .join("");
