@@ -40,6 +40,10 @@
             line-height: 1.625rem;
         }
 
+        b {
+            color: gold;
+        }
+
         /* Tab styles */
         .tab-container {
             display: flex;
@@ -636,7 +640,7 @@
             if (len > 0) {
                 let temp = "";
                 for (let i = 0; i < answerArray.length; i++) {
-                    temp += (answerArray[i].length + " ");
+                    temp += (answerArray[i].split("/")[0].length + " ");
                 }
                 input.placeholder = temp.trim();
             }
