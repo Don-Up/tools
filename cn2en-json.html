@@ -487,19 +487,23 @@
         enRateValue.textContent = enRate.toFixed(1);
         localStorage.setItem(STORAGE_KEY_RATE_EN, String(enRate));
     });
+    function applyMode(mode) {
+        currentMode = mode;
+        localStorage.setItem(STORAGE_KEY_MODE, String(mode));
+        modeRadios.forEach(r => {
+            r.checked = parseInt(r.value, 10) === mode;
+        });
+        if (entries.length > 0) {
+            if (mode === 1) {
+                enText.textContent = entries[currentIndex][1];
+            } else {
+                enText.textContent = maskEnText(entries[currentIndex][1], mode === 2);
+            }
+        }
+    }
     modeRadios.forEach(radio => {
         radio.addEventListener('change', () => {
-            if (radio.checked) {
-                currentMode = parseInt(radio.value, 10);
-                localStorage.setItem(STORAGE_KEY_MODE, String(currentMode));
-                if (entries.length > 0) {
-                    if (currentMode === 1) {
-                        enText.textContent = entries[currentIndex][1];
-                    } else {
-                        enText.textContent = maskEnText(entries[currentIndex][1], currentMode === 2);
-                    }
-                }
-            }
+            if (radio.checked) applyMode(parseInt(radio.value, 10));
         });
     });
     window.speechSynthesis.onvoiceschanged = populateVoices;
