@@ -213,10 +213,19 @@
         navigator.clipboard.writeText(`${cn}|${en}|`);
     }
 
+    function copyEntryWithTildes() {
+        if (entries.length === 0) return;
+        const [cn, en] = entries[currentIndex];
+        navigator.clipboard.writeText(`${cn}|~${en}~~|`);
+    }
+
     cnText.addEventListener('click', (e) => {
         if (e.altKey) {
             e.preventDefault();
             copyEntryToClipboard();
+        } else if (e.ctrlKey) {
+            e.preventDefault();
+            copyEntryWithTildes();
         } else {
             speakCn(true);
         }
