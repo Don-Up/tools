@@ -407,6 +407,18 @@
             enShown = !enShown;
             enText.style.visibility = enShown ? "visible" : "hidden"
         }
+        if (!e.ctrlKey && !e.altKey && !e.shiftKey) {
+            if (e.code === 'Digit1' || e.code === 'Numpad1') {
+                e.preventDefault();
+                applyMode(1);
+            } else if (e.code === 'Digit2' || e.code === 'Numpad2') {
+                e.preventDefault();
+                applyMode(2);
+            } else if (e.code === 'Digit3' || e.code === 'Numpad3') {
+                e.preventDefault();
+                applyMode(3);
+            }
+        }
         if (entries.length > 0) {
             if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
                 e.preventDefault();
