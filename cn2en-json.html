@@ -207,11 +207,8 @@
     const enRateValue = document.getElementById('enRateValue');
     const modeRadios = document.querySelectorAll('input[name="mode"]');
 
-    cnText.addEventListener('click', () => speakCn());
-    enText.addEventListener('click', () => {
-        // if (ttsEnabledEn && selectedVoiceEn)
-            speakEn();
-    });
+    cnText.addEventListener('click', () => speakCn(true));
+    enText.addEventListener('click', () => speakEn(true));
 
     function showError(msg) {
         errorBar.textContent = msg;
@@ -335,14 +332,14 @@
         }
     }
 
-    function speakCn() {
+    function speakCn(force) {
         if (entries.length === 0) return;
-        if (ttsEnabled && selectedVoice) {
+        if (force || (ttsEnabled && selectedVoice)) {
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(entries[currentIndex][0]);
             utterance.voice = selectedVoice;
             utterance.rate = cnRate;
-            if (ttsEnabledEn && selectedVoiceEn) {
+            if (!force && ttsEnabledEn && selectedVoiceEn) {
                 utterance.onend = () => speakEn();
             }
             window.speechSynthesis.speak(utterance);
@@ -351,8 +348,9 @@
         }
     }
 
-    function speakEn() {
-        // if (!ttsEnabledEn || !selectedVoiceEn) return;
+    function speakEn(force) {
+        if (!selectedVoiceEn) return;
+        if (!force && !ttsEnabledEn) return;
         const utterance = new SpeechSynthesisUtterance(entries[currentIndex][1]);
         utterance.voice = selectedVoiceEn;
         utterance.rate = enRate;
