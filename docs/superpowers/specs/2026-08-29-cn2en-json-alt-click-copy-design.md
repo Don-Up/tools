@@ -22,12 +22,12 @@
 function copyEntryToClipboard() {
     if (entries.length === 0) return;
     const [cn, en] = entries[currentIndex];
-    navigator.clipboard.writeText(`${cn}|${en}`);
+    navigator.clipboard.writeText(`${cn}|${en}|`);
 }
 ```
 
 - 空数据时早返回
-- 使用模板字符串拼接 `|` 分隔符
+- 使用模板字符串拼接 `|` 分隔符（含尾部 `|`）
 - 复制的是 `entries[currentIndex]` 中的原始 CN/EN（不受 Mode 2/3 mask 影响）
 - 复制失败（权限拒绝、剪贴板 API 不可用）静默吞错——不阻塞其它流程
 

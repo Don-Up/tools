@@ -31,7 +31,7 @@
     function copyEntryToClipboard() {
         if (entries.length === 0) return;
         const [cn, en] = entries[currentIndex];
-        navigator.clipboard.writeText(`${cn}|${en}`);
+        navigator.clipboard.writeText(`${cn}|${en}|`);
     }
 ```
 
@@ -62,10 +62,10 @@ typeof copyEntryToClipboard === 'function'   // expect: true
 
 ```js
 entries[currentIndex]   // expect: ['作用域链...', 'The scope chain...']
-copyEntryToClipboard()  // expect: 静默；剪贴板含 '作用域链...|The scope chain...'
+copyEntryToClipboard()  // expect: 静默；剪贴板含 '作用域链...|The scope chain...|'
 ```
 
-预期：`copyEntryToClipboard` 已定义；调用后剪贴板内容为 `作用域链是...|The scope chain is...`（管道符 `|` 分隔，无前后空格）。
+预期：`copyEntryToClipboard` 已定义；调用后剪贴板内容为 `作用域链是...|The scope chain is...|`（管道符 `|` 分隔，含尾部 `|`）。
 
 - [ ] **Step 4: 手动验证 Alt+点击 cnText**
 
@@ -75,7 +75,7 @@ copyEntryToClipboard()  // expect: 静默；剪贴板含 '作用域链...|The sc
 
 预期：
 - 不读 CN（无 TTS 播放）
-- 剪贴板内容为 `作用域链是 JavaScript...|The scope chain is the chain...`
+- 剪贴板内容为 `作用域链是 JavaScript...|The scope chain is the chain...|`
 - 无 console 错误
 
 - [ ] **Step 5: 手动验证纯左键点击 cnText 不受影响**
@@ -94,7 +94,7 @@ copyEntryToClipboard()  // expect: 静默；剪贴板含 '作用域链...|The sc
 
 按 2 切到 Mode 2（英文显示打码）。按住 Alt，点击 cnText。
 
-预期：剪贴板内容为完整原文（含打码隐藏的英文），如 `作用域链...|The scope chain is the chain...`。enText 仍显示打码，但剪贴板不受影响。
+预期：剪贴板内容为完整原文（含打码隐藏的英文），如 `作用域链...|The scope chain is the chain...|`。enText 仍显示打码，但剪贴板不受影响。
 
 - [ ] **Step 8: 手动验证空数据时静默早返回**
 
@@ -132,7 +132,7 @@ DevTools → Local Storage 清除所有 `cn2en-json:*` 键，刷新。
 
 按住 Alt，点击 cnText。
 
-预期：不读 CN；剪贴板内容为 `作用域链是 JavaScript 在解析变量标识符时向上遍历的嵌套作用域链|The scope chain is the chain of nested scopes that JavaScript traverses upward when resolving variable identifiers`（管道符分隔）。
+预期：不读 CN；剪贴板内容为 `作用域链是 JavaScript 在解析变量标识符时向上遍历的嵌套作用域链|The scope chain is the chain of nested scopes that JavaScript traverses upward when resolving variable identifiers|`（管道符分隔，含尾部 `|`）。
 
 - [ ] **Step 4: 纯左键点击读 CN（再次）**
 

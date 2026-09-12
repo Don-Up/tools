@@ -210,7 +210,7 @@
     function copyEntryToClipboard() {
         if (entries.length === 0) return;
         const [cn, en] = entries[currentIndex];
-        navigator.clipboard.writeText(`${cn}|${en}`);
+        navigator.clipboard.writeText(`${cn}|${en}|`);
     }
 
     cnText.addEventListener('click', (e) => {
