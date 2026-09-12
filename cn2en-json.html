@@ -379,24 +379,60 @@
         window.speechSynthesis.speak(utterance);
     }
 
+    function extractJsonObjects(text) {
+        const objects = [];
+        let depth = 0;
+        let start = -1;
+        let inString = false;
+        let escape = false;
+        for (let i = 0; i < text.length; i++) {
+            const c = text[i];
+            if (escape) { escape = false; continue; }
+            if (c === '\\' && inString) { escape = true; continue; }
+            if (c === '"') { inString = !inString; continue; }
+            if (inString) continue;
+            if (c === '{') {
+                if (depth === 0) start = i;
+                depth++;
+            } else if (c === '}') {
+                depth--;
+                if (depth === 0 && start !== -1) {
+                    objects.push(text.slice(start, i + 1));
+                    start = -1;
+                }
+            }
+        }
+        return objects;
+    }
+
     function parseAndLoad(text) {
-        let parsed;
-        try {
-            parsed = JSON.parse(text);
-        } catch (err) {
-            showError(`JSON 解析失败: ${err.message}`);
+        const stripped = text.replace(/^📕.*$/gm, '');
+        const jsonStrings = extractJsonObjects(stripped);
+        if (jsonStrings.length === 0) {
+            showError('未找到 JSON 数据');
             return;
         }
-        if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-            showError('JSON 格式错误：必须为对象');
-            return;
+        const allEntries = [];
+        for (const jsonStr of jsonStrings) {
+            let parsed;
+            try {
+                parsed = JSON.parse(jsonStr);
+            } catch (err) {
+                showError(`JSON 解析失败: ${err.message}`);
+                return;
+            }
+            if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+                showError('JSON 格式错误：必须为对象');
+                return;
+            }
+            const objEntries = Object.entries(parsed);
+            if (objEntries.length === 0) {
+                showError('JSON 不能为空对象');
+                return;
+            }
+            allEntries.push(...objEntries);
         }
-        const newEntries = Object.entries(parsed);
-        if (newEntries.length === 0) {
-            showError('JSON 不能为空对象');
-            return;
-        }
-        entries = newEntries;
+        entries = allEntries;
         currentIndex = 0;
         clearError();
         saveState();
