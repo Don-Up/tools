@@ -184,7 +184,7 @@
     <div id="cnText" class="cn-text" hidden></div>
     <div id="enText" class="en-text" hidden></div>
     <div id="counter" class="counter" hidden></div>
-    <div id="hint" class="hint">← → 切换 · 1-3 切 Mode · S 揭示</div>
+    <div id="hint" class="hint">← → 切换 · 1-3 切 Mode · S 揭示 · E 读 EN</div>
     <div id="emptyState" class="empty-state">按 Ctrl+V 粘贴 JSON 数据</div>
 <script>
     let entries = [];
@@ -419,6 +419,10 @@
             e.preventDefault();
             enShown = !enShown;
             enText.style.visibility = enShown ? "visible" : "hidden"
+        }
+        if (!e.ctrlKey && !e.altKey && !e.shiftKey && e.code === 'KeyE') {
+            if (entries.length === 0) return;
+            speakEn(true);
         }
         if (!e.ctrlKey && !e.altKey && !e.shiftKey) {
             if (e.code === 'Digit1' || e.code === 'Numpad1') {
