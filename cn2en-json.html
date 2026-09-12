@@ -207,7 +207,20 @@
     const enRateValue = document.getElementById('enRateValue');
     const modeRadios = document.querySelectorAll('input[name="mode"]');
 
-    cnText.addEventListener('click', () => speakCn(true));
+    function copyEntryToClipboard() {
+        if (entries.length === 0) return;
+        const [cn, en] = entries[currentIndex];
+        navigator.clipboard.writeText(`${cn}|${en}`);
+    }
+
+    cnText.addEventListener('click', (e) => {
+        if (e.altKey) {
+            e.preventDefault();
+            copyEntryToClipboard();
+        } else {
+            speakCn(true);
+        }
+    });
     enText.addEventListener('click', () => speakEn(true));
 
     function showError(msg) {
