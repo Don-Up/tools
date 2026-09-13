@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube Shorts Auto Next",
+  "version": "0.1.0",
+  "description": "Auto-jump to the next Short when the current one ends.",
+  "permissions": ["storage", "commands"],
+  "host_permissions": ["*://www.youtube.com/shorts/*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Shorts Auto Next"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://www.youtube.com/shorts/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "commands": {
+    "skip-now": {
+      "suggested_key": {
+        "default": "Alt+N"
+      },
+      "description": "Skip to next Short immediately"
+    }
+  }
+}
