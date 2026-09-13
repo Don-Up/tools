@@ -89,7 +89,7 @@ background.js ──chrome.commands Alt+N──> chrome.tabs.sendMessage ──>
 function tick() {
   if (!state.enabled || !currentVideo) { rafId = requestAnimationFrame(tick); return; }
   const v = currentVideo;
-  if (v.paused || v.ended || v.muted === undefined) { rafId = requestAnimationFrame(tick); return; }
+  if (v.paused || v.ended) { rafId = requestAnimationFrame(tick); return; }
   const d = v.duration;
   if (!isFinite(d) || d <= 0) { rafId = requestAnimationFrame(tick); return; }
   const t = v.currentTime;
