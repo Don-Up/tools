@@ -860,6 +860,10 @@
         'even', 'such', 'same', 'different', 'other', 'another'
     ]
 
+    function normalizeCloze(text) {
+        return text.replaceAll("{{", "~").replaceAll("}}", "~~");
+    }
+
     function createTimer(name) {
         name = name.replaceAll("&amp;", "&")
 
@@ -877,6 +881,7 @@
 
         let answer = answerInput.value.trim();
         const originalName = name
+        name = normalizeCloze(name);
 
         if (name.includes("~~") || name.includes("::")) {
             // if (name.includes("\n")) {
@@ -1482,7 +1487,7 @@ ${getName(timer)}
         }
 
         const timer = timers.find(t => t.id === currentEditTimerId);
-        let name = newName
+        let name = normalizeCloze(newName);
         if (timer) {//1
             if (name.includes("~~") || name.includes("::")) {
                 if (name.includes("::") && !name.includes("~~")) {
