@@ -262,6 +262,13 @@
         cnModal.hidden = true;
     }
     cnModalBackdrop.addEventListener('click', hideAllCn);
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !cnModal.hidden) {
+            e.preventDefault();
+            e.stopPropagation();
+            hideAllCn();
+        }
+    });
 
     function copyEntryWithTildes() {
         if (entries.length === 0) return;
