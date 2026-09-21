@@ -151,6 +151,35 @@
             height: 14px;
             margin: 0;
         }
+        .cn-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .cn-modal-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+        }
+        .cn-modal-panel {
+            position: relative;
+            max-width: 80vw;
+            max-height: 80vh;
+            overflow-y: auto;
+            background: #1e1e1e;
+            padding: 30px;
+            border-radius: 8px;
+        }
+        .cn-modal-text {
+            font-size: 24px;
+            color: wheat;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            font-family: 华文细黑, 楷体, serif;
+        }
     </style>
 </head>
 <body>
@@ -184,9 +213,16 @@
     <div id="cnText" class="cn-text" hidden></div>
     <div id="enText" class="en-text" hidden></div>
     <div id="counter" class="counter" hidden></div>
-    <div id="hint" class="hint">← → 切换 · 1-3 切 Mode · S 揭示 · E/PgDn 读 EN</div>
+    <div id="hint" class="hint">← → 切换 · 1-3 切 Mode · S 揭示 · E/PgDn 读 EN · Z 全文</div>
     <div id="emptyState" class="empty-state">按 Ctrl+V 粘贴 JSON 数据</div>
+    <div id="cnModal" class="cn-modal" hidden>
+        <div id="cnModalBackdrop" class="cn-modal-backdrop"></div>
+        <div id="cnModalPanel" class="cn-modal-panel">
+            <div id="cnModalText" class="cn-modal-text"></div>
+        </div>
+    </div>
 <script>
+
     let entries = [];
     let currentIndex = 0;
     let errorTimer = null;
@@ -206,12 +242,26 @@
     const cnRateValue = document.getElementById('cnRateValue');
     const enRateValue = document.getElementById('enRateValue');
     const modeRadios = document.querySelectorAll('input[name="mode"]');
+    const cnModal = document.getElementById('cnModal');
+    const cnModalBackdrop = document.getElementById('cnModalBackdrop');
+    const cnModalPanel = document.getElementById('cnModalPanel');
+    const cnModalText = document.getElementById('cnModalText');
 
     function copyEntryToClipboard() {
         if (entries.length === 0) return;
         const [cn, en] = entries[currentIndex];
         navigator.clipboard.writeText(`${cn}|${en}|`);
     }
+
+    function showAllCn() {
+        if (entries.length === 0) return;
+        cnModalText.textContent = entries.map(e => e[0]).join('\n\n');
+        cnModal.hidden = false;
+    }
+    function hideAllCn() {
+        cnModal.hidden = true;
+    }
+    cnModalBackdrop.addEventListener('click', hideAllCn);
 
     function copyEntryWithTildes() {
         if (entries.length === 0) return;
@@ -468,6 +518,14 @@
         if (!e.ctrlKey && !e.altKey && !e.shiftKey && (e.code === 'KeyE' || e.code === 'PageDown')) {
             if (entries.length === 0) return;
             speakEn(true);
+        }
+        if (!e.ctrlKey && !e.altKey && !e.shiftKey && e.code === 'KeyZ') {
+            if (entries.length === 0) return;
+            if (cnModal.hidden) {
+                showAllCn();
+            } else {
+                hideAllCn();
+            }
         }
         if (!e.ctrlKey && !e.altKey && !e.shiftKey) {
             if (e.code === 'Digit1' || e.code === 'Numpad1') {
