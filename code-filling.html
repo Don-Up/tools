@@ -330,6 +330,8 @@
 
             clipboardText.then(text => {
                 // Set innerHTML directly - browser will parse <input> tags as actual elements
+                text = text.replaceAll("{{", "<input placeholder='").replaceAll("}}", "'>")
+                    .replaceAll("~~", "'>").replaceAll("~", "<input placeholder='")
                 codeElement.innerHTML = text;
                 highlightElement(codeElement);
                 setUpCodeElement(codeElement);
