@@ -101,7 +101,7 @@
 <body>
 <div id="front-content">
     <div style="position: fixed;background: #333333;width: 100vw;z-index: 100;padding-bottom: 10px;">
-        <div style="font-weight: bold;text-align:center;font-size: 30px;padding: 10px 0">
+        <div id="codeFillingTitle" style="font-weight: bold;text-align:center;font-size: 30px;padding: 10px 0;cursor: pointer;user-select: none">
             CODE FILLING
         </div>
         <div class="tab-container" id="tabContainer">
@@ -718,8 +718,50 @@
             input.addEventListener('mouseleave', () => {
                 clearTimeout(longPressTimeout);
             });
+
+            input.addEventListener('auxclick', (event) => {
+                if (event.button !== 1) return;
+                event.preventDefault();
+
+                if (input.dataset.timerId) {
+                    const timerId = parseInt(input.dataset.timerId, 10);
+                    clearInterval(timerId);
+                    delete inputTimers[timerId];
+                    delete input.dataset.timerStarted;
+                    delete input.dataset.timerTotalSeconds;
+                    delete input.dataset.timerOriginal;
+                    delete input.dataset.timerStartTime;
+                    delete input.dataset.timerId;
+                }
+                input.value = '';
+                input.dataset.charIndex = 0;
+                input.className = '';
+            });
         });
     }
+
+    // Click title to clear all inputs in the active tab
+    document.getElementById('codeFillingTitle').addEventListener('click', () => {
+        if (!activeTabId) return;
+        const codeElement = document.getElementById(`code-${activeTabId}`);
+        if (!codeElement) return;
+
+        codeElement.querySelectorAll('input').forEach(input => {
+            if (input.dataset.timerId) {
+                const timerId = parseInt(input.dataset.timerId, 10);
+                clearInterval(timerId);
+                delete inputTimers[timerId];
+                delete input.dataset.timerStarted;
+                delete input.dataset.timerTotalSeconds;
+                delete input.dataset.timerOriginal;
+                delete input.dataset.timerStartTime;
+                delete input.dataset.timerId;
+            }
+            input.value = '';
+            input.dataset.charIndex = 0;
+            input.className = '';
+        });
+    });
 
     // Initialize with one tab
     addNewTab();
