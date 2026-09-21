@@ -226,12 +226,28 @@
                         startTimerForInput(input, 10);
                     });
                 }
+            } else if (e.ctrlKey && e.shiftKey) {
+                // Ctrl+Shift click on tab: start 15m timer for all inputs
+                const tabContent = document.getElementById(`tab-content-${id}`);
+                if (tabContent) {
+                    tabContent.querySelectorAll('input').forEach(input => {
+                        startTimerForInput(input, 15);
+                    });
+                }
             } else if (e.ctrlKey && e.altKey) {
                 // Ctrl+Alt click on tab: start 2m timer for all inputs
                 const tabContent = document.getElementById(`tab-content-${id}`);
                 if (tabContent) {
                     tabContent.querySelectorAll('input').forEach(input => {
                         startTimerForInput(input, 2);
+                    });
+                }
+            } else if (e.ctrlKey) {
+                // Ctrl click on tab: start 5m timer for all inputs
+                const tabContent = document.getElementById(`tab-content-${id}`);
+                if (tabContent) {
+                    tabContent.querySelectorAll('input').forEach(input => {
+                        startTimerForInput(input, 5);
                     });
                 }
             } else if (e.altKey) {
@@ -589,10 +605,8 @@
                     input.dataset.timerId = timerId;
                     inputTimers[timerId] = { input, interval: timerId };
                 } else if (event.shiftKey && event.ctrlKey) {
-                    codeElement.querySelectorAll("input").forEach(input => {
-                        input.value = "";
-                        input.dataset.charIndex = 0;
-                    });
+                    // Ctrl+Shift click on input: start 15m timer
+                    startTimerForInput(input, 15);
                 } else if (event.ctrlKey && event.altKey) {
                     // Ctrl+Alt: start 2m timer
                     const totalSeconds = 2 * 60;
@@ -652,8 +666,8 @@
                     input.dataset.charIndex = placeholderValue.length;
                     input.className = 'orange';
                 } else if (event.ctrlKey) {
-                    input.value = "";
-                    input.dataset.charIndex = 0;
+                    // Ctrl click on input: start 5m timer
+                    startTimerForInput(input, 5);
                 } else {
                     let charIndex = parseInt(input.dataset.charIndex, 10);
 

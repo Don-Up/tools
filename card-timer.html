@@ -54,10 +54,13 @@
             width: 100%;
             padding: 12px;
             font-size: 16px;
+            line-height: 1.4;
+            font-family: inherit;
             background: #2c2c2c;
             color: #e0e0e0;
             border: 1px solid #444;
             border-radius: 4px;
+            resize: vertical;
         }
 
         #cardNameInput::placeholder {
@@ -450,7 +453,7 @@
                 type="checkbox" id="onlyShortSwitch" style="margin-left:8px"> Only&lt;=2</label></h1>
 
     <div class="input-section">
-        <input type="text" id="cardNameInput" placeholder="Card name...">
+        <textarea id="cardNameInput" placeholder="Card name..." rows="2"></textarea>
         <div class="input-row">
             <input type="text" id="answerInput" placeholder="Answer (optional)">
             <select id="durationSelect">
@@ -511,6 +514,26 @@
     const cardNameInput = document.getElementById('cardNameInput');
     const durationSelect = document.getElementById('durationSelect');
     const customDurationInput = document.getElementById('customDurationInput');
+
+    const savedDuration = localStorage.getItem('durationDefault');
+    if (savedDuration !== null) {
+        const matchingOption = [...durationSelect.options].find(opt => opt.value === savedDuration);
+        if (matchingOption) durationSelect.value = savedDuration;
+    }
+
+    const defNewMinInput = document.getElementById('defNewMinInput');
+    const defNewMinCheckbox = document.getElementById('defNewMinCheckbox');
+    const savedDefNewMin = localStorage.getItem('defNewMin');
+    if (savedDefNewMin !== null) defNewMinInput.value = savedDefNewMin;
+    defNewMinInput.addEventListener('change', () => {
+        localStorage.setItem('defNewMin', defNewMinInput.value);
+    });
+
+    const savedDefNewEnabled = localStorage.getItem('defNewMinEnabled');
+    if (savedDefNewEnabled !== null) defNewMinCheckbox.checked = savedDefNewEnabled === 'true';
+    defNewMinCheckbox.addEventListener('change', () => {
+        localStorage.setItem('defNewMinEnabled', defNewMinCheckbox.checked);
+    });
     const answerInput = document.getElementById('answerInput');
     const confirmBtn = document.getElementById('confirmBtn');
     const exportBtn = document.getElementById('exportBtn');
@@ -692,6 +715,9 @@
     // Show/hide custom duration input
     durationSelect.addEventListener('change', () => {
         customDurationInput.style.display = durationSelect.value === 'custom' ? 'block' : 'none';
+        if (durationSelect.value !== 'custom') {
+            localStorage.setItem('durationDefault', durationSelect.value);
+        }
     });
 
     // Confirm button click handler

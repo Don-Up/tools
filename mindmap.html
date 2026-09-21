@@ -171,7 +171,6 @@
             background: #abc88b;
             color: #333;
             margin-left: 90px;
-            display: none;
         }
 
         /* 四级子节点（***** → 层级4） */
@@ -866,7 +865,10 @@
             try {
                 const clipboardText = await navigator.clipboard.readText();
                 if (clipboardText.trim()) {
-                    document.getElementById('source-text').innerHTML = clipboardText.trim();
+                    document.getElementById('source-text').innerHTML = clipboardText
+                        .replaceAll("{{", "~")
+                        .replaceAll("}}", "~~")
+                        .trim();
                     initMindmap(activeTabId);
                 } else {
                     alert('剪贴板为空，请复制内容后再粘贴！');
@@ -895,7 +897,11 @@
                 hiddenInput.focus();
                 setTimeout(() => {
                     if (hiddenInput.value.trim()) {
-                        document.getElementById('source-text').innerHTML = hiddenInput.value.trim();
+                        document.getElementById('source-text').innerHTML =
+                            hiddenInput.value
+                                .replaceAll("{{", "~")
+                                .replaceAll("}}", "~~")
+                                .trim();
                         initMindmap(activeTabId);
                         hiddenInput.value = '';
                     } else {
