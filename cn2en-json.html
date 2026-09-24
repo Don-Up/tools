@@ -231,6 +231,12 @@
             background-repeat: no-repeat;
             background-attachment: fixed;
         }
+        body.has-bg .cn-text,
+        body.has-bg .en-text {
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 8px;
+        }
         .cn-modal-panel::-webkit-scrollbar {
             width: 10px;
         }
