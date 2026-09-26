@@ -831,6 +831,9 @@
             })
         } else {
             let name = cardNameInput.value.trim();
+            if(name.endsWith("|") && !name.includes("~~")){
+                name = name.replace("|", "^~").replace("|", "~~|").replace("^~", "|~")
+            }
             if (!name && answerInput.value.trim()) {
                 name = "-"
             }
