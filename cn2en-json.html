@@ -544,7 +544,7 @@
         if (entries.length === 0) return;
         const [cn, en] = entries[currentIndex];
         sidePanel.contentWindow?.postMessage(
-            { type: 'cn-en', content: `${cn}|${en}` },
+            { type: 'cn-en', content: `${cn}|${en}|` },
             '*'
         );
     }
@@ -838,6 +838,7 @@
             e.preventDefault();
             const shown = sidePanel.classList.toggle('shown');
             document.body.classList.toggle('side-panel-open', shown);
+            if (shown) postCnEnToChild();
         }
         if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyV') {
             e.preventDefault();
