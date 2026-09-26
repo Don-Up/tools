@@ -236,6 +236,42 @@
             -webkit-backdrop-filter: blur(2px);
             border-radius: 8px;
         }
+        .bg-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            max-height: 200px;
+            overflow-y: auto;
+            min-width: 260px;
+        }
+        .bg-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 8px;
+            color: #e0e0e0;
+            font-size: 14px;
+            border-radius: 4px;
+        }
+        .bg-list-item:hover { background: #2c2c2c; }
+        .bg-delete-btn {
+            background: transparent;
+            color: #c66;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 0 8px;
+            line-height: 1;
+        }
+        .bg-delete-btn:hover { color: #f88; }
+        .bg-list:empty::before {
+            content: '暂无背景图片';
+            color: #666;
+            font-size: 13px;
+            display: block;
+            text-align: center;
+            padding: 8px;
+        }
         .cn-modal-panel::-webkit-scrollbar {
             width: 10px;
         }
@@ -300,12 +336,13 @@
         <div id="bgModalBackdrop" class="bg-modal-backdrop"></div>
         <div id="bgModalPanel" class="bg-modal-panel">
             <div class="bg-modal-title">背景图片</div>
-            <input type="file" id="bgFileInput" accept="image/png,image/jpeg,image/gif,image/webp,image/bmp">
+            <ul id="bgList" class="bg-list"></ul>
             <div class="bg-modal-actions">
-                <button id="bgClearBtn">清除背景</button>
+                <button id="bgAddBtn">选择图片</button>
                 <button id="bgCloseBtn">关闭</button>
             </div>
         </div>
+        <input type="file" id="bgFileInput" accept="image/png,image/jpeg,image/gif,image/webp,image/bmp" hidden>
     </div>
 <script>
 
