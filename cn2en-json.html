@@ -372,8 +372,11 @@
     const bgModal = document.getElementById('bgModal');
     const bgModalBackdrop = document.getElementById('bgModalBackdrop');
     const bgFileInput = document.getElementById('bgFileInput');
-    const bgClearBtn = document.getElementById('bgClearBtn');
     const bgCloseBtn = document.getElementById('bgCloseBtn');
+    const bgList = document.getElementById('bgList');
+    const bgAddBtn = document.getElementById('bgAddBtn');
+    let bgImages = [];
+    let currentBgId = -1;
 
     function copyEntryToClipboard() {
         if (entries.length === 0) return;
@@ -452,6 +455,48 @@
         }
     }
 
+    function renderBgList() {
+        bgList.innerHTML = '';
+        bgImages.forEach(img => {
+            const li = document.createElement('li');
+            li.className = 'bg-list-item';
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'bg-name';
+            nameSpan.textContent = img.name;
+            const delBtn = document.createElement('button');
+            delBtn.className = 'bg-delete-btn';
+            delBtn.textContent = '×';
+            delBtn.title = '删除';
+            delBtn.addEventListener('click', async () => {
+                await deleteBg(img.id);
+                bgImages = bgImages.filter(b => b.id !== img.id);
+                if (bgImages.length === 0) {
+                    applyBg(null);
+                    currentBgId = -1;
+                } else if (currentBgId === img.id) {
+                    pickRandomBg();
+                }
+                renderBgList();
+            });
+            li.appendChild(nameSpan);
+            li.appendChild(delBtn);
+            bgList.appendChild(li);
+        });
+    }
+
+    function pickRandomBg() {
+        if (bgImages.length === 0) return;
+        let candidates = bgImages;
+        if (bgImages.length > 1) {
+            candidates = bgImages.filter(b => b.id !== currentBgId);
+        }
+        const picked = candidates[Math.floor(Math.random() * candidates.length)];
+        currentBgId = picked.id;
+        applyBg(picked.dataUrl);
+    }
+
+    bgAddBtn.addEventListener('click', () => bgFileInput.click());
+
     bgFileInput.addEventListener('change', () => {
         const file = bgFileInput.files[0];
         if (!file) return;
@@ -463,9 +508,10 @@
         const reader = new FileReader();
         reader.onload = async () => {
             try {
-                await saveBg(reader.result);
-                applyBg(reader.result);
-                bgModal.hidden = true;
+                const rec = await addBg(reader.result);
+                bgImages.push(rec);
+                pickRandomBg();
+                renderBgList();
                 bgFileInput.value = '';
             } catch (err) {
                 showError(`保存失败: ${err.message}`);
@@ -473,11 +519,6 @@
         };
         reader.onerror = () => showError('读取文件失败');
         reader.readAsDataURL(file);
-    });
-
-    bgClearBtn.addEventListener('click', async () => {
-        await clearBg();
-        applyBg(null);
     });
 
     bgCloseBtn.addEventListener('click', () => { bgModal.hidden = true; });
@@ -595,6 +636,7 @@
             enText.textContent = maskEnText(en, currentMode === 2);
         }
         speakCn();
+        if (bgImages.length > 0) pickRandomBg();
     }
 
     const STORAGE_KEY_DATA = 'cn2en-json:data';
@@ -726,6 +768,7 @@
     document.addEventListener('keydown', async function (e) {
         if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyI') {
             e.preventDefault();
+            renderBgList();
             bgModal.hidden = false;
         }
         if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyV') {
@@ -825,7 +868,10 @@
         enRateValue.textContent = enRate.toFixed(1);
     }
     populateVoices();
-    loadBg().then(applyBg);
+    loadAllBg().then(list => {
+        bgImages = list;
+        if (bgImages.length > 0) pickRandomBg();
+    });
     voiceSelect.addEventListener('change', () => {
         selectedVoice = voicesCN.find(v => v.name === voiceSelect.value) || null;
         if (selectedVoice) {
