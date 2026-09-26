@@ -499,6 +499,7 @@
 
     bgFileInput.addEventListener('change', () => {
         const file = bgFileInput.files[0];
+        console.log('[bg] change fired, file:', file?.name, 'type:', file?.type);
         if (!file) return;
         if (!file.type.startsWith('image/')) {
             showError('请选择图片文件');
@@ -507,17 +508,24 @@
         }
         const reader = new FileReader();
         reader.onload = async () => {
+            console.log('[bg] reader onload, result len:', reader.result?.length);
             try {
                 const rec = await addBg(reader.result);
+                console.log('[bg] addBg returned:', rec);
                 bgImages.push(rec);
                 pickRandomBg();
                 renderBgList();
+                console.log('[bg] renderBgList done, children:', bgList.children.length);
                 bgFileInput.value = '';
             } catch (err) {
+                console.error('[bg] addBg error:', err);
                 showError(`保存失败: ${err.message}`);
             }
         };
-        reader.onerror = () => showError('读取文件失败');
+        reader.onerror = (e) => {
+            console.error('[bg] reader error:', e);
+            showError('读取文件失败');
+        };
         reader.readAsDataURL(file);
     });
 
