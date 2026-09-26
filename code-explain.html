@@ -268,6 +268,58 @@
         b {
             color: gold;
         }
+
+        .bg-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .bg-modal[hidden] { display: none; }
+        .bg-modal-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+        }
+        .bg-modal-panel {
+            position: relative;
+            background: #2d2d2d;
+            padding: 30px;
+            border-radius: 8px;
+            min-width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            border: 1px solid #444;
+        }
+        .bg-modal-title {
+            font-size: 20px;
+            color: #e0e0e0;
+            text-align: center;
+        }
+        .bg-modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        .bg-modal-actions button {
+            padding: 6px 16px;
+            background: #2c2c2c;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .bg-modal-actions button:hover { background: #3a3a3a; }
+        body.has-bg {
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
     </style>
 </head>
 <body>
@@ -311,6 +363,18 @@
     </div>
 
     <div class="subtitle" id="subtitle"></div>
+</div>
+
+<div id="bgModal" class="bg-modal" hidden>
+    <div id="bgModalBackdrop" class="bg-modal-backdrop"></div>
+    <div id="bgModalPanel" class="bg-modal-panel">
+        <div class="bg-modal-title">背景图片</div>
+        <input type="file" id="bgFileInput" accept="image/png,image/jpeg,image/gif,image/webp,image/bmp">
+        <div class="bg-modal-actions">
+            <button id="bgClearBtn">清除背景</button>
+            <button id="bgCloseBtn">关闭</button>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -515,39 +579,29 @@
             return;
         }
 
-        if (codeText) clipboardText = "```json\n" + codeText + "\n```\n" + "```json\n" + clipboardText + "\n```"
+        // 新格式：用单独一行的 --- 分隔代码和讲解 JSON
+        const separatorRegex = /\r?\n[ \t]*---[ \t]*\r?\n/;
+        const parts = clipboardText.split(separatorRegex);
 
-        const blocks = [];
-        const regex = /```(\w+)?\n?([\s\S]*?)```/g;
-        let match;
-        while ((match = regex.exec(clipboardText)) !== null) {
-            blocks.push({
-                lang: match[1] || '',
-                content: match[2].trim()
-            });
-        }
-
-        if (blocks.length < 2) {
-            alert('格式错误：需要两个代码块，第一个为代码，第二个为JSON讲解');
+        if (parts.length < 2) {
+            alert('格式错误：需要用 --- 分隔代码和讲解 JSON');
             return;
         }
 
-        const lastBlock = blocks[blocks.length - 1];
-        if (lastBlock.lang.toLowerCase() !== 'json') {
-            alert('格式错误：第二个代码块必须是 JSON 格式');
-            return;
-        }
-
-        const codeBlock = blocks[0];
-        const code = codeBlock.content;
+        const code = parts[0].trim();
+        const jsonText = parts.slice(1).join('\n---\n').trim();
 
         if (!code) {
-            alert('格式错误：代码块内容为空');
+            alert('格式错误：--- 前面没有代码内容');
+            return;
+        }
+        if (!jsonText) {
+            alert('格式错误：--- 后面没有讲解 JSON');
             return;
         }
 
         try {
-            ({segments} = parseExplanations(lastBlock.content));
+            ({segments} = parseExplanations(jsonText));
         } catch (e) {
             alert('JSON 格式错误: ' + e.message);
             return;
@@ -927,6 +981,119 @@
             setStatus('等待播放...');
         });
     });
+
+    // === 背景图片 (Ctrl+I) ===
+    const bgModal = document.getElementById('bgModal');
+    const bgModalBackdrop = document.getElementById('bgModalBackdrop');
+    const bgFileInput = document.getElementById('bgFileInput');
+    const bgClearBtn = document.getElementById('bgClearBtn');
+    const bgCloseBtn = document.getElementById('bgCloseBtn');
+
+    const BG_DB_NAME = 'code-explain-bg';
+    const BG_DB_VERSION = 1;
+    const BG_STORE = 'images';
+
+    function openBgDb() {
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.open(BG_DB_NAME, BG_DB_VERSION);
+            req.onupgradeneeded = () => req.result.createObjectStore(BG_STORE);
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+    }
+
+    async function saveBg(dataUrl) {
+        const db = await openBgDb();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(BG_STORE, 'readwrite');
+            tx.objectStore(BG_STORE).put({dataUrl}, 'current');
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+        });
+    }
+
+    async function loadBg() {
+        try {
+            const db = await openBgDb();
+            return await new Promise((resolve) => {
+                const tx = db.transaction(BG_STORE, 'readonly');
+                const req = tx.objectStore(BG_STORE).get('current');
+                req.onsuccess = () => resolve(req.result?.dataUrl || null);
+                req.onerror = () => resolve(null);
+            });
+        } catch {
+            return null;
+        }
+    }
+
+    async function clearBg() {
+        try {
+            const db = await openBgDb();
+            await new Promise((resolve) => {
+                const tx = db.transaction(BG_STORE, 'readwrite');
+                tx.objectStore(BG_STORE).delete('current');
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => resolve();
+            });
+        } catch {}
+    }
+
+    function applyBg(dataUrl) {
+        if (dataUrl) {
+            document.body.style.backgroundImage = `url(${dataUrl})`;
+            document.body.classList.add('has-bg');
+        } else {
+            document.body.style.backgroundImage = '';
+            document.body.classList.remove('has-bg');
+        }
+    }
+
+    bgFileInput.addEventListener('change', () => {
+        const file = bgFileInput.files[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+            alert('请选择图片文件');
+            bgFileInput.value = '';
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = async () => {
+            try {
+                await saveBg(reader.result);
+                applyBg(reader.result);
+                bgModal.hidden = true;
+                bgFileInput.value = '';
+            } catch (err) {
+                alert(`保存失败: ${err.message}`);
+            }
+        };
+        reader.onerror = () => alert('读取文件失败');
+        reader.readAsDataURL(file);
+    });
+
+    bgClearBtn.addEventListener('click', async () => {
+        await clearBg();
+        applyBg(null);
+    });
+
+    bgCloseBtn.addEventListener('click', () => {
+        bgModal.hidden = true;
+    });
+    bgModalBackdrop.addEventListener('click', () => {
+        bgModal.hidden = true;
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyI') {
+            e.preventDefault();
+            bgModal.hidden = false;
+        } else if (e.key === 'Escape' && !bgModal.hidden) {
+            e.preventDefault();
+            bgModal.hidden = true;
+        }
+    });
+
+    loadBg().then(applyBg);
 </script>
 </body>
 </html>
