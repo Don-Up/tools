@@ -616,7 +616,7 @@
     function updateTimerStatus() {
         const running = timers.filter(t => t.status === 'running').length;
         const ended = timers.filter(t => t.status === 'ended').length;
-        document.getElementById('timerStatus').textContent = `(${running} 倒计时中, ${ended} 已结束)`;
+        document.getElementById('timerStatus').textContent = `(${running} timing, ${ended} 已结束)`;
     }
 
     // Initialize status display
@@ -1014,7 +1014,7 @@
         }
 
         const formattedDuration = formatDuration(timer.duration);
-        const statusText = timer.status === 'running' ? '倒计时中' : (timer.duration >= 600 ? 'OVER' : '已结束');
+        const statusText = timer.status === 'running' ? 'timing' : (timer.duration >= 600 ? 'OVER' : '已结束');
         const mins = Math.floor(timer.remaining / 60);
         const secs = timer.remaining % 60;
         const countdownClass = isCountdownVisible ? '' : ' hidden';
