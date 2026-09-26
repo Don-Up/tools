@@ -254,6 +254,16 @@
             border-radius: 4px;
         }
         .bg-list-item:hover { background: #2c2c2c; }
+        .bg-preview-btn {
+            background: transparent;
+            color: #6cf;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0 8px;
+            line-height: 1;
+        }
+        .bg-preview-btn:hover { color: #9df; }
         .bg-delete-btn {
             background: transparent;
             color: #c66;
@@ -464,6 +474,14 @@
             const nameSpan = document.createElement('span');
             nameSpan.className = 'bg-name';
             nameSpan.textContent = img.name;
+            const previewBtn = document.createElement('button');
+            previewBtn.className = 'bg-preview-btn';
+            previewBtn.textContent = '👁';
+            previewBtn.title = '预览';
+            previewBtn.addEventListener('click', () => {
+                applyBg(img.dataUrl);
+                currentBgId = img.id;
+            });
             const delBtn = document.createElement('button');
             delBtn.className = 'bg-delete-btn';
             delBtn.textContent = '×';
@@ -480,6 +498,7 @@
                 renderBgList();
             });
             li.appendChild(nameSpan);
+            li.appendChild(previewBtn);
             li.appendChild(delBtn);
             bgList.appendChild(li);
         });
