@@ -238,12 +238,6 @@
             -webkit-backdrop-filter: blur(2px);
             border-radius: 8px;
         }
-        #textStage {
-            margin-left: auto;
-            margin-right: auto;
-            width: fit-content;
-            max-width: 100%;
-        }
         .bg-list {
             list-style: none;
             margin: 0;
@@ -302,6 +296,7 @@
             display: none;
         }
         #sidePanel.shown { display: block; }
+        body.side-panel-open { padding-right: 40vw; }
         body.side-panel-open #card { width: 60%; }
         #card { width: 100%; }
         .cn-modal-panel::-webkit-scrollbar {
@@ -354,7 +349,7 @@
             </div>
             <!--        <div id="counter" class="counter" hidden></div>-->
         </div>
-        <div id="textStage">
+        <div id="textStage" style="margin-left: auto;margin-right: auto;background: red">
             <div id="cnText" class="cn-text" hidden></div>
             <div id="enText" class="en-text" hidden></div>
         </div>
