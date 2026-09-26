@@ -627,6 +627,11 @@
         const card = e.target.closest('.timer-card');
         if (!card) return;
 
+        // Don't intercept clicks on buttons inside the card — let the
+        // button's own handler run without the card-level Ctrl+delete branch
+        // also firing (e.g. Ctrl+click on New Min was deleting the timer).
+        if (e.target.closest('button')) return;
+
         const timerId = parseInt(card.id.replace('timer-', ''));
         const timer = timers.find(t => t.id === timerId);
         if (!timer) return;
