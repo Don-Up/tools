@@ -539,6 +539,11 @@
             onlyBtn.title = '只显示这张';
             onlyBtn.addEventListener('click', () => {
                 onlyBgId = (onlyBgId === img.id) ? -1 : img.id;
+                if (onlyBgId === -1) {
+                    localStorage.removeItem(STORAGE_KEY_ONLY_BG);
+                } else {
+                    localStorage.setItem(STORAGE_KEY_ONLY_BG, String(onlyBgId));
+                }
                 renderBgList();
                 if (onlyBgId !== -1) {
                     applyOnlyBg();
@@ -552,7 +557,10 @@
             delBtn.title = '删除';
             delBtn.addEventListener('click', async () => {
                 await deleteBg(img.id);
-                if (onlyBgId === img.id) onlyBgId = -1;
+                if (onlyBgId === img.id) {
+                    onlyBgId = -1;
+                    localStorage.removeItem(STORAGE_KEY_ONLY_BG);
+                }
                 bgImages = bgImages.filter(b => b.id !== img.id);
                 if (bgImages.length === 0) {
                     applyBg(null);
@@ -765,6 +773,7 @@
     const STORAGE_KEY_RATE_CN = 'cn2en-json:rateCn';
     const STORAGE_KEY_RATE_EN = 'cn2en-json:rateEn';
     const STORAGE_KEY_MODE = 'cn2en-json:mode';
+    const STORAGE_KEY_ONLY_BG = 'cn2en-json:onlyBg';
 
     let voicesCN = [];
     let selectedVoice = null;
@@ -993,7 +1002,14 @@
     populateVoices();
     loadAllBg().then(list => {
         bgImages = list;
-        if (bgImages.length > 0) pickRandomBg();
+        const savedOnly = parseInt(localStorage.getItem(STORAGE_KEY_ONLY_BG), 10);
+        if (!isNaN(savedOnly) && bgImages.some(b => b.id === savedOnly)) {
+            onlyBgId = savedOnly;
+            applyOnlyBg();
+        } else if (bgImages.length > 0) {
+            if (!isNaN(savedOnly)) localStorage.removeItem(STORAGE_KEY_ONLY_BG);
+            pickRandomBg();
+        }
     });
     voiceSelect.addEventListener('change', () => {
         selectedVoice = voicesCN.find(v => v.name === voiceSelect.value) || null;
