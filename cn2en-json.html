@@ -395,7 +395,7 @@
     cnModalBackdrop.addEventListener('click', hideAllCn);
 
     const DB_NAME = 'cn2en-json-bg';
-    const DB_VERSION = 2;
+    const DB_VERSION = 3;
     const STORE = 'images';
 
     function openBgDb() {
@@ -403,9 +403,10 @@
             const req = indexedDB.open(DB_NAME, DB_VERSION);
             req.onupgradeneeded = () => {
                 const db = req.result;
-                if (!db.objectStoreNames.contains(STORE)) {
-                    db.createObjectStore(STORE, { keyPath: 'id', autoIncrement: true });
+                if (db.objectStoreNames.contains(STORE)) {
+                    db.deleteObjectStore(STORE);
                 }
+                db.createObjectStore(STORE, { keyPath: 'id', autoIncrement: true });
             };
             req.onsuccess = () => resolve(req.result);
             req.onerror = () => reject(req.error);
