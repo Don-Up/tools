@@ -1042,7 +1042,7 @@ ${getName(timer)}
                 <div class="timer-right">
                     <div class="btn-row-top">
                         ${timer.status === 'ended' && !timer.buttonsDelay && !promoted && timer.answer ? `<button class="answer-btn" onclick="showAnswer(${timer.id}, event)">Answer</button>` : ''}
-                        ${timer.status === 'ended' && !timer.buttonsDelay && !promoted ? `<button class="new-min-btn" onclick="openNewMinModal(${timer.id})">New Min</button>` : ''}
+                        ${timer.status === 'ended' && !timer.buttonsDelay && !promoted ? `<button class="new-min-btn" onclick="openNewMinModal(event, ${timer.id})">New Min</button>` : ''}
                         ${timer.status === 'ended' && !timer.buttonsDelay && !promoted ? `<button class="restart-btn" onclick="restartTimer(${timer.id})">Restart</button>` : ''}
                         ${timer.status === 'ended' && !timer.buttonsDelay && !promoted ? `<button class="delete-btn" onclick="deleteTimer(${timer.id})">&times;</button>` : ''}
                     </div>
@@ -1350,11 +1350,12 @@ ${getName(timer)}
         }
     }
 
-    function openNewMinModal(id) {
+    function openNewMinModal(event, id) {
+        const force = event && event.ctrlKey;
         const defNewMinCheckbox = document.getElementById('defNewMinCheckbox');
         const defNewMinInput = document.getElementById('defNewMinInput');
 
-        if (defNewMinCheckbox && defNewMinCheckbox.checked) {
+        if (!force && defNewMinCheckbox && defNewMinCheckbox.checked) {
             // Apply default duration directly without modal
             const mins = parseInt(defNewMinInput.value, 10) || 2;
             const timer = timers.find(t => t.id === id);
