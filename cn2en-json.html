@@ -13,9 +13,9 @@
             font-family: Arial, sans-serif;
             display: flex;
             flex-direction: column;
-            align-items: center;
             justify-content: center;
         }
+        body > div { margin: 0 auto; }
         .error-bar {
             position: fixed;
             top: 0;
@@ -303,7 +303,6 @@
         }
         #sidePanel.shown { display: block; }
         body.side-panel-open { padding-right: 40vw; }
-        body.side-panel-open #card { width: 60%; }
         #card { width: 100%; }
         .cn-modal-panel::-webkit-scrollbar {
             width: 10px;
