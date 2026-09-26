@@ -31,7 +31,9 @@
         .counter {
             font-size: 18px;
             color: #888;
-            margin-top: 50px;
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
         }
         .cn-text {
             font-size: 64px;
@@ -282,6 +284,20 @@
             text-align: center;
             padding: 8px;
         }
+        #sidePanel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 40vw;
+            height: 100vh;
+            border: none;
+            background: #121212;
+            z-index: 50;
+            display: none;
+        }
+        #sidePanel.shown { display: block; }
+        body.side-panel-open #card { width: 60%; }
+        #card { width: 100%; }
         .cn-modal-panel::-webkit-scrollbar {
             width: 10px;
         }
@@ -302,58 +318,66 @@
     </style>
 </head>
 <body>
-    <div id="errorBar" class="error-bar"></div>
-    <div id="ttsControls" class="tts-controls">
-        <select id="voiceSelect" class="voice-select"></select>
-        <label class="tts-toggle-label"><input type="checkbox" id="ttsToggle" checked> TTS</label>
-    </div>
-    <div id="ttsControlsEn" class="tts-controls">
-        <select id="voiceSelectEn" class="voice-select"></select>
-        <label class="tts-toggle-label"><input type="checkbox" id="ttsToggleEn"> EN TTS</label>
-    </div>
-    <div id="modeControls" class="mode-controls">
-        <label class="mode-radio-label"><input type="radio" name="mode" value="1" checked> Mode 1</label>
-        <label class="mode-radio-label"><input type="radio" name="mode" value="2"> Mode 2</label>
-        <label class="mode-radio-label"><input type="radio" name="mode" value="3"> Mode 3</label>
-    </div>
-    <div id="speedControls" class="speed-controls">
-        <div class="speed-row">
-            <span class="speed-label">CN</span>
-            <input type="range" id="cnRate" min="1" max="3" value="1" step="0.1" class="rate-slider">
-            <span id="cnRateValue" class="rate-value">1.0</span>
+<div>
+    <div id="card">
+
+        <div id="errorBar" class="error-bar"></div>
+        <div id="ttsControls" class="tts-controls">
+            <select id="voiceSelect" class="voice-select"></select>
+            <label class="tts-toggle-label"><input type="checkbox" id="ttsToggle" checked> TTS</label>
         </div>
-        <div class="speed-row">
-            <span class="speed-label">EN</span>
-            <input type="range" id="enRate" min="1" max="3" value="1" step="0.1" class="rate-slider">
-            <span id="enRateValue" class="rate-value">1.0</span>
+        <div id="ttsControlsEn" class="tts-controls">
+            <select id="voiceSelectEn" class="voice-select"></select>
+            <label class="tts-toggle-label"><input type="checkbox" id="ttsToggleEn"> EN TTS</label>
         </div>
-<!--        <div id="counter" class="counter" hidden></div>-->
-    </div>
-    <div id="textStage">
-        <div id="cnText" class="cn-text" hidden></div>
-        <div id="enText" class="en-text" hidden></div>
-    </div>
-    <div id="counter" class="counter" hidden></div>
-    <div id="hint" class="hint">← → 切换 · 1-3 切 Mode · S 揭示 · E/PgDn 读 EN · Z 全文 · Ctrl+I 背景</div>
-    <div id="emptyState" class="empty-state">按 Ctrl+V 粘贴 JSON 数据</div>
-    <div id="cnModal" class="cn-modal" hidden>
-        <div id="cnModalBackdrop" class="cn-modal-backdrop"></div>
-        <div id="cnModalPanel" class="cn-modal-panel">
-            <div id="cnModalText" class="cn-modal-text"></div>
+        <div id="modeControls" class="mode-controls">
+            <label class="mode-radio-label"><input type="radio" name="mode" value="1" checked> Mode 1</label>
+            <label class="mode-radio-label"><input type="radio" name="mode" value="2"> Mode 2</label>
+            <label class="mode-radio-label"><input type="radio" name="mode" value="3"> Mode 3</label>
         </div>
-    </div>
-    <div id="bgModal" class="bg-modal" hidden>
-        <div id="bgModalBackdrop" class="bg-modal-backdrop"></div>
-        <div id="bgModalPanel" class="bg-modal-panel">
-            <div class="bg-modal-title">背景图片</div>
-            <ul id="bgList" class="bg-list"></ul>
-            <div class="bg-modal-actions">
-                <button id="bgAddBtn">选择图片</button>
-                <button id="bgCloseBtn">关闭</button>
+        <div id="speedControls" class="speed-controls">
+            <div class="speed-row">
+                <span class="speed-label">CN</span>
+                <input type="range" id="cnRate" min="1" max="3" value="1" step="0.1" class="rate-slider">
+                <span id="cnRateValue" class="rate-value">1.0</span>
+            </div>
+            <div class="speed-row">
+                <span class="speed-label">EN</span>
+                <input type="range" id="enRate" min="1" max="3" value="1" step="0.1" class="rate-slider">
+                <span id="enRateValue" class="rate-value">1.0</span>
+            </div>
+            <!--        <div id="counter" class="counter" hidden></div>-->
+        </div>
+        <div id="textStage">
+            <div id="cnText" class="cn-text" hidden></div>
+            <div id="enText" class="en-text" hidden></div>
+        </div>
+        <div id="counter" class="counter" hidden></div>
+
+        <div id="hint" class="hint">← → 切换 · 1-3 切 Mode · S 揭示 · E/PgDn 读 EN · Z 全文 · Ctrl+I 背景</div>
+        <div id="emptyState" class="empty-state">按 Ctrl+V 粘贴 JSON 数据</div>
+        <div id="cnModal" class="cn-modal" hidden>
+            <div id="cnModalBackdrop" class="cn-modal-backdrop"></div>
+            <div id="cnModalPanel" class="cn-modal-panel">
+                <div id="cnModalText" class="cn-modal-text"></div>
             </div>
         </div>
-        <input type="file" id="bgFileInput" accept="image/png,image/jpeg,image/gif,image/webp,image/bmp" hidden>
+        <div id="bgModal" class="bg-modal" hidden>
+            <div id="bgModalBackdrop" class="bg-modal-backdrop"></div>
+            <div id="bgModalPanel" class="bg-modal-panel">
+                <div class="bg-modal-title">背景图片</div>
+                <ul id="bgList" class="bg-list"></ul>
+                <div class="bg-modal-actions">
+                    <button id="bgAddBtn">选择图片</button>
+                    <button id="bgCloseBtn">关闭</button>
+                </div>
+            </div>
+            <input type="file" id="bgFileInput" accept="image/png,image/jpeg,image/gif,image/webp,image/bmp" hidden>
+        </div>
     </div>
+
+    <iframe id="sidePanel" src="https://don-up.github.io/tools/card-timer"></iframe>
+</div>
 <script>
 
     let entries = [];
@@ -385,6 +409,7 @@
     const bgCloseBtn = document.getElementById('bgCloseBtn');
     const bgList = document.getElementById('bgList');
     const bgAddBtn = document.getElementById('bgAddBtn');
+    const sidePanel = document.getElementById('sidePanel');
     let bgImages = [];
     let currentBgId = -1;
 
@@ -513,6 +538,15 @@
         const picked = candidates[Math.floor(Math.random() * candidates.length)];
         currentBgId = picked.id;
         applyBg(picked.dataUrl);
+    }
+
+    function postCnEnToChild() {
+        if (entries.length === 0) return;
+        const [cn, en] = entries[currentIndex];
+        sidePanel.contentWindow?.postMessage(
+            { type: 'cn-en', content: `${cn}|${en}` },
+            'https://don-up.github.io'
+        );
     }
 
     bgAddBtn.addEventListener('click', () => bgFileInput.click());
@@ -665,6 +699,7 @@
         }
         speakCn();
         if (bgImages.length > 0) pickRandomBg();
+        postCnEnToChild();
     }
 
     const STORAGE_KEY_DATA = 'cn2en-json:data';
@@ -798,6 +833,11 @@
             e.preventDefault();
             renderBgList();
             bgModal.hidden = false;
+        }
+        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyO') {
+            e.preventDefault();
+            const shown = sidePanel.classList.toggle('shown');
+            document.body.classList.toggle('side-panel-open', shown);
         }
         if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyV') {
             e.preventDefault();
