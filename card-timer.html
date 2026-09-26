@@ -842,6 +842,9 @@
             if(name.endsWith("|") && !name.includes("~~")){
                 name = name.replace("|", "^~").replace("|", "~~|").replace("^~", "|~")
             }
+            if(name.includes("\n") && !name.includes("~~")) {
+                name = name.replace("\n", "\n~") + "~~"
+            }
             if (!name && answerInput.value.trim()) {
                 name = "-"
             }
