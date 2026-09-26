@@ -545,7 +545,7 @@
         const [cn, en] = entries[currentIndex];
         sidePanel.contentWindow?.postMessage(
             { type: 'cn-en', content: `${cn}|${en}` },
-            'https://don-up.github.io'
+            '*'
         );
     }
 
