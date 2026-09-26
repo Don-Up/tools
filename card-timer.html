@@ -1567,6 +1567,12 @@ ${getName(timer)}
             closeModal();
         }
     });
+
+    window.addEventListener('message', (e) => {
+        if (e.data?.type === 'cn-en' && e.data.content) {
+            document.getElementById('cardNameInput').value = e.data.content;
+        }
+    });
 </script>
 </body>
 </html>
