@@ -1588,6 +1588,13 @@ ${getName(timer)}
             document.getElementById('cardNameInput').value = e.data.content;
         }
     });
+
+    window.addEventListener('beforeunload', (e) => {
+        if (timers.length > 0) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
 </script>
 </body>
 </html>

@@ -1076,7 +1076,7 @@
         rows.forEach(row => {
             html += '    <tr>\n';
             row.forEach(cell => {
-                html += `      <td style="padding: 8px;">${cell}</td>\n`;
+                html += `      <td style="padding: 8px;cursor: pointer" onclick="playText(this.textContent, this)">${cell}</td>\n`;
             });
             html += '    </tr>\n';
         });
