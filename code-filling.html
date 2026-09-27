@@ -96,6 +96,86 @@
             max-width: 50%;
             width: 50%;
         }
+
+        /* Help modal */
+        .help-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .help-overlay[hidden] { display: none; }
+        .help-modal {
+            background: #1e1e1e;
+            color: #e0e0e0;
+            border: 1px solid #333;
+            border-radius: 6px;
+            max-width: 720px;
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        .help-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            border-bottom: 1px solid #333;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .help-close {
+            background: transparent;
+            border: none;
+            color: #aaa;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0 8px;
+            line-height: 1;
+        }
+        .help-close:hover { color: #ff6b6b; }
+        .help-content {
+            padding: 16px 20px 20px;
+            line-height: 1.6;
+        }
+        .help-content h3 {
+            color: #4ec9b0;
+            margin: 14px 0 6px;
+            font-size: 15px;
+        }
+        .help-content h3:first-child { margin-top: 0; }
+        .help-content table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .help-content td {
+            padding: 4px 8px;
+            vertical-align: top;
+        }
+        .help-content td:first-child {
+            width: 42%;
+            color: #9cdcfe;
+            white-space: nowrap;
+        }
+        .help-content kbd {
+            background: #2d2d2d;
+            border: 1px solid #444;
+            border-radius: 3px;
+            padding: 1px 6px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #d4d4d4;
+        }
+        .help-content code {
+            background: #2d2d2d;
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 12px;
+            color: #ce9178;
+        }
     </style>
 </head>
 <body>
@@ -765,6 +845,81 @@
 
     // Initialize with one tab
     addNewTab();
+</script>
+
+<div id="helpOverlay" class="help-overlay" hidden>
+    <div class="help-modal">
+        <div class="help-header">
+            <span>使用说明 · Ctrl+H</span>
+            <button class="help-close" onclick="closeHelp()" aria-label="关闭">×</button>
+        </div>
+        <div class="help-content">
+            <h3>输入框操作</h3>
+            <table>
+                <tr><td>点击</td><td>逐字揭示下一个字符</td></tr>
+                <tr><td>长按 600ms</td><td>填充当前输入框</td></tr>
+                <tr><td><kbd>Shift</kbd>+点击</td><td>填充当前 Tab 所有输入框</td></tr>
+                <tr><td><kbd>Alt</kbd>+点击</td><td>填充当前输入框</td></tr>
+                <tr><td><kbd>Ctrl</kbd>+点击</td><td>启动 5 分钟倒计时</td></tr>
+                <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+点击</td><td>启动 15 分钟倒计时</td></tr>
+                <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+点击</td><td>启动 2 分钟倒计时</td></tr>
+                <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Alt</kbd>+点击</td><td>启动 10 分钟倒计时</td></tr>
+                <tr><td>中键点击</td><td>清空输入框及计时器</td></tr>
+                <tr><td>输入 <code>Nm</code>（如 <code>10m</code>）</td><td>启动 N 分钟倒计时</td></tr>
+                <tr><td>按键 <kbd>`</kbd></td><td>揭示下一个字符（焦点在输入框时）</td></tr>
+            </table>
+
+            <h3>计时器提示</h3>
+            <table>
+                <tr><td>到点提示</td><td>输入框变红 + 播放音效 + Tab 标题出现 💡</td></tr>
+                <tr><td>点击变红的输入框</td><td>清空输入框及计时器</td></tr>
+            </table>
+
+            <h3>Tab 操作</h3>
+            <table>
+                <tr><td>点击 Tab</td><td>切换到该 Tab</td></tr>
+                <tr><td><kbd>Alt</kbd>+点击</td><td>重命名 Tab</td></tr>
+                <tr><td>点击 ×</td><td>关闭 Tab</td></tr>
+                <tr><td>点击 + Add Tab</td><td>新建 Tab</td></tr>
+                <tr><td><kbd>Ctrl</kbd>+点击 Tab</td><td>Tab 内所有输入框启动 5 分钟倒计时</td></tr>
+                <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+点击 Tab</td><td>Tab 内所有输入框启动 15 分钟倒计时</td></tr>
+                <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+点击 Tab</td><td>Tab 内所有输入框启动 2 分钟倒计时</td></tr>
+                <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Alt</kbd>+点击 Tab</td><td>Tab 内所有输入框启动 10 分钟倒计时</td></tr>
+            </table>
+
+            <h3>全局</h3>
+            <table>
+                <tr><td><kbd>Ctrl</kbd>+<kbd>V</kbd></td><td>粘贴代码（<code>{{ }}</code> 与 <code>~ ~</code> 自动转为输入框）</td></tr>
+                <tr><td><kbd>F3</kbd></td><td>切换注释显隐</td></tr>
+                <tr><td><kbd>Ctrl</kbd>+<kbd>H</kbd></td><td>显示/隐藏此弹窗</td></tr>
+                <tr><td><kbd>Esc</kbd></td><td>关闭此弹窗</td></tr>
+                <tr><td>点击标题 "CODE FILLING"</td><td>清空当前 Tab 所有输入框及计时器</td></tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showHelp() {
+        document.getElementById('helpOverlay').hidden = false;
+    }
+    function closeHelp() {
+        document.getElementById('helpOverlay').hidden = true;
+    }
+    document.getElementById('helpOverlay').addEventListener('click', (e) => {
+        if (e.target.id === 'helpOverlay') closeHelp();
+    });
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'h' && e.ctrlKey && !e.shiftKey && !e.altKey) {
+            e.preventDefault();
+            const overlay = document.getElementById('helpOverlay');
+            overlay.hidden = !overlay.hidden;
+        }
+        if (e.key === 'Escape') {
+            const overlay = document.getElementById('helpOverlay');
+            if (!overlay.hidden) overlay.hidden = true;
+        }
+    });
 </script>
 
 </body>
