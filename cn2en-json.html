@@ -659,6 +659,36 @@
                 hideAllCn();
             }
         }
+        if (e.key === 'q' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+            e.preventDefault();
+            const sel = window.getSelection()?.toString().trim();
+            if (sel) {
+                sidePanel.contentWindow?.postMessage(
+                    { type: 'cn-en-q', content: sel },
+                    '*'
+                );
+            }
+        }
+        if (e.key === 'w' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+            e.preventDefault();
+            const sel = window.getSelection()?.toString().trim();
+            if (sel) {
+                sidePanel.contentWindow?.postMessage(
+                    { type: 'cn-en-append', content: sel },
+                    '*'
+                );
+            }
+        }
+        if (e.key === 'e' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+            e.preventDefault();
+            const sel = window.getSelection()?.toString().trim();
+            if (sel) {
+                sidePanel.contentWindow?.postMessage(
+                    { type: 'cn-en-br', content: sel },
+                    '*'
+                );
+            }
+        }
     });
 
     function copyEntryWithTildes() {
@@ -670,15 +700,18 @@
     cnText.addEventListener('click', (e) => {
         if (e.altKey) {
             e.preventDefault();
-            copyEntryToClipboard();
+            speakCn(true);
         } else if (e.ctrlKey) {
             e.preventDefault();
             copyEntryWithTildes();
-        } else {
-            speakCn(true);
         }
     });
-    enText.addEventListener('click', () => speakEn(true));
+    enText.addEventListener('click', (e) => {
+        if (e.altKey) {
+            e.preventDefault();
+            speakEn(true);
+        }
+    });
 
     function showError(msg) {
         errorBar.textContent = msg;
@@ -912,7 +945,7 @@
                 showError(`剪贴板读取失败: ${err.message || err}`);
             }
         }
-        if ((e.code === 'KeyS' || e.code === 'ArrowDown') && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+        if (e.code === 'ArrowDown' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
             if (entries.length === 0) return;
             e.preventDefault();
             enRevealed = !enRevealed;
@@ -922,15 +955,11 @@
                 enText.textContent = maskEnText(entries[currentIndex][1], currentMode === 2);
             }
         }
-        if ((e.code === 'KeyW' || e.code === 'ArrowUp') && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+        if (e.code === 'ArrowUp' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
             if (entries.length === 0) return;
             e.preventDefault();
             enShown = !enShown;
             enText.style.visibility = enShown ? "visible" : "hidden"
-        }
-        if (!e.ctrlKey && !e.altKey && !e.shiftKey && (e.code === 'KeyE' || e.code === 'PageDown')) {
-            if (entries.length === 0) return;
-            speakEn(true);
         }
         if (!e.ctrlKey && !e.altKey && !e.shiftKey && e.code === 'KeyZ') {
             if (entries.length === 0) return;
@@ -953,7 +982,7 @@
             }
         }
         if (entries.length > 0) {
-            if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+            if (e.code === 'ArrowLeft') {
                 e.preventDefault();
                 currentIndex = (currentIndex - 1 + entries.length) % entries.length;
                 saveState();
@@ -962,7 +991,7 @@
                     enText.style.visibility = "visible"
                     enShown = true
                 }
-            } else if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+            } else if (e.code === 'ArrowRight') {
                 e.preventDefault();
                 currentIndex = (currentIndex + 1) % entries.length;
                 saveState();

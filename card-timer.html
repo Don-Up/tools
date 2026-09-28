@@ -1585,7 +1585,30 @@ ${getName(timer)}
 
     window.addEventListener('message', (e) => {
         if (e.data?.type === 'cn-en' && e.data.content) {
-            document.getElementById('cardNameInput').value = e.data.content;
+            const inp = document.getElementById('cardNameInput');
+            if (inp) inp.value = e.data.content;
+        }
+        if (e.data?.type === 'cn-en-q' && e.data.content) {
+            const inp = document.getElementById('cardNameInput');
+            if (inp) {
+                inp.value = e.data.content;
+                inp.focus();
+            }
+        }
+        if (e.data?.type === 'cn-en-append' && e.data.content) {
+            const inp = document.getElementById('cardNameInput');
+            if (inp) {
+                inp.value = (inp.value || '') + `<br>{{${e.data.content}}}`;
+                inp.focus();
+                document.getElementById('confirmBtn')?.click();
+            }
+        }
+        if (e.data?.type === 'cn-en-br' && e.data.content) {
+            const inp = document.getElementById('cardNameInput');
+            if (inp) {
+                inp.value = (inp.value || '') + `<br>${e.data.content}`;
+                inp.focus();
+            }
         }
     });
 
