@@ -133,6 +133,13 @@
             font-weight: 600;
             color: var(--text);
         }
+        .doc-title {
+            margin: 0 0 12px;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--param);
+        }
     </style>
 </head>
 <body>
@@ -174,6 +181,13 @@
         function renderToDOM(data) {
             const out = document.getElementById('output');
             out.innerHTML = '';
+
+            if (data.title) {
+                const h = document.createElement('h2');
+                h.className = 'doc-title';
+                h.textContent = data.title;
+                out.appendChild(h);
+            }
 
             if (data.description.length) {
                 const card = document.createElement('div');
