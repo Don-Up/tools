@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>api-doc</title>
+    <style>
+        :root {
+            --bg: #1e1e1e;
+            --panel: #2d2d2d;
+            --panel-2: #262626;
+            --border: #555;
+            --text: #e0e0e0;
+            --muted: #b0bec5;
+            --param: #4fc3f7;
+            --returns: #81c784;
+            --link: #ba68c8;
+            --error-bg: #7f1d1d;
+            --error-text: #fecaca;
+        }
+        * { box-sizing: border-box; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            padding: 24px 20px;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 {
+            margin: 0 0 16px;
+            font-size: 22px;
+            color: var(--text);
+        }
+        .toolbar {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        #btn-paste {
+            background: var(--param);
+            color: #1e1e1e;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 18px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        #btn-paste:hover { filter: brightness(0.9); }
+        .hint { color: var(--muted); font-size: 13px; }
+        #error {
+            display: none;
+            background: var(--error-bg);
+            color: var(--error-text);
+            border-radius: 6px;
+            padding: 10px 16px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+        #output:empty::before {
+            content: '点击上方按钮,从剪贴板粘贴 JSDoc 注释以预览。';
+            color: var(--muted);
+            display: block;
+            padding: 40px 16px;
+            text-align: center;
+            border: 1px dashed var(--border);
+            border-radius: 6px;
+        }
+        .card {
+            background: var(--panel);
+            border-radius: 6px;
+            padding: 12px 16px;
+            margin-bottom: 12px;
+            border-left: 4px solid var(--border);
+        }
+        .card.desc { border-left-color: var(--muted); }
+        .card.param { border-left-color: var(--param); }
+        .card.returns { border-left-color: var(--returns); }
+        .card.link { border-left-color: var(--link); }
+        .card .tag {
+            display: inline-block;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 12px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.06);
+            margin-right: 8px;
+        }
+        .card .name {
+            font-family: Consolas, Monaco, monospace;
+            font-size: 13px;
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.04);
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        .card .desc-body {
+            margin: 8px 0 0;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            color: var(--text);
+        }
+        .card .example {
+            margin-top: 10px;
+            border: 1px solid var(--border);
+            background: var(--panel-2);
+            border-radius: 4px;
+            padding: 8px 10px;
+        }
+        .card .example-label {
+            font-size: 11px;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+        .card .example pre {
+            margin: 0;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            color: var(--text);
+        }
+        .card.link ol {
+            margin: 8px 0 0;
+            padding-left: 20px;
+            line-height: 1.6;
+        }
+        .card.link li { margin-bottom: 4px; }
+        .card.link strong {
+            font-family: Consolas, Monaco, monospace;
+            font-weight: 600;
+            color: var(--text);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>api-doc</h1>
+        <div class="toolbar">
+            <button id="btn-paste" type="button">粘贴函数 DOC</button>
+            <span class="hint">从剪贴板读取 /** ... */ 注释并渲染为卡片视图。</span>
+        </div>
+        <div id="error" role="alert"></div>
+        <div id="output"></div>
+    </div>
+
+    <script src="./parse-jsdoc.js"></script>
+    <script>
+        const { parseJsDoc, InvalidFormatError } = window.ParseJsDoc;
+
+        function humanizeError(err) {
+            if (err instanceof InvalidFormatError) {
+                return '剪贴板内容不是有效的 JSDoc 注释(需以 /** 开头、*/ 结尾)。';
+            }
+            if (err && err.name === 'NotAllowedError') {
+                return '无法读取剪贴板,请检查浏览器权限。';
+            }
+            return `读取失败: ${err && err.message ? err.message : String(err)}`;
+        }
+
+        function showError(message) {
+            const el = document.getElementById('error');
+            if (message == null) {
+                el.style.display = 'none';
+                el.textContent = '';
+            } else {
+                el.textContent = message;
+                el.style.display = 'block';
+            }
+        }
+
+        function renderToDOM(data) {
+            const out = document.getElementById('output');
+            out.innerHTML = '';
+
+            if (data.description.length) {
+                const card = document.createElement('div');
+                card.className = 'card desc';
+                data.description.forEach((line, i) => {
+                    const p = document.createElement('p');
+                    p.className = 'desc-body';
+                    p.textContent = line || ' ';
+                    if (i > 0) p.style.marginTop = '8px';
+                    card.appendChild(p);
+                });
+                out.appendChild(card);
+            }
+
+            for (const param of data.params) {
+                const card = document.createElement('div');
+                card.className = 'card param';
+                const tag = document.createElement('span');
+                tag.className = 'tag';
+                tag.textContent = '@param';
+                const name = document.createElement('span');
+                name.className = 'name';
+                name.textContent = param.name;
+                card.appendChild(tag);
+                card.appendChild(name);
+                const body = document.createElement('p');
+                body.className = 'desc-body';
+                body.textContent = param.desc;
+                card.appendChild(body);
+                if (param.example != null) {
+                    const ex = document.createElement('div');
+                    ex.className = 'example';
+                    const label = document.createElement('div');
+                    label.className = 'example-label';
+                    label.textContent = '例如';
+                    const pre = document.createElement('pre');
+                    pre.textContent = param.example;
+                    ex.appendChild(label);
+                    ex.appendChild(pre);
+                    card.appendChild(ex);
+                }
+                out.appendChild(card);
+            }
+
+            if (data.returns != null) {
+                const card = document.createElement('div');
+                card.className = 'card returns';
+                const tag = document.createElement('span');
+                tag.className = 'tag';
+                tag.textContent = '@returns';
+                const body = document.createElement('p');
+                body.className = 'desc-body';
+                body.textContent = data.returns;
+                card.appendChild(tag);
+                card.appendChild(body);
+                out.appendChild(card);
+            }
+
+            if (data.links.length) {
+                const card = document.createElement('div');
+                card.className = 'card link';
+                const tag = document.createElement('span');
+                tag.className = 'tag';
+                tag.textContent = '@link';
+                card.appendChild(tag);
+                const ol = document.createElement('ol');
+                for (const link of data.links) {
+                    const li = document.createElement('li');
+                    const strong = document.createElement('strong');
+                    strong.textContent = link.name;
+                    li.appendChild(strong);
+                    li.appendChild(document.createTextNode(`: ${link.desc}`));
+                    ol.appendChild(li);
+                }
+                card.appendChild(ol);
+                out.appendChild(card);
+            }
+        }
+
+        async function onPaste() {
+            try {
+                const text = await navigator.clipboard.readText();
+                const data = parseJsDoc(text);
+                renderToDOM(data);
+                showError(null);
+            } catch (err) {
+                showError(humanizeError(err));
+            }
+        }
+
+        document.getElementById('btn-paste').addEventListener('click', onPaste);
+    </script>
+</body>
+</html>
