@@ -6,9 +6,10 @@ class InvalidFormatError extends Error {
 }
 
 const PREFIX_PATTERN = /^\s*\*{1,2}\s?/;
+const PARAM_HEAD = /^@param\s+(\S+)\s*(.*)$/;
 
 function stripPrefix(line) {
-  return line.replace(PREFIX_PATTERN, '');
+  return line.replace(PREFIX_PATTERN, '').replace(/\s+$/, '').replace(/^\s+/, '');
 }
 
 function splitBody(text) {
@@ -29,8 +30,55 @@ function parseJsDoc(text) {
     returns: null,
     links: []
   };
+  let section = 'desc'; // 'desc' | 'param' | 'example' | 'returns' | 'link' | 'unknown'
+  let currentParam = null;
+
   for (const line of lines) {
-    if (line.startsWith('@')) break;       // tag handling in later tasks
+    // Tag dispatch: each tag may switch section
+    if (line.startsWith('@param ')) {
+      const head = line.match(PARAM_HEAD);
+      currentParam = { name: head[1], desc: head[2], example: null };
+      data.params.push(currentParam);
+      section = 'param';
+      continue;
+    }
+    if (line.startsWith('@returns ')) {
+      data.returns = line.slice('@returns '.length);
+      section = 'returns';
+      currentParam = null;
+      continue;
+    }
+    if (line.startsWith('@link')) {
+      section = 'link';
+      currentParam = null;
+      continue;
+    }
+    if (line.startsWith('@')) {
+      const tag = line.match(/^\S+/)[0];
+      console.warn(`parseJsDoc: skipping unknown tag ${tag}`);
+      section = 'unknown';
+      currentParam = null;
+      continue;
+    }
+
+    // Body lines per active section
+    if (section === 'param') {
+      // (Task 4 will add the 例如: detection branch here)
+      currentParam.desc = currentParam.desc ? `${currentParam.desc}\n${line}` : line;
+      continue;
+    }
+    if (section === 'returns') {
+      data.returns = data.returns ? `${data.returns}\n${line}` : line;
+      continue;
+    }
+    if (section === 'link') {
+      // (Task 6 will populate data.links here)
+      continue;
+    }
+    if (section === 'unknown') {
+      continue; // skip body until next @
+    }
+    // section === 'desc' (default)
     data.description.push(line);
   }
   return data;

@@ -54,3 +54,50 @@ test('preserves empty lines as empty-string entries for paragraph breaks', () =>
   const result = parseJsDoc(input);
   assert.deepEqual(result.description, ['paragraph one', '', 'paragraph two']);
 });
+
+test('parses @param with name and single-line description', () => {
+  const input = `/**
+ * description
+ * @param props.open 控制 modal 是否可见。
+ */`;
+  const result = parseJsDoc(input);
+  assert.equal(result.params.length, 1);
+  assert.deepEqual(result.params[0], {
+    name: 'props.open',
+    desc: '控制 modal 是否可见。',
+    example: null
+  });
+});
+
+test('parses multiple @params in order', () => {
+  const input = `/**
+ * @param a first param
+ * @param b second param
+ */`;
+  const result = parseJsDoc(input);
+  assert.equal(result.params.length, 2);
+  assert.equal(result.params[0].name, 'a');
+  assert.equal(result.params[0].desc, 'first param');
+  assert.equal(result.params[1].name, 'b');
+  assert.equal(result.params[1].desc, 'second param');
+});
+
+test('@param description spans multiple continuation lines', () => {
+  const input = `/**
+ * @param props.x line one
+ *        line two
+ *        line three
+ */`;
+  const result = parseJsDoc(input);
+  assert.equal(result.params[0].desc, 'line one\nline two\nline three');
+});
+
+test('@param with name only and empty desc still produces a card', () => {
+  const input = `/**
+ * @param lonely
+ */`;
+  const result = parseJsDoc(input);
+  assert.equal(result.params.length, 1);
+  assert.equal(result.params[0].name, 'lonely');
+  assert.equal(result.params[0].desc, '');
+});
