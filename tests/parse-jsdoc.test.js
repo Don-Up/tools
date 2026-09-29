@@ -212,3 +212,49 @@ test('missing @link leaves links as empty array', () => {
   const result = parseJsDoc(input);
   assert.deepEqual(result.links, []);
 });
+
+test('leading/trailing whitespace around the block is tolerated', () => {
+  const input = `\n\n/**\n * body\n */\n\n`;
+  const result = parseJsDoc(input);
+  assert.deepEqual(result.description, ['body']);
+});
+
+test('unknown tag skips its own line AND its body until next known tag', () => {
+  const input = `/**
+ * before
+ * @example foo bar
+ * more example body
+ * still more
+ * @param x real param
+ */`;
+  const result = parseJsDoc(input);
+  assert.deepEqual(result.description, ['before']);
+  assert.equal(result.params.length, 1);
+  assert.equal(result.params[0].name, 'x');
+});
+
+test('full real-world example from spec parses correctly', () => {
+  const input = `/**
+ * 导出代码弹窗:展示 generateJsx(snapshot) 输出,提供复制按钮。
+ * 打开时一次性锁快照,关闭后再开会刷新(避免 modal 内实时同步闪烁)。
+ * @param props.open 控制 modal 是否可见;为 false 时整个组件不渲染(不影响 EditorLayout 布局)。
+ *        例如: true
+ * @param props.onClose 用户关闭 modal 时通知父组件收起;X / 外部点击(backdropClick) / Esc 三种方式都触发。
+ *        例如: () => setExportModalOpen(false)
+ * @returns 渲染一个居中卡片式 dialog(含 backdrop);header 标题 + 关闭按钮,<pre> 代码区,<button> 复制。
+ * @link
+ * 1. EditorLayout(/editor 路由的 layout.tsx): 渲染本组件,open 接 exportModalOpen state,onClose 接 setter。
+ * 2. generateJsx(纯函数): 在 useEffect 里调用一次,生成 <pre> 内容。
+ * 3. navigator.clipboard(浏览器原生 API): 复制按钮 onClick 调用 writeText(result)。
+ */`;
+  const result = parseJsDoc(input);
+  assert.equal(result.description.length, 2);
+  assert.equal(result.params.length, 2);
+  assert.equal(result.params[0].name, 'props.open');
+  assert.equal(result.params[0].example, 'true');
+  assert.equal(result.params[1].name, 'props.onClose');
+  assert.equal(result.params[1].example, '() => setExportModalOpen(false)');
+  assert(result.returns.startsWith('渲染一个居中卡片式 dialog'));
+  assert.equal(result.links.length, 3);
+  assert.equal(result.links[0].name, 'EditorLayout(/editor 路由的 layout.tsx)');
+});
