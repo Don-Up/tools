@@ -1394,12 +1394,14 @@ ${getName(timer)}
         }
         updateTimerStatus();
 
-        // Recycle-bin routing: bin items are permanently removed; non-bin items go to bin only if Use Bin is on
+        // Recycle-bin routing: when Use Bin is off, deletes don't touch the DB at all;
+// otherwise bin items are permanently removed and others are stored.
+        if (!isUseBinEnabled) return;
         if (timer && timer.inRecycleBin) {
             removeFromRecycleBin(id)
                 .then(() => { binCount = Math.max(0, binCount - 1); updateTimerStatus(); })
                 .catch(err => console.error('Bin remove failed:', err));
-        } else if (timer && isUseBinEnabled) {
+        } else if (timer) {
             saveToRecycleBin(timer)
                 .then(() => { binCount++; updateTimerStatus(); })
                 .catch(err => console.error('Bin save failed:', err));
