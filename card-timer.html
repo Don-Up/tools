@@ -697,11 +697,10 @@
         localStorage.setItem('onlyShortEnabled', isOnlyShortEnabled);
     });
 
-    let isUseBinEnabled = localStorage.getItem('useBinEnabled') !== 'false';
+    let isUseBinEnabled = true;
     document.getElementById('useBinSwitch').checked = isUseBinEnabled;
     document.getElementById('useBinSwitch').addEventListener('change', (e) => {
         isUseBinEnabled = e.target.checked;
-        localStorage.setItem('useBinEnabled', isUseBinEnabled);
     });
 
     let voiceEn = null
@@ -1442,9 +1441,11 @@ ${getName(timer)}
 
     function playAnswer(id) {
         const timer = timers.find(t => t.id === id);
-        if (timer && timer.answer) {
-            speakOnce(timer.answer);
-        }
+        if (!timer) return;
+        // Build full sentence with cloze revealed: ~content~~ → content
+        let text = (timer.originalName || '').replace(/~([^~]+?)~~/g, '$1');
+        if (!text) return;
+        speakOnce(text);
     }
 
     function toggleTimerName(id) {
