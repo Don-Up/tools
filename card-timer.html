@@ -135,6 +135,21 @@
             background: #388e3c;
         }
 
+        #binBtn {
+            width: 60px;
+            padding: 12px;
+            font-size: 16px;
+            background: #ef6c00;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #binBtn:hover {
+            background: #f57c00;
+        }
+
         #clearBtn {
             width: 60px;
             padding: 12px;
@@ -453,7 +468,8 @@
                                                                                           style="margin-left:8px">
             TTS</label> <label style="cursor:pointer;font-size:14px;color:#888;font-weight:normal"><input
                 type="checkbox" id="fxSwitch" style="margin-left:8px"> FX</label> <label style="cursor:pointer;font-size:14px;color:#888;font-weight:normal"><input
-                type="checkbox" id="onlyShortSwitch" style="margin-left:8px"> Only&lt;=2</label></h1>
+                type="checkbox" id="onlyShortSwitch" style="margin-left:8px"> Only&lt;=2</label> <label style="cursor:pointer;font-size:14px;color:#888;font-weight:normal"><input
+                type="checkbox" id="useBinSwitch" checked style="margin-left:8px"> Use Bin</label></h1>
 
     <div class="input-section">
         <textarea id="cardNameInput" placeholder="Card name..." rows="4"></textarea>
@@ -477,6 +493,7 @@
         <div style="display: flex; gap: 10px;">
             <button id="confirmBtn">Confirm</button>
             <button id="exportBtn">Export</button>
+            <button id="binBtn">Bin</button>
             <button id="clearBtn">Clear</button>
         </div>
     </div>
@@ -557,6 +574,85 @@
         }
     });
 
+    // Recycle bin: IndexedDB-backed storage for deleted timers
+    const BIN_DB_NAME = 'cardTimerDB';
+    const BIN_DB_VERSION = 1;
+    const BIN_STORE = 'recycleBin';
+
+    function openBinDB() {
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.open(BIN_DB_NAME, BIN_DB_VERSION);
+            req.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(BIN_STORE)) {
+                    db.createObjectStore(BIN_STORE, { keyPath: 'id' });
+                }
+            };
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+    }
+
+    function saveToRecycleBin(timer) {
+        return openBinDB().then(db => new Promise((resolve, reject) => {
+            const tx = db.transaction(BIN_STORE, 'readwrite');
+            const record = { ...timer, inRecycleBin: true };
+            tx.objectStore(BIN_STORE).put(record);
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+        }));
+    }
+
+    function removeFromRecycleBin(id) {
+        return openBinDB().then(db => new Promise((resolve, reject) => {
+            const tx = db.transaction(BIN_STORE, 'readwrite');
+            tx.objectStore(BIN_STORE).delete(id);
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+        }));
+    }
+
+    function getAllFromRecycleBin() {
+        return openBinDB().then(db => new Promise((resolve, reject) => {
+            const tx = db.transaction(BIN_STORE, 'readonly');
+            const req = tx.objectStore(BIN_STORE).getAll();
+            req.onsuccess = () => resolve(req.result || []);
+            req.onerror = () => reject(req.error);
+        }));
+    }
+
+    async function loadFromRecycleBin() {
+        // Clear current list (no auto-save, no confirmation)
+        Object.values(timerIntervals).forEach(interval => clearInterval(interval));
+        timerIntervals = {};
+        timers = [];
+        timerList.innerHTML = '';
+        isFocusMode = false;
+        timerList.classList.remove('focus-mode');
+
+        // Load bin items
+        let items;
+        try {
+            items = await getAllFromRecycleBin();
+        } catch (err) {
+            console.error('Bin load failed:', err);
+            updateTimerStatus();
+            return;
+        }
+
+        items.forEach(item => {
+            item.status = 'ended';
+            item.remaining = 0;
+            // inRecycleBin flag preserved for permanent-delete on re-delete
+            timers.unshift(item);
+            renderTimer(item);
+        });
+        binCount = items.length;
+        updateTimerStatus();
+    }
+
+    document.getElementById('binBtn').addEventListener('click', loadFromRecycleBin);
+
     let isFocusMode = false;
     let isCountdownVisible = true;
     let isTimerHidden = false;
@@ -581,6 +677,13 @@
     document.getElementById('onlyShortSwitch').addEventListener('change', (e) => {
         isOnlyShortEnabled = e.target.checked;
         localStorage.setItem('onlyShortEnabled', isOnlyShortEnabled);
+    });
+
+    let isUseBinEnabled = localStorage.getItem('useBinEnabled') !== 'false';
+    document.getElementById('useBinSwitch').checked = isUseBinEnabled;
+    document.getElementById('useBinSwitch').addEventListener('change', (e) => {
+        isUseBinEnabled = e.target.checked;
+        localStorage.setItem('useBinEnabled', isUseBinEnabled);
     });
 
     let voiceEn = null
@@ -616,8 +719,14 @@
     function updateTimerStatus() {
         const running = timers.filter(t => t.status === 'running').length;
         const ended = timers.filter(t => t.status === 'ended').length;
-        document.getElementById('timerStatus').textContent = `(${running} timing, ${ended} 已结束)`;
+        document.getElementById('timerStatus').textContent = `(${running} 倒计时中, ${ended} 已结束, ${binCount} 已回收)`;
     }
+
+    // Recycle bin count, initialized from IndexedDB and maintained on bin mutations
+    let binCount = 0;
+    getAllFromRecycleBin()
+        .then(items => { binCount = items.length; updateTimerStatus(); })
+        .catch(err => console.error('Bin count init failed:', err));
 
     // Initialize status display
     updateTimerStatus();
@@ -1284,6 +1393,17 @@ ${getName(timer)}
             timerList.classList.remove('focus-mode');
         }
         updateTimerStatus();
+
+        // Recycle-bin routing: bin items are permanently removed; non-bin items go to bin only if Use Bin is on
+        if (timer && timer.inRecycleBin) {
+            removeFromRecycleBin(id)
+                .then(() => { binCount = Math.max(0, binCount - 1); updateTimerStatus(); })
+                .catch(err => console.error('Bin remove failed:', err));
+        } else if (timer && isUseBinEnabled) {
+            saveToRecycleBin(timer)
+                .then(() => { binCount++; updateTimerStatus(); })
+                .catch(err => console.error('Bin save failed:', err));
+        }
     }
 
     function showAnswer(id, e) {
@@ -1394,9 +1514,14 @@ ${getName(timer)}
         currentEditTimerId = id;
         const modal = document.getElementById('modalOverlay');
         const input = document.getElementById('modalInput');
-        const timer = timers.find(t => t.id === id);
-        if (timer) {
-            input.value = Math.ceil(timer.duration / 60);
+        const savedLast = localStorage.getItem('lastNewDuration');
+        if (savedLast !== null) {
+            input.value = savedLast;
+        } else {
+            const timer = timers.find(t => t.id === id);
+            if (timer) {
+                input.value = Math.ceil(timer.duration / 60);
+            }
         }
         modal.classList.add('active');
         input.focus();
@@ -1426,6 +1551,8 @@ ${getName(timer)}
             alert('Please enter a valid duration');
             return;
         }
+
+        localStorage.setItem('lastNewDuration', String(mins));
 
         const timer = timers.find(t => t.id === currentEditTimerId);
         if (timer) {
