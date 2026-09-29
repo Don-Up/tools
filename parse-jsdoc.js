@@ -42,8 +42,8 @@ function parseJsDoc(text) {
       section = 'param';
       continue;
     }
-    if (line.startsWith('@returns ')) {
-      data.returns = line.slice('@returns '.length);
+    if (line === '@returns' || line.startsWith('@returns ')) {
+      data.returns = line === '@returns' ? '' : line.slice('@returns '.length);
       section = 'returns';
       currentParam = null;
       continue;

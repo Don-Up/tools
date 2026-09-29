@@ -139,3 +139,39 @@ test('@param without example leaves example as null', () => {
   const result = parseJsDoc(input);
   assert.equal(result.params[0].example, null);
 });
+
+test('parses single-line @returns', () => {
+  const input = `/**
+ * @returns A rendered string.
+ */`;
+  const result = parseJsDoc(input);
+  assert.equal(result.returns, 'A rendered string.');
+});
+
+test('@returns spans multiple continuation lines until next tag', () => {
+  const input = `/**
+ * @returns 渲染一个居中卡片式 dialog(含 backdrop)。
+ *          header 标题 + 关闭按钮,<pre> 代码区,<button> 复制。
+ * @param x trailing param
+ */`;
+  const result = parseJsDoc(input);
+  assert.equal(result.returns, '渲染一个居中卡片式 dialog(含 backdrop)。\nheader 标题 + 关闭按钮,<pre> 代码区,<button> 复制。');
+  assert.equal(result.params.length, 1);
+  assert.equal(result.params[0].name, 'x');
+});
+
+test('@returns immediately before */ still records empty string', () => {
+  const input = `/**
+ * @returns
+ */`;
+  const result = parseJsDoc(input);
+  assert.equal(result.returns, '');
+});
+
+test('missing @returns leaves returns as null', () => {
+  const input = `/**
+ * just description
+ */`;
+  const result = parseJsDoc(input);
+  assert.equal(result.returns, null);
+});
