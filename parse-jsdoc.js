@@ -63,8 +63,18 @@ function parseJsDoc(text) {
 
     // Body lines per active section
     if (section === 'param') {
-      // (Task 4 will add the 例如: detection branch here)
+      const stripped = line.replace(/^\s*/, '');
+      if (stripped.startsWith('例如:') || stripped.startsWith('例如：')) {
+        const colonIdx = stripped.indexOf(':');
+        currentParam.example = stripped.slice(colonIdx + 1).replace(/^\s*/, '');
+        section = 'example';
+        continue;
+      }
       currentParam.desc = currentParam.desc ? `${currentParam.desc}\n${line}` : line;
+      continue;
+    }
+    if (section === 'example') {
+      currentParam.example = `${currentParam.example}\n${line}`;
       continue;
     }
     if (section === 'returns') {

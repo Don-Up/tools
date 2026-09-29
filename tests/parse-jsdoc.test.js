@@ -101,3 +101,41 @@ test('@param with name only and empty desc still produces a card', () => {
   assert.equal(result.params[0].name, 'lonely');
   assert.equal(result.params[0].desc, '');
 });
+
+test('parses "例如:" example line after @param desc', () => {
+  const input = `/**
+ * @param props.open 控制 modal 是否可见。
+ *        例如: true
+ */`;
+  const result = parseJsDoc(input);
+  assert.equal(result.params[0].example, 'true');
+});
+
+test('"例如:" only triggers on exact prefix (other colons ignored)', () => {
+  const input = `/**
+ * @param x 描述: 包含英文冒号不会触发 example。
+ *        例如: realExample
+ */`;
+  const result = parseJsDoc(input);
+  assert.equal(result.params[0].desc, '描述: 包含英文冒号不会触发 example。');
+  assert.equal(result.params[0].example, 'realExample');
+});
+
+test('multi-line example value collects until next tag or EOF', () => {
+  const input = `/**
+ * @param props.onClose 关闭 modal 时调用。
+ *        例如: () => setExportModalOpen(
+ *          false
+ *        )
+ */`;
+  const result = parseJsDoc(input);
+  assert.equal(result.params[0].example, '() => setExportModalOpen(\nfalse\n)');
+});
+
+test('@param without example leaves example as null', () => {
+  const input = `/**
+ * @param x just a description
+ */`;
+  const result = parseJsDoc(input);
+  assert.equal(result.params[0].example, null);
+});
