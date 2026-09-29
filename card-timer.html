@@ -763,10 +763,10 @@
         const timer = timers.find(t => t.id === timerId);
         if (!timer) return;
 
-        // Ctrl+click: delete timer
+        // Ctrl+click: delete timer (Ctrl+Shift skips recycle-bin DB operations)
         if (e.ctrlKey) {
             e.preventDefault();
-            deleteTimer(timerId);
+            deleteTimer(timerId, e.shiftKey);
             return;
         }
 
@@ -1397,7 +1397,7 @@ ${getName(timer)}
         updateTimerStatus();
     }
 
-    function deleteTimer(id) {
+    function deleteTimer(id, skipBin = false) {
         const timer = timers.find(t => t.id === id);
         const wasPinned = timer && timer.isPinned;
 
@@ -1418,9 +1418,9 @@ ${getName(timer)}
         }
         updateTimerStatus();
 
-        // Recycle-bin routing: when Use Bin is off, deletes don't touch the DB at all;
-// otherwise bin items are permanently removed and others are stored.
-        if (!isUseBinEnabled) return;
+        // Recycle-bin routing: skip DB ops when Use Bin is off OR Ctrl+Shift was held;
+        // otherwise bin items are permanently removed and others are stored.
+        if (!isUseBinEnabled || skipBin) return;
         if (timer && timer.inRecycleBin) {
             removeFromRecycleBin(id)
                 .then(() => { binCount = Math.max(0, binCount - 1); updateTimerStatus(); })
