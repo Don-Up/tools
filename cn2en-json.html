@@ -689,6 +689,16 @@
                 );
             }
         }
+        if (e.key === 'r' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+            if (entries.length === 0) return;
+            e.preventDefault();
+            speakEn(true);
+        }
+        if (e.key === 't' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+            if (entries.length === 0) return;
+            e.preventDefault();
+            speakCn(true);
+        }
     });
 
     function copyEntryWithTildes() {
@@ -700,7 +710,7 @@
     cnText.addEventListener('click', (e) => {
         if (e.altKey) {
             e.preventDefault();
-            speakCn(true);
+            copyEntryToClipboard();
         } else if (e.ctrlKey) {
             e.preventDefault();
             copyEntryWithTildes();
