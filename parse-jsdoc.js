@@ -8,6 +8,7 @@
 
   const PREFIX_PATTERN = /^\s*\*{1,2}\s?/;
   const PARAM_HEAD = /^@param\s+(\S+)\s*(.*)$/;
+  const IDENT = /^[A-Za-z_$][\w$]*$/;
 
   function stripPrefix(line) {
     return line.replace(PREFIX_PATTERN, '').replace(/\s+$/, '').replace(/^\s+/, '');
@@ -19,13 +20,36 @@
     return inner.split('\n').map(stripPrefix);
   }
 
+  function extractTitle(declaration) {
+    if (!declaration) return null;
+    const lines = declaration.split('\n').map(l => l.trim()).filter(Boolean);
+    if (!lines.length) return null;
+    const lastLine = lines[lines.length - 1];
+    const tokens = lastLine.split(/\s+/).reverse();
+    for (const t of tokens) {
+      if (IDENT.test(t)) return t;
+    }
+    return null;
+  }
+
   function parseJsDoc(text) {
     const trimmed = (text ?? '').trim();
-    if (!trimmed.startsWith('/**') || !trimmed.endsWith('*/')) {
+
+    // Split JSDoc body from trailing declaration (e.g. "export function Foo")
+    const closeIdx = trimmed.lastIndexOf('*/');
+    let jsdocPart = trimmed;
+    let declaration = '';
+    if (closeIdx >= 0 && closeIdx < trimmed.length - 2) {
+      jsdocPart = trimmed.slice(0, closeIdx + 2);
+      declaration = trimmed.slice(closeIdx + 2).trim();
+    }
+
+    if (!jsdocPart.startsWith('/**') || !jsdocPart.endsWith('*/')) {
       throw new InvalidFormatError('Text is not a JSDoc comment');
     }
-    const lines = splitBody(trimmed);
+    const lines = splitBody(jsdocPart);
     const data = {
+      title: extractTitle(declaration),
       description: [],
       params: [],
       returns: null,

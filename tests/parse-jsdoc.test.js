@@ -19,6 +19,7 @@ test('rejects text missing */ suffix', () => {
 test('accepts minimal valid JSDoc with empty body', () => {
   const result = parseJsDoc('/**\n */');
   assert.deepEqual(result, {
+    title: null,
     description: [],
     params: [],
     returns: null,
@@ -257,4 +258,44 @@ test('full real-world example from spec parses correctly', () => {
   assert(result.returns.startsWith('渲染一个居中卡片式 dialog'));
   assert.equal(result.links.length, 3);
   assert.equal(result.links[0].name, 'EditorLayout(/editor 路由的 layout.tsx)');
+});
+
+test('extracts title from trailing function declaration', () => {
+  const input = `/**
+ * description
+ */
+export function ExportModal`;
+  const result = parseJsDoc(input);
+  assert.equal(result.title, 'ExportModal');
+});
+
+test('extracts title from various declaration styles', () => {
+  assert.equal(parseJsDoc('/**\n * d\n */\nfunction Foo').title, 'Foo');
+  assert.equal(parseJsDoc('/**\n * d\n */\nclass Bar').title, 'Bar');
+  assert.equal(parseJsDoc('/**\n * d\n */\nexport default Baz').title, 'Baz');
+  assert.equal(parseJsDoc('/**\n * d\n */\nexport default function Qux').title, 'Qux');
+});
+
+test('extracts title from const/let/var declaration (skip arrow body)', () => {
+  const input = `/**
+ * d
+ */
+const ExportModal = (props) => {}`;
+  const result = parseJsDoc(input);
+  assert.equal(result.title, 'ExportModal');
+});
+
+test('title is null when no trailing declaration', () => {
+  const result = parseJsDoc('/**\n * description\n */');
+  assert.equal(result.title, null);
+});
+
+test('multi-line trailing: title from last line only', () => {
+  const input = `/**
+ * d
+ */
+const a = 1
+function Last`;
+  const result = parseJsDoc(input);
+  assert.equal(result.title, 'Last');
 });
