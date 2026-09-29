@@ -175,3 +175,40 @@ test('missing @returns leaves returns as null', () => {
   const result = parseJsDoc(input);
   assert.equal(result.returns, null);
 });
+
+test('parses @link numbered list', () => {
+  const input = `/**
+ * @link
+ * 1. EditorLayout(/editor 路由的 layout.tsx): 渲染本组件。
+ * 2. generateJsx(纯函数): 在 useEffect 里调用。
+ * 3. navigator.clipboard(浏览器原生 API): 复制按钮。
+ */`;
+  const result = parseJsDoc(input);
+  assert.equal(result.links.length, 3);
+  assert.deepEqual(result.links[0], {
+    name: 'EditorLayout(/editor 路由的 layout.tsx)',
+    desc: '渲染本组件。'
+  });
+  assert.equal(result.links[2].name, 'navigator.clipboard(浏览器原生 API)');
+});
+
+test('@link lines without numeric prefix are skipped', () => {
+  const input = `/**
+ * @link
+ * 1. real entry: real desc
+ * junk line without number
+ * 2. second entry: second desc
+ */`;
+  const result = parseJsDoc(input);
+  assert.equal(result.links.length, 2);
+  assert.equal(result.links[0].name, 'real entry');
+  assert.equal(result.links[1].name, 'second entry');
+});
+
+test('missing @link leaves links as empty array', () => {
+  const input = `/**
+ * just description
+ */`;
+  const result = parseJsDoc(input);
+  assert.deepEqual(result.links, []);
+});

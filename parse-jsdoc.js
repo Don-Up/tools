@@ -82,7 +82,19 @@ function parseJsDoc(text) {
       continue;
     }
     if (section === 'link') {
-      // (Task 6 will populate data.links here)
+      const m = line.match(/^\s*(\d+)\.\s*(.+)$/);
+      if (m) {
+        const rest = m[2];
+        const colonIdx = rest.indexOf(':');
+        if (colonIdx >= 0) {
+          data.links.push({
+            name: rest.slice(0, colonIdx).trim(),
+            desc: rest.slice(colonIdx + 1).trim()
+          });
+        } else {
+          data.links.push({ name: rest.trim(), desc: '' });
+        }
+      }
       continue;
     }
     if (section === 'unknown') {
