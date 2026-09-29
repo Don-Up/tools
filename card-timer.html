@@ -240,13 +240,16 @@
             justify-content: flex-end;
         }
 
-        .btn-row-bottom {
-            margin-top: 4px;
-            gap: 8px;
+        .timer-right button:not(.delete-btn):not(.quick-min-btn):not(.play-btn) {
+            min-width: 60px;
         }
 
-        .timer-right button:not(.delete-btn) {
-            min-width: 60px;
+        .btn-row-bottom {
+            display: flex;
+            align-items: center;
+            margin-top: 4px;
+            gap: 8px;
+            flex-wrap: nowrap;
         }
 
         .quick-min-btn {
@@ -254,15 +257,30 @@
             color: #888;
             border: 1px solid #444;
             cursor: pointer;
-            padding: 4px 8px;
+            padding: 4px 4px;
             font-size: 12px;
             border-radius: 4px;
-            width: 20px;
+            width: 28px;
         }
 
         .quick-min-btn:hover {
             color: #4ade80;
             border-color: #4ade80;
+        }
+
+        .play-btn {
+            background: transparent;
+            color: #888;
+            border: 1px solid #444;
+            cursor: pointer;
+            padding: 4px 8px;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+
+        .play-btn:hover {
+            color: #60a5fa;
+            border-color: #60a5fa;
         }
 
         .timer-info {
@@ -948,6 +966,9 @@
             })
         } else {
             let name = cardNameInput.value.trim();
+            if (name && !name.includes('{{') && !name.includes('~~') && !name.includes('<br>')) {
+                name = `~${name}~~`;
+            }
             if(name.endsWith("|") && !name.includes("~~")){
                 name = name.replace("|", "^~").replace("|", "~~|").replace("^~", "|~")
             }
@@ -1165,9 +1186,12 @@ ${getName(timer)}
                     </div>
                     ${timer.status === 'ended' && !timer.buttonsDelay && !promoted ? `
                     <div class="btn-row-bottom">
-                        <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 1)">1m</button>
-                        <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 2)">2m</button>
-                        <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 5)">5m</button>
+                        <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 1)">1</button>
+                        <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 2)">2</button>
+                        <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 5)">5</button>
+                        <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 10)">10</button>
+                        <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 15)">15</button>
+                        <button class="play-btn" onclick="playAnswer(${timer.id})">Play</button>
                     </div>
                     ` : ''}
                 </div>
@@ -1413,6 +1437,13 @@ ${getName(timer)}
         const timer = timers.find(t => t.id === id);
         if (timer && timer.answer) {
             alert(timer.answer);
+        }
+    }
+
+    function playAnswer(id) {
+        const timer = timers.find(t => t.id === id);
+        if (timer && timer.answer) {
+            speakOnce(timer.answer);
         }
     }
 
