@@ -1346,6 +1346,7 @@ ${getName(timer)}
             text = text.split("::")[0]
         }
         if ('speechSynthesis' in window) {
+            speechSynthesis.cancel();
             const hasChinese = /[一-鿿]/.test(text);
             const lang = hasChinese ? 'zh-CN' : 'en-US';
             const utterance = new SpeechSynthesisUtterance(text);
