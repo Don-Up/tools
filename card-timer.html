@@ -1005,7 +1005,7 @@
                 name = "-"
             }
             if (!name) {
-                alert('Please enter a card name');
+                addTimerFromClipboard();
                 return;
             }
 
@@ -1017,6 +1017,19 @@
             customDurationInput.value = '';
         }
 
+    }
+
+    async function addTimerFromClipboard() {
+        const text = await getClipboardText();
+        const trimmed = text?.trim();
+        if (trimmed && !trimmed.includes('{{') && !trimmed.includes('~~') && !trimmed.includes('<br>')) {
+            createTimer(`~${trimmed}~~`);
+            cardNameInput.value = '';
+            answerInput.value = '';
+            customDurationInput.value = '';
+        } else {
+            alert('Please enter a card name');
+        }
     }
 
     function createTimersWithDelay(cardNames, delay = 100) {
