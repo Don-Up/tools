@@ -692,7 +692,12 @@
         if (e.key === 'r' && !e.ctrlKey && !e.altKey && !e.metaKey) {
             if (entries.length === 0) return;
             e.preventDefault();
-            speakEn(true);
+            const sel = window.getSelection()?.toString().trim();
+            if (sel && !/[一-龥]/.test(sel)) {
+                speakEn(true, sel);
+            } else {
+                speakEn(true);
+            }
         }
         if (e.key === 't' && !e.ctrlKey && !e.altKey && !e.metaKey) {
             if (entries.length === 0) return;
@@ -865,10 +870,13 @@
         }
     }
 
-    function speakEn(force) {
+    function speakEn(force, text) {
         if (!selectedVoiceEn) return;
         if (!force && !ttsEnabledEn) return;
-        const utterance = new SpeechSynthesisUtterance(entries[currentIndex][1]);
+        const content = text ?? entries[currentIndex][1];
+        if (!content) return;
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(content);
         utterance.voice = selectedVoiceEn;
         utterance.rate = enRate;
         window.speechSynthesis.speak(utterance);

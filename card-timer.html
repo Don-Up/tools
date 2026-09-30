@@ -84,6 +84,16 @@
             color: #888;
         }
 
+        #classSelect {
+            background: #2c2c2c;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 6px 10px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
         #durationSelect {
             padding: 12px;
             font-size: 16px;
@@ -487,7 +497,12 @@
             TTS</label> <label style="cursor:pointer;font-size:14px;color:#888;font-weight:normal"><input
                 type="checkbox" id="fxSwitch" style="margin-left:8px"> FX</label> <label style="cursor:pointer;font-size:14px;color:#888;font-weight:normal"><input
                 type="checkbox" id="onlyShortSwitch" style="margin-left:8px"> Only&lt;=2</label> <label style="cursor:pointer;font-size:14px;color:#888;font-weight:normal"><input
-                type="checkbox" id="useBinSwitch" checked style="margin-left:8px"> Use Bin</label></h1>
+                type="checkbox" id="useBinSwitch" checked style="margin-left:8px"> Use Bin</label>
+        <select id="classSelect" style="margin-left:2px">
+            <option value="a" selected>A</option>
+            <option value="b">B</option>
+            <option value="c">C</option>
+        </select></h1>
 
     <div class="input-section">
         <textarea id="cardNameInput" placeholder="Card name..." rows="4"></textarea>
@@ -614,7 +629,7 @@
     function saveToRecycleBin(timer) {
         return openBinDB().then(db => new Promise((resolve, reject) => {
             const tx = db.transaction(BIN_STORE, 'readwrite');
-            const record = { ...timer, inRecycleBin: true };
+            const record = { ...timer, inRecycleBin: true, class: currentClass };
             tx.objectStore(BIN_STORE).put(record);
             tx.oncomplete = () => resolve();
             tx.onerror = () => reject(tx.error);
@@ -648,10 +663,11 @@
         isFocusMode = false;
         timerList.classList.remove('focus-mode');
 
-        // Load bin items
+        // Load bin items filtered by current class
         let items;
         try {
-            items = await getAllFromRecycleBin();
+            const all = await getAllFromRecycleBin();
+            items = all.filter(it => (it.class || 'a') === currentClass);
         } catch (err) {
             console.error('Bin load failed:', err);
             updateTimerStatus();
@@ -665,11 +681,14 @@
             timers.unshift(item);
             renderTimer(item);
         });
-        binCount = items.length;
         updateTimerStatus();
     }
 
     document.getElementById('binBtn').addEventListener('click', loadFromRecycleBin);
+
+    document.getElementById('classSelect').addEventListener('change', (e) => {
+        currentClass = e.target.value;
+    });
 
     let isFocusMode = false;
     let isCountdownVisible = true;
@@ -736,13 +755,21 @@
     function updateTimerStatus() {
         const running = timers.filter(t => t.status === 'running').length;
         const ended = timers.filter(t => t.status === 'ended').length;
-        document.getElementById('timerStatus').textContent = `(${running} 倒计时中, ${ended} 已结束, ${binCount} 已回收)`;
+        document.getElementById('timerStatus').textContent = `(${running} 倒计时中, ${ended} 已结束, ${binCount.a}/${binCount.b}/${binCount.c} 已回收)`;
     }
 
     // Recycle bin count, initialized from IndexedDB and maintained on bin mutations
-    let binCount = 0;
+    let binCount = { a: 0, b: 0, c: 0 };
+    let currentClass = 'a';
     getAllFromRecycleBin()
-        .then(items => { binCount = items.length; updateTimerStatus(); })
+        .then(items => {
+            binCount = { a: 0, b: 0, c: 0 };
+            items.forEach(it => {
+                const cls = it.class || 'a';
+                if (binCount[cls] !== undefined) binCount[cls]++;
+            });
+            updateTimerStatus();
+        })
         .catch(err => console.error('Bin count init failed:', err));
 
     // Initialize status display
@@ -965,7 +992,7 @@
             })
         } else {
             let name = cardNameInput.value.trim();
-            if (name && !name.includes('{{') && !name.includes('~~') && !name.includes('<br>')) {
+            if (name && !name.includes('{{') && !name.includes('~~') && !name.includes('<br>') && !answerInput.value.trim()) {
                 name = `~${name}~~`;
             }
             if(name.endsWith("|") && !name.includes("~~")){
@@ -1421,12 +1448,13 @@ ${getName(timer)}
         // otherwise bin items are permanently removed and others are stored.
         if (!isUseBinEnabled || skipBin) return;
         if (timer && timer.inRecycleBin) {
+            const removedClass = timer.class || 'a';
             removeFromRecycleBin(id)
-                .then(() => { binCount = Math.max(0, binCount - 1); updateTimerStatus(); })
+                .then(() => { binCount[removedClass] = Math.max(0, binCount[removedClass] - 1); updateTimerStatus(); })
                 .catch(err => console.error('Bin remove failed:', err));
         } else if (timer) {
             saveToRecycleBin(timer)
-                .then(() => { binCount++; updateTimerStatus(); })
+                .then(() => { binCount[currentClass]++; updateTimerStatus(); })
                 .catch(err => console.error('Bin save failed:', err));
         }
     }
