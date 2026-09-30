@@ -496,7 +496,7 @@
                                                                                           style="margin-left:8px">
             TTS</label> <label style="cursor:pointer;font-size:14px;color:#888;font-weight:normal"><input
                 type="checkbox" id="fxSwitch" style="margin-left:8px"> FX</label> <label style="cursor:pointer;font-size:14px;color:#888;font-weight:normal"><input
-                type="checkbox" id="onlyShortSwitch" style="margin-left:8px"> Only&lt;=2</label> <label style="cursor:pointer;font-size:14px;color:#888;font-weight:normal"><input
+                type="checkbox" id="onlyShortSwitch" style="margin-left:8px">&lt;=2</label> <label style="cursor:pointer;font-size:14px;color:#888;font-weight:normal"><input
                 type="checkbox" id="useBinSwitch" checked style="margin-left:8px"> Use Bin</label>
         <select id="classSelect" style="margin-left:2px">
             <option value="a" selected>A</option>
@@ -1486,6 +1486,13 @@ ${getName(timer)}
         if (!timer) return;
         // Build full sentence with cloze revealed: ~content~~ → content
         let text = (timer.originalName || '').replace(/~([^~]+?)~~/g, '$1');
+        if (!text) return;
+        // Strip CJK characters and tidy leftover separators
+        text = text
+            .replace(/[一-鿿]/g, '')
+            .replace(/<br\s*\/?>/gi, ' ')
+            .replace(/[ \t]+/g, ' ')
+            .trim();
         if (!text) return;
         speakOnce(text);
     }
