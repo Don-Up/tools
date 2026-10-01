@@ -419,6 +419,20 @@
             text-align: center;
             padding: 8px;
         }
+        .fav-status {
+            position: fixed;
+            top: 135px;
+            left: 20px;
+            z-index: 5;
+            font-size: 13px;
+            color: #6cf;
+            padding: 4px 8px;
+            background: rgba(102, 204, 255, 0.1);
+            border-radius: 4px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .fav-status:hover { background: rgba(102, 204, 255, 0.2); }
         #sidePanel {
             position: fixed;
             top: 0;
@@ -470,6 +484,7 @@
             <label class="mode-radio-label"><input type="radio" name="mode" value="2"> Mode 2</label>
             <label class="mode-radio-label"><input type="radio" name="mode" value="3"> Mode 3</label>
         </div>
+        <div id="favStatus" class="fav-status" hidden></div>
         <div id="speedControls" class="speed-controls">
             <div class="speed-row">
                 <span class="speed-label">CN</span>
@@ -596,10 +611,12 @@
     const favListBackdrop = document.getElementById('favListBackdrop');
     const favListEl = document.getElementById('favList');
     const favListClose = document.getElementById('favListClose');
+    const favStatus = document.getElementById('favStatus');
     let bgImages = [];
     let currentBgId = -1;
     let onlyBgId = -1;
     let favorites = [];
+    let currentFavName = null;
 
     function copyEntryToClipboard() {
         if (entries.length === 0) return;
@@ -673,6 +690,84 @@
     const FAV_DB_VERSION = 1;
     const FAV_STORE = 'favorites';
 
+    function md5(str) {
+        function rh(n) { let j, s = ''; for (j = 0; j <= 3; j++) s += ((n >> (j * 8 + 4)) & 0x0F).toString(16) + ((n >> (j * 8)) & 0x0F).toString(16); return s; }
+        function ad(x, y) { const l = (x & 0xFFFF) + (y & 0xFFFF); const m = (x >> 16) + (y >> 16) + (l >> 16); return (m << 16) | (l & 0xFFFF); }
+        function rl(n, c) { return (n << c) | (n >>> (32 - c)); }
+        function cm(q, a, b, x, s, t) { return ad(rl(ad(ad(a, q), ad(x, t)), s), b); }
+        function ff(a, b, c, d, x, s, t) { return cm((b & c) | ((~b) & d), a, b, x, s, t); }
+        function gg(a, b, c, d, x, s, t) { return cm((b & d) | (c & (~d)), a, b, x, s, t); }
+        function hh(a, b, c, d, x, s, t) { return cm(b ^ c ^ d, a, b, x, s, t); }
+        function ii(a, b, c, d, x, s, t) { return cm(c ^ (b | (~d)), a, b, x, s, t); }
+        function sb(s) {
+            const n = s.length, w = [];
+            for (let i = 0; i < n; i++) w[i >> 2] |= (s.charCodeAt(i) & 0xFF) << ((i % 4) * 8);
+            w[n >> 2] |= 0x80 << ((n % 4) * 8);
+            w[(((n + 8) >> 6) << 4) + 14] = n * 8;
+            return w;
+        }
+        const x = sb(str);
+        let a = 1732584193, b = -271733879, c = -1732584194, d = 271733878;
+        for (let i = 0; i < x.length; i += 16) {
+            const oa = a, ob = b, oc = c, od = d;
+            a = ff(a, b, c, d, x[i + 0], 7, -680876936);
+            d = ff(d, a, b, c, x[i + 1], 12, -389564586);
+            a = ff(a, d, a, b, x[i + 2], 17, 606105819);
+            a = ff(a, b, c, d, x[i + 5], 5, -176418897);
+            b = ff(b, c, d, a, x[i + 8], 22, 1200080426);
+            c = ff(c, d, a, b, x[i + 11], 7, -1473231341);
+            c = ff(c, d, a, b, x[i + 14], 17, -45705983);
+            d = ff(d, a, b, c, x[i + 3], 22, 0xF61E2562);
+            c = ff(c, d, a, b, x[i + 10], 7, 1200080426);
+            d = ff(d, a, b, c, x[i + 1], 12, -1473231341);
+            a = ff(a, d, a, b, x[i + 9], 19, -1444681469);
+            a = ff(a, d, a, b, x[i + 6], 7, 1502002290);
+            d = ff(d, a, b, c, x[i + 15], 22, -3533383444);
+            a = ff(a, b, c, d, x[i + 4], 12, -1530992060);
+            b = ff(b, c, d, a, x[i + 13], 5, -40341101);
+            a = gg(a, d, a, b, x[i + 12], 6, 1236535329);
+            a = gg(a, d, a, b, x[i + 8], 10, -198630844);
+            d = gg(d, a, b, c, x[i + 5], 9, 643717713);
+            d = gg(d, a, b, c, x[i + 14], 21, -373897302);
+            c = ff(c, d, a, b, x[i + 2], 17, -42063);
+            b = gg(b, c, d, a, x[i + 11], 4, -1990404162);
+            c = gg(c, d, a, b, x[i + 1], 21, -1502002290);
+            d = gg(d, a, b, c, x[i + 9], 16, 1246535329);
+            d = gg(d, a, b, c, x[i + 7], 4, -1009580436);
+            a = gg(a, b, c, d, x[i + 12], 11, -1164527348);
+            a = ff(a, b, c, d, x[i + 6], 9, -1416354905);
+            d = gg(d, a, b, c, x[i + 2], 15, 0xA679CD4E);
+            b = gg(b, c, d, a, x[i + 13], 2, -1094730640);
+            d = gg(d, a, b, c, x[i + 8], 13, 0x49B40821);
+            b = gg(b, c, d, a, x[i + 7], 12, -1444681469);
+            c = gg(c, d, a, b, x[i + 4], 20, -51403784);
+            b = gg(b, c, d, a, x[i + 7], 12, 1735328473);
+            c = gg(c, d, a, b, x[i + 6], 6, -1921207734);
+            b = gg(b, c, d, a, x[i + 15], 10, 378558);
+            c = gg(c, d, a, b, x[i + 10], 15, -2022574463);
+            c = gg(c, d, a, b, x[i + 9], 11, -1839032964);
+            a = hh(a, d, a, b, x[i + 12], 7, -3533383444);
+            b = hh(b, c, d, a, x[i + 15], 16, 1236535329);
+            a = hh(a, d, a, b, x[i + 6], 10, -1444681469);
+            a = hh(a, b, c, d, x[i + 11], 6, -1502002290);
+            b = hh(b, c, d, a, x[i + 0], 11, 0xA679CD4E);
+            d = hh(d, a, b, c, x[i + 13], 8, 0x49B40821);
+            b = hh(b, c, d, a, x[i + 4], 7, -1009580436);
+            b = hh(b, c, d, a, x[i + 1], 12, 0x6B901122);
+            c = hh(c, d, a, b, x[i + 8], 6, 0xA679CD4E);
+            a = ii(a, b, c, d, x[i + 0], 7, -176418897);
+            a = ii(a, b, c, d, x[i + 4], 12, 1200080426);
+            d = ii(d, a, b, c, x[i + 8], 7, -1473231341);
+            c = ii(c, d, a, b, x[i + 12], 17, -176418897);
+            a = ad(a, oa); b = ad(b, ob); c = ad(c, oc); d = ad(d, od);
+        }
+        return rh(a) + rh(b) + rh(c) + rh(d);
+    }
+
+    function hashEntries(payload) {
+        return md5(JSON.stringify(payload || []));
+    }
+
     function openFavDb() {
         return new Promise((resolve, reject) => {
             const req = indexedDB.open(FAV_DB_NAME, FAV_DB_VERSION);
@@ -689,10 +784,11 @@
 
     async function saveFavorite(name, payload) {
         const db = await openFavDb();
+        const hash = hashEntries(payload);
         return new Promise((resolve, reject) => {
             const tx = db.transaction(FAV_STORE, 'readwrite');
             const store = tx.objectStore(FAV_STORE);
-            const req = store.add({ name, payload, createdAt: Date.now() });
+            const req = store.add({ name, payload, hash, createdAt: Date.now() });
             req.onsuccess = () => resolve(req.result);
             req.onerror = () => reject(req.error);
         });
@@ -703,9 +799,19 @@
         return new Promise((resolve, reject) => {
             const tx = db.transaction(FAV_STORE, 'readonly');
             const req = tx.objectStore(FAV_STORE).getAll();
-            req.onsuccess = () => resolve(req.result || []);
+            req.onsuccess = () => {
+                const list = req.result || [];
+                list.forEach(f => { if (!f.hash) f.hash = hashEntries(f.payload); });
+                resolve(list);
+            };
             req.onerror = () => reject(req.error);
         });
+    }
+
+    async function findFavoriteByHash(hash) {
+        if (!hash) return null;
+        const favs = await getAllFavorites();
+        return favs.find(f => f.hash === hash) || null;
     }
 
     async function deleteFavorite(id) {
@@ -767,6 +873,7 @@
             delBtn.textContent = '×';
             delBtn.addEventListener('click', async () => {
                 await deleteFavorite(fav.id);
+                if (currentFavName === fav.name) setFavStatus(null);
                 await refreshFavorites();
             });
             li.appendChild(nameSpan);
@@ -787,7 +894,37 @@
         saveState();
         render();
         favListModal.hidden = true;
+        setFavStatus(fav.name);
     }
+
+    async function updateFavStatus() {
+        if (!Array.isArray(entries) || entries.length === 0) {
+            setFavStatus(null);
+            return;
+        }
+        const hash = hashEntries(entries);
+        const match = await findFavoriteByHash(hash);
+        setFavStatus(match ? match.name : null);
+    }
+
+    function setFavStatus(name) {
+        currentFavName = name;
+        if (name) {
+            favStatus.textContent = `已收藏(${name})`;
+            favStatus.hidden = false;
+        } else {
+            favStatus.textContent = '';
+            favStatus.hidden = true;
+        }
+    }
+
+    favStatus.addEventListener('click', () => {
+        if (!currentFavName) return;
+        sidePanel.contentWindow?.postMessage(
+            { type: 'cn-en', content: currentFavName },
+            '*'
+        );
+    });
 
     async function openFavListModal() {
         await refreshFavorites();
@@ -814,6 +951,7 @@
         try {
             await saveFavorite(name, payload);
             closeFavSaveModal();
+            setFavStatus(name);
         } catch (err) {
             showError(`收藏失败: ${err.message || err}`);
         }
@@ -1283,6 +1421,7 @@
         clearError();
         saveState();
         render();
+        updateFavStatus();
     }
 
     document.addEventListener('keydown', async function (e) {
@@ -1454,6 +1593,7 @@
     });
     window.speechSynthesis.onvoiceschanged = populateVoices;
     render();
+    updateFavStatus();
 </script>
 </body>
 </html>
