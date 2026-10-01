@@ -755,7 +755,7 @@
     function updateTimerStatus() {
         const running = timers.filter(t => t.status === 'running').length;
         const ended = timers.filter(t => t.status === 'ended').length;
-        document.getElementById('timerStatus').textContent = `(${running} 倒计时中, ${ended} 已结束, ${binCount.a}/${binCount.b}/${binCount.c} 已回收)`;
+        document.getElementById('timerStatus').textContent = `(${running} 倒计时, ${ended} 已结束, ${binCount.a}/${binCount.b}/${binCount.c} 已回收)`;
     }
 
     // Recycle bin count, initialized from IndexedDB and maintained on bin mutations
@@ -1019,17 +1019,18 @@
 
     }
 
-    async function addTimerFromClipboard() {
-        const text = await getClipboardText();
-        const trimmed = text?.trim();
-        if (trimmed && !trimmed.includes('{{') && !trimmed.includes('~~') && !trimmed.includes('<br>')) {
-            createTimer(`~${trimmed}~~`);
-            cardNameInput.value = '';
-            answerInput.value = '';
-            customDurationInput.value = '';
-        } else {
-            alert('Please enter a card name');
-        }
+    function addTimerFromClipboard() {
+        getClipboardText().then(text => {
+            const trimmed = text?.trim();
+            if (trimmed && !trimmed.includes('{{') && !trimmed.includes('~~') && !trimmed.includes('<br>')) {
+                createTimer(`~${trimmed}~~`);
+                cardNameInput.value = '';
+                answerInput.value = '';
+                customDurationInput.value = '';
+            } else {
+                alert('Please enter a card name');
+            }
+        })
     }
 
     function createTimersWithDelay(cardNames, delay = 100) {
