@@ -309,6 +309,116 @@
             text-align: center;
             padding: 8px;
         }
+        .fav-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .fav-modal[hidden] { display: none; }
+        .fav-modal-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+        }
+        .fav-modal-panel {
+            position: relative;
+            background: #1e1e1e;
+            padding: 24px;
+            border-radius: 8px;
+            min-width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            border: 1px solid #444;
+        }
+        .fav-modal-title {
+            font-size: 18px;
+            color: #e0e0e0;
+            text-align: center;
+        }
+        .fav-input {
+            background: #2c2c2c;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 8px 10px;
+            font-size: 14px;
+            outline: none;
+        }
+        .fav-input:focus { border-color: #6cf; }
+        .fav-modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        .fav-modal-actions button {
+            padding: 6px 16px;
+            background: #2c2c2c;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .fav-modal-actions button:hover { background: #3a3a3a; }
+        .fav-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            max-height: 280px;
+            overflow-y: auto;
+            min-width: 320px;
+        }
+        .fav-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 10px;
+            color: #e0e0e0;
+            font-size: 14px;
+            border-radius: 4px;
+            gap: 8px;
+        }
+        .fav-list-item:hover { background: #2c2c2c; }
+        .fav-name {
+            flex: 1;
+            cursor: pointer;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .fav-name:hover { color: #6cf; }
+        .fav-load-btn {
+            background: transparent;
+            color: #6cf;
+            border: 1px solid #444;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 3px;
+        }
+        .fav-load-btn:hover { background: #2c2c2c; }
+        .fav-delete-btn {
+            background: transparent;
+            color: #c66;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 0 8px;
+            line-height: 1;
+        }
+        .fav-delete-btn:hover { color: #f88; }
+        .fav-list:empty::before {
+            content: '暂无收藏';
+            color: #666;
+            font-size: 13px;
+            display: block;
+            text-align: center;
+            padding: 8px;
+        }
         #sidePanel {
             position: fixed;
             top: 0;
@@ -379,7 +489,7 @@
         </div>
         <div id="counter" class="counter" hidden></div>
 
-        <div id="hint" class="hint">← → 切换 · 1-3 切 Mode · S 揭示 · E/PgDn 读 EN · Z 全文 · Ctrl+I 背景</div>
+        <div id="hint" class="hint">← → 切换 · 1-3 切 Mode · S 揭示 · E/PgDn 读 EN · Z 全文 · Ctrl+I 背景 · F 收藏 · Alt+F 收藏夹</div>
         <div id="emptyState" class="empty-state">按 Ctrl+V 粘贴 JSON 数据</div>
         <div id="cnModal" class="cn-modal" hidden>
             <div id="cnModalBackdrop" class="cn-modal-backdrop"></div>
@@ -398,6 +508,27 @@
                 </div>
             </div>
             <input type="file" id="bgFileInput" accept="image/png,image/jpeg,image/gif,image/webp,image/bmp" hidden>
+        </div>
+        <div id="favSaveModal" class="fav-modal" hidden>
+            <div id="favSaveBackdrop" class="fav-modal-backdrop"></div>
+            <div class="fav-modal-panel">
+                <div class="fav-modal-title">收藏名称</div>
+                <input id="favSaveInput" class="fav-input" type="text" placeholder="输入名称">
+                <div class="fav-modal-actions">
+                    <button id="favSaveOk">确定</button>
+                    <button id="favSaveCancel">取消</button>
+                </div>
+            </div>
+        </div>
+        <div id="favListModal" class="fav-modal" hidden>
+            <div id="favListBackdrop" class="fav-modal-backdrop"></div>
+            <div class="fav-modal-panel">
+                <div class="fav-modal-title">收藏夹</div>
+                <ul id="favList" class="fav-list"></ul>
+                <div class="fav-modal-actions">
+                    <button id="favListClose">关闭</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -435,9 +566,40 @@
     const bgList = document.getElementById('bgList');
     const bgAddBtn = document.getElementById('bgAddBtn');
     const sidePanel = document.getElementById('sidePanel');
+
+    window.addEventListener('message', async (e) => {
+        if (e.source !== sidePanel.contentWindow) return;
+        const msg = e.data;
+        if (!msg || typeof msg !== 'object') return;
+        if (msg.type === 'load-fav-by-name') {
+            const targetName = (msg.name || '').trim();
+            if (!targetName) return;
+            try {
+                const favs = await getAllFavorites();
+                const match = favs.find(f => f.name === targetName);
+                if (!match) {
+                    showError(`未找到收藏: ${targetName}`);
+                    return;
+                }
+                await loadFavorite(match);
+            } catch (err) {
+                showError(`加载收藏失败: ${err.message || err}`);
+            }
+        }
+    });
+    const favSaveModal = document.getElementById('favSaveModal');
+    const favSaveBackdrop = document.getElementById('favSaveBackdrop');
+    const favSaveInput = document.getElementById('favSaveInput');
+    const favSaveOk = document.getElementById('favSaveOk');
+    const favSaveCancel = document.getElementById('favSaveCancel');
+    const favListModal = document.getElementById('favListModal');
+    const favListBackdrop = document.getElementById('favListBackdrop');
+    const favListEl = document.getElementById('favList');
+    const favListClose = document.getElementById('favListClose');
     let bgImages = [];
     let currentBgId = -1;
     let onlyBgId = -1;
+    let favorites = [];
 
     function copyEntryToClipboard() {
         if (entries.length === 0) return;
@@ -506,6 +668,164 @@
             tx.onerror = () => resolve();
         });
     }
+
+    const FAV_DB_NAME = 'cn2en-json-fav';
+    const FAV_DB_VERSION = 1;
+    const FAV_STORE = 'favorites';
+
+    function openFavDb() {
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.open(FAV_DB_NAME, FAV_DB_VERSION);
+            req.onupgradeneeded = () => {
+                const db = req.result;
+                if (!db.objectStoreNames.contains(FAV_STORE)) {
+                    db.createObjectStore(FAV_STORE, { keyPath: 'id', autoIncrement: true });
+                }
+            };
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+    }
+
+    async function saveFavorite(name, payload) {
+        const db = await openFavDb();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(FAV_STORE, 'readwrite');
+            const store = tx.objectStore(FAV_STORE);
+            const req = store.add({ name, payload, createdAt: Date.now() });
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+    }
+
+    async function getAllFavorites() {
+        const db = await openFavDb();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(FAV_STORE, 'readonly');
+            const req = tx.objectStore(FAV_STORE).getAll();
+            req.onsuccess = () => resolve(req.result || []);
+            req.onerror = () => reject(req.error);
+        });
+    }
+
+    async function deleteFavorite(id) {
+        const db = await openFavDb();
+        return new Promise((resolve) => {
+            const tx = db.transaction(FAV_STORE, 'readwrite');
+            tx.objectStore(FAV_STORE).delete(id);
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => resolve();
+        });
+    }
+
+    function getCurrentJson() {
+        try {
+            return JSON.stringify(entries);
+        } catch {
+            return '';
+        }
+    }
+
+    function openFavSaveModal() {
+        favSaveInput.value = '';
+        favSaveModal.hidden = false;
+        favSaveInput.focus();
+    }
+
+    function closeFavSaveModal() {
+        favSaveModal.hidden = true;
+    }
+
+    async function refreshFavorites() {
+        try {
+            favorites = await getAllFavorites();
+        } catch (err) {
+            console.error('[fav] load failed:', err);
+            favorites = [];
+        }
+        renderFavList();
+    }
+
+    function renderFavList() {
+        favListEl.innerHTML = '';
+        favorites.forEach(fav => {
+            const li = document.createElement('li');
+            li.className = 'fav-list-item';
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'fav-name';
+            nameSpan.textContent = fav.name;
+            nameSpan.title = fav.name;
+            nameSpan.addEventListener('click', () => {
+                navigator.clipboard.writeText(fav.name).catch(() => {});
+            });
+            const loadBtn = document.createElement('button');
+            loadBtn.className = 'fav-load-btn';
+            loadBtn.textContent = '加载';
+            loadBtn.addEventListener('click', () => loadFavorite(fav));
+            const delBtn = document.createElement('button');
+            delBtn.className = 'fav-delete-btn';
+            delBtn.textContent = '×';
+            delBtn.addEventListener('click', async () => {
+                await deleteFavorite(fav.id);
+                await refreshFavorites();
+            });
+            li.appendChild(nameSpan);
+            li.appendChild(loadBtn);
+            li.appendChild(delBtn);
+            favListEl.appendChild(li);
+        });
+    }
+
+    async function loadFavorite(fav) {
+        const payload = fav.payload;
+        if (!Array.isArray(payload)) {
+            showError('收藏数据无效');
+            return;
+        }
+        entries = payload;
+        currentIndex = 0;
+        saveState();
+        render();
+        favListModal.hidden = true;
+    }
+
+    async function openFavListModal() {
+        await refreshFavorites();
+        favListModal.hidden = false;
+    }
+
+    function closeFavListModal() {
+        favListModal.hidden = true;
+    }
+
+    favSaveCancel.addEventListener('click', closeFavSaveModal);
+    favSaveBackdrop.addEventListener('click', closeFavSaveModal);
+    favSaveOk.addEventListener('click', async () => {
+        const name = favSaveInput.value.trim();
+        if (!name) {
+            favSaveInput.focus();
+            return;
+        }
+        const payload = entries;
+        if (!Array.isArray(payload) || payload.length === 0) {
+            showError('当前没有可收藏的 JSON 数据');
+            return;
+        }
+        try {
+            await saveFavorite(name, payload);
+            closeFavSaveModal();
+        } catch (err) {
+            showError(`收藏失败: ${err.message || err}`);
+        }
+    });
+    favSaveInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            favSaveOk.click();
+        }
+    });
+    favListClose.addEventListener('click', closeFavListModal);
+    favListBackdrop.addEventListener('click', closeFavListModal);
 
     function applyBg(dataUrl) {
         if (dataUrl) {
@@ -649,7 +969,15 @@
 
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-            if (!bgModal.hidden) {
+            if (!favSaveModal.hidden) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeFavSaveModal();
+            } else if (!favListModal.hidden) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeFavListModal();
+            } else if (!bgModal.hidden) {
                 e.preventDefault();
                 e.stopPropagation();
                 bgModal.hidden = true;
@@ -658,6 +986,21 @@
                 e.stopPropagation();
                 hideAllCn();
             }
+        }
+        if (!favSaveModal.hidden) {
+            return;
+        }
+        if (e.key === 'f' && e.altKey && !e.ctrlKey && !e.metaKey) {
+            e.preventDefault();
+            e.stopPropagation();
+            openFavListModal();
+            return;
+        }
+        if (e.key === 'f' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+            if (entries.length === 0) return;
+            e.preventDefault();
+            openFavSaveModal();
+            return;
         }
         if (e.key === 'q' && !e.ctrlKey && !e.altKey && !e.metaKey) {
             e.preventDefault();
@@ -987,7 +1330,7 @@
                 hideAllCn();
             }
         }
-        if (!e.ctrlKey && !e.altKey && !e.shiftKey) {
+        if (!e.ctrlKey && !e.altKey && !e.shiftKey && favSaveModal.hidden) {
             if (e.code === 'Digit1' || e.code === 'Numpad1') {
                 e.preventDefault();
                 applyMode(1);

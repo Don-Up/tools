@@ -992,9 +992,6 @@
             })
         } else {
             let name = cardNameInput.value.trim();
-            if (name && !name.includes('{{') && !name.includes('~~') && !name.includes('<br>') && !answerInput.value.trim()) {
-                name = `~${name}~~`;
-            }
             if(name.endsWith("|") && !name.includes("~~")){
                 name = name.replace("|", "^~").replace("|", "~~|").replace("^~", "|~")
             }
@@ -1523,8 +1520,12 @@ ${getName(timer)}
         // e.stopPropagation()
         const timer = timers.find(t => t.id === id);
         if (!timer) return;
-        if (e.button === 0 && e.ctrlKey) {
-            // Middle-click + Alt: open edit modal
+        if (e.button === 0 && e.ctrlKey && e.shiftKey) {
+            e.preventDefault();
+            e.stopPropagation();
+            window.parent?.postMessage({ type: 'load-fav-by-name', name: timer.name }, '*');
+        } else if (e.button === 0 && e.ctrlKey) {
+            // Ctrl click: open edit modal
             e.preventDefault();
             e.stopPropagation()
             openEditModal(id);
