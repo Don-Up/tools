@@ -31,7 +31,7 @@
             gap: 12px;
             margin-bottom: 30px;
             width: 100%;
-            max-width: 700px;
+            max-width: 1600px;
         }
         input[type="text"] {
             flex: 1;
@@ -67,9 +67,170 @@
         button:active {
             transform: scale(0.98);
         }
+        .main-layout {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            width: 100%;
+            max-width: 1600px;
+        }
+        #markerPanel {
+            flex: 0 0 300px;
+            background: #222;
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: calc(100vh - 160px);
+            overflow: hidden;
+        }
+        #markerPanel h3 {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .panel-actions {
+            display: flex;
+            gap: 4px;
+        }
+        .panel-actions button {
+            padding: 4px 10px;
+            font-size: 12px;
+        }
+        .loop-count {
+            width: 50px;
+            padding: 4px 6px;
+            font-size: 12px;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #e0e0e0;
+            text-align: center;
+        }
+        .loop-count:focus {
+            outline: none;
+            border-color: #6cf;
+        }
+        #addMarkerBtn {
+            padding: 8px 12px;
+            font-size: 14px;
+            background: #2a7;
+        }
+        #addMarkerBtn:hover {
+            background: #1a5;
+        }
+        #saveMarkersBtn {
+            background: #d47600;
+        }
+        #saveMarkersBtn:hover {
+            background: #a35b00;
+        }
+        #saveMarkersBtn:disabled {
+            background: #2a4;
+            color: #8f8;
+            cursor: not-allowed;
+            opacity: 0.85;
+        }
+        #saveMarkersBtn:disabled:hover {
+            background: #2a4;
+        }
+        #deleteMarkersBtn {
+            background: #555;
+        }
+        #deleteMarkersBtn:hover {
+            background: #777;
+        }
+        #markerList {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .marker-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 8px;
+            background: #2a2a2a;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .marker-item.looping {
+            background: #3a2a2a;
+            border: 1px solid #ff6666;
+        }
+        .marker-item.is-end {
+            background: #252525;
+            border: 1px dashed #555;
+        }
+        .marker-time {
+            flex: 1;
+            cursor: pointer;
+            font-family: monospace;
+            color: #6cf;
+        }
+        .marker-time:hover {
+            color: #9df;
+        }
+        .marker-loop, .marker-del, .marker-arrow, .marker-fav {
+            padding: 4px 8px;
+            font-size: 12px;
+            background: #444;
+            color: #e0e0e0;
+        }
+        .marker-loop:hover {
+            background: #555;
+        }
+        .marker-loop.active {
+            background: #c62828;
+        }
+        .marker-del {
+            background: #633;
+        }
+        .marker-del:hover {
+            background: #844;
+        }
+        .marker-arrow {
+            padding: 4px 6px;
+            background: #345;
+            color: #fff;
+            font-size: 11px;
+        }
+        .marker-arrow:hover {
+            background: #567;
+        }
+        .marker-fav:hover {
+            background: #555;
+        }
+        .marker-fav.active {
+            color: #f88;
+        }
+        .marker-fav svg {
+            width: 14px;
+            height: 14px;
+            display: block;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 50;
+            stroke-linejoin: round;
+        }
+        .marker-fav.active svg {
+            fill: currentColor;
+            stroke: none;
+        }
         #player {
             width: 100%;
-            max-width: 900px;
+            max-width: 1200px;
             aspect-ratio: 16 / 9;
             border-radius: 12px;
             overflow: hidden;
@@ -84,7 +245,7 @@
         .placeholder {
             display: none;
             width: 100%;
-            max-width: 900px;
+            max-width: 1200px;
             aspect-ratio: 16 / 9;
             border-radius: 12px;
             background: #2a2a2a;
@@ -101,20 +262,33 @@
         .container {
             position: relative;
             width: 100%;
-            max-width: 900px;
+            max-width: 1200px;
         }
     </style>
 </head>
 <body>
-    <h1>YouTube Player</h1>
     <div class="input-group">
         <input type="text" id="urlInput" placeholder="输入 YouTube 视频链接...">
-        <button id="playBtn">播放</button>
-        <button id="pasteBtn">粘贴播放</button>
+        <button id="playBtn">Play</button>
+        <button id="pasteBtn">Paste</button>
     </div>
-    <div class="container">
-        <div id="player"></div>
-        <div id="placeholder" class="placeholder">输入链接后点击播放</div>
+    <div class="main-layout">
+        <div class="container">
+            <div id="player"></div>
+            <div id="placeholder" class="placeholder">输入链接后点击播放</div>
+        </div>
+        <div id="markerPanel">
+            <div class="panel-header">
+                <h3>Markers</h3>
+                <div class="panel-actions">
+                    <input type="number" id="loopCount" class="loop-count" min="0" value="0" title="Loop 次数 (0=无限)">
+                    <button id="saveMarkersBtn">Save</button>
+                    <button id="deleteMarkersBtn">Clear</button>
+                </div>
+            </div>
+            <button id="addMarkerBtn">Add Marker</button>
+            <ul id="markerList"></ul>
+        </div>
     </div>
 
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -187,7 +361,7 @@
 
         function extractVideoId(url) {
             const patterns = [
-                /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\?\/]+)/,
+                /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([^&\?\/]+)/,
                 /^([a-zA-Z0-9_-]{11})$/
             ];
             for (const pattern of patterns) {
@@ -205,9 +379,378 @@
                 alert('请输入有效的 YouTube 链接');
                 return;
             }
+            stopLoopCheck();
+            markers = [{ id: 1, time: 0, looping: false, favorite: false, isEnd: false }];
+            nextMarkerId = 2;
+            isCurrentSaved = false;
+            setSaveButtonState();
+            renderMarkers();
             document.getElementById('placeholder').style.display = 'none';
             player.loadVideoById(videoId);
+            loadMarkersForVideo(videoId).then(() => {
+                tryUpdateEndMarker(6);
+            });
         }
+
+        const YT_DB_NAME = 'youtube-markers';
+        const YT_DB_VERSION = 1;
+        const YT_STORE = 'markers';
+
+        function openYtDb() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(YT_DB_NAME, YT_DB_VERSION);
+                req.onupgradeneeded = () => {
+                    const db = req.result;
+                    if (!db.objectStoreNames.contains(YT_STORE)) {
+                        db.createObjectStore(YT_STORE, { keyPath: 'videoId' });
+                    }
+                };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        async function saveMarkersForVideo(videoId, markerList) {
+            const db = await openYtDb();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(YT_STORE, 'readwrite');
+                tx.objectStore(YT_STORE).put({
+                    videoId,
+                    markers: markerList.filter(m => !m.isEnd).map(m => ({ id: m.id, time: m.time, favorite: !!m.favorite })),
+                    savedAt: Date.now()
+                });
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            });
+        }
+
+        async function loadMarkersFromDb(videoId) {
+            const db = await openYtDb();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(YT_STORE, 'readonly');
+                const req = tx.objectStore(YT_STORE).get(videoId);
+                req.onsuccess = () => resolve(req.result || null);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        async function deleteMarkersForVideo(videoId) {
+            const db = await openYtDb();
+            return new Promise((resolve) => {
+                const tx = db.transaction(YT_STORE, 'readwrite');
+                tx.objectStore(YT_STORE).delete(videoId);
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => resolve();
+            });
+        }
+
+        async function loadMarkersForVideo(videoId) {
+            try {
+                const rec = await loadMarkersFromDb(videoId);
+                if (rec && Array.isArray(rec.markers) && rec.markers.length > 0) {
+                    stopLoopCheck();
+                    markers = rec.markers.map(m => ({ id: m.id, time: m.time, looping: false, favorite: !!m.favorite, isEnd: false }));
+                    nextMarkerId = Math.max(...markers.map(m => m.id)) + 1;
+                    isCurrentSaved = true;
+                    setSaveButtonState();
+                    renderMarkers();
+                }
+            } catch (err) {
+                console.error('[yt] load markers failed:', err);
+            }
+        }
+
+        async function saveCurrentMarkers() {
+            const url = document.getElementById('urlInput').value.trim();
+            const videoId = extractVideoId(url);
+            if (!videoId) {
+                alert('请先输入有效的 YouTube 链接');
+                return;
+            }
+            try {
+                await saveMarkersForVideo(videoId, markers);
+                isCurrentSaved = true;
+                setSaveButtonState();
+            } catch (err) {
+                alert('保存失败: ' + (err.message || err));
+            }
+        }
+
+        async function deleteCurrentMarkers() {
+            stopLoopCheck();
+            markers = [{ id: nextMarkerId++, time: 0, looping: false, favorite: false, isEnd: false }];
+            renderMarkers();
+            const url = document.getElementById('urlInput').value.trim();
+            const videoId = extractVideoId(url);
+            if (videoId) {
+                await deleteMarkersForVideo(videoId);
+            }
+            isCurrentSaved = false;
+            setSaveButtonState();
+            tryUpdateEndMarker(6);
+        }
+
+        let markers = [{ id: 1, time: 0, looping: false }];
+        let nextMarkerId = 2;
+        let loopCheckInterval = null;
+        let loopCount = 0;
+        const savedLoopCount = localStorage.getItem('yt-loop-count');
+        if (savedLoopCount !== null) {
+            const parsed = parseInt(savedLoopCount, 10);
+            if (!isNaN(parsed) && parsed >= 0) {
+                loopCount = parsed;
+            }
+        }
+        document.getElementById('loopCount').value = loopCount;
+        let isCurrentSaved = false;
+        let currentLoopRequestId = 0;
+        const LOOP_TRANSITION_PAUSE_MS = 250;
+
+        function setSaveButtonState() {
+            const btn = document.getElementById('saveMarkersBtn');
+            btn.textContent = isCurrentSaved ? 'Saved' : 'Save';
+            btn.disabled = isCurrentSaved;
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            const tenths = Math.floor((seconds * 10) % 10);
+            return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}:${tenths}`;
+        }
+
+        function updateEndMarker() {
+            if (!player || typeof player.getDuration !== 'function') return false;
+            const duration = player.getDuration();
+            if (!duration || duration <= 0) return false;
+            const endTime = Math.max(0, duration - 0.2);
+            const last = markers[markers.length - 1];
+            if (last && last.isEnd) {
+                if (Math.abs(last.time - endTime) > 0.01) {
+                    last.time = endTime;
+                    renderMarkers();
+                }
+                return true;
+            }
+            markers.push({ id: nextMarkerId++, time: endTime, looping: false, favorite: false, isEnd: true });
+            renderMarkers();
+            return true;
+        }
+
+        function tryUpdateEndMarker(retries) {
+            if (updateEndMarker()) return;
+            if (retries > 0) setTimeout(() => tryUpdateEndMarker(retries - 1), 500);
+        }
+
+        function renderMarkers() {
+            const list = document.getElementById('markerList');
+            list.innerHTML = '';
+            markers.forEach((m, idx) => {
+                const li = document.createElement('li');
+                li.className = 'marker-item' + (m.looping ? ' looping' : '') + (m.isEnd ? ' is-end' : '');
+                const timeSpan = document.createElement('span');
+                timeSpan.className = 'marker-time';
+                timeSpan.textContent = formatTime(m.time);
+                timeSpan.addEventListener('click', () => {
+                    player.seekTo(m.time, true);
+                });
+                const leftBtn = document.createElement('button');
+                leftBtn.className = 'marker-arrow';
+                leftBtn.textContent = '◀';
+                leftBtn.title = '减少 0.1 秒';
+                leftBtn.addEventListener('click', () => adjustMarkerTime(idx, -0.1));
+                const rightBtn = document.createElement('button');
+                rightBtn.className = 'marker-arrow';
+                rightBtn.textContent = '▶';
+                rightBtn.title = '增加 0.1 秒';
+                rightBtn.addEventListener('click', () => adjustMarkerTime(idx, 0.1));
+                const favBtn = document.createElement('button');
+                favBtn.className = 'marker-fav' + (m.favorite ? ' active' : '');
+                favBtn.title = m.favorite ? '取消收藏' : '收藏';
+                favBtn.innerHTML = '<svg viewBox="0 0 1024 1024"><path d="M832.8 63.9H191.2c-17.8 0-32.3 14.5-32.3 32.3V878c0 23.3 23.9 38.9 45.3 29.6L489.8 782l331.4 128.4c21.2 8.2 44-7.4 44-30.1V96.2c-0.1-17.9-14.5-32.3-32.4-32.3z"></path></svg>';
+                favBtn.addEventListener('click', () => toggleFavorite(idx));
+                const loopBtn = document.createElement('button');
+                loopBtn.className = 'marker-loop' + (m.looping ? ' active' : '');
+                loopBtn.textContent = 'Loop';
+                if (idx === 0) {
+                    loopBtn.disabled = true;
+                    loopBtn.style.opacity = '0.4';
+                    loopBtn.style.cursor = 'not-allowed';
+                } else {
+                    loopBtn.addEventListener('click', () => toggleLoop(idx));
+                }
+                const delBtn = document.createElement('button');
+                delBtn.className = 'marker-del';
+                delBtn.textContent = 'Del';
+                if (idx === 0 || m.isEnd) {
+                    delBtn.disabled = true;
+                    delBtn.style.opacity = '0.4';
+                    delBtn.style.cursor = 'not-allowed';
+                } else {
+                    delBtn.addEventListener('click', () => deleteMarker(idx));
+                }
+                li.appendChild(timeSpan);
+                li.appendChild(leftBtn);
+                li.appendChild(rightBtn);
+                li.appendChild(favBtn);
+                li.appendChild(loopBtn);
+                li.appendChild(delBtn);
+                list.appendChild(li);
+            });
+        }
+
+        function adjustMarkerTime(idx, delta) {
+            const m = markers[idx];
+            if (!m) return;
+            const newTime = m.time + delta;
+            const snapped = delta < 0
+                ? Math.floor(newTime * 10) / 10
+                : Math.ceil(newTime * 10) / 10;
+            m.time = Math.max(0, snapped);
+            isCurrentSaved = false;
+            setSaveButtonState();
+            renderMarkers();
+            persistMarkers();
+        }
+
+        async function persistMarkers() {
+            const url = document.getElementById('urlInput').value.trim();
+            const videoId = extractVideoId(url);
+            if (!videoId) return;
+            try {
+                await saveMarkersForVideo(videoId, markers);
+            } catch (err) {
+                console.error('[yt] auto-save failed:', err);
+            }
+        }
+
+        function toggleFavorite(idx) {
+            const m = markers[idx];
+            if (!m) return;
+            m.favorite = !m.favorite;
+            isCurrentSaved = false;
+            setSaveButtonState();
+            renderMarkers();
+            persistMarkers();
+        }
+
+        function addMarker() {
+            if (!playerReady) return;
+            const time = Math.max(0, player.getCurrentTime() - 0.2);
+            const newMarker = { id: nextMarkerId++, time, looping: false, favorite: false, isEnd: false };
+            const endIdx = markers.findIndex(m => m.isEnd);
+            if (endIdx >= 0) {
+                markers.splice(endIdx, 0, newMarker);
+            } else {
+                markers.push(newMarker);
+            }
+            isCurrentSaved = false;
+            setSaveButtonState();
+            renderMarkers();
+        }
+
+        function deleteMarker(idx) {
+            const m = markers[idx];
+            if (!m || m.isEnd) return;
+            if (m.looping) {
+                stopLoopCheck();
+            }
+            markers.splice(idx, 1);
+            if (markers.length === 0) {
+                markers.push({ id: nextMarkerId++, time: 0, looping: false, favorite: false, isEnd: false });
+            }
+            isCurrentSaved = false;
+            setSaveButtonState();
+            renderMarkers();
+        }
+
+        function toggleLoop(idx) {
+            currentLoopRequestId++;
+            if (markers[idx].looping) {
+                stopLoopCheck();
+                markers[idx].looping = false;
+                renderMarkers();
+                return;
+            }
+            startLoopAt(idx);
+        }
+
+        function pauseAndTransition(callback) {
+            const myId = ++currentLoopRequestId;
+            if (loopCheckInterval) {
+                clearInterval(loopCheckInterval);
+                loopCheckInterval = null;
+            }
+            player.pauseVideo();
+            setTimeout(() => {
+                if (myId !== currentLoopRequestId) return;
+                callback();
+            }, LOOP_TRANSITION_PAUSE_MS);
+        }
+
+        function startLoopAt(idx) {
+            if (idx < 1 || idx >= markers.length) {
+                stopLoopCheck();
+                markers.forEach(m => m.looping = false);
+                renderMarkers();
+                return;
+            }
+            if (loopCheckInterval) {
+                clearInterval(loopCheckInterval);
+                loopCheckInterval = null;
+            }
+            const startMarker = markers[idx - 1];
+            const endMarker = markers[idx];
+            markers.forEach(m => m.looping = false);
+            markers[idx].looping = true;
+            renderMarkers();
+            player.seekTo(startMarker.time, true);
+            player.playVideo();
+
+            const isInfinite = loopCount === 0;
+            const totalPlays = isInfinite ? null : loopCount + 1;
+            let playsDone = 0;
+
+            function loopCheck() {
+                const start = startMarker.time;
+                const end = endMarker.time;
+                if (start >= end) return;
+                if (player.getCurrentTime() >= end) {
+                    playsDone++;
+                    const shouldReplay = isInfinite || playsDone < totalPlays;
+                    pauseAndTransition(() => {
+                        if (!markers[idx] || !markers[idx].looping) return;
+                        if (shouldReplay) {
+                            player.seekTo(start, true);
+                            player.playVideo();
+                            loopCheckInterval = setInterval(loopCheck, 200);
+                        } else {
+                            startLoopAt(idx + 1);
+                        }
+                    });
+                }
+            }
+
+            loopCheckInterval = setInterval(loopCheck, 200);
+        }
+
+        function stopLoopCheck() {
+            if (loopCheckInterval) {
+                clearInterval(loopCheckInterval);
+                loopCheckInterval = null;
+            }
+        }
+
+        document.getElementById('addMarkerBtn').addEventListener('click', addMarker);
+        document.getElementById('saveMarkersBtn').addEventListener('click', saveCurrentMarkers);
+        document.getElementById('deleteMarkersBtn').addEventListener('click', deleteCurrentMarkers);
+        document.getElementById('loopCount').addEventListener('input', (e) => {
+            const v = parseInt(e.target.value, 10);
+            loopCount = isNaN(v) || v < 0 ? 0 : v;
+            localStorage.setItem('yt-loop-count', String(loopCount));
+        });
+        renderMarkers();
+        setSaveButtonState();
     </script>
 </body>
 </html>
