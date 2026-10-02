@@ -1436,7 +1436,7 @@
             document.body.classList.toggle('side-panel-open', shown);
             if (shown) postCnEnToChild();
         }
-        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyV') {
+        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyV' && favSaveModal.hidden) {
             e.preventDefault();
             try {
                 const text = await navigator.clipboard.readText();
@@ -1461,7 +1461,7 @@
             enShown = !enShown;
             enText.style.visibility = enShown ? "visible" : "hidden"
         }
-        if (!e.ctrlKey && !e.altKey && !e.shiftKey && e.code === 'KeyZ') {
+        if (!e.ctrlKey && !e.altKey && !e.shiftKey && e.code === 'KeyZ' && favSaveModal.hidden) {
             if (entries.length === 0) return;
             if (cnModal.hidden) {
                 showAllCn();
