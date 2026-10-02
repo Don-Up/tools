@@ -332,6 +332,7 @@
             document.body.addEventListener('click', () => {
                 document.body.focus();
             });
+            restoreLastVideo();
         }
 
         document.addEventListener('keydown', (e) => {
@@ -371,7 +372,7 @@
             return null;
         }
 
-        function loadVideo() {
+        function loadVideo(autoplay = true) {
             if (!playerReady) return;
             const url = document.getElementById('urlInput').value.trim();
             const videoId = extractVideoId(url);
@@ -386,10 +387,22 @@
             setSaveButtonState();
             renderMarkers();
             document.getElementById('placeholder').style.display = 'none';
-            player.loadVideoById(videoId);
+            if (autoplay) {
+                player.loadVideoById(videoId);
+            } else {
+                player.cueVideoById(videoId);
+            }
+            localStorage.setItem('yt-last-video-id', videoId);
             loadMarkersForVideo(videoId).then(() => {
                 tryUpdateEndMarker(6);
             });
+        }
+
+        function restoreLastVideo() {
+            const lastId = localStorage.getItem('yt-last-video-id');
+            if (!lastId) return;
+            document.getElementById('urlInput').value = lastId;
+            loadVideo(false);
         }
 
         const YT_DB_NAME = 'youtube-markers';
