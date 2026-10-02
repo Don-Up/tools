@@ -819,11 +819,11 @@
             if (!playerReady) return;
             const time = Math.max(0, player.getCurrentTime() - 0.2);
             const newMarker = { id: nextMarkerId++, time, looping: false, favorite: false, isEnd: false };
-            const endIdx = markers.findIndex(m => m.isEnd);
-            if (endIdx >= 0) {
-                markers.splice(endIdx, 0, newMarker);
-            } else {
+            const insertIdx = markers.findIndex(m => m.time > time);
+            if (insertIdx === -1) {
                 markers.push(newMarker);
+            } else {
+                markers.splice(insertIdx, 0, newMarker);
             }
             renderMarkers();
             persistMarkers();
