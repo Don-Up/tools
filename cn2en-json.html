@@ -534,7 +534,7 @@
         <div id="favSaveModal" class="fav-modal" hidden>
             <div id="favSaveBackdrop" class="fav-modal-backdrop"></div>
             <div class="fav-modal-panel">
-                <div class="fav-modal-title">收藏名称</div>
+                <div id="favSaveTitle" class="fav-modal-title">收藏名称</div>
                 <input id="favSaveInput" class="fav-input" type="text" placeholder="输入名称">
                 <div class="fav-modal-actions">
                     <button id="favSaveOk">确定</button>
@@ -614,6 +614,7 @@
     const favSaveInput = document.getElementById('favSaveInput');
     const favSaveOk = document.getElementById('favSaveOk');
     const favSaveCancel = document.getElementById('favSaveCancel');
+    const favSaveTitle = document.getElementById('favSaveTitle');
     const favListModal = document.getElementById('favListModal');
     const favListBackdrop = document.getElementById('favListBackdrop');
     const favListEl = document.getElementById('favList');
@@ -624,6 +625,9 @@
     let onlyBgId = -1;
     let favorites = [];
     let currentFavName = null;
+    let currentFavId = null;
+    let favModalMode = 'save';
+    let favRenameId = null;
 
     function copyEntryToClipboard() {
         if (entries.length === 0) return;
@@ -801,6 +805,24 @@
         });
     }
 
+    async function updateFavorite(id, updates) {
+        const db = await openFavDb();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(FAV_STORE, 'readwrite');
+            const store = tx.objectStore(FAV_STORE);
+            const getReq = store.get(id);
+            getReq.onsuccess = () => {
+                const fav = getReq.result;
+                if (!fav) return resolve(null);
+                const updated = { ...fav, ...updates };
+                const putReq = store.put(updated);
+                putReq.onsuccess = () => resolve(putReq.result);
+                putReq.onerror = () => reject(putReq.error);
+            };
+            getReq.onerror = () => reject(getReq.error);
+        });
+    }
+
     async function getAllFavorites() {
         const db = await openFavDb();
         return new Promise((resolve, reject) => {
@@ -841,12 +863,27 @@
 
     function openFavSaveModal() {
         favSaveInput.value = '';
+        favModalMode = 'save';
+        favSaveTitle.textContent = '收藏名称';
         favSaveModal.hidden = false;
         favSaveInput.focus();
     }
 
+    function openFavRenameModal() {
+        if (!currentFavId) return;
+        favSaveInput.value = currentFavName;
+        favRenameId = currentFavId;
+        favModalMode = 'rename';
+        favSaveTitle.textContent = '重命名';
+        favSaveModal.hidden = false;
+        favSaveInput.focus();
+        favSaveInput.select();
+    }
+
     function closeFavSaveModal() {
         favSaveModal.hidden = true;
+        favModalMode = 'save';
+        favRenameId = null;
     }
 
     async function refreshFavorites() {
@@ -901,7 +938,7 @@
         saveState();
         render();
         favListModal.hidden = true;
-        setFavStatus(fav.name);
+        setFavStatus(fav);
     }
 
     async function updateFavStatus() {
@@ -911,22 +948,29 @@
         }
         const hash = hashEntries(entries);
         const match = await findFavoriteByHash(hash);
-        setFavStatus(match ? match.name : null);
+        setFavStatus(match);
     }
 
-    function setFavStatus(name) {
-        currentFavName = name;
-        if (name) {
-            favStatus.textContent = `已收藏(${name})`;
+    function setFavStatus(fav) {
+        if (fav) {
+            currentFavId = fav.id;
+            currentFavName = fav.name;
+            favStatus.textContent = `已收藏(${fav.name})`;
             favStatus.hidden = false;
         } else {
+            currentFavId = null;
+            currentFavName = null;
             favStatus.textContent = '';
             favStatus.hidden = true;
         }
     }
 
-    favStatus.addEventListener('click', () => {
+    favStatus.addEventListener('click', (e) => {
         if (!currentFavName) return;
+        if (e.altKey) {
+            openFavRenameModal();
+            return;
+        }
         sidePanel.contentWindow?.postMessage(
             { type: 'cn-en', content: currentFavName },
             '*'
@@ -950,15 +994,29 @@
             favSaveInput.focus();
             return;
         }
+        if (favModalMode === 'rename') {
+            try {
+                await updateFavorite(favRenameId, { name });
+                await refreshFavorites();
+                const updated = favorites.find(f => f.id === favRenameId);
+                closeFavSaveModal();
+                setFavStatus(updated || { id: favRenameId, name });
+            } catch (err) {
+                showError(`重命名失败: ${err.message || err}`);
+            }
+            return;
+        }
         const payload = entries;
         if (!Array.isArray(payload) || payload.length === 0) {
             showError('当前没有可收藏的 JSON 数据');
             return;
         }
         try {
-            await saveFavorite(name, payload);
+            const newId = await saveFavorite(name, payload);
+            await refreshFavorites();
+            const newFav = favorites.find(f => f.id === newId);
             closeFavSaveModal();
-            setFavStatus(name);
+            setFavStatus(newFav || { name });
         } catch (err) {
             showError(`收藏失败: ${err.message || err}`);
         }
