@@ -163,6 +163,19 @@
             overflow: auto;
             height: 100vh;
         }
+        #sidePanel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 40vw;
+            height: 100vh;
+            border: none;
+            background: #121212;
+            z-index: 50;
+            display: none;
+        }
+        #sidePanel.shown { display: block; }
+        body.side-panel-open { padding-right: 40vw; }
 
         .controls {
             /* 设置controls为fixed以使其固定在页面顶部 */
@@ -514,6 +527,8 @@
      style="object-fit: cover;position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;">
 
 <audio id="soundFX" src="mp3/bounce.mp3"></audio>
+
+<iframe id="sidePanel" src="https://don-up.github.io/tools/card-timer"></iframe>
 
 <script>
     let isPlaying = false;
@@ -1446,7 +1461,7 @@
     let selectionMode = false
 
     document.addEventListener("keyup", (event) => {
-        if (event.code === "KeyQ" || event.code === "KeyA" || event.code === "KeyS") {
+        if (event.code === "KeyA" || event.code === "KeyS") {
             selectionMode = false
             if (event.code === "KeyA" || event.code === "KeyS") {
                 const selection = window.getSelection()
@@ -1463,45 +1478,28 @@
         // console.log("Keydown event:", event.code)
         switch (event.code) {
             case "KeyW":
-                document.querySelectorAll(".first").forEach(first => {
-                    if (first.classList.contains("word")) {
-                        first.classList.remove("word")
-                    } else {
-                        first.classList.add("word")
+                if (!event.ctrlKey && !event.altKey && !event.metaKey) {
+                    event.preventDefault();
+                    const sel = window.getSelection()?.toString().trim();
+                    if (sel) {
+                        sidePanel.contentWindow?.postMessage(
+                            { type: 'cn-en-append', content: sel },
+                            '*'
+                        );
                     }
-                })
+                }
                 break
             case "KeyE":
-
-                Array.from(document.querySelectorAll(".text-block")).filter(textBlock => textBlock.textContent !== "").forEach(/** @param {HTMLElement} textBlock */textBlock => {
-                    if (!textBlock.classList.contains("mask-container")) {
-                        textBlock.classList.add("mask-container")
-                        let nextElement = textBlock.nextElementSibling.tagName === "BLOCKQUOTE" ? textBlock.nextElementSibling : textBlock.nextElementSibling.nextElementSibling
-                        const tip = textBlock.textContent
-                            .replaceAll("(：", "")
-                            .replaceAll(")：", "").trim()
-                            .replace(/\[.*?\]/g, '')
-                            .replace(/[\u4e00-\u9fff]/g, "")
-                            .replace(/、/g, "")
-                            .split(" ").map((word, index) => {
-                                if (index === 0) return word
-                                const end = (word.endsWith(",") ? "," : (word.endsWith(".") ? "." : (word.endsWith("?") ? "?" : (word.endsWith("!") ? "!" : (word.endsWith("!") ? "!" : (word.endsWith(":") ? ":" : ""))))))
-                                return ["...", "the", "...,", "and", "of", "or"]
-                                    .includes(word) ? word : (end ? `<span class="word" style="color: #b0b0b0;background: #2f363d;">${word.slice(0, word.length - 1)}</span>` : `<div class="word" style="color: #b0b0b0;background: #2f363d;">${word.slice(0, word.length)}</div>`) + end
-                            })
-                            .join(" ")
-                        nextElement.innerHTML = `${nextElement.textContent}<br><div style="margin-top: 15px;margin-bottom: 4px;line-height: 1.2">${tip}</div>`
-                        // class="mask-container" style="font-size: 18px;margin-top: 10px;margin-bottom: 6px;cursor: none"
-                    } else {
-                        textBlock.classList.remove("mask-container")
-                        let nextElement = textBlock.nextElementSibling
-
-                        if (nextElement.tagName !== "BLOCKQUOTE") {
-                            nextElement = nextElement.nextElementSibling
-                        }
-                        nextElement.textContent = nextElement.innerHTML.split("<br>")[0]
+                if (!event.ctrlKey && !event.altKey && !event.metaKey) {
+                    event.preventDefault();
+                    const sel = window.getSelection()?.toString().trim();
+                    if (sel) {
+                        sidePanel.contentWindow?.postMessage(
+                            { type: 'cn-en-br', content: sel },
+                            '*'
+                        );
                     }
-                })
+                }
                 break
             case "KeyG":
                 Array.from(document.querySelectorAll(".text-block")).filter(textBlock => textBlock.textContent !== "").forEach(/** @param {HTMLElement} textBlock */textBlock => {
@@ -1534,35 +1532,16 @@
                 })
                 break
             case "KeyQ":
-                Array.from(document.querySelectorAll(".text-block")).filter(textBlock => textBlock.textContent !== "").forEach(/** @param {HTMLElement} textBlock */textBlock => {
-                    if (!textBlock.classList.contains("mask-container")) {
-                        textBlock.classList.add("mask-container")
-                        let nextElement = textBlock.nextElementSibling.tagName === "BLOCKQUOTE" ? textBlock.nextElementSibling : textBlock.nextElementSibling.nextElementSibling
-                        const tip = textBlock.textContent
-                            .replaceAll("(：", "")
-                            .replaceAll(")：", "").trim()
-                            .replace(/\[.*?\]/g, '')
-                            .replace(/[\u4e00-\u9fff]/g, "")
-                            .replace(/、/g, "")
-                            .split(" ").map(word => {
-                                const end = (word.endsWith(",") ? "," : (word.endsWith(".") ? "." : (word.endsWith("?") ? "?" : (word.endsWith("!") ? "!" : (word.endsWith("!") ? "!" : (word.endsWith(":") ? ":" : ""))))))
-                                return ["...", "the", "...,", "and"]
-                                    .includes(word) ? word : (`<span class="first">${word[0]}</span>` || "") + (word.length === 2 ? (`<span class="first">${word[1]}</span>` || "") : (end ? `<span class="word" style="color: #b0b0b0;background: #2f363d;">${word.slice(1, word.length - 1)}</span>` : `<div class="word" style="color: #b0b0b0;background: #2f363d;">${word.slice(1, word.length)}</div>`) + end)
-                                // .includes(word)?word:(word[0]||"")+(word.length<=2?(word[1]||""):(end?"_".repeat(Math.min(Math.ceil(word.length)/2+1, word.length-1)):"_".repeat(Math.min(Math.ceil(word.length)/2+1, word.length-1)))+end)
-                            })
-                            .join(" ")
-                        nextElement.innerHTML = `${nextElement.textContent}<br><div style="margin-top: 15px;margin-bottom: 4px;line-height: 1.2">${tip}</div>`
-                        // class="mask-container" style="font-size: 18px;margin-top: 10px;margin-bottom: 6px;cursor: none"
-                    } else {
-                        textBlock.classList.remove("mask-container")
-                        let nextElement = textBlock.nextElementSibling
-
-                        if (nextElement.tagName !== "BLOCKQUOTE") {
-                            nextElement = nextElement.nextElementSibling
-                        }
-                        nextElement.textContent = nextElement.innerHTML.split("<br>")[0]
+                if (!event.ctrlKey && !event.altKey && !event.metaKey) {
+                    event.preventDefault();
+                    const sel = window.getSelection()?.toString().trim();
+                    if (sel) {
+                        sidePanel.contentWindow?.postMessage(
+                            { type: 'cn-en-q', content: sel },
+                            '*'
+                        );
                     }
-                })
+                }
                 break
             case "KeyR":
                 playText(window.getSelection().toString(), null, false, false, true)
@@ -1788,6 +1767,15 @@
 
             // Render the diagram
             mermaid.init(undefined, `#mermaid-diagram-${index}`);
+        }
+    });
+
+    const sidePanel = document.getElementById('sidePanel');
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyO') {
+            e.preventDefault();
+            const shown = sidePanel.classList.toggle('shown');
+            document.body.classList.toggle('side-panel-open', shown);
         }
     });
 </script>
