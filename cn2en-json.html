@@ -1063,7 +1063,7 @@
         if (entries.length === 0) return;
         const [cn, en] = entries[currentIndex];
         sidePanel.contentWindow?.postMessage(
-            { type: 'cn-en', content: `${cn}<br>\n${en}` },
+            { type: 'cn-en-no-focus', content: `${cn}<br>\n${en}` },
             '*'
         );
     }

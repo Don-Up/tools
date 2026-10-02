@@ -1804,6 +1804,12 @@ ${getName(timer)}
                 inp.focus();
             }
         }
+        if (e.data?.type === 'cn-en-no-focus' && e.data.content) {
+            const inp = document.getElementById('cardNameInput');
+            if (inp) {
+                inp.value = e.data.content;
+            }
+        }
         if (e.data?.type === 'cn-en-q' && e.data.content) {
             const inp = document.getElementById('cardNameInput');
             if (inp) {
