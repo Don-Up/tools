@@ -341,6 +341,7 @@
             flex-direction: column;
             gap: 14px;
             border: 1px solid #444;
+            margin: 0 20px;
         }
         .fav-modal-title {
             font-size: 18px;
@@ -455,6 +456,32 @@
         #sidePanel.shown { display: block; }
         body.side-panel-open { padding-right: 40vw; }
         #card { width: 100%; }
+        .note-display {
+            margin-top: 14px;
+            padding: 10px 14px;
+            background: rgba(240, 192, 64, 0.12);
+            border-left: 3px solid #f0c040;
+            border-radius: 4px;
+            color: #ffe9b3;
+            font-size: 14px;
+            line-height: 1.55;
+            max-height: 120px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .fav-input.note-textarea {
+            width: 380px;
+            max-width: 100%;
+            box-sizing: border-box;
+            min-height: 90px;
+            resize: vertical;
+            font-family: inherit;
+            line-height: 1.5;
+            padding: 10px 12px;
+            margin: 0 auto;
+            display: block;
+        }
         .cn-modal-panel::-webkit-scrollbar {
             width: 10px;
         }
@@ -509,10 +536,11 @@
         <div id="textStage">
             <div id="cnText" class="cn-text" hidden></div>
             <div id="enText" class="en-text" hidden></div>
+            <div id="noteDisplay" class="note-display" hidden></div>
         </div>
         <div id="counter" class="counter" hidden></div>
 
-        <div id="hint" class="hint">← → 切换 · 1-3 切 Mode · S 揭示 · E/PgDn 读 EN · Z 全文 · Ctrl+I 背景 · F 收藏 · Alt+F 收藏夹</div>
+        <div id="hint" class="hint">Ctrl+V 粘贴 · ← → 切换 · 1-3 切 Mode · S 揭示 · E/PgDn 读 EN · Z 全文 · N 笔记 · F 收藏 · Alt+F 收藏夹 · Ctrl+I 背景</div>
         <div id="emptyState" class="empty-state">按 Ctrl+V 粘贴 JSON 数据</div>
         <div id="cnModal" class="cn-modal" hidden>
             <div id="cnModalBackdrop" class="cn-modal-backdrop"></div>
@@ -550,6 +578,18 @@
                 <ul id="favList" class="fav-list"></ul>
                 <div class="fav-modal-actions">
                     <button id="favListClose">关闭</button>
+                </div>
+            </div>
+        </div>
+        <div id="noteModal" class="fav-modal" hidden>
+            <div id="noteBackdrop" class="fav-modal-backdrop"></div>
+            <div class="fav-modal-panel">
+                <div class="fav-modal-title">笔记 · 第 <span id="noteIndexLabel"></span> 句</div>
+                <textarea id="noteInput" class="fav-input note-textarea" placeholder="为当前句子添加笔记..."></textarea>
+                <div class="fav-modal-actions">
+                    <button id="noteOk">保存</button>
+                    <button id="noteDelete">删除</button>
+                    <button id="noteCancel">取消</button>
                 </div>
             </div>
         </div>
@@ -621,6 +661,14 @@
     const favListEl = document.getElementById('favList');
     const favListClose = document.getElementById('favListClose');
     const favStatus = document.getElementById('favStatus');
+    const noteModal = document.getElementById('noteModal');
+    const noteBackdrop = document.getElementById('noteBackdrop');
+    const noteInput = document.getElementById('noteInput');
+    const noteOk = document.getElementById('noteOk');
+    const noteDelete = document.getElementById('noteDelete');
+    const noteCancel = document.getElementById('noteCancel');
+    const noteIndexLabel = document.getElementById('noteIndexLabel');
+    const noteDisplay = document.getElementById('noteDisplay');
     let bgImages = [];
     let currentBgId = -1;
     let onlyBgId = -1;
@@ -863,11 +911,19 @@
     }
 
     function openFavSaveModal() {
-        favSaveInput.value = '';
-        favModalMode = 'save';
-        favSaveTitle.textContent = '收藏名称';
+        if (currentFavId) {
+            favSaveInput.value = currentFavName || '';
+            favRenameId = currentFavId;
+            favModalMode = 'rename';
+            favSaveTitle.textContent = '修改名称';
+        } else {
+            favSaveInput.value = '';
+            favModalMode = 'save';
+            favSaveTitle.textContent = '收藏名称';
+        }
         favSaveModal.hidden = false;
         favSaveInput.focus();
+        favSaveInput.select();
     }
 
     function openFavRenameModal() {
@@ -939,6 +995,9 @@
         saveState();
         render();
         favListModal.hidden = true;
+        if (!favorites.find(f => f.id === fav.id)) {
+            favorites.push(fav);
+        }
         setFavStatus(fav);
     }
 
@@ -958,6 +1017,9 @@
             currentFavName = fav.name;
             favStatus.textContent = `已收藏(${fav.name})`;
             favStatus.hidden = false;
+            if (!favorites.find(f => f.id === fav.id)) {
+                favorites.push(fav);
+            }
         } else {
             currentFavId = null;
             currentFavName = null;
@@ -985,6 +1047,104 @@
 
     function closeFavListModal() {
         favListModal.hidden = true;
+    }
+
+    function getCurrentNote() {
+        if (!currentFavId) return null;
+        const fav = favorites.find(f => f.id === currentFavId);
+        if (!fav || !Array.isArray(fav.notes)) return null;
+        const hit = fav.notes.find(n => n.index === currentIndex);
+        return hit ? hit.note : null;
+    }
+
+    function renderNote() {
+        const note = getCurrentNote();
+        if (!note) {
+            noteDisplay.textContent = '';
+            noteDisplay.hidden = true;
+            return;
+        }
+        const isMaskedMode = currentMode === 2 || currentMode === 3;
+        const isRevealed = currentMode === 1 || enRevealed;
+        noteDisplay.textContent = isRevealed ? note : '💡';
+        noteDisplay.hidden = false;
+    }
+
+    function openNoteModal() {
+        if (!currentFavId) {
+            showError('请先加载收藏');
+            return;
+        }
+        if (!Array.isArray(entries) || entries.length === 0) {
+            showError('当前没有句子');
+            return;
+        }
+        noteInput.value = getCurrentNote() || '';
+        noteIndexLabel.textContent = `${currentIndex + 1}/${entries.length}`;
+        noteModal.hidden = false;
+        setTimeout(() => { noteInput.focus(); }, 0);
+    }
+
+    function closeNoteModal() {
+        noteModal.hidden = true;
+    }
+
+    async function persistNotesForCurrent(notes) {
+        if (!currentFavId) return;
+        const fav = favorites.find(f => f.id === currentFavId);
+        if (!fav) return;
+        fav.notes = notes;
+        try {
+            await updateFavorite(currentFavId, { notes });
+        } catch (err) {
+            showError(`保存笔记失败: ${err.message || err}`);
+            throw err;
+        }
+    }
+
+    async function saveNote() {
+        if (!currentFavId) {
+            showError('请先加载收藏');
+            return;
+        }
+        const fav = favorites.find(f => f.id === currentFavId);
+        if (!fav) {
+            console.warn('[note] current favorite not in local cache', currentFavId);
+            showError('当前收藏未加载,请重新打开收藏');
+            return;
+        }
+        const text = noteInput.value;
+        let notes = Array.isArray(fav.notes) ? [...fav.notes] : [];
+        const idx = notes.findIndex(n => n.index === currentIndex);
+        if (text.trim()) {
+            if (idx >= 0) {
+                notes[idx] = { index: currentIndex, note: text };
+            } else {
+                notes.push({ index: currentIndex, note: text });
+            }
+        } else if (idx >= 0) {
+            notes.splice(idx, 1);
+        }
+        try {
+            await persistNotesForCurrent(notes);
+            renderNote();
+            closeNoteModal();
+        } catch {}
+    }
+
+    async function deleteNote() {
+        if (!currentFavId) return;
+        const fav = favorites.find(f => f.id === currentFavId);
+        if (!fav) {
+            showError('当前收藏未加载');
+            return;
+        }
+        const next = Array.isArray(fav.notes) ? fav.notes.filter(n => n.index !== currentIndex) : [];
+        try {
+            await persistNotesForCurrent(next);
+            renderNote();
+            closeNoteModal();
+        } catch {}
     }
 
     favSaveCancel.addEventListener('click', closeFavSaveModal);
@@ -1030,6 +1190,16 @@
     });
     favListClose.addEventListener('click', closeFavListModal);
     favListBackdrop.addEventListener('click', closeFavListModal);
+    noteOk.addEventListener('click', saveNote);
+    noteDelete.addEventListener('click', deleteNote);
+    noteCancel.addEventListener('click', closeNoteModal);
+    noteBackdrop.addEventListener('click', closeNoteModal);
+    noteInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            noteOk.click();
+        }
+    });
 
     function applyBg(dataUrl) {
         if (dataUrl) {
@@ -1181,6 +1351,10 @@
                 e.preventDefault();
                 e.stopPropagation();
                 closeFavListModal();
+            } else if (!noteModal.hidden) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeNoteModal();
             } else if (!bgModal.hidden) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -1191,7 +1365,7 @@
                 hideAllCn();
             }
         }
-        if (!favSaveModal.hidden) {
+        if (!favSaveModal.hidden || !noteModal.hidden) {
             return;
         }
         if (e.key === 'f' && e.altKey && !e.ctrlKey && !e.metaKey) {
@@ -1337,6 +1511,7 @@
             cnText.hidden = true;
             enText.hidden = true;
             hint.hidden = true;
+            noteDisplay.hidden = true;
             return;
         }
         emptyState.hidden = true;
@@ -1354,6 +1529,7 @@
         } else {
             enText.textContent = maskEnText(en, currentMode === 2);
         }
+        renderNote();
         speakCn();
         if (bgImages.length > 0 && !applyOnlyBg()) pickRandomBg();
         postCnEnToChild();
@@ -1502,7 +1678,7 @@
             document.body.classList.toggle('side-panel-open', shown);
             if (shown) postCnEnToChild();
         }
-        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyV' && favSaveModal.hidden) {
+        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyV' && favSaveModal.hidden && noteModal.hidden) {
             e.preventDefault();
             try {
                 const text = await navigator.clipboard.readText();
@@ -1511,7 +1687,7 @@
                 showError(`剪贴板读取失败: ${err.message || err}`);
             }
         }
-        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyX' && favSaveModal.hidden) {
+        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyX' && favSaveModal.hidden && noteModal.hidden) {
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
             e.preventDefault();
@@ -1533,6 +1709,7 @@
             } else {
                 enText.textContent = maskEnText(entries[currentIndex][1], currentMode === 2);
             }
+            renderNote();
         }
         if (e.code === 'ArrowUp' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
             if (entries.length === 0) return;
@@ -1540,7 +1717,7 @@
             enShown = !enShown;
             enText.style.visibility = enShown ? "visible" : "hidden"
         }
-        if (!e.ctrlKey && !e.altKey && !e.shiftKey && e.code === 'KeyZ' && favSaveModal.hidden) {
+        if (!e.ctrlKey && !e.altKey && !e.shiftKey && e.code === 'KeyZ' && favSaveModal.hidden && noteModal.hidden) {
             if (entries.length === 0) return;
             if (cnModal.hidden) {
                 showAllCn();
@@ -1548,7 +1725,14 @@
                 hideAllCn();
             }
         }
-        if (!e.ctrlKey && !e.altKey && !e.shiftKey && favSaveModal.hidden) {
+        if (!e.ctrlKey && !e.altKey && !e.shiftKey && favSaveModal.hidden && noteModal.hidden) {
+            const tag = e.target.tagName;
+            if (e.code === 'KeyN' && noteModal.hidden && tag !== 'INPUT' && tag !== 'TEXTAREA') {
+                if (entries.length === 0) return;
+                e.preventDefault();
+                openNoteModal();
+                return;
+            }
             if (e.code === 'Digit1' || e.code === 'Numpad1') {
                 e.preventDefault();
                 applyMode(1);
@@ -1663,6 +1847,7 @@
             } else {
                 enText.textContent = maskEnText(entries[currentIndex][1], mode === 2);
             }
+            renderNote();
         }
     }
     modeRadios.forEach(radio => {
