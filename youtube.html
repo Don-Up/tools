@@ -265,6 +265,117 @@
             width: 100%;
             max-width: 1200px;
         }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal-box {
+            background: #1f1f1f;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            min-width: 360px;
+            max-width: 80%;
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .modal-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .modal-input {
+            padding: 10px 12px;
+            font-size: 14px;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #e0e0e0;
+            outline: none;
+        }
+        .modal-input:focus {
+            border-color: #6cf;
+        }
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        .modal-actions button {
+            padding: 8px 16px;
+            font-size: 14px;
+            background: #555;
+        }
+        .modal-actions button.primary {
+            background: #2a7;
+        }
+        .modal-actions button.primary:hover {
+            background: #1a5;
+        }
+        .fav-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            overflow-y: auto;
+            max-height: 60vh;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .fav-list-empty {
+            padding: 16px;
+            color: #888;
+            text-align: center;
+            font-size: 13px;
+            list-style: none;
+        }
+        .fav-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            background: #2a2a2a;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .fav-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        .fav-name:hover {
+            color: #9df;
+        }
+        .fav-play {
+            padding: 4px 10px;
+            font-size: 12px;
+            background: #2a7;
+        }
+        .fav-play:hover {
+            background: #1a5;
+        }
+        .fav-del {
+            padding: 4px 10px;
+            font-size: 12px;
+            background: #633;
+        }
+        .fav-del:hover {
+            background: #844;
+        }
     </style>
 </head>
 <body>
@@ -287,8 +398,29 @@
                     <button id="deleteMarkersBtn">Clear</button>
                 </div>
             </div>
-            <button id="addMarkerBtn">Add Marker</button>
             <ul id="markerList"></ul>
+            <button id="addMarkerBtn">Add Marker</button>
+        </div>
+    </div>
+
+    <div id="favSaveModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title">收藏当前视频</div>
+            <input type="text" id="favNameInput" class="modal-input" placeholder="视频名称">
+            <div class="modal-actions">
+                <button id="favSaveCancel">取消</button>
+                <button id="favSaveConfirm" class="primary">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="favListModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title">收藏夹</div>
+            <ul id="favList" class="fav-list"></ul>
+            <div class="modal-actions">
+                <button id="favListClose">关闭</button>
+            </div>
         </div>
     </div>
 
@@ -352,12 +484,15 @@
                     player.playVideo();
                 }
             } else if (e.key === 'f' || e.key === 'F') {
-                const container = document.getElementById('player');
-                if (document.fullscreenElement) {
-                    document.exitFullscreen();
+                e.preventDefault();
+                if (e.altKey) {
+                    openFavListModal();
                 } else {
-                    container.requestFullscreen();
+                    openFavSaveModal();
                 }
+            } else if (e.key === 'Escape') {
+                closeFavSaveModal();
+                closeFavListModal();
             }
         });
 
@@ -407,8 +542,9 @@
         }
 
         const YT_DB_NAME = 'youtube-markers';
-        const YT_DB_VERSION = 1;
+        const YT_DB_VERSION = 2;
         const YT_STORE = 'markers';
+        const FAV_STORE = 'favorites';
 
         function openYtDb() {
             return new Promise((resolve, reject) => {
@@ -418,9 +554,42 @@
                     if (!db.objectStoreNames.contains(YT_STORE)) {
                         db.createObjectStore(YT_STORE, { keyPath: 'videoId' });
                     }
+                    if (!db.objectStoreNames.contains(FAV_STORE)) {
+                        db.createObjectStore(FAV_STORE, { keyPath: 'id', autoIncrement: true });
+                    }
                 };
                 req.onsuccess = () => resolve(req.result);
                 req.onerror = () => reject(req.error);
+            });
+        }
+
+        async function addFavorite(name, videoId) {
+            const db = await openYtDb();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(FAV_STORE, 'readwrite');
+                const req = tx.objectStore(FAV_STORE).add({ name, videoId, createdAt: Date.now() });
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        async function getAllFavorites() {
+            const db = await openYtDb();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(FAV_STORE, 'readonly');
+                const req = tx.objectStore(FAV_STORE).getAll();
+                req.onsuccess = () => resolve(req.result || []);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        async function deleteFavorite(id) {
+            const db = await openYtDb();
+            return new Promise((resolve) => {
+                const tx = db.transaction(FAV_STORE, 'readwrite');
+                tx.objectStore(FAV_STORE).delete(id);
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => resolve();
             });
         }
 
@@ -606,9 +775,9 @@
                 li.appendChild(timeSpan);
                 li.appendChild(leftBtn);
                 li.appendChild(rightBtn);
-                li.appendChild(favBtn);
                 li.appendChild(loopBtn);
                 li.appendChild(delBtn);
+                li.appendChild(favBtn);
                 list.appendChild(li);
             });
         }
@@ -642,8 +811,6 @@
             const m = markers[idx];
             if (!m) return;
             m.favorite = !m.favorite;
-            isCurrentSaved = false;
-            setSaveButtonState();
             renderMarkers();
             persistMarkers();
         }
@@ -658,9 +825,8 @@
             } else {
                 markers.push(newMarker);
             }
-            isCurrentSaved = false;
-            setSaveButtonState();
             renderMarkers();
+            persistMarkers();
         }
 
         function deleteMarker(idx) {
@@ -673,9 +839,8 @@
             if (markers.length === 0) {
                 markers.push({ id: nextMarkerId++, time: 0, looping: false, favorite: false, isEnd: false });
             }
-            isCurrentSaved = false;
-            setSaveButtonState();
             renderMarkers();
+            persistMarkers();
         }
 
         function toggleLoop(idx) {
@@ -763,6 +928,121 @@
             loopCount = isNaN(v) || v < 0 ? 0 : v;
             localStorage.setItem('yt-loop-count', String(loopCount));
         });
+
+        function openFavSaveModal() {
+            const url = document.getElementById('urlInput').value.trim();
+            const videoId = extractVideoId(url);
+            if (!videoId) {
+                alert('请先加载视频');
+                return;
+            }
+            const input = document.getElementById('favNameInput');
+            input.value = '';
+            const modal = document.getElementById('favSaveModal');
+            modal.classList.add('active');
+            setTimeout(() => { input.focus(); input.select(); }, 0);
+        }
+
+        function closeFavSaveModal() {
+            document.getElementById('favSaveModal').classList.remove('active');
+        }
+
+        async function confirmSaveFavorite() {
+            const input = document.getElementById('favNameInput');
+            const name = input.value.trim();
+            if (!name) {
+                alert('请输入视频名称');
+                return;
+            }
+            const url = document.getElementById('urlInput').value.trim();
+            const videoId = extractVideoId(url);
+            if (!videoId) {
+                alert('请先加载视频');
+                return;
+            }
+            try {
+                await addFavorite(name, videoId);
+                closeFavSaveModal();
+            } catch (err) {
+                alert('保存失败: ' + (err.message || err));
+            }
+        }
+
+        async function openFavListModal() {
+            const modal = document.getElementById('favListModal');
+            const list = document.getElementById('favList');
+            list.innerHTML = '<li class="fav-list-empty">加载中...</li>';
+            modal.classList.add('active');
+            try {
+                const favs = await getAllFavorites();
+                favs.sort((a, b) => b.createdAt - a.createdAt);
+                renderFavList(favs);
+            } catch (err) {
+                list.innerHTML = '<li class="fav-list-empty">加载失败</li>';
+            }
+        }
+
+        function renderFavList(favs) {
+            const list = document.getElementById('favList');
+            list.innerHTML = '';
+            if (favs.length === 0) {
+                list.innerHTML = '<li class="fav-list-empty">收藏夹为空</li>';
+                return;
+            }
+            favs.forEach(fav => {
+                const li = document.createElement('li');
+                li.className = 'fav-item';
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'fav-name';
+                nameSpan.textContent = fav.name;
+                nameSpan.title = fav.name;
+                nameSpan.addEventListener('click', () => {
+                    document.getElementById('urlInput').value = fav.videoId;
+                    loadVideo(true);
+                    closeFavListModal();
+                });
+                const playBtn = document.createElement('button');
+                playBtn.className = 'fav-play';
+                playBtn.textContent = 'Play';
+                playBtn.addEventListener('click', () => {
+                    document.getElementById('urlInput').value = fav.videoId;
+                    loadVideo(true);
+                    closeFavListModal();
+                });
+                const delBtn = document.createElement('button');
+                delBtn.className = 'fav-del';
+                delBtn.textContent = 'Del';
+                delBtn.addEventListener('click', async () => {
+                    await deleteFavorite(fav.id);
+                    openFavListModal();
+                });
+                li.appendChild(nameSpan);
+                li.appendChild(playBtn);
+                li.appendChild(delBtn);
+                list.appendChild(li);
+            });
+        }
+
+        function closeFavListModal() {
+            document.getElementById('favListModal').classList.remove('active');
+        }
+
+        document.getElementById('favSaveConfirm').addEventListener('click', confirmSaveFavorite);
+        document.getElementById('favSaveCancel').addEventListener('click', closeFavSaveModal);
+        document.getElementById('favListClose').addEventListener('click', closeFavListModal);
+        document.getElementById('favNameInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                confirmSaveFavorite();
+            }
+        });
+        document.getElementById('favSaveModal').addEventListener('click', (e) => {
+            if (e.target.id === 'favSaveModal') closeFavSaveModal();
+        });
+        document.getElementById('favListModal').addEventListener('click', (e) => {
+            if (e.target.id === 'favListModal') closeFavListModal();
+        });
+
         renderMarkers();
         setSaveButtonState();
     </script>
