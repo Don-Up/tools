@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>cn2en-json</title>
+    <link rel="icon" type="image/svg+xml" href="cn2en-json-favicon.svg">
+    <title>口语助手</title>
     <style>
         body {
             margin: 0;
@@ -16,6 +17,12 @@
             justify-content: center;
         }
         body > div { margin: 0 auto; }
+
+        rt {
+            font-family: monospace;
+            user-select: none;
+        }
+
         .error-bar {
             position: fixed;
             top: 0;
@@ -1280,7 +1287,7 @@
         hint.hidden = false;
         const [cn, en] = entries[currentIndex];
         counter.textContent = `${currentIndex + 1}/${entries.length}`;
-        cnText.textContent = cn;
+        cnText.innerHTML = cn;
         cnText.classList.toggle('last-entry', currentIndex === entries.length - 1);
         enRevealed = false;
         if (currentMode === 1) {
@@ -1443,6 +1450,19 @@
                 parseAndLoad(text);
             } catch (err) {
                 showError(`剪贴板读取失败: ${err.message || err}`);
+            }
+        }
+        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyX' && favSaveModal.hidden) {
+            const tag = e.target.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+            e.preventDefault();
+            const sel = window.getSelection()?.toString();
+            if (!sel) return;
+            try {
+                const cur = await navigator.clipboard.readText();
+                await navigator.clipboard.writeText(cur ? cur + ' ' + sel : sel);
+            } catch (err) {
+                showError(`剪贴板追加失败: ${err.message || err}`);
             }
         }
         if (e.code === 'ArrowDown' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
