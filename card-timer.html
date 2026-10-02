@@ -1798,7 +1798,10 @@ ${getName(timer)}
     window.addEventListener('message', (e) => {
         if (e.data?.type === 'cn-en' && e.data.content) {
             const inp = document.getElementById('cardNameInput');
-            if (inp) inp.value = e.data.content;
+            if (inp) {
+                inp.value = e.data.content;
+                inp.focus();
+            }
         }
         if (e.data?.type === 'cn-en-q' && e.data.content) {
             const inp = document.getElementById('cardNameInput');
