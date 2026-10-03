@@ -618,6 +618,7 @@
                 <div class="fav-modal-title">收藏夹<span id="favListCount" class="fav-list-count"></span></div>
                 <ul id="favList" class="fav-list"></ul>
                 <div class="fav-modal-actions">
+                    <button id="favListSequentialPlay">顺序播放</button>
                     <button id="favListRandomPlay">随机播放</button>
                     <button id="favListClose">关闭</button>
                 </div>
@@ -704,6 +705,7 @@
     const favListCount = document.getElementById('favListCount');
     const favListClose = document.getElementById('favListClose');
     const favListRandomPlay = document.getElementById('favListRandomPlay');
+    const favListSequentialPlay = document.getElementById('favListSequentialPlay');
     const favStatus = document.getElementById('favStatus');
     const noteModal = document.getElementById('noteModal');
     const noteBackdrop = document.getElementById('noteBackdrop');
@@ -1107,6 +1109,12 @@
             randomPlaying = false;
             favListRandomPlay.textContent = '随机播放';
         }
+        if (sequentialPlaying) {
+            sequentialPlaying = false;
+            sequentialQueue = [];
+            sequentialIndex = 0;
+            favListSequentialPlay.textContent = '顺序播放';
+        }
     }
 
     function playRandomFav() {
@@ -1144,6 +1152,51 @@
         u.rate = enRate;
         u.onend = () => {
             if (randomPlaying) playRandomFavNext();
+        };
+        window.speechSynthesis.speak(u);
+    }
+
+    function playSequentialFav() {
+        if (!favorites || favorites.length === 0) return;
+        if (sequentialPlaying) {
+            window.speechSynthesis.cancel();
+            sequentialPlaying = false;
+            favListSequentialPlay.textContent = '顺序播放';
+            return;
+        }
+        const queue = favorites
+            .filter(f => Array.isArray(f.payload) && f.payload.some(e => e[1]))
+            .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        if (queue.length === 0) return;
+        sequentialPlaying = true;
+        sequentialIndex = 0;
+        sequentialQueue = queue;
+        favListSequentialPlay.textContent = '播放中...';
+        playSequentialFavNext();
+    }
+
+    function playSequentialFavNext() {
+        if (!sequentialPlaying) return;
+        if (sequentialIndex >= sequentialQueue.length) {
+            sequentialPlaying = false;
+            sequentialQueue = [];
+            sequentialIndex = 0;
+            favListSequentialPlay.textContent = '顺序播放';
+            return;
+        }
+        const fav = sequentialQueue[sequentialIndex];
+        sequentialIndex++;
+        const text = fav.payload.map(e => e[1]).join('. ');
+        if (favPlayButton && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) {
+            window.speechSynthesis.cancel();
+            favPlayButton.textContent = '播放';
+            favPlayButton = null;
+        }
+        const u = new SpeechSynthesisUtterance(text);
+        if (selectedVoiceEn) u.voice = selectedVoiceEn;
+        u.rate = enRate;
+        u.onend = () => {
+            if (sequentialPlaying) playSequentialFavNext();
         };
         window.speechSynthesis.speak(u);
     }
@@ -1307,6 +1360,7 @@
     favListClose.addEventListener('click', closeFavListModal);
     favListBackdrop.addEventListener('click', closeFavListModal);
     favListRandomPlay.addEventListener('click', playRandomFav);
+    favListSequentialPlay.addEventListener('click', playSequentialFav);
     noteOk.addEventListener('click', saveNote);
     noteDelete.addEventListener('click', deleteNote);
     noteCancel.addEventListener('click', closeNoteModal);
@@ -1473,6 +1527,12 @@
                 if (randomPlaying) {
                     randomPlaying = false;
                     favListRandomPlay.textContent = '随机播放';
+                }
+                if (sequentialPlaying) {
+                    sequentialPlaying = false;
+                    sequentialQueue = [];
+                    sequentialIndex = 0;
+                    favListSequentialPlay.textContent = '顺序播放';
                 }
             }
             return;
@@ -1760,6 +1820,9 @@
 
     let favPlayButton = null;
     let randomPlaying = false;
+    let sequentialPlaying = false;
+    let sequentialIndex = 0;
+    let sequentialQueue = [];
     function toggleFavPlay(btn, fav) {
         const isPlayingThis = favPlayButton === btn && (window.speechSynthesis.speaking || window.speechSynthesis.pending);
         if (isPlayingThis) {
