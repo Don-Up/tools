@@ -459,12 +459,12 @@
         .note-display {
             margin-top: 14px;
             padding: 10px 14px;
-            background: rgba(240, 192, 64, 0.12);
-            border-left: 3px solid #f0c040;
+            background: rgba(30, 30, 30, 0.62);
+            border-left: 3px solid #5fa8d3;
             border-radius: 4px;
-            color: #ffe9b3;
+            color: #e8e8e8;
             font-size: 14px;
-            line-height: 1.55;
+            line-height: 1.1;
             margin-left: auto;
             margin-right: auto;
             max-height: 120px;
@@ -472,6 +472,17 @@
             overflow-y: auto;
             white-space: pre-wrap;
             word-break: break-word;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(95, 168, 211, 0.55) transparent;
+        }
+        .note-display::-webkit-scrollbar { width: 8px; }
+        .note-display::-webkit-scrollbar-track { background: transparent; }
+        .note-display::-webkit-scrollbar-thumb {
+            background: rgba(95, 168, 211, 0.55);
+            border-radius: 4px;
+        }
+        .note-display::-webkit-scrollbar-thumb:hover {
+            background: rgba(95, 168, 211, 0.85);
         }
         .fav-input.note-textarea {
             width: 380px;
