@@ -427,6 +427,16 @@
             border-radius: 3px;
         }
         .fav-load-btn:hover { background: #2c2c2c; }
+        .fav-play-btn {
+            background: transparent;
+            color: #6c6;
+            border: 1px solid #444;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 3px;
+        }
+        .fav-play-btn:hover { background: #2c2c2c; }
         .fav-delete-btn {
             background: transparent;
             color: #c66;
@@ -608,6 +618,7 @@
                 <div class="fav-modal-title">收藏夹<span id="favListCount" class="fav-list-count"></span></div>
                 <ul id="favList" class="fav-list"></ul>
                 <div class="fav-modal-actions">
+                    <button id="favListRandomPlay">随机播放</button>
                     <button id="favListClose">关闭</button>
                 </div>
             </div>
@@ -692,6 +703,7 @@
     const favListEl = document.getElementById('favList');
     const favListCount = document.getElementById('favListCount');
     const favListClose = document.getElementById('favListClose');
+    const favListRandomPlay = document.getElementById('favListRandomPlay');
     const favStatus = document.getElementById('favStatus');
     const noteModal = document.getElementById('noteModal');
     const noteBackdrop = document.getElementById('noteBackdrop');
@@ -988,7 +1000,8 @@
     function renderFavList() {
         favListEl.innerHTML = '';
         favListCount.textContent = favorites.length > 0 ? ` (${favorites.length})` : '';
-        favorites.forEach(fav => {
+        const sorted = [...favorites].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        sorted.forEach(fav => {
             const li = document.createElement('li');
             li.className = 'fav-list-item';
             const nameSpan = document.createElement('span');
@@ -1002,6 +1015,10 @@
             loadBtn.className = 'fav-load-btn';
             loadBtn.textContent = '加载';
             loadBtn.addEventListener('click', () => loadFavorite(fav));
+            const playBtn = document.createElement('button');
+            playBtn.className = 'fav-play-btn';
+            playBtn.textContent = '播放';
+            playBtn.addEventListener('click', () => toggleFavPlay(playBtn, fav));
             const delBtn = document.createElement('button');
             delBtn.className = 'fav-delete-btn';
             delBtn.textContent = '×';
@@ -1012,6 +1029,7 @@
             });
             li.appendChild(nameSpan);
             li.appendChild(loadBtn);
+            li.appendChild(playBtn);
             li.appendChild(delBtn);
             favListEl.appendChild(li);
         });
@@ -1080,6 +1098,47 @@
 
     function closeFavListModal() {
         favListModal.hidden = true;
+        window.speechSynthesis.cancel();
+        if (favPlayButton) {
+            favPlayButton.textContent = '播放';
+            favPlayButton = null;
+        }
+        if (randomPlaying) {
+            randomPlaying = false;
+            favListRandomPlay.textContent = '随机播放';
+        }
+    }
+
+    function playRandomFav() {
+        if (!favorites || favorites.length === 0) return;
+        if (randomPlaying) {
+            window.speechSynthesis.cancel();
+            randomPlaying = false;
+            favListRandomPlay.textContent = '随机播放';
+            return;
+        }
+        const sorted = [...favorites].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        const fav = sorted[Math.floor(Math.random() * sorted.length)];
+        const payload = Array.isArray(fav.payload) ? fav.payload : [];
+        const text = payload.map(e => e[1]).join('. ');
+        if (!text) return;
+        if (favPlayButton && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) {
+            window.speechSynthesis.cancel();
+            favPlayButton.textContent = '播放';
+            favPlayButton = null;
+        }
+        const u = new SpeechSynthesisUtterance(text);
+        if (selectedVoiceEn) u.voice = selectedVoiceEn;
+        u.rate = enRate;
+        u.onend = () => {
+            if (randomPlaying) {
+                randomPlaying = false;
+                favListRandomPlay.textContent = '随机播放';
+            }
+        };
+        randomPlaying = true;
+        favListRandomPlay.textContent = '随机中...';
+        window.speechSynthesis.speak(u);
     }
 
     function getCurrentNote() {
@@ -1240,6 +1299,7 @@
     });
     favListClose.addEventListener('click', closeFavListModal);
     favListBackdrop.addEventListener('click', closeFavListModal);
+    favListRandomPlay.addEventListener('click', playRandomFav);
     noteOk.addEventListener('click', saveNote);
     noteDelete.addEventListener('click', deleteNote);
     noteCancel.addEventListener('click', closeNoteModal);
@@ -1399,6 +1459,14 @@
                 e.preventDefault();
                 e.stopPropagation();
                 window.speechSynthesis.cancel();
+                if (favPlayButton) {
+                    favPlayButton.textContent = '播放';
+                    favPlayButton = null;
+                }
+                if (randomPlaying) {
+                    randomPlaying = false;
+                    favListRandomPlay.textContent = '随机播放';
+                }
             }
             return;
         }
@@ -1681,6 +1749,38 @@
         if (selectedVoiceEn) utterance.voice = selectedVoiceEn;
         utterance.rate = enRate;
         window.speechSynthesis.speak(utterance);
+    }
+
+    let favPlayButton = null;
+    let randomPlaying = false;
+    function toggleFavPlay(btn, fav) {
+        const isPlayingThis = favPlayButton === btn && (window.speechSynthesis.speaking || window.speechSynthesis.pending);
+        if (isPlayingThis) {
+            window.speechSynthesis.cancel();
+            btn.textContent = '播放';
+            favPlayButton = null;
+            return;
+        }
+        if (favPlayButton && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) {
+            window.speechSynthesis.cancel();
+            favPlayButton.textContent = '播放';
+            favPlayButton = null;
+        }
+        const payload = Array.isArray(fav.payload) ? fav.payload : [];
+        const text = payload.map(e => e[1]).join('. ');
+        if (!text) return;
+        const u = new SpeechSynthesisUtterance(text);
+        if (selectedVoiceEn) u.voice = selectedVoiceEn;
+        u.rate = enRate;
+        u.onend = () => {
+            if (favPlayButton === btn) {
+                btn.textContent = '播放';
+                favPlayButton = null;
+            }
+        };
+        favPlayButton = btn;
+        btn.textContent = '停止';
+        window.speechSynthesis.speak(u);
     }
 
     function extractJsonObjects(text) {
