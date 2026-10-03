@@ -554,7 +554,7 @@
         </div>
         <div id="counter" class="counter" hidden></div>
 
-        <div id="hint" class="hint">Ctrl+V 粘贴 · ← → 切换 · 1-3 切 Mode · ↓ 揭示 · E/PgDn 读 EN · Z 全文 · N 笔记 · F 收藏 · Alt+F 收藏夹 · Ctrl+I 背景</div>
+        <div id="hint" class="hint">Ctrl+V 粘贴 · ← → 切换 · 1-3 切 Mode · ↓ 揭示 · E/PgDn 读 EN · Z 全文 · N 笔记 · Alt+点笔记 朗读 · Space 停读 · F 收藏 · Alt+F 收藏夹 · Ctrl+I 背景</div>
         <div id="emptyState" class="empty-state">按 Ctrl+V 粘贴 JSON 数据</div>
         <div id="cnModal" class="cn-modal" hidden>
             <div id="cnModalBackdrop" class="cn-modal-backdrop"></div>
@@ -1084,6 +1084,23 @@
         noteDisplay.hidden = false;
     }
 
+    function speakNote(text) {
+        if (!text) return;
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        if (selectedVoice) utterance.voice = selectedVoice;
+        utterance.rate = cnRate;
+        window.speechSynthesis.speak(utterance);
+    }
+
+    noteDisplay.addEventListener('click', (e) => {
+        if (!e.altKey) return;
+        e.preventDefault();
+        const note = getCurrentNote();
+        if (!note) return;
+        speakNote(note);
+    });
+
     function openNoteModal() {
         if (!currentFavId) {
             showError('请先加载收藏');
@@ -1356,6 +1373,16 @@
     bgModalBackdrop.addEventListener('click', () => { bgModal.hidden = true; });
 
     document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) {
+            const tag = e.target.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+            if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+                e.preventDefault();
+                e.stopPropagation();
+                window.speechSynthesis.cancel();
+            }
+            return;
+        }
         if (e.key === 'Escape') {
             if (!favSaveModal.hidden) {
                 e.preventDefault();
