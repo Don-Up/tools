@@ -380,7 +380,19 @@
             max-height: 280px;
             overflow-y: auto;
             min-width: 320px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(95, 168, 211, 0.55) transparent;
         }
+        .fav-list::-webkit-scrollbar { width: 8px; }
+        .fav-list::-webkit-scrollbar-track { background: transparent; }
+        .fav-list::-webkit-scrollbar-thumb {
+            background: rgba(95, 168, 211, 0.55);
+            border-radius: 4px;
+        }
+        .fav-list::-webkit-scrollbar-thumb:hover {
+            background: rgba(95, 168, 211, 0.85);
+        }
+        .fav-list-count { color: #888; font-size: 14px; margin-left: 2px; }
         .fav-list-item {
             display: flex;
             justify-content: space-between;
@@ -588,7 +600,7 @@
         <div id="favListModal" class="fav-modal" hidden>
             <div id="favListBackdrop" class="fav-modal-backdrop"></div>
             <div class="fav-modal-panel">
-                <div class="fav-modal-title">收藏夹</div>
+                <div class="fav-modal-title">收藏夹<span id="favListCount" class="fav-list-count"></span></div>
                 <ul id="favList" class="fav-list"></ul>
                 <div class="fav-modal-actions">
                     <button id="favListClose">关闭</button>
@@ -673,6 +685,7 @@
     const favListModal = document.getElementById('favListModal');
     const favListBackdrop = document.getElementById('favListBackdrop');
     const favListEl = document.getElementById('favList');
+    const favListCount = document.getElementById('favListCount');
     const favListClose = document.getElementById('favListClose');
     const favStatus = document.getElementById('favStatus');
     const noteModal = document.getElementById('noteModal');
@@ -969,6 +982,7 @@
 
     function renderFavList() {
         favListEl.innerHTML = '';
+        favListCount.textContent = favorites.length > 0 ? ` (${favorites.length})` : '';
         favorites.forEach(fav => {
             const li = document.createElement('li');
             li.className = 'fav-list-item';
