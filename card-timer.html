@@ -1088,6 +1088,9 @@
         }
 
         let answer = answerInput.value.trim();
+        if (answer) {
+            name = name + `~${answer}~~`;
+        }
         const originalName = name
         name = normalizeCloze(name);
 
