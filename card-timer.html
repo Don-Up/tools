@@ -999,8 +999,9 @@
             if(name.includes("\n") && !name.includes("~~")) {
                 name = name.replace("\n", "\n~") + "~~"
             }
-            if (!name && answerInput.value.trim()) {
-                name = "-"
+            if (answerInput.value.trim()) {
+                name += " ~"+answerInput.value.trim()+"~~"
+                name = name.trim()
             }
             if (!name) {
                 addTimerFromClipboard();
@@ -1088,9 +1089,9 @@
         }
 
         let answer = answerInput.value.trim();
-        if (answer) {
-            name = name + `~${answer}~~`;
-        }
+        // if (answer) {
+        //     name = name + `~${answer}~~`;
+        // }
         const originalName = name
         name = normalizeCloze(name);
 
