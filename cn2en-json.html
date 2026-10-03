@@ -21,6 +21,11 @@
         rt {
             font-family: monospace;
             user-select: none;
+            color: white;
+        }
+
+        ruby {
+            color: goldenrod;
         }
 
         .error-bar {
@@ -566,7 +571,7 @@
         </div>
         <div id="counter" class="counter" hidden></div>
 
-        <div id="hint" class="hint">Ctrl+V 粘贴 · ← → 切换 · 1-3 切 Mode · ↓ 揭示 · E/PgDn 读 EN · Z 全文 · N 笔记 · Alt+点笔记 朗读 · Space 停读 · F 收藏 · Alt+F 收藏夹 · Ctrl+I 背景</div>
+        <div id="hint" class="hint">Ctrl+V 粘贴 · ← → 切换 · 1-3 切 Mode · ↓ 揭示 · E 读EN · Alt+R 读全文 · Z 全文 · N 笔记 · Space 停读 · F 收藏 · Alt+F 收藏夹 · Ctrl+I 背景</div>
         <div id="emptyState" class="empty-state">按 Ctrl+V 粘贴 JSON 数据</div>
         <div id="cnModal" class="cn-modal" hidden>
             <div id="cnModalBackdrop" class="cn-modal-backdrop"></div>
@@ -1429,6 +1434,12 @@
             openFavListModal();
             return;
         }
+        if (e.key === 'r' && e.altKey && !e.ctrlKey && !e.metaKey) {
+            if (entries.length === 0) return;
+            e.preventDefault();
+            readAllEn();
+            return;
+        }
         if (e.key === 'f' && !e.ctrlKey && !e.altKey && !e.metaKey) {
             if (entries.length === 0) return;
             e.preventDefault();
@@ -1576,7 +1587,8 @@
         hint.hidden = false;
         const [cn, en] = entries[currentIndex];
         counter.textContent = `${currentIndex + 1}/${entries.length}`;
-        cnText.innerHTML = cn;
+        // <ruby>staples<rt>ˈsteɪplz</rt></ruby>
+        cnText.innerHTML = cn.replaceAll("{{", "<ruby>").replaceAll("}}", "<rt>").replaceAll("]]", "</rt></ruby>");
         cnText.classList.toggle('last-entry', currentIndex === entries.length - 1);
         enRevealed = false;
         if (currentMode === 1) {
@@ -1656,6 +1668,17 @@
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(content);
         utterance.voice = selectedVoiceEn;
+        utterance.rate = enRate;
+        window.speechSynthesis.speak(utterance);
+    }
+
+    function readAllEn() {
+        if (!Array.isArray(entries) || entries.length === 0) return;
+        const text = entries.map(e => e[1]).join('. ');
+        if (!text) return;
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        if (selectedVoiceEn) utterance.voice = selectedVoiceEn;
         utterance.rate = enRate;
         window.speechSynthesis.speak(utterance);
     }
