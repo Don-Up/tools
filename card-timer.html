@@ -1000,8 +1000,11 @@
                 name = name.replace("\n", "\n~") + "~~"
             }
             if (answerInput.value.trim()) {
-                name += " ~"+answerInput.value.trim()+"~~"
-                name = name.trim()
+                if(name){
+                    name += "<br>~"+answerInput.value.trim()+"~~"
+                } else {
+                    name += "~"+answerInput.value.trim()+"~~"
+                }
             }
             if (!name) {
                 addTimerFromClipboard();
