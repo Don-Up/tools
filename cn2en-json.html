@@ -1117,11 +1117,23 @@
             favListRandomPlay.textContent = '随机播放';
             return;
         }
-        const sorted = [...favorites].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-        const fav = sorted[Math.floor(Math.random() * sorted.length)];
-        const payload = Array.isArray(fav.payload) ? fav.payload : [];
-        const text = payload.map(e => e[1]).join('. ');
-        if (!text) return;
+        const valid = favorites.filter(f => Array.isArray(f.payload) && f.payload.some(e => e[1]));
+        if (valid.length === 0) return;
+        randomPlaying = true;
+        favListRandomPlay.textContent = '随机中...';
+        playRandomFavNext();
+    }
+
+    function playRandomFavNext() {
+        if (!randomPlaying) return;
+        const valid = favorites.filter(f => Array.isArray(f.payload) && f.payload.some(e => e[1]));
+        if (valid.length === 0) {
+            randomPlaying = false;
+            favListRandomPlay.textContent = '随机播放';
+            return;
+        }
+        const fav = valid[Math.floor(Math.random() * valid.length)];
+        const text = fav.payload.map(e => e[1]).join('. ');
         if (favPlayButton && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) {
             window.speechSynthesis.cancel();
             favPlayButton.textContent = '播放';
@@ -1131,13 +1143,8 @@
         if (selectedVoiceEn) u.voice = selectedVoiceEn;
         u.rate = enRate;
         u.onend = () => {
-            if (randomPlaying) {
-                randomPlaying = false;
-                favListRandomPlay.textContent = '随机播放';
-            }
+            if (randomPlaying) playRandomFavNext();
         };
-        randomPlaying = true;
-        favListRandomPlay.textContent = '随机中...';
         window.speechSynthesis.speak(u);
     }
 
