@@ -1,0 +1,1873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="card-timer-favicon.svg">
+    <title>CardTimer</title>
+    <style>
+        b {
+            color: yellow;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #fff;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .input-section {
+            background: #2d2d2d;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            margin-top: 15px;
+        }
+
+        #cardNameInput {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            line-height: 1.4;
+            font-family: inherit;
+            background: #2c2c2c;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            resize: vertical;
+        }
+
+        #cardNameInput::placeholder {
+            color: #888;
+        }
+        #cardNameInput:not(:focus) {
+            color: transparent;
+        }
+
+        #answerInput {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            background: #2c2c2c;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+        }
+
+        #answerInput::placeholder {
+            color: #888;
+        }
+
+        #classSelect {
+            background: #2c2c2c;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 6px 10px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        #durationSelect {
+            padding: 12px;
+            font-size: 16px;
+            background: #2c2c2c;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            min-width: 80px;
+        }
+
+        #customDurationInput {
+            padding: 12px;
+            font-size: 16px;
+            background: #2c2c2c;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            width: 80px;
+            display: none;
+        }
+
+        #confirmBtn {
+            width: calc(100% - 170px);
+            padding: 12px;
+            font-size: 16px;
+            background: #3a86ff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #confirmBtn:hover {
+            background: #2a6edc;
+        }
+
+        #exportBtn {
+            width: 100px;
+            padding: 12px;
+            font-size: 16px;
+            background: #2e7d32;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #exportBtn:hover {
+            background: #388e3c;
+        }
+
+        #binBtn {
+            width: 60px;
+            padding: 12px;
+            font-size: 16px;
+            background: #ef6c00;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #binBtn:hover {
+            background: #f57c00;
+        }
+
+        #clearBtn {
+            width: 60px;
+            padding: 12px;
+            font-size: 16px;
+            background: #c62828;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #clearBtn:hover {
+            background: #d32f2f;
+        }
+
+        .timer-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .timer-card {
+            background: #2e2e2e;
+            padding: 15px 20px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            opacity: 0.7;
+            cursor: pointer;
+        }
+
+        .timer-card.promoted {
+            background: #1d3d1d;
+            border: 1px solid #4ade80;
+        }
+
+        .timer-card.pinned {
+            background: #2f2f2f;
+            border: none;
+        }
+
+        .timer-card.pinned.focus-mode {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 600px;
+            z-index: 100;
+            opacity: 1;
+        }
+
+        .timer-card.hidden-card {
+            display: none;
+        }
+
+        .timer-card.ended {
+            opacity: 1;
+        }
+
+        .timer-card.forced-visible {
+            display: flex;
+        }
+
+        .timer-list.focus-mode .timer-card:not(.pinned) {
+            display: none;
+        }
+
+        .timer-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-shrink: 0;
+        }
+
+        .timer-right {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+            justify-content: center;
+        }
+
+        .btn-row-top {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .timer-right button:not(.delete-btn):not(.quick-min-btn):not(.play-btn) {
+            min-width: 60px;
+        }
+
+        .btn-row-bottom {
+            display: flex;
+            align-items: center;
+            margin-top: 4px;
+            gap: 8px;
+            flex-wrap: nowrap;
+        }
+
+        .quick-min-btn {
+            background: transparent;
+            color: #888;
+            border: 1px solid #444;
+            cursor: pointer;
+            padding: 4px 4px;
+            font-size: 12px;
+            border-radius: 4px;
+            width: 28px;
+        }
+
+        .quick-min-btn:hover {
+            color: #4ade80;
+            border-color: #4ade80;
+        }
+
+        .play-btn {
+            background: transparent;
+            color: #888;
+            border: 1px solid #444;
+            cursor: pointer;
+            padding: 4px 8px;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+
+        .play-btn:hover {
+            color: #60a5fa;
+            border-color: #60a5fa;
+        }
+
+        .timer-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .timer-name {
+            font-size: 14px;
+            font-weight: 500;
+            max-width: 200px;
+            min-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: wrap;
+            max-lines: 3;
+            color: white;
+        }
+
+        .timer-duration {
+            font-size: 14px;
+            color: #888;
+            width: 30px;
+        }
+
+        .answer-btn {
+            background: transparent;
+            color: #4ade80;
+            border: 1px solid #4ade80;
+            cursor: pointer;
+            padding: 4px 10px;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+
+        .answer-btn:hover {
+            background: #4ade80;
+            color: #121212;
+        }
+
+        .timer-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            width: 140px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-dot.running {
+            background: #4ade80;
+            animation: pulse 1.5s infinite;
+        }
+
+        .status-dot.ended {
+            background: #888;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .timer-countdown {
+            font-size: 18px;
+            font-weight: 600;
+            color: #fff;
+            width: 60px;
+            text-align: center;
+        }
+
+        .timer-countdown.hidden {
+            display: none;
+        }
+
+        .new-min-btn {
+            background: transparent;
+            color: #888;
+            border: 1px solid #444;
+            cursor: pointer;
+            padding: 4px 10px;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+
+        .new-min-btn:hover {
+            color: #4ade80;
+            border-color: #4ade80;
+        }
+
+        .restart-btn {
+            background: transparent;
+            color: #888;
+            border: 1px solid #444;
+            cursor: pointer;
+            padding: 4px 10px;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+
+        .restart-btn:hover {
+            color: #3a86ff;
+            border-color: #3a86ff;
+        }
+
+        .delete-btn {
+            background: #eeeeee;
+            color: #ff5252;
+            border: none;
+            cursor: pointer;
+            padding: 2px 4px;
+            font-size: 18px;
+            margin-left: auto;
+            border-radius: 3px;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 8px;
+            min-width: 280px;
+        }
+
+        .modal h3 {
+            margin-bottom: 15px;
+            color: #fff;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            background: #2c2c2c;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .modal-btn {
+            padding: 8px 16px;
+            font-size: 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: none;
+        }
+
+        .modal-btn.cancel {
+            background: #444;
+            color: #e0e0e0;
+        }
+
+        .modal-btn.confirm {
+            background: #3a86ff;
+            color: #fff;
+        }
+
+        .modal-btn:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1 onclick="handleTitleClick(event)">Card Timer <span id="timerStatus"
+                                                           style="font-size:14px;color:#888;font-weight:normal"></span>
+        <label style="cursor:pointer;font-size:14px;color:#888;font-weight:normal"><input type="checkbox" id="ttsSwitch"
+                                                                                          checked
+                                                                                          style="margin-left:8px">
+            TTS</label> <label style="cursor:pointer;font-size:14px;color:#888;font-weight:normal"><input
+                type="checkbox" id="fxSwitch" style="margin-left:8px"> FX</label> <label style="cursor:pointer;font-size:14px;color:#888;font-weight:normal"><input
+                type="checkbox" id="onlyShortSwitch" style="margin-left:8px">&lt;=2</label> <label style="cursor:pointer;font-size:14px;color:#888;font-weight:normal"><input
+                type="checkbox" id="useBinSwitch" checked style="margin-left:8px"> Use Bin</label>
+        <select id="classSelect" style="margin-left:2px">
+            <option value="a" selected>A</option>
+            <option value="b">B</option>
+            <option value="c">C</option>
+            <option value="d">D</option>
+        </select></h1>
+
+    <div class="input-section">
+        <textarea id="cardNameInput" placeholder="Card name..." rows="4"></textarea>
+        <div class="input-row">
+            <input type="text" id="answerInput" placeholder="Answer (optional)">
+            <select id="durationSelect">
+                <option value="0">0min</option>
+                <option value="60">1min</option>
+                <option value="120" selected>2min</option>
+                <option value="180">3min</option>
+                <option value="300">5min</option>
+                <option value="600">10min</option>
+                <option value="custom">Custom</option>
+            </select>
+            <label style="color:#888;padding:12px 0 12px 10px;white-space:nowrap">Def New</label>
+            <input type="number" id="defNewMinInput" value="10" min="1"
+                   style="width:60px;padding:12px;font-size:16px;background:#2c2c2c;color:#e0e0e0;border:1px solid #444;border-radius:4px">
+            <input type="checkbox" id="defNewMinCheckbox" checked style="margin-left:5px">
+            <input type="number" id="customDurationInput" placeholder="min" min="1">
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button id="confirmBtn">Confirm</button>
+            <button id="exportBtn">Export</button>
+            <button id="binBtn">Bin</button>
+            <button id="clearBtn">Clear</button>
+        </div>
+    </div>
+
+    <div id="timerList" class="timer-list"></div>
+</div>
+
+<div id="modalOverlay" class="modal-overlay">
+    <div class="modal">
+        <h3>New Duration (min)</h3>
+        <input type="number" id="modalInput" class="modal-input" min="1" value="60">
+        <div class="modal-buttons">
+            <button class="modal-btn cancel" onclick="closeModal()">Cancel</button>
+            <button class="modal-btn confirm" onclick="confirmNewDuration()">OK</button>
+        </div>
+    </div>
+</div>
+
+<div id="editModal" class="modal-overlay">
+    <div class="modal">
+        <h3>Edit Card</h3>
+        <input type="text" id="editNameInput" class="modal-input" placeholder="Card name">
+        <input type="text" id="editAnswerInput" class="modal-input" placeholder="Answer (optional)">
+        <div class="modal-buttons">
+            <button class="modal-btn cancel" onclick="closeEditModal()">Cancel</button>
+            <button class="modal-btn confirm" onclick="confirmEdit()">OK</button>
+        </div>
+    </div>
+</div>
+
+<!-- HTML -->
+<audio id="dingSound" src="mp3/bounce.mp3"></audio>
+
+<script>
+    let timers = [];
+    let timerIntervals = {};
+
+    const cardNameInput = document.getElementById('cardNameInput');
+    const durationSelect = document.getElementById('durationSelect');
+    const customDurationInput = document.getElementById('customDurationInput');
+
+    const savedDuration = localStorage.getItem('durationDefault');
+    if (savedDuration !== null) {
+        const matchingOption = [...durationSelect.options].find(opt => opt.value === savedDuration);
+        if (matchingOption) durationSelect.value = savedDuration;
+    }
+
+    const defNewMinInput = document.getElementById('defNewMinInput');
+    const defNewMinCheckbox = document.getElementById('defNewMinCheckbox');
+    const savedDefNewMin = localStorage.getItem('defNewMin');
+    if (savedDefNewMin !== null) defNewMinInput.value = savedDefNewMin;
+    defNewMinInput.addEventListener('change', () => {
+        localStorage.setItem('defNewMin', defNewMinInput.value);
+    });
+
+    const savedDefNewEnabled = localStorage.getItem('defNewMinEnabled');
+    if (savedDefNewEnabled !== null) defNewMinCheckbox.checked = savedDefNewEnabled === 'true';
+    defNewMinCheckbox.addEventListener('change', () => {
+        localStorage.setItem('defNewMinEnabled', defNewMinCheckbox.checked);
+    });
+    const answerInput = document.getElementById('answerInput');
+    const confirmBtn = document.getElementById('confirmBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const timerList = document.getElementById('timerList');
+    const dingSound = document.getElementById('dingSound');
+
+    // Click on empty card name input to paste clipboard
+    cardNameInput.addEventListener('click', async () => {
+        if (!cardNameInput.value.trim()) {
+            try {
+                const text = await navigator.clipboard.readText();
+                if (text && text.trim()) {
+                    cardNameInput.value = text.trim();
+                }
+            } catch (err) {
+                // Clipboard access denied or empty
+            }
+        }
+    });
+
+    // Recycle bin: IndexedDB-backed storage for deleted timers
+    const BIN_DB_NAME = 'cardTimerDB';
+    const BIN_DB_VERSION = 1;
+    const BIN_STORE = 'recycleBin';
+
+    function openBinDB() {
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.open(BIN_DB_NAME, BIN_DB_VERSION);
+            req.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(BIN_STORE)) {
+                    db.createObjectStore(BIN_STORE, { keyPath: 'id' });
+                }
+            };
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+    }
+
+    function saveToRecycleBin(timer) {
+        return openBinDB().then(db => new Promise((resolve, reject) => {
+            const tx = db.transaction(BIN_STORE, 'readwrite');
+            const record = { ...timer, inRecycleBin: true, class: currentClass };
+            tx.objectStore(BIN_STORE).put(record);
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+        }));
+    }
+
+    function removeFromRecycleBin(id) {
+        return openBinDB().then(db => new Promise((resolve, reject) => {
+            const tx = db.transaction(BIN_STORE, 'readwrite');
+            tx.objectStore(BIN_STORE).delete(id);
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+        }));
+    }
+
+    function getAllFromRecycleBin() {
+        return openBinDB().then(db => new Promise((resolve, reject) => {
+            const tx = db.transaction(BIN_STORE, 'readonly');
+            const req = tx.objectStore(BIN_STORE).getAll();
+            req.onsuccess = () => resolve(req.result || []);
+            req.onerror = () => reject(req.error);
+        }));
+    }
+
+    async function loadFromRecycleBin() {
+        // Clear current list (no auto-save, no confirmation)
+        Object.values(timerIntervals).forEach(interval => clearInterval(interval));
+        timerIntervals = {};
+        timers = [];
+        timerList.innerHTML = '';
+        isFocusMode = false;
+        timerList.classList.remove('focus-mode');
+
+        // Load bin items filtered by current class
+        let items;
+        try {
+            const all = await getAllFromRecycleBin();
+            items = all.filter(it => (it.class || 'a') === currentClass);
+        } catch (err) {
+            console.error('Bin load failed:', err);
+            updateTimerStatus();
+            return;
+        }
+
+        items.forEach(item => {
+            item.status = 'ended';
+            item.remaining = 0;
+            // inRecycleBin flag preserved for permanent-delete on re-delete
+            timers.unshift(item);
+            renderTimer(item);
+        });
+        updateTimerStatus();
+    }
+
+    document.getElementById('binBtn').addEventListener('click', loadFromRecycleBin);
+
+    document.getElementById('classSelect').addEventListener('change', (e) => {
+        currentClass = e.target.value;
+    });
+
+    let isFocusMode = false;
+    let isCountdownVisible = true;
+    let isTimerHidden = false;
+    let isTtsEnabled = localStorage.getItem('ttsEnabled') !== 'false';
+
+    // Initialize TTS switch
+    document.getElementById('ttsSwitch').checked = isTtsEnabled;
+    document.getElementById('ttsSwitch').addEventListener('change', (e) => {
+        isTtsEnabled = e.target.checked;
+        localStorage.setItem('ttsEnabled', isTtsEnabled);
+    });
+
+    let isFxEnabled = localStorage.getItem('fxEnabled') === 'true';
+    document.getElementById('fxSwitch').checked = isFxEnabled;
+    document.getElementById('fxSwitch').addEventListener('change', (e) => {
+        isFxEnabled = e.target.checked;
+        localStorage.setItem('fxEnabled', isFxEnabled);
+    });
+
+    let isOnlyShortEnabled = localStorage.getItem('onlyShortEnabled') === 'true';
+    document.getElementById('onlyShortSwitch').checked = isOnlyShortEnabled;
+    document.getElementById('onlyShortSwitch').addEventListener('change', (e) => {
+        isOnlyShortEnabled = e.target.checked;
+        localStorage.setItem('onlyShortEnabled', isOnlyShortEnabled);
+    });
+
+    let isUseBinEnabled = true;
+    document.getElementById('useBinSwitch').checked = isUseBinEnabled;
+    document.getElementById('useBinSwitch').addEventListener('change', (e) => {
+        isUseBinEnabled = e.target.checked;
+    });
+
+    let voiceEn = null
+
+    // 推荐的正确获取方式
+    function loadVoices() {
+        return new Promise((resolve) => {
+            // 先尝试立即获取
+            let voices = window.speechSynthesis.getVoices();
+            if (voices.length) {
+                resolve(voices);
+                return;
+            }
+            // 若为空，则监听事件，等待异步加载完成
+            window.speechSynthesis.onvoiceschanged = () => {
+                voices = window.speechSynthesis.getVoices();
+                resolve(voices);
+            };
+        });
+    }
+
+    // 调用方式
+    loadVoices().then(voices => {
+        // 在这里进行后续操作，如填充下拉菜单等
+        for (const voice of voices) {
+            if (voice.name.includes("Guy")) {
+                voiceEn = voice
+                break
+            }
+        }
+    });
+
+    function updateTimerStatus() {
+        const running = timers.filter(t => t.status === 'running').length;
+        const ended = timers.filter(t => t.status === 'ended').length;
+        document.getElementById('timerStatus').textContent = `(${running} 倒计时, ${ended} 已结束, ${binCount.a}/${binCount.b}/${binCount.c}/${binCount.d} 已回收)`;
+    }
+
+    // Recycle bin count, initialized from IndexedDB and maintained on bin mutations
+    let binCount = { a: 0, b: 0, c: 0, d: 0 };
+    let currentClass = 'a';
+    getAllFromRecycleBin()
+        .then(items => {
+            binCount = { a: 0, b: 0, c: 0, d: 0 };
+            items.forEach(it => {
+                const cls = it.class || 'a';
+                if (binCount[cls] !== undefined) binCount[cls]++;
+            });
+            updateTimerStatus();
+        })
+        .catch(err => console.error('Bin count init failed:', err));
+
+    // Initialize status display
+    updateTimerStatus();
+
+    // Click on timer card
+    timerList.addEventListener('click', (e) => {
+        const card = e.target.closest('.timer-card');
+        if (!card) return;
+
+        // Don't intercept clicks on buttons inside the card — let the
+        // button's own handler run without the card-level Ctrl+delete branch
+        // also firing (e.g. Ctrl+click on New Min was deleting the timer).
+        if (e.target.closest('button')) return;
+
+        const timerId = parseInt(card.id.replace('timer-', ''));
+        const timer = timers.find(t => t.id === timerId);
+        if (!timer) return;
+
+        // Ctrl+click: delete timer (Ctrl+Shift skips recycle-bin DB operations)
+        if (e.ctrlKey) {
+            e.preventDefault();
+            deleteTimer(timerId, e.shiftKey);
+            return;
+        }
+
+        // Only ended timers can be pinned/promoted
+        if (timer.status !== 'ended') return;
+
+        const isAltKey = e.altKey;
+
+        if (isAltKey) {
+            // Alt+click: green background, move to bottom
+            if (isFocusMode) {
+                isFocusMode = false;
+                timerList.classList.remove('focus-mode');
+            }
+            timer.isPromoted = !timer.isPromoted;
+            timer.isPinned = false;
+            card.classList.remove('pinned');
+            if (timer.isPromoted) {
+                card.classList.add('promoted');
+                timerList.appendChild(card);
+                // Re-render to hide name and buttons for promoted card
+                card.remove();
+                renderTimer(timer);
+            } else {
+                card.classList.remove('promoted');
+                const firstPromoted = timerList.querySelector('.timer-card.promoted');
+                if (firstPromoted) {
+                    timerList.insertBefore(card, firstPromoted);
+                } else {
+                    timerList.appendChild(card);
+                }
+                // Re-render to show name and buttons when un-promoted
+                card.remove();
+                renderTimer(timer);
+            }
+        } else {
+            // Regular click: blue background, move to top or toggle focus mode
+            if (timer.isPinned && !timer.isPromoted) {
+                // Toggle focus mode
+                isFocusMode = !isFocusMode;
+                if (isFocusMode) {
+                    timerList.classList.add('focus-mode');
+                } else {
+                    timerList.classList.remove('focus-mode');
+                }
+                return;
+            }
+
+            timer.isPinned = !timer.isPinned;
+            timer.isPromoted = false;
+            card.classList.remove('promoted');
+
+            if (timer.isPinned) {
+                // Unpin any other pinned items first
+                timers.forEach(t => {
+                    if (t.id !== timerId && t.isPinned) {
+                        t.isPinned = false;
+                        const otherCard = document.getElementById(`timer-${t.id}`);
+                        if (otherCard) otherCard.classList.remove('pinned');
+                    }
+                });
+                // Enable focus mode for new pinned card
+                isFocusMode = true;
+                timerList.classList.add('focus-mode');
+                card.classList.add('pinned');
+                timerList.insertBefore(card, timerList.firstChild);
+            } else {
+                isFocusMode = false;
+                timerList.classList.remove('focus-mode');
+                card.classList.remove('pinned');
+                const firstNonPinned = [...timerList.querySelectorAll('.timer-card')].find(c => !c.classList.contains('pinned') && !c.classList.contains('promoted'));
+                if (firstNonPinned) {
+                    timerList.insertBefore(card, firstNonPinned);
+                } else {
+                    timerList.appendChild(card);
+                }
+            }
+        }
+    });
+
+    // Show/hide custom duration input
+    durationSelect.addEventListener('change', () => {
+        customDurationInput.style.display = durationSelect.value === 'custom' ? 'block' : 'none';
+        if (durationSelect.value !== 'custom') {
+            localStorage.setItem('durationDefault', durationSelect.value);
+        }
+    });
+
+    // Confirm button click handler
+    confirmBtn.addEventListener('click', (e) => addTimer(e));
+
+    exportBtn.addEventListener('click', (e) => {
+        let names = ""
+        if (e.altKey) {
+            names = timers.map(t => t.originalName.replaceAll("<{", "<b>").replaceAll("}>", "</b>").replace(/<br>\s*/g, '|')).join('|\n').replaceAll("{{", "~").replaceAll("}}", "~~") + "|";
+        } else {
+            names = timers.map(t => t.originalName).join('|||')
+        }
+        navigator.clipboard.writeText(names).then(() => {
+            // Optional: brief visual feedback could be added
+        }).catch(err => {
+            console.error('Failed to copy:', err);
+        });
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', async () => {
+        if (timers.length === 0) return;
+        if (!confirm('Clear all items?')) return;
+
+        // Clear all intervals
+        Object.values(timerIntervals).forEach(interval => clearInterval(interval));
+        timerIntervals = {};
+
+        // Clear timers array
+        timers = [];
+
+        // Remove all cards from DOM
+        timerList.innerHTML = '';
+
+        // Exit focus mode if active
+        isFocusMode = false;
+        timerList.classList.remove('focus-mode');
+
+        // If Use Bin is on, also wipe DB records of the current class
+        if (isUseBinEnabled) {
+            try {
+                const all = await getAllFromRecycleBin();
+                const ids = all.filter(it => (it.class || 'a') === currentClass).map(it => it.id);
+                await Promise.all(ids.map(id => removeFromRecycleBin(id)));
+                binCount[currentClass] = 0;
+            } catch (err) {
+                console.error('Bin clear failed:', err);
+            }
+        }
+
+        updateTimerStatus();
+    });
+
+    function convertText(text) {
+        if (!text) return '';
+
+        // 1. 按换行符分割成数组，并过滤掉可能存在的空行
+        const lines = text.split('\n').filter(line => line.trim() !== '');
+
+        // 2. 遍历每一行进行处理
+        const processedLines = lines.map((line, index) => {
+            // 找到第一个 '|' 的位置
+            const firstPipeIndex = line.indexOf('|');
+
+            // 如果当前行没有 '|'，直接返回原内容（防御性编程）
+            if (firstPipeIndex === -1) return line;
+
+            // 将第一个 '|' 替换为 ':: <br>'
+            let newLine = line.substring(0, firstPipeIndex) + '::' + line.substring(firstPipeIndex + 1);
+
+            // 找到第二个 '|' 的位置（注意：此时字符串已经改变，需要重新查找）
+            const secondPipeIndex = newLine.indexOf('|');
+
+            // 判断是否为最后一行
+            const isLastLine = index === lines.length - 1;
+
+            if (secondPipeIndex !== -1) {
+                if (isLastLine) {
+                    // 3. 最后一行：去除第二个 '|' 及其后面的内容（根据要求“去除”）
+                    newLine = newLine.substring(0, secondPipeIndex);
+                } else {
+                    // 2. 非最后一行：将第二个 '|' 替换为 '|||'
+                    newLine = newLine.substring(0, secondPipeIndex) + '|||' + newLine.substring(secondPipeIndex + 1);
+                }
+            }
+
+            return newLine;
+        });
+
+        // 4. 将所有处理后的行拼接起来，中间不加换行符
+        return processedLines.join('');
+    }
+
+    function addTimer(e) {
+        if (e.altKey) {
+            getClipboardText().then(text => {
+                if (!text) {
+                    alert('Please enter a card name');
+                    return;
+                }
+
+                const cardNames = text.split("|||")
+                createTimersWithDelay(cardNames)
+
+                // Reset inputs
+                cardNameInput.value = '';
+                answerInput.value = '';
+                customDurationInput.value = '';
+            })
+        } else if (e.ctrlKey) {
+            getClipboardText().then(text => {
+                if (!text) {
+                    alert('Please enter a card name');
+                    return;
+                }
+                text = convertText(text)
+                const cardNames = text.split("|||")
+                createTimersWithDelay(cardNames)
+
+                // Reset inputs
+                cardNameInput.value = '';
+                answerInput.value = '';
+                customDurationInput.value = '';
+            })
+        } else {
+            let name = cardNameInput.value.trim();
+            if(name.endsWith("|") && !name.includes("~~")){
+                name = name.replace("|", "^~").replace("|", "~~|").replace("^~", "|~")
+            }
+            if(name.includes("\n") && !name.includes("~~")) {
+                name = name.replace("\n", "\n~") + "~~"
+            }
+            if (answerInput.value.trim()) {
+                if(name){
+                    name += "<br>~"+answerInput.value.trim()+"~~"
+                } else {
+                    name += "~"+answerInput.value.trim()+"~~"
+                }
+            }
+            if (!name) {
+                addTimerFromClipboard();
+                return;
+            }
+
+            createTimer(name)
+
+            // Reset inputs
+            cardNameInput.value = '';
+            answerInput.value = '';
+            customDurationInput.value = '';
+        }
+
+    }
+
+    function addTimerFromClipboard() {
+        getClipboardText().then(text => {
+            const trimmed = text?.trim();
+            if (trimmed && !trimmed.includes('{{') && !trimmed.includes('~~') && !trimmed.includes('<br>')) {
+                createTimer(`~${trimmed}~~`);
+                cardNameInput.value = '';
+                answerInput.value = '';
+                customDurationInput.value = '';
+            } else {
+                alert('Please enter a card name');
+            }
+        })
+    }
+
+    function createTimersWithDelay(cardNames, delay = 100) {
+        cardNames.reverse()
+        let index = 0;
+
+        function createNext() {
+            if (index < cardNames.length) {
+                createTimer(cardNames[index]);
+                index++;
+                setTimeout(createNext, delay);
+            }
+        }
+
+        createNext();
+    }
+
+    const stopWords = [
+        // 冠词
+        'a', 'an', 'the',
+        // 介词
+        'of', 'to', 'in', 'on', 'at', 'with', 'without', 'by', 'from', 'into',
+        'through', 'during', 'via', 'per', 'for',
+        // 连接词
+        'and', 'or', 'but', 'so', 'because', 'if', 'then', 'else',
+        'when', 'while', 'where', 'that', 'which', 'who', 'whom',
+        // 助动词/be动词
+        'is', 'are', 'was', 'were', 'be', 'been', 'being',
+        'have', 'has', 'had', 'having', 'do', 'does', 'did', 'doing',
+        'can', 'could', 'will', 'would', 'should', 'may', 'might', 'must',
+        // 代词
+        'it', 'they', 'we', 'you', 'he', 'she', 'this', 'that',
+        'these', 'those', 'there', 'their', 'them', 'us', 'our',
+        'your', 'his', 'her',
+        // 高频副词/形容词
+        'not', 'no', 'so', 'very', 'too', 'also', 'only', 'just',
+        'even', 'such', 'same', 'different', 'other', 'another'
+    ]
+
+    function normalizeCloze(text) {
+        return text.replaceAll("{{", "~").replaceAll("}}", "~~");
+    }
+
+    function createTimer(name) {
+        name = name.replaceAll("&amp;", "&")
+
+        let durationSeconds;
+        if (durationSelect.value === 'custom') {
+            const durationMin = parseInt(customDurationInput.value, 10);
+            if (!durationMin || durationMin <= 0) {
+                alert('Please enter a valid duration');
+                return;
+            }
+            durationSeconds = durationMin * 60;
+        } else {
+            durationSeconds = parseInt(durationSelect.value, 10);
+        }
+
+        let answer = answerInput.value.trim();
+        // if (answer) {
+        //     name = name + `~${answer}~~`;
+        // }
+        const originalName = name
+        name = normalizeCloze(name);
+
+        if (name.includes("~~") || name.includes("::")) {
+            // if (name.includes("\n")) {
+            //     const array = name.split("\n")
+            //     name = array[2]+"::"+array[0]
+            // }
+
+            if (name.includes("::") && !name.includes("~~")) {
+                const subNames = name.split("::")
+                name = subNames[0].trim() + "::" + `~${subNames[1].trim()}~~`
+            }
+            // 1. 提取所有 {{...}} 里的内容
+            const matches = [...name.matchAll(/~(.*?)~~/g)].map(m => m[1]);
+            // matches = ["extracting", "arrays", "objects"]
+
+            // 2. 把 {{...}} 替换成 ____
+            if (name.includes(" → ") || name.includes(" / ") || name.includes("~*")) {
+                name = name.replace(/~.*?~~/g, '____');
+                matches.forEach(match => {
+                    name = name.replace("____", match2result(match))
+                })
+            } else {
+                name = name.replace(/~.*?~~/g, '____');
+            }
+
+            // 3. 拼成想要的格式
+            answer = matches.map(word => `"${word.startsWith("*") || word.startsWith("^") ? word.slice(1) : word}"`).join(', ');
+        } else if (name.includes("英") && name.includes("美")) {
+            const array = name.split("\n")
+            name = array[2]
+            answer = array[0] + array[1]
+        }
+
+
+        const timer = {
+            id: Date.now(),
+            name: name.replaceAll("<{", "<b>").replaceAll("}>", "</b>").replaceAll("\"", "'"),
+            originalName: originalName,
+            answer: answer,
+            duration: durationSeconds,
+            remaining: durationSeconds,
+            status: 'running',
+            isNameHidden: false,
+            isPinned: false,
+            isPromoted: false,
+            nameDelay: true
+        };
+
+        timers.unshift(timer);
+        renderTimer(timer);
+
+        // Show name after 1 second
+        setTimeout(() => {
+            timer.nameDelay = false;
+            const card = document.getElementById(`timer-${timer.id}`);
+            if (card) {
+                card.remove();
+            }
+            renderTimer(timer);
+        }, 1000);
+
+        if (durationSeconds === 0) {
+            // Immediately end timer for 0 second duration
+            timer.remaining = 0;
+            timer.status = 'ended';
+            onTimerEnd(timer);
+        } else {
+            startCountdown(timer);
+        }
+        updateTimerStatus();
+    }
+
+    function getName(timer) {
+        if (timer.name.includes("::")) {
+            const names = timer.name.split('::')
+            const first = names[0]
+            let second = names[1]
+            if (names[1].includes("→")) {
+                const secondNames = names[1].replace("→", "").split("→")
+                second = `<span style="color:lightgreen;">${secondNames[0]}</span>` + "<br>" + `<span">${secondNames[1]}</span>`
+            }
+            return timer.name.includes("::") ? `<span style="color:gold;max-lines: 2;text-overflow: ellipsis">${first}</span>` + "<br>" + second : timer.name
+        } else {
+            return timer.name
+        }
+    }
+
+    function renderTimer(timer) {
+        const card = document.createElement('div');
+        card.className = `timer-card ${timer.status === 'ended' ? 'ended' : ''}`;
+        card.id = `timer-${timer.id}`;
+
+        // Apply visibility flags to new cards
+        if (isTimerHidden && timer.status !== 'ended') {
+            card.classList.add('hidden-card');
+        } else if (isTimerHidden && timer.status === 'ended') {
+            card.classList.add('forced-visible');
+        }
+
+        const formattedDuration = formatDuration(timer.duration);
+        const statusText = timer.status === 'running' ? 'timing' : (timer.duration >= 600 ? 'OVER' : '已结束');
+        const mins = Math.floor(timer.remaining / 60);
+        const secs = timer.remaining % 60;
+        const countdownClass = isCountdownVisible ? '' : ' hidden';
+
+        const countdownHtml = timer.status === 'ended'
+            ? `<span class="timer-countdown${countdownClass}" id="countdown-${timer.id}">${mins}:${secs.toString().padStart(2, '0')}</span>`
+            : `<span class="timer-countdown${countdownClass}" id="countdown-${timer.id}">${mins}:${secs.toString().padStart(2, '0')}</span>`;
+
+        const nameDisplay = timer.nameDelay ? 'inline' : (timer.status === 'ended' ? (timer.isNameHidden ? 'none' : 'inline') : 'none');
+        const promoted = timer.isPromoted;
+        card.innerHTML = `
+                <div class="timer-left">
+                    <div class="timer-info">
+                        <span class="timer-name" title="${timer.name}" onclick="handleNameClick(${timer.id}, event)" style="cursor:pointer;display:${promoted ? 'none' : nameDisplay}">
+${getName(timer)}
+</span>
+                        <span class="timer-duration" onclick="toggleTimerName(${timer.id})" style="cursor:pointer;user-select:none">${formattedDuration}</span>
+                    </div>
+                    <div class="timer-status">
+                        ${countdownHtml}
+                        <span class="status-dot ${timer.status}"></span>
+                        <span>${statusText}</span>
+                    </div>
+                </div>
+                <div class="timer-right">
+                    <div class="btn-row-top">
+                        ${timer.status === 'ended' && !timer.buttonsDelay && !promoted && timer.answer ? `<button class="answer-btn" onclick="showAnswer(${timer.id}, event)">Answer</button>` : ''}
+                        ${timer.status === 'ended' && !timer.buttonsDelay && !promoted ? `<button class="new-min-btn" onclick="openNewMinModal(event, ${timer.id})">New Min</button>` : ''}
+                        ${timer.status === 'ended' && !timer.buttonsDelay && !promoted ? `<button class="restart-btn" onclick="restartTimer(${timer.id})">Restart</button>` : ''}
+                        ${timer.status === 'ended' && !timer.buttonsDelay && !promoted ? `<button class="delete-btn" onclick="deleteTimer(${timer.id})">&times;</button>` : ''}
+                    </div>
+                    ${timer.status === 'ended' && !timer.buttonsDelay && !promoted ? `
+                    <div class="btn-row-bottom">
+                        <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 1)">1</button>
+                        <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 2)">2</button>
+                        <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 5)">5</button>
+                        <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 10)">10</button>
+                        <button class="quick-min-btn" onclick="quickRestart(${timer.id}, 15)">15</button>
+                        <button class="play-btn" onclick="playAnswer(${timer.id})">Play</button>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+
+        // Insert card based on pinned/promoted state
+        if (timer.isPinned) {
+            // Only one pinned allowed - remove others
+            timers.forEach(t => {
+                if (t.id !== timer.id && t.isPinned) {
+                    t.isPinned = false;
+                    const otherCard = document.getElementById(`timer-${t.id}`);
+                    if (otherCard) otherCard.classList.remove('pinned');
+                }
+            });
+            card.classList.add('pinned');
+            timerList.insertBefore(card, timerList.firstChild);
+        } else if (timer.isPromoted) {
+            card.classList.add('promoted');
+            timerList.appendChild(card);
+        } else {
+            // Insert below pinned, before promoted
+            const firstPromoted = timerList.querySelector('.timer-card.promoted');
+            const firstPinned = timerList.querySelector('.timer-card.pinned');
+            if (firstPromoted) {
+                timerList.insertBefore(card, firstPromoted);
+            } else if (firstPinned) {
+                // Insert after pinned
+                timerList.insertBefore(card, firstPinned.nextSibling);
+            } else {
+                timerList.insertBefore(card, timerList.firstChild);
+            }
+        }
+    }
+
+    function startCountdown(timer) {
+        // Store the start time and expected end time for accuracy
+        timer.startTime = Date.now();
+        timer.endTime = Date.now() + timer.remaining * 1000;
+
+        timerIntervals[timer.id] = setInterval(() => {
+            // Calculate remaining time based on actual elapsed time
+            const now = Date.now();
+            const remaining = Math.max(0, Math.ceil((timer.endTime - now) / 1000));
+            timer.remaining = remaining;
+
+            const countdownEl = document.getElementById(`countdown-${timer.id}`);
+            if (countdownEl) {
+                countdownEl.textContent = formatTime(remaining);
+            }
+
+            if (remaining <= 0) {
+                clearInterval(timerIntervals[timer.id]);
+                timer.status = 'ended';
+                onTimerEnd(timer);
+            }
+        }, 250); // Update more frequently for smoother display
+    }
+
+    function onTimerEnd(timer) {
+        // Mark as ended BEFORE re-rendering so the card gets correct styling
+        timer.status = 'ended';
+        timer.buttonsDelay = true;
+
+        // Re-render the timer card (buttons hidden initially)
+        const card = document.getElementById(`timer-${timer.id}`);
+        if (card) {
+            card.remove();
+        }
+        renderTimer(timer);
+
+        // If timer list is hidden and timer just ended, show it
+        if (isTimerHidden) {
+            const newCard = document.getElementById(`timer-${timer.id}`);
+            if (newCard) {
+                newCard.classList.add('forced-visible');
+            }
+        }
+
+        // Show buttons after 1 second delay
+        setTimeout(() => {
+            timer.buttonsDelay = false;
+            const btnCard = document.getElementById(`timer-${timer.id}`);
+            if (btnCard) {
+                btnCard.remove();
+            }
+            renderTimer(timer);
+        }, 1000);
+
+        // TTS speak card name twice
+        const isShortTimer = timer.duration <= 120;
+        if (!isOnlyShortEnabled || isShortTimer) {
+            if (isFxEnabled) {
+                // Play FX sound only, ignore TTS
+                if (dingSound) {
+                    dingSound.currentTime = 0;
+                    dingSound.play().catch(err => console.error('Audio play failed:', err));
+                }
+            } else if (isTtsEnabled) {
+                if (timer.name !== "-") {
+                    speakOnce(timer.name);
+                } else {
+                    speakOnce((timer.answer + ", ").repeat(3))
+                }
+            }
+        }
+        updateTimerStatus();
+    }
+
+    function speakOnce(text) {
+        if (!text) return
+        if (text.includes("::")) {
+            text = text.split("::")[0]
+        }
+        if ('speechSynthesis' in window) {
+            speechSynthesis.cancel();
+            const hasChinese = /[一-鿿]/.test(text);
+            const lang = hasChinese ? 'zh-CN' : 'en-US';
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = lang;
+            if (lang === 'en-US') {
+                utterance.voice = voiceEn
+            }
+            speechSynthesis.speak(utterance);
+        }
+    }
+
+    function formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function formatDuration(seconds) {
+        if (seconds >= 60) {
+            const mins = Math.floor(seconds / 60);
+            return mins > 1 ? `${mins}min` : '1min';
+        }
+        return `${seconds}s`;
+    }
+
+    function restartTimer(id) {
+        const timer = timers.find(t => t.id === id);
+        if (!timer) return;
+
+        // Clear existing interval
+        if (timerIntervals[id]) {
+            clearInterval(timerIntervals[id]);
+        }
+
+        // Reset timer state using the current (possibly edited) duration
+        timer.remaining = timer.duration;
+        timer.status = 'running';
+
+        // If this was the pinned card, exit focus mode
+        if (timer.isPinned) {
+            timer.isPinned = false;
+            isFocusMode = false;
+            timerList.classList.remove('focus-mode');
+        }
+
+        // Re-render the timer card to update button visibility
+        const card = document.getElementById(`timer-${id}`);
+        if (card) {
+            card.remove();
+        }
+        renderTimer(timer);
+
+        // Start countdown
+        startCountdown(timer);
+        updateTimerStatus();
+    }
+
+    function quickRestart(id, mins) {
+        const timer = timers.find(t => t.id === id);
+        if (!timer) return;
+
+        // Clear existing interval
+        if (timerIntervals[id]) {
+            clearInterval(timerIntervals[id]);
+        }
+
+        // Set new duration
+        timer.duration = mins * 60;
+        timer.remaining = timer.duration;
+        timer.status = 'running';
+
+        // If this was the pinned card, exit focus mode
+        if (timer.isPinned) {
+            timer.isPinned = false;
+            isFocusMode = false;
+            timerList.classList.remove('focus-mode');
+        }
+
+        // Re-render the timer card to update button visibility
+        const card = document.getElementById(`timer-${id}`);
+        if (card) {
+            card.remove();
+        }
+        renderTimer(timer);
+
+        // Start countdown
+        startCountdown(timer);
+        updateTimerStatus();
+    }
+
+    function deleteTimer(id, skipBin = false) {
+        const timer = timers.find(t => t.id === id);
+        const wasPinned = timer && timer.isPinned;
+
+        if (timerIntervals[id]) {
+            clearInterval(timerIntervals[id]);
+            delete timerIntervals[id];
+        }
+        timers = timers.filter(t => t.id !== id);
+        const card = document.getElementById(`timer-${id}`);
+        if (card) {
+            card.remove();
+        }
+
+        // If the deleted card was pinned, exit focus mode
+        if (wasPinned) {
+            isFocusMode = false;
+            timerList.classList.remove('focus-mode');
+        }
+        updateTimerStatus();
+
+        // Recycle-bin routing: skip DB ops when Use Bin is off OR Ctrl+Shift was held;
+        // otherwise bin items are permanently removed and others are stored.
+        if (!isUseBinEnabled || skipBin) return;
+        if (timer && timer.inRecycleBin) {
+            const removedClass = timer.class || 'a';
+            removeFromRecycleBin(id)
+                .then(() => { binCount[removedClass] = Math.max(0, binCount[removedClass] - 1); updateTimerStatus(); })
+                .catch(err => console.error('Bin remove failed:', err));
+        } else if (timer) {
+            saveToRecycleBin(timer)
+                .then(() => { binCount[currentClass]++; updateTimerStatus(); })
+                .catch(err => console.error('Bin save failed:', err));
+        }
+    }
+
+    function showAnswer(id, e) {
+        if (e) e.stopPropagation();
+        const timer = timers.find(t => t.id === id);
+        if (timer && timer.answer) {
+            alert(timer.answer);
+        }
+    }
+
+    function playAnswer(id) {
+        const timer = timers.find(t => t.id === id);
+        if (!timer) return;
+        // Build full sentence with cloze revealed: ~content~~ → content
+        let text = (timer.originalName || '').replace(/~([^~]+?)~~/g, '$1');
+        if (!text) return;
+        // Strip CJK characters and tidy leftover separators
+        text = text
+            .replace(/[一-鿿]/g, '')
+            .replace(/<br\s*\/?>/gi, ' ')
+            .replace(/[ \t]+/g, ' ')
+            .trim();
+        if (!text) return;
+        speakOnce(text);
+    }
+
+    function toggleTimerName(id) {
+        const timer = timers.find(t => t.id === id);
+        if (!timer) return;
+
+        const nameEl = document.querySelector(`#timer-${id} .timer-name`);
+        if (!nameEl) return;
+
+        // Toggle based on current display state
+        const isCurrentlyHidden = nameEl.style.display === 'none';
+        nameEl.style.display = isCurrentlyHidden ? 'inline' : 'none';
+    }
+
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            // Optional: brief visual feedback could be added here
+        }).catch(err => {
+            console.error('Failed to copy:', err);
+        });
+    }
+
+    function handleNameClick(id, e) {
+        e.preventDefault()
+        // e.stopPropagation()
+        const timer = timers.find(t => t.id === id);
+        if (!timer) return;
+        if (e.button === 0 && e.ctrlKey && e.shiftKey) {
+            e.preventDefault();
+            e.stopPropagation();
+            window.parent?.postMessage({ type: 'load-fav-by-name', name: timer.name }, '*');
+        } else if (e.button === 0 && e.ctrlKey) {
+            // Ctrl click: open edit modal
+            e.preventDefault();
+            e.stopPropagation()
+            openEditModal(id);
+        } else if (e.button === 0) {
+            // Left click: copy to clipboard
+            copyToClipboard(timer.name);
+        }
+    }
+
+    function toggleCountdownVisibility() {
+        isCountdownVisible = !isCountdownVisible;
+        document.querySelectorAll('.timer-countdown').forEach(el => {
+            el.classList.toggle('hidden', !isCountdownVisible);
+        });
+    }
+
+    function handleTitleClick(e) {
+        if (e.altKey) {
+            // Alt+click: toggle timer list visibility (only affects running timers)
+            e.preventDefault();
+            isTimerHidden = !isTimerHidden;
+            document.querySelectorAll('.timer-card').forEach(card => {
+                const timerId = parseInt(card.id.replace('timer-', ''));
+                const timer = timers.find(t => t.id === timerId);
+                if (isTimerHidden && timer && timer.status !== 'ended') {
+                    card.classList.add('hidden-card');
+                } else {
+                    card.classList.remove('hidden-card');
+                    card.classList.remove('forced-visible');
+                }
+            });
+        } else {
+            // Regular click: toggle countdown visibility
+            toggleCountdownVisibility();
+        }
+    }
+
+    function openNewMinModal(event, id) {
+        const force = event && event.ctrlKey;
+        const defNewMinCheckbox = document.getElementById('defNewMinCheckbox');
+        const defNewMinInput = document.getElementById('defNewMinInput');
+
+        if (!force && defNewMinCheckbox && defNewMinCheckbox.checked) {
+            // Apply default duration directly without modal
+            const mins = parseInt(defNewMinInput.value, 10) || 2;
+            const timer = timers.find(t => t.id === id);
+            if (timer) {
+                timer.duration = mins * 60;
+                timer.remaining = timer.duration;
+                timer.status = 'running';
+
+                // If this was the pinned card, exit focus mode
+                if (timer.isPinned) {
+                    timer.isPinned = false;
+                    isFocusMode = false;
+                    timerList.classList.remove('focus-mode');
+                }
+
+                const card = document.getElementById(`timer-${timer.id}`);
+                if (card) {
+                    card.remove();
+                }
+                renderTimer(timer);
+                startCountdown(timer);
+                updateTimerStatus();
+            }
+            return;
+        }
+
+        // Show modal as normal
+        currentEditTimerId = id;
+        const modal = document.getElementById('modalOverlay');
+        const input = document.getElementById('modalInput');
+        const savedLast = localStorage.getItem('lastNewDuration');
+        if (savedLast !== null) {
+            input.value = savedLast;
+        } else {
+            const timer = timers.find(t => t.id === id);
+            if (timer) {
+                input.value = Math.ceil(timer.duration / 60);
+            }
+        }
+        modal.classList.add('active');
+        input.focus();
+        input.select();
+    }
+
+    function closeModal() {
+        const modal = document.getElementById('modalOverlay');
+        modal.classList.remove('active');
+        currentEditTimerId = null;
+    }
+
+    async function getClipboardText() {
+        try {
+            return await navigator.clipboard.readText();
+        } catch (err) {
+            return null;
+        }
+    }
+
+    function confirmNewDuration() {
+        if (currentEditTimerId === null) return;
+
+        const input = document.getElementById('modalInput');
+        const mins = parseInt(input.value, 10);
+        if (!mins || mins <= 0) {
+            alert('Please enter a valid duration');
+            return;
+        }
+
+        localStorage.setItem('lastNewDuration', String(mins));
+
+        const timer = timers.find(t => t.id === currentEditTimerId);
+        if (timer) {
+            timer.duration = mins * 60;
+            timer.remaining = timer.duration;
+            timer.status = 'running';
+
+            // If this was the pinned card, exit focus mode
+            if (timer.isPinned) {
+                timer.isPinned = false;
+                isFocusMode = false;
+                timerList.classList.remove('focus-mode');
+            }
+
+            // Re-render the timer card
+            const card = document.getElementById(`timer-${timer.id}`);
+            if (card) {
+                card.remove();
+            }
+            renderTimer(timer);
+
+            // Auto restart the countdown
+            startCountdown(timer);
+            updateTimerStatus();
+        }
+
+        closeModal();
+    }
+
+    function openEditModal(id) {
+        const timer = timers.find(t => t.id === id);
+        if (!timer) return;
+
+        currentEditTimerId = id;
+        const modal = document.getElementById('editModal');
+        const nameInput = document.getElementById('editNameInput');
+        const answerInput = document.getElementById('editAnswerInput');
+
+        nameInput.value = timer.originalName.replace(/~{1,2}([^~]+)~{1,2}/g, '____')
+            //.replaceAll("~~", "").replaceAll("~^", "").replaceAll("~^", "").replaceAll("~*", "").replaceAll("~", "");
+        ;
+        answerInput.value = timer.answer || '';
+
+        modal.classList.add('active');
+        nameInput.focus();
+        nameInput.select();
+    }
+
+    function closeEditModal() {
+        const modal = document.getElementById('editModal');
+        modal.classList.remove('active');
+        currentEditTimerId = null;
+    }
+
+    function match2result(match) {
+        const words = match.split(" ");
+        const result = words.map((w, i) => {
+            if (match.startsWith("^")) {
+                // 只显示首个单词的首字母，其它仅显示长度
+                // if (i === 0 || i === 1) {
+                //     return i === 0 ? w[1] + (w.length - 1) : w[0] + w.length
+                // } else {
+                //     return w.length
+                // }
+
+                // 显示完整的首单词，第二个单词的首字母以及一些虚词，其它仅显示长度
+                if (w.length === 1) return w
+                if (i === 0) {
+                    return w.substring(1, 4) + (w.length - 1) + " "
+                } else if (stopWords.includes(w)) {
+                    return w + " "
+                } else if (i === 1 || i === 2 || i === words.length - 1) {
+                    return w.substring(0, 2) + w.length + (w.endsWith(",") ? ", " : (w.endsWith("ly")?"ly ":" "))
+                } else {
+                    return w.length + (w.endsWith(",") ? ", " : (w.endsWith("ly")?"ly ":" "))
+                }
+            } else if (match.startsWith("*")) {
+                if (i === 0) {
+                    return w[1] + (w.length - 1)
+                } else {
+                    return w[0] + w.length
+                }
+            } else {
+                return w.length
+            }
+        }).join(" ").trim()
+        return result
+    }
+
+    function confirmEdit() {
+        if (currentEditTimerId === null) return;
+
+        const nameInput = document.getElementById('editNameInput');
+        const answerInput = document.getElementById('editAnswerInput');
+        const newName = nameInput.value.trim();
+        let newAnswer = answerInput.value.trim();
+
+        if (!newName) {
+            alert('Please enter a card name');
+            return;
+        }
+
+        const timer = timers.find(t => t.id === currentEditTimerId);
+        let name = normalizeCloze(newName);
+        if (timer) {//1
+            if (name.includes("~~") || name.includes("::")) {
+                if (name.includes("::") && !name.includes("~~")) {
+                    const subNames = name.split("::")
+                    name = subNames[0].trim() + "::" + `~${subNames[1].trim()}~~`
+                }
+                // 1. 提取所有 {{...}} 里的内容
+                const matches = [...name.matchAll(/~(.*?)~~/g)].map(m => m[1]);
+                // matches = ["extracting", "arrays", "objects"]
+
+                // 2. 把 {{...}} 替换成 ____
+                if (name.includes(" → ") || name.includes(" / ") || name.includes("~*")) {
+                    name = name.replace(/~.*?~~/g, '____');
+                    matches.forEach(match => {
+                        name = name.replace("____", match2result(match))
+                    })
+                } else {
+                    name = name.replace(/~.*?~~/g, '____');
+                }
+
+                // 3. 拼成想要的格式（题目里没明确最后输出格式，这里按示例来）
+                newAnswer = matches.map(word => `"${word.startsWith("*") || word.startsWith("^") ? word.slice(1) : word}"`).join(', ');
+            }
+
+
+            timer.name = name
+            timer.answer = newAnswer;
+
+            // Re-render the timer card
+            const card = document.getElementById(`timer-${timer.id}`);
+            if (card) {
+                card.remove();
+            }
+            renderTimer(timer);
+        }
+
+        closeEditModal();
+    }
+
+    // Close edit modal on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeModal();
+            closeEditModal();
+        }
+    });
+
+    // Close modal on overlay click
+    document.getElementById('modalOverlay').addEventListener('click', (e) => {
+        if (e.target.id === 'modalOverlay') {
+            closeModal();
+        }
+    });
+
+    window.addEventListener('message', (e) => {
+        if (e.data?.type === 'cn-en' && e.data.content) {
+            const inp = document.getElementById('cardNameInput');
+            if (inp) {
+                inp.value = e.data.content;
+                inp.focus();
+            }
+        }
+        if (e.data?.type === 'cn-en-no-focus' && e.data.content) {
+            const inp = document.getElementById('cardNameInput');
+            if (inp) {
+                inp.value = e.data.content;
+            }
+        }
+        if (e.data?.type === 'cn-en-q' && e.data.content) {
+            const inp = document.getElementById('cardNameInput');
+            if (inp) {
+                inp.value = e.data.content;
+                inp.focus();
+            }
+        }
+        if (e.data?.type === 'cn-en-append' && e.data.content) {
+            const inp = document.getElementById('cardNameInput');
+            if (inp) {
+                inp.value = (inp.value || '') + `<br>{{${e.data.content}}}`;
+                inp.focus();
+                document.getElementById('confirmBtn')?.click();
+            }
+        }
+        if (e.data?.type === 'cn-en-br' && e.data.content) {
+            const inp = document.getElementById('cardNameInput');
+            if (inp) {
+                inp.value = (inp.value || '') + `<br>${e.data.content}`;
+                inp.focus();
+            }
+        }
+        if (e.data?.type === 'anki-push' && e.data.name) {
+            const inp = document.getElementById('cardNameInput');
+            if (inp) {
+                inp.value = e.data.name;
+                inp.focus();
+            }
+        }
+    });
+
+    window.addEventListener('beforeunload', (e) => {
+        if (timers.length > 0) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+</script>
+</body>
+</html>
