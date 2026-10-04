@@ -53,6 +53,7 @@ def _on_message(
         return handled if handled is not None else None
 
     _log(f"[cardtimer] hook fired, message={message!r}")
+    _log(f"[cardtimer]   context type: {type(_context).__name__}")
     if not isinstance(message, str):
         return handled if handled is not None else None
 
