@@ -59,22 +59,13 @@ def _on_message(
 
 
 def _trigger_delete_shortcut() -> None:
-    """Delete the current card via Anki's API.
+    """Simulate a Ctrl+Del keypress on the main window.
 
-    Two-step:
-    1. If the user has bound Ctrl+Del to a QAction in Anki preferences, trigger
-       that action (respects user configuration).
-    2. Otherwise, call `mw.reviewer.onDelete()` directly — this is the same
-       handler that Anki uses for its built-in Delete action, so it shows the
-       confirmation dialog and proceeds identically to pressing the Del key.
+    Pure keypress simulation — does NOT call any Anki delete API. Whatever
+    action the user has bound to Ctrl+Del in Anki preferences will fire.
     """
-    from aqt.qt import QKeySequence
+    from PyQt6.QtTest import QTest
+    from aqt.qt import Qt
 
-    action = mw.actionForShortcut(QKeySequence("Ctrl+Del"))
-    if action is not None:
-        action.trigger()
-        return
-
-    reviewer = getattr(mw, "reviewer", None)
-    if reviewer is not None and hasattr(reviewer, "onDelete"):
-        reviewer.onDelete()
+    mw.activateWindow()
+    QTest.keyClick(mw, Qt.Key.Key_Delete, Qt.KeyboardModifier.ControlModifier)
