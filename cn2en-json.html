@@ -1356,6 +1356,16 @@
         }
         saveState();
         render();
+
+        if (currentFavId) {
+            const fav = favorites.find(f => f.id === currentFavId);
+            if (fav) {
+                fav.payload = entries;
+                fav.hash = hashEntries(entries);
+                updateFavorite(currentFavId, { payload: fav.payload, hash: fav.hash });
+            }
+        }
+        updateFavStatus();
         closeJsonEditModal();
     }
 
