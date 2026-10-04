@@ -97,7 +97,9 @@ class CardTimerDock:
         msg_type = msg_type_for(action)
         field = field_for(action)
         if msg_type is None or field is None:
+            print(f"[cardtimer] _push_now: unknown action={action!r}")
             return
         payload = json.dumps({field: name, "type": msg_type})
         js = f"window.postMessage({payload}, '*');"
+        print(f"[cardtimer] _push_now: running JS: {js}")
         self.webview.page().runJavaScript(js)

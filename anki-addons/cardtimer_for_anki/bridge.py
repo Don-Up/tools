@@ -38,17 +38,21 @@ def _on_message(
     else:
         return handled if handled is not None else None
 
+    print(f"[cardtimer] hook fired, message={message!r}")
     if not isinstance(message, str):
         return handled if handled is not None else None
 
     parsed = parse_command(message)
+    print(f"[cardtimer] parsed={parsed!r}")
     if parsed is None:
         return handled if handled is not None else None
 
     action, name = parsed
+    print(f"[cardtimer] dispatch action={action!r} name={name!r}")
     if not dock.is_visible():
         dock.show()
     dock.push_action(name, action)
+    print(f"[cardtimer] push_action returned")
 
     if handled is not None:
         return (True, None)
