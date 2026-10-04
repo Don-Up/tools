@@ -9,27 +9,46 @@ from .parser import parse_push_command
 def install(dock: Any) -> None:
     """Register a hook that listens for `cardtimer:push:*` commands.
 
-    The hook is appended to `gui_hooks.webview_did_receive_js_message`. Other
-    listeners (and Anki's default handler) still see the message; we only
-    act on commands that match the expected prefix.
+    Anki 26.x changed the `webview_did_receive_js_message` hook signature:
+        old: hook(webview, channel, msg, context) -> None
+        new: hook(handled, message, context) -> tuple[bool, Any]
+
+    We support both for compatibility. The hook returns the (possibly mutated)
+    `handled` tuple. If we consume the message, we return (True, None); if not,
+    we return `handled` unchanged so other listeners and Anki's default handler
+    see the original state.
     """
     gui_hooks.webview_did_receive_js_message.append(
-        lambda webview, channel, msg, context=None: _on_message(dock, webview, channel, msg, context)
+        lambda *args: _on_message(dock, *args)
     )
 
 
 def _on_message(
     dock: Any,
-    webview: Any,
-    channel: Any,
-    msg: Any,
-    context: Optional[Any],
-) -> None:
-    if not isinstance(msg, str):
-        return
-    name = parse_push_command(msg)
+    *args: Any,
+) -> Any:
+    # Anki 26.x: (handled: tuple[bool, Any], message: str, context: Any)
+    # Anki <=25.x: (webview, channel, msg, context=None)
+    handled: Optional[tuple[bool, Any]] = None
+    message: Any = None
+    if len(args) == 3 and isinstance(args[0], tuple):
+        handled, message, _context = args
+    elif len(args) >= 3:
+        _webview, _channel, message = args[0], args[1], args[2]
+    else:
+        return handled if handled is not None else None
+
+    if not isinstance(message, str):
+        return handled if handled is not None else None
+
+    name = parse_push_command(message)
     if name is None:
-        return
+        return handled if handled is not None else None
+
     if not dock.is_visible():
         dock.show()
     dock.push(name)
+
+    if handled is not None:
+        return (True, None)
+    return None
