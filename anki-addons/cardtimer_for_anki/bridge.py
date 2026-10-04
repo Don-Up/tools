@@ -3,11 +3,11 @@ from typing import Any, Optional
 
 from aqt import gui_hooks
 
-from .parser import parse_push_command
+from .parser import parse_command
 
 
 def install(dock: Any) -> None:
-    """Register a hook that listens for `cardtimer:push:*` commands.
+    """Register a hook that listens for `cardtimer:*` commands (push/q/w/e).
 
     Anki 26.x changed the `webview_did_receive_js_message` hook signature:
         old: hook(webview, channel, msg, context) -> None
@@ -41,13 +41,14 @@ def _on_message(
     if not isinstance(message, str):
         return handled if handled is not None else None
 
-    name = parse_push_command(message)
-    if name is None:
+    parsed = parse_command(message)
+    if parsed is None:
         return handled if handled is not None else None
 
+    action, name = parsed
     if not dock.is_visible():
         dock.show()
-    dock.push(name)
+    dock.push_action(name, action)
 
     if handled is not None:
         return (True, None)
