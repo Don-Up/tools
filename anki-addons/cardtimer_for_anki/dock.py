@@ -5,6 +5,7 @@ pending-push queue for messages that arrive before the page finishes loading.
 """
 import json
 import os
+import tempfile
 from typing import List, Tuple
 
 from aqt.qt import (
@@ -19,6 +20,15 @@ from .parser import field_for, msg_type_for
 
 
 HTML_REL_PATH = os.path.join("web", "card-timer.html")
+DEBUG_LOG = os.path.join(tempfile.gettempdir(), "cardtimer_debug.log")
+
+
+def _log(msg: str) -> None:
+    try:
+        with open(DEBUG_LOG, "a", encoding="utf-8") as f:
+            f.write(msg + "\n")
+    except Exception:
+        pass
 
 
 def _dock_html_path() -> str:
@@ -48,9 +58,11 @@ class CardTimerDock:
 
         url = QUrl.fromLocalFile(_dock_html_path())
         self.webview.setUrl(url)
+        _log(f"[cardtimer] dock.__init__: loading {url.toString()}")
 
     def _on_load_finished(self, ok: bool) -> None:
         self._loaded = bool(ok)
+        _log(f"[cardtimer] dock.load_finished ok={ok}")
         if not ok:
             return
         for action, name in self._pending:
@@ -88,6 +100,7 @@ class CardTimerDock:
         If the webview hasn't finished loading, queue and flush on
         loadFinished. Otherwise dispatch immediately.
         """
+        _log(f"[cardtimer] push_action action={action!r} name={name!r} loaded={self._loaded}")
         if not self._loaded:
             self._pending.append((action, name))
             return
@@ -97,9 +110,9 @@ class CardTimerDock:
         msg_type = msg_type_for(action)
         field = field_for(action)
         if msg_type is None or field is None:
-            print(f"[cardtimer] _push_now: unknown action={action!r}")
+            _log(f"[cardtimer] _push_now: unknown action={action!r}")
             return
         payload = json.dumps({field: name, "type": msg_type})
         js = f"window.postMessage({payload}, '*');"
-        print(f"[cardtimer] _push_now: running JS: {js}")
+        _log(f"[cardtimer] _push_now: running JS: {js}")
         self.webview.page().runJavaScript(js)

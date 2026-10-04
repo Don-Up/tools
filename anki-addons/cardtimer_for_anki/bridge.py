@@ -1,9 +1,21 @@
 """Install the js-message hook that routes push commands to the dock."""
+import os
+import tempfile
 from typing import Any, Optional
 
 from aqt import gui_hooks
 
 from .parser import parse_command
+
+DEBUG_LOG = os.path.join(tempfile.gettempdir(), "cardtimer_debug.log")
+
+
+def _log(msg: str) -> None:
+    try:
+        with open(DEBUG_LOG, "a", encoding="utf-8") as f:
+            f.write(msg + "\n")
+    except Exception:
+        pass
 
 
 def install(dock: Any) -> None:
@@ -18,6 +30,7 @@ def install(dock: Any) -> None:
     we return `handled` unchanged so other listeners and Anki's default handler
     see the original state.
     """
+    _log(f"[cardtimer] install() called, log file: {DEBUG_LOG}")
     gui_hooks.webview_did_receive_js_message.append(
         lambda *args: _on_message(dock, *args)
     )
@@ -36,23 +49,24 @@ def _on_message(
     elif len(args) >= 3:
         _webview, _channel, message = args[0], args[1], args[2]
     else:
+        _log(f"[cardtimer] hook fired with unexpected args: {args!r}")
         return handled if handled is not None else None
 
-    print(f"[cardtimer] hook fired, message={message!r}")
+    _log(f"[cardtimer] hook fired, message={message!r}")
     if not isinstance(message, str):
         return handled if handled is not None else None
 
     parsed = parse_command(message)
-    print(f"[cardtimer] parsed={parsed!r}")
+    _log(f"[cardtimer] parsed={parsed!r}")
     if parsed is None:
         return handled if handled is not None else None
 
     action, name = parsed
-    print(f"[cardtimer] dispatch action={action!r} name={name!r}")
+    _log(f"[cardtimer] dispatch action={action!r} name={name!r}")
     if not dock.is_visible():
         dock.show()
     dock.push_action(name, action)
-    print(f"[cardtimer] push_action returned")
+    _log(f"[cardtimer] push_action returned")
 
     if handled is not None:
         return (True, None)
