@@ -1159,7 +1159,8 @@
             isNameHidden: false,
             isPinned: false,
             isPromoted: false,
-            nameDelay: true
+            nameDelay: true,
+            countdownVisible: false
         };
 
         timers.unshift(timer);
@@ -1217,7 +1218,7 @@
         const statusText = timer.status === 'running' ? 'timing' : (timer.duration >= 600 ? 'OVER' : '已结束');
         const mins = Math.floor(timer.remaining / 60);
         const secs = timer.remaining % 60;
-        const countdownClass = isCountdownVisible ? '' : ' hidden';
+        const countdownClass = (timer.countdownVisible ?? true) ? '' : ' hidden';
 
         const countdownHtml = timer.status === 'ended'
             ? `<span class="timer-countdown${countdownClass}" id="countdown-${timer.id}">${mins}:${secs.toString().padStart(2, '0')}</span>`
@@ -1562,9 +1563,18 @@ ${getName(timer)}
     }
 
     function toggleCountdownVisibility() {
-        isCountdownVisible = !isCountdownVisible;
+        // If any card is hiding the countdown, the click shows all (so a freshly
+        // created card defaults to timing and one click reveals its countdown).
+        // If every card is already showing, the click hides all. If every card
+        // is hidden, the click shows all.
+        const allShown = timers.length > 0 && timers.every(t => (t.countdownVisible ?? true));
+        const target = !allShown;
+
+        for (const timer of timers) {
+            timer.countdownVisible = target;
+        }
         document.querySelectorAll('.timer-countdown').forEach(el => {
-            el.classList.toggle('hidden', !isCountdownVisible);
+            el.classList.toggle('hidden', !target);
         });
     }
 
