@@ -1353,11 +1353,12 @@ ${getName(timer)}
                     dingSound.play().catch(err => console.error('Audio play failed:', err));
                 }
             } else if (isTtsEnabled) {
-                if (timer.name !== "-") {
-                    speakOnce(timer.name);
-                } else {
-                    speakOnce((timer.answer + ", ").repeat(3))
-                }
+                speakOnce("Time's up")
+                // if (timer.name !== "-") {
+                //     speakOnce(timer.name);
+                // } else {
+                //     speakOnce((timer.answer + ", ").repeat(3))
+                // }
             }
         }
         updateTimerStatus();
