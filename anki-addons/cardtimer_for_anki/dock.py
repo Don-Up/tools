@@ -42,7 +42,7 @@ class CardTimerDock:
 
         self.webview.loadFinished.connect(self._on_load_finished)
 
-        mw.addDockWidget(Qt.RightDockWidgetArea, self.widget)
+        mw.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.widget)
 
         url = QUrl.fromLocalFile(_dock_html_path())
         self.webview.setUrl(url)
