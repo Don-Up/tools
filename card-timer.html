@@ -900,7 +900,7 @@
         });
     });
 
-    document.getElementById('clearBtn').addEventListener('click', () => {
+    document.getElementById('clearBtn').addEventListener('click', async () => {
         if (timers.length === 0) return;
         if (!confirm('Clear all items?')) return;
 
@@ -917,6 +917,18 @@
         // Exit focus mode if active
         isFocusMode = false;
         timerList.classList.remove('focus-mode');
+
+        // If Use Bin is on, also wipe DB records of the current class
+        if (isUseBinEnabled) {
+            try {
+                const all = await getAllFromRecycleBin();
+                const ids = all.filter(it => (it.class || 'a') === currentClass).map(it => it.id);
+                await Promise.all(ids.map(id => removeFromRecycleBin(id)));
+                binCount[currentClass] = 0;
+            } catch (err) {
+                console.error('Bin clear failed:', err);
+            }
+        }
 
         updateTimerStatus();
     });
