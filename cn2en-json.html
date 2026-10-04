@@ -1311,9 +1311,14 @@
     }
 
     function openJsonEditModal() {
-        jsonEditInput.value = entries.length === 0
-            ? '[]'
-            : JSON.stringify(entries, null, 2);
+        const obj = {};
+        for (const [cn, en] of entries) {
+            obj[cn] = en;
+        }
+        const objKeys = Object.keys(obj);
+        jsonEditInput.value = objKeys.length === 0
+            ? '{}'
+            : JSON.stringify(obj, null, 2);
         jsonEditError.textContent = '';
         jsonEditModal.hidden = false;
         setTimeout(() => { jsonEditInput.focus(); }, 0);
@@ -1331,19 +1336,19 @@
             jsonEditError.textContent = `JSON 解析失败: ${err.message}`;
             return;
         }
-        if (!Array.isArray(parsed)) {
-            jsonEditError.textContent = 'JSON 必须是数组（每项为 [中文字符串, 英文字符串]）';
+        if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+            jsonEditError.textContent = 'JSON 必须是对象（key 为中文，value 为英文）';
             return;
         }
-        for (let i = 0; i < parsed.length; i++) {
-            const item = parsed[i];
-            if (!Array.isArray(item) || item.length !== 2
-                || typeof item[0] !== 'string' || typeof item[1] !== 'string') {
-                jsonEditError.textContent = `第 ${i + 1} 项格式错误：必须是 [中文字符串, 英文字符串]`;
+        const pairs = Object.entries(parsed);
+        for (let i = 0; i < pairs.length; i++) {
+            const [cn, en] = pairs[i];
+            if (typeof cn !== 'string' || typeof en !== 'string') {
+                jsonEditError.textContent = `第 ${i + 1} 项格式错误：key 和 value 都必须是字符串`;
                 return;
             }
         }
-        entries = parsed;
+        entries = pairs;
         if (entries.length === 0) {
             currentIndex = 0;
         } else if (currentIndex >= entries.length) {
