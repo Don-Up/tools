@@ -4,6 +4,12 @@ An Anki 25.x addon that embeds `card-timer.html` as a persistent right-side dock
 
 ## Install
 
+### Option A: double-click install (recommended)
+
+Double-click `cardtimer_for_anki.ankiaddon`. Anki opens, confirms the install, and the addon is registered. Restart Anki when prompted. A new dock labeled **CardTimer** appears on the right side.
+
+### Option B: manual folder copy
+
 1. Locate your Anki addons directory. In Anki, go to **Tools → Add-ons**, then click the **View Files** button. The directory is usually:
    - macOS/Linux: `~/Anki/addons21/`
    - Windows: `%APPDATA%\Anki2\addons21\`
@@ -14,7 +20,7 @@ An Anki 25.x addon that embeds `card-timer.html` as a persistent right-side dock
    # Windows (PowerShell)
    xcopy /E /I cardtimer_for_anki %APPDATA%\Anki2\addons21\cardtimer_for_anki
    ```
-3. Restart Anki. A new dock labeled **CardTimer** appears on the right side, showing the CardTimer UI.
+3. Restart Anki. A new dock labeled **CardTimer** appears on the right side.
 
 ## Usage
 
