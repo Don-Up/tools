@@ -99,3 +99,33 @@ def test_field_for_known_actions():
 
 def test_field_for_unknown_action():
     assert field_for("xyz") is None
+
+
+def test_parse_command_del_action():
+    assert parse_command("cardtimer:del:") == ("del", "")
+    assert parse_command("cardtimer:del:foo") == ("del", "foo")
+
+
+def test_parse_command_del_accepts_empty_payload():
+    assert parse_command("cardtimer:del:") is not None
+
+
+def test_parse_command_del_decodes_url_encoded():
+    assert parse_command("cardtimer:del:%E4%B8%AD%E6%96%87") == ("del", "中文")
+
+
+def test_parse_command_del_returns_none_for_wrong_prefix():
+    assert parse_command("other:del:") is None
+
+
+def test_parse_command_del_returns_none_for_non_string():
+    assert parse_command(None) is None
+    assert parse_command(123) is None
+
+
+def test_msg_type_for_del_is_none():
+    assert msg_type_for("del") is None
+
+
+def test_field_for_del_is_none():
+    assert field_for("del") is None

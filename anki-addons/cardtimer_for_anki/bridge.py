@@ -1,13 +1,13 @@
 """Install the js-message hook that routes push commands to the dock."""
 from typing import Any, Optional
 
-from aqt import gui_hooks
+from aqt import gui_hooks, mw
 
 from .parser import parse_command
 
 
 def install(dock: Any) -> None:
-    """Register a hook that listens for `cardtimer:*` commands (push/q/w/e/send).
+    """Register a hook that listens for `cardtimer:*` commands (push/q/w/e/send/del).
 
     Anki 26.x changed the `webview_did_receive_js_message` hook signature:
         old: hook(webview, channel, msg, context) -> None
@@ -46,10 +46,20 @@ def _on_message(
         return handled if handled is not None else None
 
     action, name = parsed
-    if not dock.is_visible():
-        dock.show()
-    dock.push_action(name, action)
+    if action == "del":
+        _trigger_delete_shortcut()
+    else:
+        if not dock.is_visible():
+            dock.show()
+        dock.push_action(name, action)
 
     if handled is not None:
         return (True, None)
     return None
+
+
+def _trigger_delete_shortcut() -> None:
+    """Simulate Ctrl+Del on the main window so Anki's bound action fires."""
+    from aqt.qt import QTest, Qt
+    mw.activateWindow()
+    QTest.keyClick(mw, Qt.Key.Key_Delete, Qt.KeyboardModifier.ControlModifier)
