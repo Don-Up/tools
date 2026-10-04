@@ -1,0 +1,1 @@
+# CardTimer Dock addon - placeholder
