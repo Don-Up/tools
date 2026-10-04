@@ -523,6 +523,40 @@
             margin: 0 auto;
             display: block;
         }
+        .json-edit-textarea {
+            width: min(720px, 90vw);
+            max-width: 100%;
+            box-sizing: border-box;
+            min-height: 360px;
+            max-height: 70vh;
+            resize: vertical;
+            font-family: ui-monospace, 'Cascadia Mono', Menlo, Consolas, monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            padding: 10px 12px;
+            margin: 0 auto;
+            display: block;
+            white-space: pre;
+            overflow: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(95, 168, 211, 0.55) transparent;
+        }
+        .json-edit-textarea::-webkit-scrollbar { width: 8px; height: 8px; }
+        .json-edit-textarea::-webkit-scrollbar-track { background: transparent; }
+        .json-edit-textarea::-webkit-scrollbar-thumb {
+            background: rgba(95, 168, 211, 0.55);
+            border-radius: 4px;
+        }
+        .json-edit-textarea::-webkit-scrollbar-thumb:hover {
+            background: rgba(95, 168, 211, 0.85);
+        }
+        .json-edit-error {
+            color: #f87171;
+            font-size: 13px;
+            min-height: 18px;
+            text-align: center;
+            white-space: pre-wrap;
+        }
         .cn-modal-panel::-webkit-scrollbar {
             width: 10px;
         }
@@ -581,7 +615,7 @@
         </div>
         <div id="counter" class="counter" hidden></div>
 
-        <div id="hint" class="hint">Ctrl+V 粘贴 · ← → 切换 · 1-3 切 Mode · ↓ 揭示 · E 读EN · Alt+R 读全文 · Z 全文 · N 笔记 · Space 停读 · F 收藏 · Alt+F 收藏夹 · Ctrl+I 背景</div>
+        <div id="hint" class="hint">Ctrl+V 粘贴 · ← → 切换 · 1-3 切 Mode · ↓ 揭示 · E 读EN · Alt+R 读全文 · Z 全文 · N 笔记 · Space 停读 · F 收藏 · Alt+F 收藏夹 · Alt+J 编辑JSON · Ctrl+I 背景</div>
         <div id="emptyState" class="empty-state">按 Ctrl+V 粘贴 JSON 数据</div>
         <div id="cnModal" class="cn-modal" hidden>
             <div id="cnModalBackdrop" class="cn-modal-backdrop"></div>
@@ -633,6 +667,18 @@
                     <button id="noteOk">保存</button>
                     <button id="noteDelete">删除</button>
                     <button id="noteCancel">取消</button>
+                </div>
+            </div>
+        </div>
+        <div id="jsonEditModal" class="fav-modal" hidden>
+            <div id="jsonEditBackdrop" class="fav-modal-backdrop"></div>
+            <div class="fav-modal-panel">
+                <div class="fav-modal-title">编辑 JSON</div>
+                <textarea id="jsonEditInput" class="fav-input json-edit-textarea" spellcheck="false"></textarea>
+                <div id="jsonEditError" class="json-edit-error"></div>
+                <div class="fav-modal-actions">
+                    <button id="jsonEditOk">确定</button>
+                    <button id="jsonEditCancel">取消</button>
                 </div>
             </div>
         </div>
@@ -715,6 +761,12 @@
     const noteCancel = document.getElementById('noteCancel');
     const noteIndexLabel = document.getElementById('noteIndexLabel');
     const noteDisplay = document.getElementById('noteDisplay');
+    const jsonEditModal = document.getElementById('jsonEditModal');
+    const jsonEditBackdrop = document.getElementById('jsonEditBackdrop');
+    const jsonEditInput = document.getElementById('jsonEditInput');
+    const jsonEditError = document.getElementById('jsonEditError');
+    const jsonEditOk = document.getElementById('jsonEditOk');
+    const jsonEditCancel = document.getElementById('jsonEditCancel');
     let bgImages = [];
     let currentBgId = -1;
     let onlyBgId = -1;
@@ -1258,6 +1310,50 @@
         noteModal.hidden = true;
     }
 
+    function openJsonEditModal() {
+        jsonEditInput.value = entries.length === 0
+            ? '[]'
+            : JSON.stringify(entries, null, 2);
+        jsonEditError.textContent = '';
+        jsonEditModal.hidden = false;
+        setTimeout(() => { jsonEditInput.focus(); }, 0);
+    }
+
+    function closeJsonEditModal() {
+        jsonEditModal.hidden = true;
+    }
+
+    function saveJsonEdit() {
+        let parsed;
+        try {
+            parsed = JSON.parse(jsonEditInput.value);
+        } catch (err) {
+            jsonEditError.textContent = `JSON 解析失败: ${err.message}`;
+            return;
+        }
+        if (!Array.isArray(parsed)) {
+            jsonEditError.textContent = 'JSON 必须是数组（每项为 [中文字符串, 英文字符串]）';
+            return;
+        }
+        for (let i = 0; i < parsed.length; i++) {
+            const item = parsed[i];
+            if (!Array.isArray(item) || item.length !== 2
+                || typeof item[0] !== 'string' || typeof item[1] !== 'string') {
+                jsonEditError.textContent = `第 ${i + 1} 项格式错误：必须是 [中文字符串, 英文字符串]`;
+                return;
+            }
+        }
+        entries = parsed;
+        if (entries.length === 0) {
+            currentIndex = 0;
+        } else if (currentIndex >= entries.length) {
+            currentIndex = entries.length - 1;
+        }
+        saveState();
+        render();
+        closeJsonEditModal();
+    }
+
     async function persistNotesForCurrent(notes) {
         if (!currentFavId) return;
         const fav = favorites.find(f => f.id === currentFavId);
@@ -1369,6 +1465,18 @@
         if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
             e.preventDefault();
             noteOk.click();
+        }
+    });
+    jsonEditOk.addEventListener('click', saveJsonEdit);
+    jsonEditCancel.addEventListener('click', closeJsonEditModal);
+    jsonEditBackdrop.addEventListener('click', closeJsonEditModal);
+    jsonEditInput.addEventListener('input', () => {
+        jsonEditError.textContent = '';
+    });
+    jsonEditInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            jsonEditOk.click();
         }
     });
 
@@ -1550,6 +1658,10 @@
                 e.preventDefault();
                 e.stopPropagation();
                 closeNoteModal();
+            } else if (!jsonEditModal.hidden) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeJsonEditModal();
             } else if (!bgModal.hidden) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -1560,7 +1672,7 @@
                 hideAllCn();
             }
         }
-        if (!favSaveModal.hidden || !noteModal.hidden) {
+        if (!favSaveModal.hidden || !noteModal.hidden || !jsonEditModal.hidden) {
             return;
         }
         if (e.key === 'f' && e.altKey && !e.ctrlKey && !e.metaKey) {
@@ -1573,6 +1685,12 @@
             if (entries.length === 0) return;
             e.preventDefault();
             readAllEn();
+            return;
+        }
+        if (e.key === 'j' && e.altKey && !e.ctrlKey && !e.metaKey) {
+            e.preventDefault();
+            e.stopPropagation();
+            openJsonEditModal();
             return;
         }
         if (e.key === 'f' && !e.ctrlKey && !e.altKey && !e.metaKey) {
@@ -1926,7 +2044,7 @@
             document.body.classList.toggle('side-panel-open', shown);
             if (shown) postCnEnToChild();
         }
-        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyV' && favSaveModal.hidden && noteModal.hidden) {
+        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyV' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden) {
             e.preventDefault();
             try {
                 const text = await navigator.clipboard.readText();
@@ -1935,7 +2053,7 @@
                 showError(`剪贴板读取失败: ${err.message || err}`);
             }
         }
-        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyX' && favSaveModal.hidden && noteModal.hidden) {
+        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyX' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden) {
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
             e.preventDefault();
@@ -1965,7 +2083,7 @@
             enShown = !enShown;
             enText.style.visibility = enShown ? "visible" : "hidden"
         }
-        if (!e.ctrlKey && !e.altKey && !e.shiftKey && e.code === 'KeyZ' && favSaveModal.hidden && noteModal.hidden) {
+        if (!e.ctrlKey && !e.altKey && !e.shiftKey && e.code === 'KeyZ' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden) {
             if (entries.length === 0) return;
             if (cnModal.hidden) {
                 showAllCn();
@@ -1973,7 +2091,7 @@
                 hideAllCn();
             }
         }
-        if (!e.ctrlKey && !e.altKey && !e.shiftKey && favSaveModal.hidden && noteModal.hidden) {
+        if (!e.ctrlKey && !e.altKey && !e.shiftKey && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden) {
             const tag = e.target.tagName;
             if (e.code === 'KeyN' && noteModal.hidden && tag !== 'INPUT' && tag !== 'TEXTAREA') {
                 if (entries.length === 0) return;
