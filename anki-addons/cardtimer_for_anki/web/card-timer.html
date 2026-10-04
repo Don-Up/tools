@@ -1860,6 +1860,14 @@ ${getName(timer)}
                 inp.focus();
             }
         }
+        if (e.data?.type === 'cn-en-q-confirm' && e.data.content) {
+            const inp = document.getElementById('cardNameInput');
+            if (inp) {
+                inp.value = e.data.content;
+                inp.focus();
+                document.getElementById('confirmBtn')?.click();
+            }
+        }
     });
 
     window.addEventListener('beforeunload', (e) => {

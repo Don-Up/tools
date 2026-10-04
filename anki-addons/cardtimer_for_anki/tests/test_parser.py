@@ -45,10 +45,15 @@ def test_parse_command_returns_action_and_name():
     assert parse_command("cardtimer:q:hello") == ("q", "hello")
     assert parse_command("cardtimer:w:hello") == ("w", "hello")
     assert parse_command("cardtimer:e:hello") == ("e", "hello")
+    assert parse_command("cardtimer:send:hello") == ("send", "hello")
 
 
 def test_parse_command_decodes_url_encoded():
     assert parse_command("cardtimer:w:%E4%B8%AD%E6%96%87") == ("w", "中文")
+
+
+def test_parse_command_sends_action():
+    assert parse_command("cardtimer:send:%E4%B8%AD%E6%96%87") == ("send", "中文")
 
 
 def test_parse_command_returns_none_for_unknown_prefix():
@@ -60,6 +65,7 @@ def test_parse_command_returns_none_for_empty_name():
     assert parse_command("cardtimer:q:") is None
     assert parse_command("cardtimer:w:") is None
     assert parse_command("cardtimer:e:") is None
+    assert parse_command("cardtimer:send:") is None
 
 
 def test_parse_command_returns_none_for_non_string():
@@ -73,6 +79,11 @@ def test_msg_type_for_known_actions():
     assert msg_type_for("q") == "cn-en-q"
     assert msg_type_for("w") == "cn-en-append"
     assert msg_type_for("e") == "cn-en-br"
+    assert msg_type_for("send") == "cn-en-q-confirm"
+
+
+def test_msg_type_for_send_returns_q_confirm():
+    assert msg_type_for("send") == "cn-en-q-confirm"
 
 
 def test_msg_type_for_unknown_action():

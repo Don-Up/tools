@@ -14,10 +14,11 @@ from typing import Optional, Tuple
 from urllib.parse import unquote
 
 ACTIONS = {
-    "push": {"prefix": "cardtimer:push:", "msg_type": "anki-push",    "field": "name"},
-    "q":    {"prefix": "cardtimer:q:",    "msg_type": "cn-en-q",      "field": "content"},
-    "w":    {"prefix": "cardtimer:w:",    "msg_type": "cn-en-append", "field": "content"},
-    "e":    {"prefix": "cardtimer:e:",    "msg_type": "cn-en-br",     "field": "content"},
+    "push": {"prefix": "cardtimer:push:", "msg_type": "anki-push",        "field": "name"},
+    "q":    {"prefix": "cardtimer:q:",    "msg_type": "cn-en-q",          "field": "content"},
+    "w":    {"prefix": "cardtimer:w:",    "msg_type": "cn-en-append",     "field": "content"},
+    "e":    {"prefix": "cardtimer:e:",    "msg_type": "cn-en-br",         "field": "content"},
+    "send": {"prefix": "cardtimer:send:", "msg_type": "cn-en-q-confirm",  "field": "content"},
 }
 
 
