@@ -517,6 +517,9 @@
                 <option value="180">3min</option>
                 <option value="300">5min</option>
                 <option value="600">10min</option>
+                <option value="900">15min</option>
+                <option value="1200">20min</option>
+                <option value="1800">30min</option>
                 <option value="custom">Custom</option>
             </select>
             <label style="color:#888;padding:12px 0 12px 10px;white-space:nowrap">Def New</label>
@@ -1006,6 +1009,7 @@
             })
         } else {
             let name = cardNameInput.value.trim();
+            if(name.startsWith("<br>")) name = name.replace("<br>", "")
             if(name.endsWith("|") && !name.includes("~~")){
                 name = name.replace("|", "^~").replace("|", "~~|").replace("^~", "|~")
             }
