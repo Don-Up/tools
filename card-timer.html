@@ -888,9 +888,9 @@
     exportBtn.addEventListener('click', (e) => {
         let names = ""
         if (e.altKey) {
-            names = timers.map(t => t.originalName.replaceAll("<{", "<b>").replaceAll("}>", "</b>").replaceAll("<br>", "|")).join('|\n');
+            names = timers.map(t => t.originalName.replaceAll("<{", "<b>").replaceAll("}>", "</b>").replace(/<br>\s*/g, '|')).join('|\n') + "|";
         } else {
-            names = timers.map(t => t.originalName).join('|||');
+            names = timers.map(t => t.originalName).join('|||')
         }
         navigator.clipboard.writeText(names).then(() => {
             // Optional: brief visual feedback could be added
