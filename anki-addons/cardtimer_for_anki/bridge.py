@@ -59,7 +59,21 @@ def _on_message(
 
 
 def _trigger_delete_shortcut() -> None:
-    """Simulate Ctrl+Del on the main window so Anki's bound action fires."""
-    from aqt.qt import QTest, Qt
+    """Trigger whatever Anki has bound to Ctrl+Del.
+
+    Primary: find the QAction Anki has bound to "Ctrl+Del" and trigger it
+    directly — no focus dependency.
+    Fallback: synthesize a keypress on the main window for QShortcut bindings.
+    """
+    from aqt.qt import QKeySequence
+
+    action = mw.actionForShortcut(QKeySequence("Ctrl+Del"))
+    if action is not None:
+        action.trigger()
+        return
+
+    from PyQt6.QtTest import QTest
+    from aqt.qt import Qt
+
     mw.activateWindow()
     QTest.keyClick(mw, Qt.Key.Key_Delete, Qt.KeyboardModifier.ControlModifier)
