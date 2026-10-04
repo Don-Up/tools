@@ -503,6 +503,7 @@
             <option value="a" selected>A</option>
             <option value="b">B</option>
             <option value="c">C</option>
+            <option value="d">D</option>
         </select></h1>
 
     <div class="input-section">
@@ -756,15 +757,15 @@
     function updateTimerStatus() {
         const running = timers.filter(t => t.status === 'running').length;
         const ended = timers.filter(t => t.status === 'ended').length;
-        document.getElementById('timerStatus').textContent = `(${running} 倒计时, ${ended} 已结束, ${binCount.a}/${binCount.b}/${binCount.c} 已回收)`;
+        document.getElementById('timerStatus').textContent = `(${running} 倒计时, ${ended} 已结束, ${binCount.a}/${binCount.b}/${binCount.c}/${binCount.d} 已回收)`;
     }
 
     // Recycle bin count, initialized from IndexedDB and maintained on bin mutations
-    let binCount = { a: 0, b: 0, c: 0 };
+    let binCount = { a: 0, b: 0, c: 0, d: 0 };
     let currentClass = 'a';
     getAllFromRecycleBin()
         .then(items => {
-            binCount = { a: 0, b: 0, c: 0 };
+            binCount = { a: 0, b: 0, c: 0, d: 0 };
             items.forEach(it => {
                 const cls = it.class || 'a';
                 if (binCount[cls] !== undefined) binCount[cls]++;
