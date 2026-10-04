@@ -888,7 +888,7 @@
     exportBtn.addEventListener('click', (e) => {
         let names = ""
         if (e.altKey) {
-            names = timers.map(t => t.originalName.replaceAll("<{", "<b>").replaceAll("}>", "</b>").replace(/<br>\s*/g, '|')).join('|\n') + "|";
+            names = timers.map(t => t.originalName.replaceAll("<{", "<b>").replaceAll("}>", "</b>").replace(/<br>\s*/g, '|')).join('|\n').replaceAll("{{", "~").replaceAll("}}", "~~") + "|";
         } else {
             names = timers.map(t => t.originalName).join('|||')
         }
