@@ -524,8 +524,8 @@
             display: block;
         }
         .json-edit-textarea {
-            width: min(720px, 90vw);
-            max-width: 100%;
+            width: 720px;
+            max-width: calc(100vw - 80px);
             box-sizing: border-box;
             min-height: 360px;
             max-height: 70vh;
@@ -536,7 +536,8 @@
             padding: 10px 12px;
             margin: 0 auto;
             display: block;
-            white-space: pre;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
             overflow: auto;
             scrollbar-width: thin;
             scrollbar-color: rgba(95, 168, 211, 0.55) transparent;
@@ -784,7 +785,8 @@
 
     function showAllCn() {
         if (entries.length === 0) return;
-        cnModalText.textContent = entries.map(e => e[0]).join('\n\n');
+        const filtered = entries.map(e => e[0].replace(/\{\{/g, '').replace(/\}\}[^]*?\]\]/g, ''));
+        cnModalText.textContent = filtered.join('\n\n');
         cnModal.hidden = false;
     }
     function hideAllCn() {
@@ -2125,7 +2127,9 @@
                 applyMode(3);
             }
         }
-        if (entries.length > 0) {
+        if (entries.length > 0 && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden) {
+            const tag = e.target.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA') return;
             if (e.code === 'ArrowLeft') {
                 e.preventDefault();
                 currentIndex = (currentIndex - 1 + entries.length) % entries.length;
