@@ -1930,12 +1930,12 @@ ${getName(timer)}
             loadCardsAsEnded(e.data.content);
         }
         if (e.data?.type === 'clear-cards') {
-            const toRemove = timers.filter(t => t.fromCards);
+            const toRemove = timers.filter(t => t.fromCards && t.status === 'ended');
             for (const t of toRemove) {
                 const card = document.getElementById(`timer-${t.id}`);
                 if (card) card.remove();
             }
-            timers = timers.filter(t => !t.fromCards);
+            timers = timers.filter(t => !(t.fromCards && t.status === 'ended'));
             updateTimerStatus();
         }
     });
