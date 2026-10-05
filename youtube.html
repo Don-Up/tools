@@ -802,9 +802,11 @@
         function adjustMarkerTime(idx, delta) {
             const m = markers[idx];
             if (!m) return;
-            m.time = Math.round(m.time * 10) / 10;
-            m.time = Math.round((m.time + delta) * 10) / 10;
-            if (m.time < 0) m.time = 0;
+            const newTime = m.time + delta;
+            const snapped = delta < 0
+                ? Math.floor(newTime * 10) / 10
+                : Math.ceil(newTime * 10) / 10;
+            m.time = Math.max(0, snapped);
             renderMarkers();
             persistMarkers();
         }
