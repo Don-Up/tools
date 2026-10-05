@@ -57,12 +57,9 @@ node -e "const fs=require('fs');const s=fs.readFileSync('C:/Users/10691/Document
 
 Expected: `OK`
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 4: Skip — user commits manually**
 
-```bash
-git add card-timer.html
-git commit -m "feat(card-timer): accept cn-en-cards-bulk postMessage for bulk push"
-```
+Do NOT run `git add` / `git commit`. The user reviews and commits the change themselves after all tasks complete.
 
 ---
 
@@ -107,12 +104,9 @@ diff <(grep -A3 'cn-en-cards-bulk' "C:/Users/10691/Documents/GitHub/html-tools/c
 
 Expected: no output (identical).
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Skip — user commits manually**
 
-```bash
-git add anki-addons/cardtimer_for_anki/web/card-timer.html
-git commit -m "feat(card-timer): sync cn-en-cards-bulk handler to vendored copy"
-```
+Do NOT run `git add` / `git commit`. The user reviews and commits the change themselves after all tasks complete.
 
 ---
 
@@ -172,12 +166,9 @@ node -e "const fs=require('fs');const s=fs.readFileSync('C:/Users/10691/Document
 
 Expected: `OK`
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 4: Skip — user commits manually**
 
-```bash
-git add cn2en-json.html
-git commit -m "feat(cn2en-json): add cardsEditModal HTML and CSS"
-```
+Do NOT run `git add` / `git commit`. The user reviews and commits the change themselves after all tasks complete.
 
 ---
 
@@ -262,12 +253,9 @@ node -e "const fs=require('fs');const s=fs.readFileSync('C:/Users/10691/Document
 
 Expected: `OK`
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Skip — user commits manually**
 
-```bash
-git add cn2en-json.html
-git commit -m "feat(cn2en-json): favorite cards helpers + push on loadFavorite"
-```
+Do NOT run `git add` / `git commit`. The user reviews and commits the change themselves after all tasks complete.
 
 ---
 
@@ -400,13 +388,8 @@ Reload favorite, press Alt+C, change cards content, save. Expected: fav status r
 
 Open Alt+C. Press Escape — modal closes without saving. Open again, click backdrop — modal closes. Open again, click 取消 — modal closes. Open, type something, click 保存 — modal closes and content persists.
 
-- [ ] **Step 9: Commit verification log (if any fixes were needed)**
+- [ ] **Step 9: Report findings back to the controller**
 
-If any of the above failed and required code changes, make a final commit:
-
-```bash
-git add cn2en-json.html card-timer.html anki-addons/cardtimer_for_anki/web/card-timer.html
-git commit -m "fix: post-manual-test fixes for cards field integration"
-```
+If any of the above failed and required code changes, do NOT commit. Describe the failure and the code change made. The user will commit all changes after reviewing.
 
 Otherwise no commit is needed.
