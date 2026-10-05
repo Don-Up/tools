@@ -79,12 +79,16 @@ In `loadFavorite(fav)` after `entries = payload` and `render()`, before `setFavS
 pushCardsToChild();
 ```
 
-`pushCardsToChild()` posts the current favorite's `cards` field (if non-empty):
+`pushCardsToChild()` opens the side panel if hidden, then posts the current favorite's `cards` field (if non-empty):
 
 ```js
 function pushCardsToChild() {
     const cards = getCurrentFavCards();
     if (!cards || !cards.trim()) return;
+    if (!sidePanel.classList.contains('shown')) {
+        sidePanel.classList.add('shown');
+        document.body.classList.add('side-panel-open');
+    }
     sidePanel.contentWindow?.postMessage({
         type: 'cn-en-cards-bulk',
         cards,
