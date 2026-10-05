@@ -183,6 +183,18 @@
         .marker-time:hover {
             color: #9df;
         }
+        .marker-time-edit {
+            flex: 1;
+            font-family: monospace;
+            font-size: 13px;
+            color: #6cf;
+            background: #1a1a1a;
+            border: 1px solid #6cf;
+            border-radius: 3px;
+            padding: 2px 6px;
+            outline: none;
+            min-width: 0;
+        }
         .marker-loop, .marker-del, .marker-arrow, .marker-fav {
             padding: 4px 8px;
             font-size: 12px;
@@ -737,6 +749,11 @@
                 timeSpan.addEventListener('click', () => {
                     player.seekTo(m.time, true);
                 });
+                timeSpan.addEventListener('dblclick', (e) => {
+                    e.preventDefault();
+                    startEditTimestamp(idx, timeSpan);
+                });
+                timeSpan.title = '单击跳转 · 双击编辑时间';
                 const leftBtn = document.createElement('button');
                 leftBtn.className = 'marker-arrow';
                 leftBtn.textContent = '◀';
@@ -785,15 +802,73 @@
         function adjustMarkerTime(idx, delta) {
             const m = markers[idx];
             if (!m) return;
-            const newTime = m.time + delta;
-            const snapped = delta < 0
-                ? Math.floor(newTime * 10) / 10
-                : Math.ceil(newTime * 10) / 10;
-            m.time = Math.max(0, snapped);
-            isCurrentSaved = false;
-            setSaveButtonState();
+            m.time = Math.round(m.time * 10) / 10;
+            m.time = Math.round((m.time + delta) * 10) / 10;
+            if (m.time < 0) m.time = 0;
             renderMarkers();
             persistMarkers();
+        }
+
+        function parseTimeInput(str) {
+            str = str.trim();
+            if (!str) return null;
+            const parts = str.split(':');
+            if (parts.length === 1) {
+                const s = parseFloat(parts[0]);
+                return isNaN(s) || s < 0 ? null : s;
+            }
+            if (parts.length === 2) {
+                const m = parseInt(parts[0], 10);
+                const s = parseFloat(parts[1]);
+                if (isNaN(m) || isNaN(s) || m < 0 || s < 0) return null;
+                return m * 60 + s;
+            }
+            if (parts.length === 3) {
+                const h = parseInt(parts[0], 10);
+                const m = parseInt(parts[1], 10);
+                const s = parseFloat(parts[2]);
+                if (isNaN(h) || isNaN(m) || isNaN(s) || h < 0 || m < 0 || s < 0) return null;
+                return h * 3600 + m * 60 + s;
+            }
+            return null;
+        }
+
+        function startEditTimestamp(idx, timeSpan) {
+            const m = markers[idx];
+            if (!m) return;
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = formatTime(m.time);
+            input.className = 'marker-time-edit';
+            input.spellcheck = false;
+            timeSpan.replaceWith(input);
+            input.focus();
+            input.select();
+
+            let done = false;
+            const finish = (save) => {
+                if (done) return;
+                done = true;
+                if (save) {
+                    const newTime = parseTimeInput(input.value);
+                    if (newTime !== null && Math.abs(m.time - newTime) > 0.001) {
+                        m.time = newTime;
+                        persistMarkers();
+                    }
+                }
+                renderMarkers();
+            };
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    finish(true);
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    finish(false);
+                }
+            });
+            input.addEventListener('blur', () => finish(true));
         }
 
         async function persistMarkers() {
@@ -802,8 +877,12 @@
             if (!videoId) return;
             try {
                 await saveMarkersForVideo(videoId, markers);
+                isCurrentSaved = true;
+                setSaveButtonState();
             } catch (err) {
                 console.error('[yt] auto-save failed:', err);
+                isCurrentSaved = false;
+                setSaveButtonState();
             }
         }
 
