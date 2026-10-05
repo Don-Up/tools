@@ -1067,6 +1067,63 @@
         createNext();
     }
 
+    function loadCardsAsEnded(text) {
+        if (!text) return;
+        const lines = text.split('\n').filter(n => n.trim());
+        const cardNames = lines
+            .map(line => {
+                const idx = line.indexOf('|');
+                if (idx === -1) return line.trim();
+                let en = line.substring(idx + 1).trim();
+                if (en.endsWith('|')) en = en.slice(0, -1).trimEnd();
+                return line.substring(0, idx).trim() + '::' + en;
+            })
+            .filter(n => n);
+        const baseId = Date.now();
+        cardNames.forEach((name, idx) => createEndedTimer(name, baseId + idx));
+        if (cardNames.length > 0) updateTimerStatus();
+    }
+
+    function createEndedTimer(name, id) {
+        const originalName = name;
+        const clozeName = normalizeCloze(name);
+        let displayName = clozeName;
+        let answer = '';
+        if (clozeName.includes('::') && !clozeName.includes('~~')) {
+            const subParts = clozeName.split('::');
+            displayName = subParts[0].trim() + '::' + `~${subParts[1].trim()}~~`;
+        }
+        const matches = [...displayName.matchAll(/~(.*?)~~/g)].map(m => m[1]);
+        if (matches.length > 0) {
+            if (displayName.includes(' → ') || displayName.includes(' / ') || displayName.includes('~*')) {
+                displayName = displayName.replace(/~.*?~~/g, '____');
+                matches.forEach(match => {
+                    displayName = displayName.replace('____', match2result(match));
+                });
+            } else {
+                displayName = displayName.replace(/~.*?~~/g, '____');
+            }
+            answer = matches.map(word => `"${word.startsWith('*') || word.startsWith('^') ? word.slice(1) : word}"`).join(', ');
+        }
+        const timer = {
+            id: id,
+            name: displayName.replaceAll('<{', '<b>').replaceAll('}>', '</b>').replaceAll('"', "'"),
+            originalName: originalName,
+            answer: answer,
+            duration: 0,
+            remaining: 0,
+            status: 'ended',
+            isNameHidden: false,
+            isPinned: false,
+            isPromoted: false,
+            nameDelay: false,
+            countdownVisible: true,
+            fromCards: true
+        };
+        timers.unshift(timer);
+        renderTimer(timer);
+    }
+
     const stopWords = [
         // 冠词
         'a', 'an', 'the',
@@ -1368,7 +1425,7 @@ ${getName(timer)}
     function speakOnce(text) {
         if (!text) return
         if (text.includes("::")) {
-            text = text.split("::")[0]
+            text = text.split("::").pop()
         }
         if ('speechSynthesis' in window) {
             speechSynthesis.cancel();
@@ -1486,6 +1543,7 @@ ${getName(timer)}
         // Recycle-bin routing: skip DB ops when Use Bin is off OR Ctrl+Shift was held;
         // otherwise bin items are permanently removed and others are stored.
         if (!isUseBinEnabled || skipBin) return;
+        if (timer && timer.fromCards) return;
         if (timer && timer.inRecycleBin) {
             const removedClass = timer.class || 'a';
             removeFromRecycleBin(id)
@@ -1867,6 +1925,18 @@ ${getName(timer)}
                 inp.value = (inp.value || '') + `<br>${e.data.content}`;
                 inp.focus();
             }
+        }
+        if (e.data?.type === 'cards' && e.data.content) {
+            loadCardsAsEnded(e.data.content);
+        }
+        if (e.data?.type === 'clear-cards') {
+            const toRemove = timers.filter(t => t.fromCards);
+            for (const t of toRemove) {
+                const card = document.getElementById(`timer-${t.id}`);
+                if (card) card.remove();
+            }
+            timers = timers.filter(t => !t.fromCards);
+            updateTimerStatus();
         }
     });
 

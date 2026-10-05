@@ -558,6 +558,60 @@
             text-align: center;
             white-space: pre-wrap;
         }
+        .cards-modal-textarea {
+            width: 600px;
+            max-width: calc(100vw - 80px);
+            box-sizing: border-box;
+            min-height: 280px;
+            max-height: 60vh;
+            resize: vertical;
+            font-family: ui-monospace, 'Cascadia Mono', Menlo, Consolas, monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            padding: 10px 12px;
+            margin: 0 auto;
+            display: block;
+            white-space: pre;
+            overflow: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(95, 168, 211, 0.55) transparent;
+        }
+        .cards-modal-textarea::-webkit-scrollbar { width: 8px; height: 8px; }
+        .cards-modal-textarea::-webkit-scrollbar-track { background: transparent; }
+        .cards-modal-textarea::-webkit-scrollbar-thumb {
+            background: rgba(95, 168, 211, 0.55);
+            border-radius: 4px;
+        }
+        .cards-modal-textarea::-webkit-scrollbar-thumb:hover {
+            background: rgba(95, 168, 211, 0.85);
+        }
+        .fav-modal-error {
+            color: #f87171;
+            font-size: 13px;
+            min-height: 18px;
+            text-align: center;
+            white-space: pre-wrap;
+        }
+        .fav-btn-secondary {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: #ddd;
+            padding: 6px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .fav-btn-secondary:hover { background: #3a3a3a; }
+        .fav-btn-primary {
+            background: #1f6feb;
+            border: 1px solid #1f6feb;
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .fav-btn-primary:hover { background: #2f7ff5; }
         .cn-modal-panel::-webkit-scrollbar {
             width: 10px;
         }
@@ -577,7 +631,7 @@
         }
     </style>
 </head>
-<body>
+<body class="side-panel-open">
 <div>
     <div id="card">
 
@@ -683,9 +737,23 @@
                 </div>
             </div>
         </div>
+        <div id="cardsModal" class="fav-modal" hidden>
+            <div id="cardsModalBackdrop" class="fav-modal-backdrop"></div>
+            <div class="fav-modal-panel">
+                <div class="fav-modal-title">Cards · <span id="cardsModalTitle"></span></div>
+                <textarea id="cardsModalInput" class="fav-input cards-modal-textarea" spellcheck="false"
+                          placeholder="每行一张卡片：中文|英文&#10;隐藏部分用 ~...~~ 包裹"></textarea>
+                <div id="cardsModalError" class="fav-modal-error"></div>
+                <div class="fav-modal-actions">
+                    <button id="cardsModalCancel" class="fav-btn-secondary">取消</button>
+                    <button id="cardsModalSave" class="fav-btn-primary">保存</button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <iframe id="sidePanel" src="https://don-up.github.io/tools/card-timer"></iframe>
+<!--    <iframe id="sidePanel" class="shown" src="https://don-up.github.io/tools/card-timer"></iframe>-->
+    <iframe id="sidePanel" class="shown" src="http://localhost:63342/html-tools/card-timer.html?_ijt=nl1ebbpue1gpnpli47odeburp5&_ij_reload=RELOAD_ON_SAVE"></iframe>
 </div>
 <script>
 
@@ -719,6 +787,9 @@
     const bgList = document.getElementById('bgList');
     const bgAddBtn = document.getElementById('bgAddBtn');
     const sidePanel = document.getElementById('sidePanel');
+    sidePanel.addEventListener('load', () => {
+        if (entries.length > 0) postCnEnToChild();
+    });
 
     window.addEventListener('message', async (e) => {
         if (e.source !== sidePanel.contentWindow) return;
@@ -768,6 +839,13 @@
     const jsonEditError = document.getElementById('jsonEditError');
     const jsonEditOk = document.getElementById('jsonEditOk');
     const jsonEditCancel = document.getElementById('jsonEditCancel');
+    const cardsModal = document.getElementById('cardsModal');
+    const cardsModalBackdrop = document.getElementById('cardsModalBackdrop');
+    const cardsModalTitle = document.getElementById('cardsModalTitle');
+    const cardsModalInput = document.getElementById('cardsModalInput');
+    const cardsModalError = document.getElementById('cardsModalError');
+    const cardsModalCancel = document.getElementById('cardsModalCancel');
+    const cardsModalSave = document.getElementById('cardsModalSave');
     let bgImages = [];
     let currentBgId = -1;
     let onlyBgId = -1;
@@ -776,6 +854,7 @@
     let currentFavId = null;
     let favModalMode = 'save';
     let favRenameId = null;
+    let cardsModalOriginFocus = null;
 
     function copyEntryToClipboard() {
         if (entries.length === 0) return;
@@ -1070,7 +1149,10 @@
             const loadBtn = document.createElement('button');
             loadBtn.className = 'fav-load-btn';
             loadBtn.textContent = '加载';
-            loadBtn.addEventListener('click', () => loadFavorite(fav));
+            loadBtn.addEventListener('click', () => {
+                clearCardsInIframe();
+                loadFavorite(fav);
+            });
             const playBtn = document.createElement('button');
             playBtn.className = 'fav-play-btn';
             playBtn.textContent = '播放';
@@ -1126,6 +1208,13 @@
             favStatus.hidden = false;
             if (!favorites.find(f => f.id === fav.id)) {
                 favorites.push(fav);
+            }
+            if (Array.isArray(fav.cards) && fav.cards.length > 0) {
+                const text = cardsToText(fav.cards);
+                sidePanel.contentWindow?.postMessage(
+                    { type: 'cards', content: text },
+                    '*'
+                );
             }
         } else {
             currentFavId = null;
@@ -1330,6 +1419,65 @@
         jsonEditModal.hidden = true;
     }
 
+    function cardsToText(cards) {
+        if (!Array.isArray(cards) || cards.length === 0) return '';
+        return cards.map(([cn, en]) => `${cn}|${en}`).join('\n');
+    }
+
+    function textToCards(text) {
+        const out = [];
+        for (const line of text.split('\n')) {
+            const t = line.trim();
+            if (!t) continue;
+            const idx = t.indexOf('|');
+            if (idx === -1) {
+                out.push([t, '']);
+            } else {
+                let en = t.slice(idx + 1);
+                if (en.endsWith('|')) en = en.slice(0, -1);
+                out.push([t.slice(0, idx), en]);
+            }
+        }
+        return out;
+    }
+
+    function openCardsModal() {
+        if (!currentFavId) return;
+        const fav = favorites.find(f => f.id === currentFavId);
+        if (!fav) return;
+        cardsModalOriginFocus = document.activeElement;
+        cardsModalTitle.textContent = fav.name || '(未命名)';
+        cardsModalInput.value = cardsToText(fav.cards);
+        cardsModalError.textContent = '';
+        cardsModal.hidden = false;
+        setTimeout(() => { cardsModalInput.focus(); }, 0);
+    }
+
+    function closeCardsModal() {
+        cardsModal.hidden = true;
+        cardsModalError.textContent = '';
+        if (cardsModalOriginFocus && cardsModalOriginFocus.focus) {
+            cardsModalOriginFocus.focus();
+        }
+        cardsModalOriginFocus = null;
+    }
+
+    function saveCardsModal() {
+        if (!currentFavId) {
+            closeCardsModal();
+            return;
+        }
+        const fav = favorites.find(f => f.id === currentFavId);
+        if (!fav) {
+            closeCardsModal();
+            return;
+        }
+        const cards = textToCards(cardsModalInput.value);
+        fav.cards = cards;
+        updateFavorite(currentFavId, { cards });
+        closeCardsModal();
+    }
+
     function saveJsonEdit() {
         let parsed;
         try {
@@ -1496,6 +1644,15 @@
             jsonEditOk.click();
         }
     });
+    cardsModalCancel.addEventListener('click', closeCardsModal);
+    cardsModalSave.addEventListener('click', saveCardsModal);
+    cardsModalBackdrop.addEventListener('click', closeCardsModal);
+    cardsModalInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            cardsModalSave.click();
+        }
+    });
 
     function applyBg(dataUrl) {
         if (dataUrl) {
@@ -1600,6 +1757,10 @@
         );
     }
 
+    function clearCardsInIframe() {
+        sidePanel.contentWindow?.postMessage({ type: 'clear-cards' }, '*');
+    }
+
     bgAddBtn.addEventListener('click', () => bgFileInput.click());
 
     bgFileInput.addEventListener('change', () => {
@@ -1683,13 +1844,17 @@
                 e.preventDefault();
                 e.stopPropagation();
                 bgModal.hidden = true;
+            } else if (!cardsModal.hidden) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeCardsModal();
             } else if (!cnModal.hidden) {
                 e.preventDefault();
                 e.stopPropagation();
                 hideAllCn();
             }
         }
-        if (!favSaveModal.hidden || !noteModal.hidden || !jsonEditModal.hidden) {
+        if (!favSaveModal.hidden || !noteModal.hidden || !jsonEditModal.hidden || !cardsModal.hidden) {
             return;
         }
         if (e.key === 'f' && e.altKey && !e.ctrlKey && !e.metaKey) {
@@ -2015,6 +2180,7 @@
     }
 
     function parseAndLoad(text) {
+        clearCardsInIframe();
         const stripped = text.replace(/^📕.*$/gm, '');
         const jsonStrings = extractJsonObjects(stripped);
         if (jsonStrings.length === 0) {
@@ -2061,7 +2227,7 @@
             document.body.classList.toggle('side-panel-open', shown);
             if (shown) postCnEnToChild();
         }
-        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyV' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden) {
+        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyV' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden) {
             e.preventDefault();
             try {
                 const text = await navigator.clipboard.readText();
@@ -2070,7 +2236,7 @@
                 showError(`剪贴板读取失败: ${err.message || err}`);
             }
         }
-        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyX' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden) {
+        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyX' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden) {
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
             e.preventDefault();
@@ -2100,7 +2266,7 @@
             enShown = !enShown;
             enText.style.visibility = enShown ? "visible" : "hidden"
         }
-        if (!e.ctrlKey && !e.altKey && !e.shiftKey && e.code === 'KeyZ' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden) {
+        if (!e.ctrlKey && !e.altKey && !e.shiftKey && e.code === 'KeyZ' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden) {
             if (entries.length === 0) return;
             if (cnModal.hidden) {
                 showAllCn();
@@ -2108,7 +2274,7 @@
                 hideAllCn();
             }
         }
-        if (!e.ctrlKey && !e.altKey && !e.shiftKey && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden) {
+        if (!e.ctrlKey && !e.altKey && !e.shiftKey && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden) {
             const tag = e.target.tagName;
             if (e.code === 'KeyN' && noteModal.hidden && tag !== 'INPUT' && tag !== 'TEXTAREA') {
                 if (entries.length === 0) return;
@@ -2127,7 +2293,16 @@
                 applyMode(3);
             }
         }
-        if (entries.length > 0 && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden) {
+        if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'KeyC') {
+            if (!favSaveModal.hidden || !noteModal.hidden || !jsonEditModal.hidden || !cardsModal.hidden) return;
+            if (!currentFavId) return;
+            const tag = e.target.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+            e.preventDefault();
+            openCardsModal();
+            return;
+        }
+        if (entries.length > 0 && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden) {
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
             if (e.code === 'ArrowLeft') {
