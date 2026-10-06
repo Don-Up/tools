@@ -1004,7 +1004,11 @@
     }
 
     function hashEntries(payload) {
-        return md5(JSON.stringify(payload || []));
+        const normalized = (payload || []).map(([cn, en]) => {
+            const filteredCn = cn.replace(/\{\{([^}]*)\}\}[^]*?\]\]/g, '$1');
+            return [filteredCn, en];
+        });
+        return md5(JSON.stringify(normalized));
     }
 
     function openFavDb() {
