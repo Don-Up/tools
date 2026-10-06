@@ -1058,26 +1058,12 @@
     async function getAllFavorites() {
         const db = await openFavDb();
         return new Promise((resolve, reject) => {
-            const tx = db.transaction(FAV_STORE, 'readwrite');
-            const store = tx.objectStore(FAV_STORE);
-            const req = store.getAll();
+            const tx = db.transaction(FAV_STORE, 'readonly');
+            const req = tx.objectStore(FAV_STORE).getAll();
             req.onsuccess = () => {
                 const list = req.result || [];
-                let dirty = false;
-                list.forEach(f => {
-                    const newHash = hashEntries(f.payload || []);
-                    if (f.hash !== newHash) {
-                        f.hash = newHash;
-                        store.put(f);
-                        dirty = true;
-                    }
-                });
-                if (dirty) {
-                    tx.oncomplete = () => resolve(list);
-                    tx.onerror = () => reject(tx.error);
-                } else {
-                    resolve(list);
-                }
+                list.forEach(f => { if (!f.hash) f.hash = hashEntries(f.payload); });
+                resolve(list);
             };
             req.onerror = () => reject(req.error);
         });
