@@ -27,6 +27,9 @@
         ruby {
             color: goldenrod;
         }
+        ruby.has-note {
+            color: #4caf50;
+        }
 
         .error-bar {
             position: fixed;
@@ -612,6 +615,69 @@
             font-size: 14px;
         }
         .fav-btn-primary:hover { background: #2f7ff5; }
+        .ruby-notes-subtitle {
+            font-size: 12px;
+            color: #888;
+            font-weight: normal;
+            margin-top: 4px;
+        }
+        .ruby-notes-list {
+            width: 600px;
+            max-width: calc(100vw - 80px);
+            max-height: 60vh;
+            overflow-y: auto;
+            box-sizing: border-box;
+            padding: 4px;
+        }
+        .ruby-notes-row {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            padding: 8px 0;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        .ruby-notes-row:last-child { border-bottom: none; }
+        .ruby-notes-ruby-label {
+            flex: 0 0 auto;
+            min-width: 80px;
+            max-width: 160px;
+            color: goldenrod;
+            font-size: 18px;
+            line-height: 1.5;
+            padding-top: 8px;
+            word-break: break-word;
+            user-select: none;
+        }
+        .ruby-notes-textarea {
+            flex: 1 1 auto;
+            min-height: calc(1.5em * 3 + 16px);
+            resize: vertical;
+            font-size: 13px;
+            line-height: 1.5;
+            padding: 8px 10px;
+            background: #2a2a2a;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        .ruby-notes-textarea:focus { outline: none; border-color: #5fa8d3; }
+        .ruby-tooltip {
+            position: fixed;
+            z-index: 200;
+            pointer-events: none;
+            background: #1e1e1e;
+            color: #e0e0e0;
+            border: 1px solid #5fa8d3;
+            border-radius: 4px;
+            padding: 6px 10px;
+            font-size: 13px;
+            line-height: 1.4;
+            max-width: 320px;
+            white-space: pre-wrap;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+        }
         .cn-modal-panel::-webkit-scrollbar {
             width: 10px;
         }
@@ -750,6 +816,21 @@
                 </div>
             </div>
         </div>
+        <div id="rubyNotesModal" class="fav-modal" hidden>
+            <div id="rubyNotesModalBackdrop" class="fav-modal-backdrop"></div>
+            <div class="fav-modal-panel">
+                <div class="fav-modal-title">
+                    Ruby Notes · <span id="rubyNotesModalTitle"></span>
+                    <div id="rubyNotesModalSubtitle" class="ruby-notes-subtitle"></div>
+                </div>
+                <div id="rubyNotesList" class="ruby-notes-list"></div>
+                <div class="fav-modal-actions">
+                    <button id="rubyNotesModalCancel" class="fav-btn-secondary">取消</button>
+                    <button id="rubyNotesModalSave" class="fav-btn-primary">保存</button>
+                </div>
+            </div>
+        </div>
+        <div id="rubyTooltip" class="ruby-tooltip" hidden></div>
     </div>
 
     <iframe id="sidePanel" class="shown" src="https://don-up.github.io/tools/card-timer"></iframe>
@@ -798,6 +879,7 @@
         if (msg.type === 'load-fav-by-name') {
             const targetName = (msg.name || '').trim();
             if (!targetName) return;
+            if (!rubyNotesModal.hidden) return;
             try {
                 const favs = await getAllFavorites();
                 const match = favs.find(f => f.name === targetName);
@@ -846,6 +928,14 @@
     const cardsModalError = document.getElementById('cardsModalError');
     const cardsModalCancel = document.getElementById('cardsModalCancel');
     const cardsModalSave = document.getElementById('cardsModalSave');
+    const rubyNotesModal = document.getElementById('rubyNotesModal');
+    const rubyNotesModalBackdrop = document.getElementById('rubyNotesModalBackdrop');
+    const rubyNotesModalTitle = document.getElementById('rubyNotesModalTitle');
+    const rubyNotesModalSubtitle = document.getElementById('rubyNotesModalSubtitle');
+    const rubyNotesList = document.getElementById('rubyNotesList');
+    const rubyNotesModalCancel = document.getElementById('rubyNotesModalCancel');
+    const rubyNotesModalSave = document.getElementById('rubyNotesModalSave');
+    const rubyTooltip = document.getElementById('rubyTooltip');
     let bgImages = [];
     let currentBgId = -1;
     let onlyBgId = -1;
@@ -855,6 +945,9 @@
     let favModalMode = 'save';
     let favRenameId = null;
     let cardsModalOriginFocus = null;
+    let currentRubyModalSentenceIdx = null;
+    let rubyNotesInitialSnapshot = null;
+    let currentRubyModalFavId = null;
 
     function copyEntryToClipboard() {
         if (entries.length === 0) return;
@@ -1445,6 +1538,11 @@
         return out;
     }
 
+    function extractRubyTexts(cn) {
+        const matches = [...cn.matchAll(/\{\{([^}]*)\}\}/g)].map(m => m[1]);
+        return matches;
+    }
+
     function openCardsModal() {
         if (!currentFavId) return;
         const fav = favorites.find(f => f.id === currentFavId);
@@ -1464,6 +1562,100 @@
             cardsModalOriginFocus.focus();
         }
         cardsModalOriginFocus = null;
+    }
+
+    function openRubyNotesModal() {
+        if (!currentFavId) return;
+        if (cnText.querySelectorAll('ruby').length === 0) return;
+        const fav = favorites.find(f => f.id === currentFavId);
+        if (!fav) return;
+        currentRubyModalSentenceIdx = currentIndex;
+        if (!Array.isArray(fav.rubyNotes)) fav.rubyNotes = [];
+        rubyNotesInitialSnapshot = JSON.stringify(fav.rubyNotes);
+        currentRubyModalFavId = currentFavId;
+        rubyNotesModalTitle.textContent = fav.name || '(未命名)';
+        rubyNotesModalSubtitle.textContent = `${currentIndex + 1}/${entries.length}`;
+        renderRubyNotesList();
+        rubyNotesModal.hidden = false;
+        setTimeout(() => {
+            const firstTextarea = rubyNotesList.querySelector('textarea');
+            if (firstTextarea) firstTextarea.focus();
+        }, 0);
+    }
+
+    function renderRubyNotesList() {
+        rubyNotesList.innerHTML = '';
+        const sentenceIdx = currentRubyModalSentenceIdx;
+        const cn = entries[sentenceIdx][0];
+        const rubyTexts = extractRubyTexts(cn);
+        const fav = favorites.find(f => f.id === currentFavId);
+        const notesMap = (fav && Array.isArray(fav.rubyNotes) && fav.rubyNotes[sentenceIdx]) || {};
+        rubyTexts.forEach(rubyText => {
+            const row = document.createElement('div');
+            row.className = 'ruby-notes-row';
+            const label = document.createElement('div');
+            label.className = 'ruby-notes-ruby-label';
+            label.textContent = rubyText;
+            const ta = document.createElement('textarea');
+            ta.className = 'ruby-notes-textarea';
+            ta.spellcheck = false;
+            ta.value = notesMap[rubyText] || '';
+            ta.dataset.rubyText = rubyText;
+            ta.addEventListener('input', () => {
+                const f = favorites.find(x => x.id === currentFavId);
+                if (!f) return;
+                if (!Array.isArray(f.rubyNotes)) f.rubyNotes = [];
+                if (!f.rubyNotes[sentenceIdx]) f.rubyNotes[sentenceIdx] = {};
+                f.rubyNotes[sentenceIdx][rubyText] = ta.value;
+            });
+            row.appendChild(label);
+            row.appendChild(ta);
+            rubyNotesList.appendChild(row);
+        });
+    }
+
+    function closeRubyNotesModal() {
+        rubyNotesModal.hidden = true;
+        if (currentRubyModalFavId && rubyNotesInitialSnapshot !== null) {
+            const fav = favorites.find(f => f.id === currentRubyModalFavId);
+            if (fav) {
+                const currentSnapshot = JSON.stringify(fav.rubyNotes || []);
+                if (currentSnapshot !== rubyNotesInitialSnapshot) {
+                    updateFavorite(currentRubyModalFavId, { rubyNotes: fav.rubyNotes });
+                }
+            }
+        }
+        currentRubyModalSentenceIdx = null;
+        rubyNotesInitialSnapshot = null;
+        currentRubyModalFavId = null;
+        applyRubyNoteMarkers();
+    }
+
+    function showRubyTooltip(text, x, y) {
+        rubyTooltip.textContent = text;
+        rubyTooltip.hidden = false;
+        rubyTooltip.style.left = `${x + 8}px`;
+        rubyTooltip.style.top = `${y + 12}px`;
+    }
+
+    function hideRubyTooltip() {
+        rubyTooltip.hidden = true;
+    }
+
+    function applyRubyNoteMarkers() {
+        const rubies = cnText.querySelectorAll('ruby');
+        if (rubies.length === 0) return;
+        const fav = favorites.find(f => f.id === currentFavId);
+        const notesMap = (fav && Array.isArray(fav.rubyNotes) && fav.rubyNotes[currentIndex]) || {};
+        const rubyTexts = extractRubyTexts(entries[currentIndex]?.[0] || '');
+        Array.from(rubies).forEach((ruby, idx) => {
+            const rubyText = rubyTexts[idx];
+            if (rubyText && notesMap[rubyText]) {
+                ruby.classList.add('has-note');
+            } else {
+                ruby.classList.remove('has-note');
+            }
+        });
     }
 
     function saveCardsModal() {
@@ -1657,6 +1849,9 @@
             cardsModalSave.click();
         }
     });
+    rubyNotesModalCancel.addEventListener('click', closeRubyNotesModal);
+    rubyNotesModalSave.addEventListener('click', closeRubyNotesModal);
+    rubyNotesModalBackdrop.addEventListener('click', closeRubyNotesModal);
 
     function applyBg(dataUrl) {
         if (dataUrl) {
@@ -1852,13 +2047,17 @@
                 e.preventDefault();
                 e.stopPropagation();
                 closeCardsModal();
+            } else if (!rubyNotesModal.hidden) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeRubyNotesModal();
             } else if (!cnModal.hidden) {
                 e.preventDefault();
                 e.stopPropagation();
                 hideAllCn();
             }
         }
-        if (!favSaveModal.hidden || !noteModal.hidden || !jsonEditModal.hidden || !cardsModal.hidden) {
+        if (!favSaveModal.hidden || !noteModal.hidden || !jsonEditModal.hidden || !cardsModal.hidden || !rubyNotesModal.hidden) {
             return;
         }
         if (e.key === 'f' && e.altKey && !e.ctrlKey && !e.metaKey) {
@@ -1947,6 +2146,36 @@
             copyEntryWithTildes();
         }
     });
+    cnText.addEventListener('mouseover', (e) => {
+        const ruby = e.target.closest('ruby');
+        if (!ruby || !cnText.contains(ruby)) return;
+        const rubies = Array.from(cnText.querySelectorAll('ruby'));
+        const idx = rubies.indexOf(ruby);
+        if (idx === -1) return;
+        const rubyTexts = extractRubyTexts(entries[currentIndex][0]);
+        const rubyText = rubyTexts[idx];
+        if (!rubyText) return;
+        const fav = favorites.find(f => f.id === currentFavId);
+        const note = fav?.rubyNotes?.[currentIndex]?.[rubyText];
+        if (!note) {
+            hideRubyTooltip();
+            return;
+        }
+        showRubyTooltip(note, e.clientX, e.clientY);
+    });
+
+    cnText.addEventListener('mouseout', (e) => {
+        const ruby = e.target.closest('ruby');
+        if (!ruby) return;
+        if (e.relatedTarget && ruby.contains(e.relatedTarget)) return;
+        hideRubyTooltip();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (rubyTooltip.hidden) return;
+        rubyTooltip.style.left = `${e.clientX + 8}px`;
+        rubyTooltip.style.top = `${e.clientY + 12}px`;
+    });
     enText.addEventListener('click', (e) => {
         if (e.altKey) {
             e.preventDefault();
@@ -2029,6 +2258,7 @@
         // <ruby>staples<rt>ˈsteɪplz</rt></ruby>
         cnText.innerHTML = cn.replaceAll("{{", "<ruby>").replaceAll("}}", "<rt>").replaceAll("]]", "</rt></ruby>");
         cnText.classList.toggle('last-entry', currentIndex === entries.length - 1);
+        applyRubyNoteMarkers();
         enRevealed = false;
         if (currentMode === 1) {
             enText.textContent = en;
@@ -2238,7 +2468,7 @@
             document.body.classList.toggle('side-panel-open', shown);
             if (shown) postCnEnToChild();
         }
-        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyV' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden) {
+        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyV' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden) {
             e.preventDefault();
             try {
                 const text = await navigator.clipboard.readText();
@@ -2247,7 +2477,7 @@
                 showError(`剪贴板读取失败: ${err.message || err}`);
             }
         }
-        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyX' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden) {
+        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyX' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden) {
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
             e.preventDefault();
@@ -2277,7 +2507,7 @@
             enShown = !enShown;
             enText.style.visibility = enShown ? "visible" : "hidden"
         }
-        if (!e.ctrlKey && !e.altKey && !e.shiftKey && e.code === 'KeyZ' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden) {
+        if (!e.ctrlKey && !e.altKey && !e.shiftKey && e.code === 'KeyZ' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden) {
             if (entries.length === 0) return;
             if (cnModal.hidden) {
                 showAllCn();
@@ -2285,7 +2515,7 @@
                 hideAllCn();
             }
         }
-        if (!e.ctrlKey && !e.altKey && !e.shiftKey && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden) {
+        if (!e.ctrlKey && !e.altKey && !e.shiftKey && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden) {
             const tag = e.target.tagName;
             if (e.code === 'KeyN' && noteModal.hidden && tag !== 'INPUT' && tag !== 'TEXTAREA') {
                 if (entries.length === 0) return;
@@ -2305,7 +2535,7 @@
             }
         }
         if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'KeyC') {
-            if (!favSaveModal.hidden || !noteModal.hidden || !jsonEditModal.hidden || !cardsModal.hidden) return;
+            if (!favSaveModal.hidden || !noteModal.hidden || !jsonEditModal.hidden || !cardsModal.hidden || !rubyNotesModal.hidden) return;
             if (!currentFavId) return;
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
@@ -2313,7 +2543,17 @@
             openCardsModal();
             return;
         }
-        if (entries.length > 0 && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden) {
+        if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'KeyP') {
+            if (!favSaveModal.hidden || !noteModal.hidden || !jsonEditModal.hidden || !cardsModal.hidden || !rubyNotesModal.hidden) return;
+            if (!currentFavId) return;
+            if (cnText.querySelectorAll('ruby').length === 0) return;
+            const tag = e.target.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+            e.preventDefault();
+            openRubyNotesModal();
+            return;
+        }
+        if (entries.length > 0 && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden) {
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
             if (e.code === 'ArrowLeft') {
