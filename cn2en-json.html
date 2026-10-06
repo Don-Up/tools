@@ -2225,12 +2225,19 @@
             }
             allEntries.push(...objEntries);
         }
-        entries = allEntries;
-        currentIndex = 0;
-        clearError();
-        saveState();
-        render();
-        updateFavStatus();
+        const pastedHash = hashEntries(allEntries);
+        findFavoriteByHash(pastedHash).then(match => {
+            if (match && Array.isArray(match.payload)) {
+                entries = match.payload;
+            } else {
+                entries = allEntries;
+            }
+            currentIndex = 0;
+            clearError();
+            saveState();
+            render();
+            updateFavStatus();
+        });
     }
 
     document.addEventListener('keydown', async function (e) {
