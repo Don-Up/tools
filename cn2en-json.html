@@ -1631,11 +1631,24 @@
         applyRubyNoteMarkers();
     }
 
-    function showRubyTooltip(text, x, y) {
+    function showRubyTooltip(rubyEl, text) {
         rubyTooltip.textContent = text;
         rubyTooltip.hidden = false;
-        rubyTooltip.style.left = `${x + 8}px`;
-        rubyTooltip.style.top = `${y + 12}px`;
+        const tipRect = rubyTooltip.getBoundingClientRect();
+        const rect = rubyEl.getBoundingClientRect();
+        const margin = 8;
+        const gap = 6;
+        let left = rect.left + rect.width / 2 - tipRect.width / 2;
+        let top = rect.bottom + gap;
+        if (left < margin) left = margin;
+        if (left + tipRect.width > window.innerWidth - margin) {
+            left = window.innerWidth - margin - tipRect.width;
+        }
+        if (top + tipRect.height > window.innerHeight - margin) {
+            top = rect.top - tipRect.height - gap;
+        }
+        rubyTooltip.style.left = `${left}px`;
+        rubyTooltip.style.top = `${top}px`;
     }
 
     function hideRubyTooltip() {
@@ -2161,7 +2174,7 @@
             hideRubyTooltip();
             return;
         }
-        showRubyTooltip(note, e.clientX, e.clientY);
+        showRubyTooltip(ruby, note);
     });
 
     cnText.addEventListener('mouseout', (e) => {
@@ -2171,11 +2184,8 @@
         hideRubyTooltip();
     });
 
-    document.addEventListener('mousemove', (e) => {
-        if (rubyTooltip.hidden) return;
-        rubyTooltip.style.left = `${e.clientX + 8}px`;
-        rubyTooltip.style.top = `${e.clientY + 12}px`;
-    });
+    window.addEventListener('scroll', hideRubyTooltip, true);
+    window.addEventListener('resize', hideRubyTooltip);
     enText.addEventListener('click', (e) => {
         if (e.altKey) {
             e.preventDefault();
