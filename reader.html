@@ -1104,7 +1104,6 @@
     function processText(input) {
         input = input.replaceAll("<{", "<small>|").replaceAll("}>", "|</small>")
 
-
         const contentDiv = document.getElementById("content");
         contentDiv.innerHTML = "";
 
@@ -1392,7 +1391,7 @@
         } else {
             finalText = (e2CheckBox.checked ? finalText.replace(/<small>([^<]+)<\/small>/g, '$1, $1') : finalText.replaceAll("<small>", ", ").replaceAll("</small>", ""))
         }
-
+        finalText = finalText.replace(/【[^】]*】/g, '')
         // 将所有<b>XX</b>替换为XX
         finalText = finalText.replace(/<b>(.*?)<\/b>/g, '$1').replace(/\|.*?\|/g, '');
         // 将所有的<span class="code-span">XX</span>替换为XX

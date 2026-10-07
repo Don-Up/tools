@@ -320,6 +320,19 @@
             background-repeat: no-repeat;
             background-attachment: fixed;
         }
+        #sidePanel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 40vw;
+            height: 100vh;
+            border: none;
+            background: #121212;
+            z-index: 50;
+            display: none;
+        }
+        #sidePanel.shown { display: block; }
+        body.side-panel-open { padding-right: 40vw; }
     </style>
 </head>
 <body>
@@ -376,6 +389,8 @@
         </div>
     </div>
 </div>
+
+<iframe id="sidePanel" src="https://don-up.github.io/tools/card-timer"></iframe>
 
 <script>
     const voiceSelect = document.getElementById('voiceSelect');
@@ -757,7 +772,7 @@
             onEnd();
             return;
         }
-        text = text.replace(/\[.*?\]/g, '').replaceAll("<br>", "")
+        text = text.replace(/【[^】]*】/g, '').replaceAll("<br>", "")
         let useStudentVoice = false
         if (text.includes("student: ")) {
             useStudentVoice = true
@@ -988,6 +1003,7 @@
     const bgFileInput = document.getElementById('bgFileInput');
     const bgClearBtn = document.getElementById('bgClearBtn');
     const bgCloseBtn = document.getElementById('bgCloseBtn');
+    const sidePanel = document.getElementById('sidePanel');
 
     const BG_DB_NAME = 'code-explain-bg';
     const BG_DB_VERSION = 1;
@@ -1084,9 +1100,42 @@
     });
 
     document.addEventListener('keydown', (e) => {
+        const tag = (e.target && e.target.tagName) || '';
+        const inEditableField = tag === 'INPUT' || tag === 'TEXTAREA';
         if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyI') {
             e.preventDefault();
             bgModal.hidden = false;
+        } else if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyO') {
+            e.preventDefault();
+            const shown = sidePanel.classList.toggle('shown');
+            document.body.classList.toggle('side-panel-open', shown);
+            if (shown) {
+                sidePanel.contentWindow?.postMessage(
+                    { type: 'cn-en', content: '' }, '*');
+            }
+        } else if (!e.ctrlKey && !e.altKey && !e.metaKey && !inEditableField) {
+            if (e.key === 'q' || e.key === 'Q') {
+                const sel = window.getSelection()?.toString().trim();
+                if (sel) {
+                    e.preventDefault();
+                    sidePanel.contentWindow?.postMessage(
+                        { type: 'cn-en-q', content: sel }, '*');
+                }
+            } else if (e.key === 'w' || e.key === 'W') {
+                const sel = window.getSelection()?.toString().trim();
+                if (sel) {
+                    e.preventDefault();
+                    sidePanel.contentWindow?.postMessage(
+                        { type: 'cn-en-append', content: sel }, '*');
+                }
+            } else if (e.key === 'e' || e.key === 'E') {
+                const sel = window.getSelection()?.toString().trim();
+                if (sel) {
+                    e.preventDefault();
+                    sidePanel.contentWindow?.postMessage(
+                        { type: 'cn-en-br', content: sel }, '*');
+                }
+            }
         } else if (e.key === 'Escape' && !bgModal.hidden) {
             e.preventDefault();
             bgModal.hidden = true;
