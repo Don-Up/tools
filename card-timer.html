@@ -67,6 +67,7 @@
         #cardNameInput::placeholder {
             color: #888;
         }
+
         #cardNameInput:not(:focus) {
             color: transparent;
         }
@@ -496,8 +497,13 @@
                                                                                           checked
                                                                                           style="margin-left:4px">
             TTS</label> <label style="cursor:pointer;font-size:14px;color:#888;font-weight:normal"><input
-                type="checkbox" id="fxSwitch" style="margin-left:4px"> FX</label> <label style="cursor:pointer;font-size:14px;color:#888;font-weight:normal"><input
-                type="checkbox" id="onlyShortSwitch" style="margin-left:4px">&lt;=2</label> <label style="cursor:pointer;font-size:14px;color:#888;font-weight:normal"><input
+                type="checkbox" id="fxSwitch" style="margin-left:4px"> FX</label>
+        <label
+                style="cursor:pointer;font-size:14px;color:#888;font-weight:normal;display: none">
+            <input
+                    type="checkbox" id="onlyShortSwitch" style="margin-left:4px">&lt;=2</label>
+        <label
+                style="cursor:pointer;font-size:14px;color:#888;font-weight:normal"><input
                 type="checkbox" id="useBinSwitch" checked style="margin-left:4px"> Bin</label>
         <select id="classSelect" style="margin-left:2px">
             <option value="a" selected>A</option>
@@ -511,15 +517,15 @@
         <div class="input-row">
             <input type="text" id="answerInput" placeholder="Answer (optional)">
             <select id="durationSelect">
-                <option value="0">0min</option>
-                <option value="60">1min</option>
-                <option value="120" selected>2min</option>
-                <option value="180">3min</option>
-                <option value="300">5min</option>
-                <option value="600">10min</option>
-                <option value="900">15min</option>
-                <option value="1200">20min</option>
-                <option value="1800">30min</option>
+                <option value="0">0m</option>
+                <option value="60">1m</option>
+                <option value="120">2m</option>
+                <option value="180">3m</option>
+                <option value="300" selected>5m</option>
+                <option value="600">10m</option>
+                <option value="900">15m</option>
+                <option value="1200">20m</option>
+                <option value="1800">30m</option>
                 <option value="custom">Custom</option>
             </select>
             <label style="color:#888;padding:12px 0 12px 10px;white-space:nowrap">Def New</label>
@@ -623,7 +629,7 @@
             req.onupgradeneeded = (e) => {
                 const db = e.target.result;
                 if (!db.objectStoreNames.contains(BIN_STORE)) {
-                    db.createObjectStore(BIN_STORE, { keyPath: 'id' });
+                    db.createObjectStore(BIN_STORE, {keyPath: 'id'});
                 }
             };
             req.onsuccess = () => resolve(req.result);
@@ -634,7 +640,7 @@
     function saveToRecycleBin(timer) {
         return openBinDB().then(db => new Promise((resolve, reject) => {
             const tx = db.transaction(BIN_STORE, 'readwrite');
-            const record = { ...timer, inRecycleBin: true, class: currentClass };
+            const record = {...timer, inRecycleBin: true, class: currentClass};
             tx.objectStore(BIN_STORE).put(record);
             tx.oncomplete = () => resolve();
             tx.onerror = () => reject(tx.error);
@@ -764,11 +770,11 @@
     }
 
     // Recycle bin count, initialized from IndexedDB and maintained on bin mutations
-    let binCount = { a: 0, b: 0, c: 0, d: 0 };
+    let binCount = {a: 0, b: 0, c: 0, d: 0};
     let currentClass = 'a';
     getAllFromRecycleBin()
         .then(items => {
-            binCount = { a: 0, b: 0, c: 0, d: 0 };
+            binCount = {a: 0, b: 0, c: 0, d: 0};
             items.forEach(it => {
                 const cls = it.class || 'a';
                 if (binCount[cls] !== undefined) binCount[cls]++;
@@ -1009,18 +1015,18 @@
             })
         } else {
             let name = cardNameInput.value.trim();
-            if(name.startsWith("<br>")) name = name.replace("<br>", "")
-            if(name.endsWith("|") && !name.includes("~~")){
+            if (name.startsWith("<br>")) name = name.replace("<br>", "")
+            if (name.endsWith("|") && !name.includes("~~")) {
                 name = name.replace("|", "^~").replace("|", "~~|").replace("^~", "|~")
             }
-            if(name.includes("\n") && !name.includes("~~")) {
+            if (name.includes("\n") && !name.includes("~~")) {
                 name = name.replace("\n", "\n~") + "~~"
             }
             if (answerInput.value.trim()) {
-                if(name){
-                    name += "<br>~"+answerInput.value.trim()+"~~"
+                if (name) {
+                    name += "<br>~" + answerInput.value.trim() + "~~"
                 } else {
-                    name += "~"+answerInput.value.trim()+"~~"
+                    name += "~" + answerInput.value.trim() + "~~"
                 }
             }
             if (!name) {
@@ -1300,7 +1306,7 @@ ${getName(timer)}
                 <div class="timer-right">
                     <div class="btn-row-top">
                         ${timer.status === 'ended' && !timer.buttonsDelay && !promoted && timer.answer ? `<button class="answer-btn" onclick="showAnswer(${timer.id}, event)">Answer</button>` : ''}
-                        ${timer.status === 'ended' && !timer.buttonsDelay && !promoted ? `<button class="new-min-btn" onclick="openNewMinModal(event, ${timer.id})">NewM</button>` : ''}
+                        ${timer.status === 'ended' && !timer.buttonsDelay && !promoted ? `<button class="new-min-btn" onclick="openNewMinModal(event, ${timer.id})">New M</button>` : ''}
                         ${timer.status === 'ended' && !timer.buttonsDelay && !promoted ? `<button class="restart-btn" onclick="restartTimer(${timer.id})">Restart</button>` : ''}
                         ${timer.status === 'ended' && !timer.buttonsDelay && !promoted ? `<button class="delete-btn" onclick="deleteTimer(${timer.id})">&times;</button>` : ''}
                     </div>
@@ -1547,11 +1553,17 @@ ${getName(timer)}
         if (timer && timer.inRecycleBin) {
             const removedClass = timer.class || 'a';
             removeFromRecycleBin(id)
-                .then(() => { binCount[removedClass] = Math.max(0, binCount[removedClass] - 1); updateTimerStatus(); })
+                .then(() => {
+                    binCount[removedClass] = Math.max(0, binCount[removedClass] - 1);
+                    updateTimerStatus();
+                })
                 .catch(err => console.error('Bin remove failed:', err));
         } else if (timer) {
             saveToRecycleBin(timer)
-                .then(() => { binCount[currentClass]++; updateTimerStatus(); })
+                .then(() => {
+                    binCount[currentClass]++;
+                    updateTimerStatus();
+                })
                 .catch(err => console.error('Bin save failed:', err));
         }
     }
@@ -1608,7 +1620,7 @@ ${getName(timer)}
         if (e.button === 0 && e.ctrlKey && e.shiftKey) {
             e.preventDefault();
             e.stopPropagation();
-            window.parent?.postMessage({ type: 'load-fav-by-name', name: timer.name }, '*');
+            window.parent?.postMessage({type: 'load-fav-by-name', name: timer.name}, '*');
         } else if (e.button === 0 && e.ctrlKey) {
             // Ctrl click: open edit modal
             e.preventDefault();
@@ -1771,7 +1783,7 @@ ${getName(timer)}
         const answerInput = document.getElementById('editAnswerInput');
 
         nameInput.value = timer.originalName.replace(/~{1,2}([^~]+)~{1,2}/g, '____')
-            //.replaceAll("~~", "").replaceAll("~^", "").replaceAll("~^", "").replaceAll("~*", "").replaceAll("~", "");
+        //.replaceAll("~~", "").replaceAll("~^", "").replaceAll("~^", "").replaceAll("~*", "").replaceAll("~", "");
         ;
         answerInput.value = timer.answer || '';
 
@@ -1804,9 +1816,9 @@ ${getName(timer)}
                 } else if (stopWords.includes(w)) {
                     return w + " "
                 } else if (i === 1 || i === 2 || i === words.length - 1) {
-                    return w.substring(0, 2) + w.length + (w.endsWith(",") ? ", " : (w.endsWith("ly")?"ly ":" "))
+                    return w.substring(0, 2) + w.length + (w.endsWith(",") ? ", " : (w.endsWith("ly") ? "ly " : " "))
                 } else {
-                    return w.length + (w.endsWith(",") ? ", " : (w.endsWith("ly")?"ly ":" "))
+                    return w.length + (w.endsWith(",") ? ", " : (w.endsWith("ly") ? "ly " : " "))
                 }
             } else if (match.startsWith("*")) {
                 if (i === 0) {
