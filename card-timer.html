@@ -1300,7 +1300,7 @@ ${getName(timer)}
                 <div class="timer-right">
                     <div class="btn-row-top">
                         ${timer.status === 'ended' && !timer.buttonsDelay && !promoted && timer.answer ? `<button class="answer-btn" onclick="showAnswer(${timer.id}, event)">Answer</button>` : ''}
-                        ${timer.status === 'ended' && !timer.buttonsDelay && !promoted ? `<button class="new-min-btn" onclick="openNewMinModal(event, ${timer.id})">New Min</button>` : ''}
+                        ${timer.status === 'ended' && !timer.buttonsDelay && !promoted ? `<button class="new-min-btn" onclick="openNewMinModal(event, ${timer.id})">NewM</button>` : ''}
                         ${timer.status === 'ended' && !timer.buttonsDelay && !promoted ? `<button class="restart-btn" onclick="restartTimer(${timer.id})">Restart</button>` : ''}
                         ${timer.status === 'ended' && !timer.buttonsDelay && !promoted ? `<button class="delete-btn" onclick="deleteTimer(${timer.id})">&times;</button>` : ''}
                     </div>
