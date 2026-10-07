@@ -772,7 +772,7 @@
             onEnd();
             return;
         }
-        text = text.replace(/【[^】]*】/g, '').replaceAll("<br>", "")
+        text = text.replace(/【[^】]*】/g, '').replaceAll("<br>", "").replaceAll("_", " ")
         let useStudentVoice = false
         if (text.includes("student: ")) {
             useStudentVoice = true
