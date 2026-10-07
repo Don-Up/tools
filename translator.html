@@ -192,15 +192,6 @@
 </head>
 <body>
 <div class="container">
-    <div class="header-section">
-        <h3 id="title" style="cursor: pointer">Speaker</h3>
-
-        <select id="voiceSelect" class="voice-select">
-            <option value="">Choose the speaker</option>
-        </select>
-    </div>
-
-
     <!-- 播放句子控制 -->
     <div style="display: flex">
         <div class="control-section">
@@ -227,7 +218,13 @@
                 <input type="range" id="speedRange" min="0.5" max="2" step="0.1" value="1.0">
             </div>
         </div>
+    </div>
+    <div class="header-section">
+        <h4 id="title" style="cursor: pointer">Speaker</h4>
 
+        <select id="voiceSelect" class="voice-select">
+            <option value="">Choose the speaker</option>
+        </select>
     </div>
 </div>
 
