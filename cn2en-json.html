@@ -420,6 +420,30 @@
             gap: 8px;
         }
         .fav-list-item:hover { background: #2c2c2c; }
+        .fav-list-search {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin: 10px 0;
+        }
+        .fav-list-search input { flex: 1; }
+        .fav-list-search-clear {
+            background: transparent;
+            color: #aaa;
+            border: 1px solid #444;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0 8px;
+            line-height: 1;
+        }
+        .fav-list-search-clear:hover { color: #e0e0e0; border-color: #6cf; }
+        .fav-list-empty {
+            color: #888;
+            text-align: center;
+            padding: 16px;
+            font-size: 13px;
+        }
         .fav-name {
             flex: 1;
             cursor: pointer;
@@ -779,6 +803,10 @@
             <div id="favListBackdrop" class="fav-modal-backdrop"></div>
             <div class="fav-modal-panel">
                 <div class="fav-modal-title">收藏夹<span id="favListCount" class="fav-list-count"></span></div>
+                <div class="fav-list-search">
+                    <input id="favListSearch" class="fav-input" type="text" autocomplete="off" placeholder="按名称搜索...">
+                    <button id="favListSearchClear" class="fav-list-search-clear" title="清空搜索">×</button>
+                </div>
                 <ul id="favList" class="fav-list"></ul>
                 <div class="fav-modal-actions">
                     <button id="favListSequentialPlay">顺序播放</button>
@@ -914,6 +942,8 @@
     const favListClose = document.getElementById('favListClose');
     const favListRandomPlay = document.getElementById('favListRandomPlay');
     const favListSequentialPlay = document.getElementById('favListSequentialPlay');
+    const favListSearch = document.getElementById('favListSearch');
+    const favListSearchClear = document.getElementById('favListSearchClear');
     const favStatus = document.getElementById('favStatus');
     const noteModal = document.getElementById('noteModal');
     const noteBackdrop = document.getElementById('noteBackdrop');
@@ -1242,8 +1272,19 @@
     function renderFavList() {
         favListEl.innerHTML = '';
         favListCount.textContent = favorites.length > 0 ? ` (${favorites.length})` : '';
+        const query = (favListSearch && favListSearch.value || '').trim().toLowerCase();
         const sorted = [...favorites].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-        sorted.forEach(fav => {
+        const filtered = query
+            ? sorted.filter(f => (f.name || '').toLowerCase().includes(query))
+            : sorted;
+        if (filtered.length === 0 && query) {
+            const empty = document.createElement('li');
+            empty.className = 'fav-list-empty';
+            empty.textContent = `无匹配项: "${query}"`;
+            favListEl.appendChild(empty);
+            return;
+        }
+        filtered.forEach(fav => {
             const li = document.createElement('li');
             li.className = 'fav-list-item';
             const nameSpan = document.createElement('span');
@@ -1350,6 +1391,7 @@
 
     function closeFavListModal() {
         favListModal.hidden = true;
+        if (favListSearch) favListSearch.value = '';
         window.speechSynthesis.cancel();
         if (favPlayButton) {
             favPlayButton.textContent = '播放';
@@ -1841,6 +1883,12 @@
     favListBackdrop.addEventListener('click', closeFavListModal);
     favListRandomPlay.addEventListener('click', playRandomFav);
     favListSequentialPlay.addEventListener('click', playSequentialFav);
+    favListSearch.addEventListener('input', renderFavList);
+    favListSearchClear.addEventListener('click', () => {
+        favListSearch.value = '';
+        renderFavList();
+        favListSearch.focus();
+    });
     noteOk.addEventListener('click', saveNote);
     noteDelete.addEventListener('click', deleteNote);
     noteCancel.addEventListener('click', closeNoteModal);
