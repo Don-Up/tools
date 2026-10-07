@@ -316,7 +316,7 @@
 
     // 文本转语音朗读
     function speakText(text, loop = false, utteranceRef = null) {
-        text = text.replaceAll("* ", "")
+        text = text.replaceAll("* ", "").replace(/【[^】]*】/g, '').replaceAll("_", " ")
         if(loop) {
             text = text+". "+text
         }
@@ -332,7 +332,9 @@
                 utterance.lang = hasChinese? 'zh-CN' : 'en-US';
                 utterance.rate = speechSpeed; // 使用当前语速
                 if(hasChinese){
-                    utterance.voice = cnVoice;
+                    // utterance.voice = cnVoice;
+                    utterance.voice = voices[selectedVoice];
+
                 } else if(useRandomVoice){
                     const randomVoice = Math.floor(Math.random() * voicesEn.length)
                     utterance.voice = voicesEn[randomVoice];
