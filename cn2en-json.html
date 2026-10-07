@@ -1106,7 +1106,9 @@
 
     function hashEntries(payload) {
         const normalized = (payload || []).map(([cn, en]) => {
-            const filteredCn = cn.replace(/\{\{([^}]*)\}\}[^]*?\]\]/g, '$1');
+            const filteredCn = cn
+                .replace(/\{\{([^}]*)\}\}[^]*?\]\]/g, '$1')
+                .replace(/<\/?del\b[^>]*>/g, '');
             return [filteredCn, en];
         });
         return md5(JSON.stringify(normalized));
