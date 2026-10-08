@@ -197,7 +197,7 @@
         <div class="control-section">
             <div class="control-buttons">
                 <button id="playPauseBtn" style="width: 40px">Play</button>
-                <button class="record-btn">Record</button>
+                <button class="record-btn">Stop</button>
             </div>
             <textarea id="playSentenceInput" placeholder="Please enter an English sentence for playback..."></textarea>
             <div class="control-buttons">
@@ -316,7 +316,12 @@
 
     // 文本转语音朗读
     function speakText(text, loop = false, utteranceRef = null) {
-        text = text.replaceAll("* ", "").replace(/【[^】]*】/g, '').replaceAll("_", " ")
+        text = text
+            .replace(/```[\s\S]*?```/g, '')
+            .replace(/`([^`]+)`/g, '$1')
+            .replaceAll("* ", "")
+            .replace(/【[^】]*】/g, '')
+            .replaceAll("_", " ")
         if(loop) {
             text = text+". "+text
         }
@@ -528,6 +533,8 @@
     const btnPlayback = document.querySelector(".playback-btn");
 
     btnRecord.addEventListener("click", async () => {
+        window.speechSynthesis.cancel()
+        return
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
             if (isRecording) {
                 // 停止录音
