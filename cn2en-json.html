@@ -2144,6 +2144,7 @@
             return;
         }
         if (e.key === 'j' && e.altKey && !e.ctrlKey && !e.metaKey) {
+            if (!currentFavId) return;
             e.preventDefault();
             e.stopPropagation();
             openJsonEditModal();

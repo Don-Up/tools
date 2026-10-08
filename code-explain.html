@@ -352,6 +352,7 @@
         <div class="section" style="margin-top: 18px;">
             <label for="speedRange">Speed: <span id="speedValue">1.0</span>x</label>
             <input type="range" id="speedRange" min="0.5" max="2.0" step="0.1" value="1.0" style="width: 200px;">
+            <label style="margin-left: 12px;"><input type="checkbox" id="doubleRead"> Double</label>
         </div>
 
         <div class="section" style="margin-left: auto;">
@@ -396,6 +397,7 @@
     const voiceSelect = document.getElementById('voiceSelect');
     const speedRange = document.getElementById('speedRange');
     const speedValue = document.getElementById('speedValue');
+    const doubleRead = document.getElementById('doubleRead');
     const codeBtn = document.getElementById("codeBtn")
     const generateBtn = document.getElementById('generateBtn');
     const codeDisplay = document.getElementById('codeDisplay');
@@ -778,28 +780,43 @@
             useStudentVoice = true
         }
         text = text.replace("teacher: ", "").replace("student: ", "")
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.voice = useStudentVoice ? (/[\u4e00-\u9fa5]/.test(text) ? studentVoiceZH : studentVoiceEN) : getSelectedVoice();
-        utterance.rate = parseFloat(speedRange.value);
-        utterance.pitch = 1.0;
+        const shouldDouble = !!(doubleRead && doubleRead.checked);
+        if (shouldDouble) text = text + ' ';
+        const voice = useStudentVoice ? (/[\u4e00-\u9fa5]/.test(text) ? studentVoiceZH : studentVoiceEN) : getSelectedVoice();
+        const rate = parseFloat(speedRange.value);
 
-        utterance.onend = () => {
-            if (!currentUtteranceCancelled) {
-                onEnd();
-            }
-            currentUtteranceCancelled = false;
-        };
-        utterance.onerror = (e) => {
-            if (!currentUtteranceCancelled && e.error !== 'interrupted') {
-                console.error('TTS error:', e);
-                onEnd();
-            }
-            currentUtteranceCancelled = false;
-        };
+        let pass = 0;
+        function speakOnce() {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.voice = voice;
+            utterance.rate = rate;
+            utterance.pitch = 1.0;
 
-        currentUtterance = utterance;
-        currentUtteranceCancelled = false;
-        speechSynthesis.speak(utterance);
+            utterance.onend = () => {
+                if (!currentUtteranceCancelled) {
+                    pass++;
+                    if (shouldDouble && pass === 1) {
+                        currentUtteranceCancelled = false;
+                        speakOnce();
+                    } else {
+                        onEnd();
+                    }
+                }
+                currentUtteranceCancelled = false;
+            };
+            utterance.onerror = (e) => {
+                if (!currentUtteranceCancelled && e.error !== 'interrupted') {
+                    console.error('TTS error:', e);
+                    onEnd();
+                }
+                currentUtteranceCancelled = false;
+            };
+
+            currentUtterance = utterance;
+            currentUtteranceCancelled = false;
+            speechSynthesis.speak(utterance);
+        }
+        speakOnce();
     }
 
     function playNext() {
