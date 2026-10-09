@@ -411,6 +411,24 @@
             font-size: 2.5rem;
             line-height: 1.75rem;
         }
+
+        #tocPanel {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            bottom: 0;
+            width: 220px;
+            background: #1e1e1e;
+            border-right: 1px solid #333;
+            overflow-y: auto;
+            padding: 10px 0;
+            box-sizing: border-box;
+            z-index: 40;
+            display: none;
+        }
+        body.toc-open #tocPanel { display: block; }
+        body.toc-open .container { margin-left: 220px; }
+        #tocPanel:empty { display: none; }
     </style>
     <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
@@ -418,6 +436,7 @@
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 </head>
 <body>
+<aside id="tocPanel" aria-label="Table of contents"></aside>
 <div id="wrapper">
     <!--    <video autoplay loop muted playsinline class="background-video">-->
     <!--        <source src="mp4/bg.mp4" type="video/mp4">-->
