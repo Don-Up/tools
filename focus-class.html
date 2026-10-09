@@ -77,6 +77,83 @@
             height: auto !important;
         }
 
+        .full-layout {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .focused-layout {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            gap: 16px;
+            padding: 0 16px;
+            box-sizing: border-box;
+        }
+
+        .focused-layout > .mermaid-container {
+            flex: 6 1 0;
+            min-width: 0;
+        }
+
+        .focused-layout > .annotations-panel {
+            flex: 4 1 0;
+            min-width: 0;
+            height: 100%;
+            overflow-y: auto;
+            background: #252525;
+            border: 1px solid #444;
+            border-radius: 6px;
+            padding: 16px 20px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            color: #e0e0e0;
+        }
+
+        .annotations-empty {
+            color: #888;
+            font-style: italic;
+        }
+
+        .annotation-item {
+            margin-bottom: 14px;
+            padding-bottom: 12px;
+            border-bottom: 1px dashed #3a3a3a;
+        }
+
+        .annotation-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .annotation-head {
+            color: #ffb74d;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 6px;
+            word-break: break-word;
+        }
+
+        .annotation-brief {
+            color: #b0bec5;
+            font-size: 12px;
+            line-height: 1.5;
+            margin-bottom: 4px;
+            word-break: break-word;
+        }
+
+        .annotation-example {
+            color: #82aaff;
+            font-size: 12px;
+            line-height: 1.5;
+            font-style: italic;
+            word-break: break-word;
+            white-space: pre-wrap;
+        }
+
         .status {
             position: fixed;
             bottom: 16px;
@@ -223,6 +300,32 @@
             return lines.join('\n');
         }
 
+        function parseClassMembers(body) {
+            if (!body) return [];
+            const members = [];
+            let pendingBrief = null;
+            let pendingExample = null;
+            for (const rawLine of body.split('\n')) {
+                const line = rawLine.replace(/\s+$/, '');
+                if (!line) continue;
+                const ann = line.match(/^\s*%%\s*(\{.*\})\s*$/);
+                if (ann) {
+                    try {
+                        const obj = JSON.parse(ann[1]);
+                        if (obj && typeof obj === 'object') {
+                            if (typeof obj.brief === 'string') pendingBrief = obj.brief;
+                            if (typeof obj.example === 'string') pendingExample = obj.example;
+                        }
+                    } catch (_) { /* ignore malformed JSON */ }
+                    continue;
+                }
+                members.push({ text: line.trim(), brief: pendingBrief, example: pendingExample });
+                pendingBrief = null;
+                pendingExample = null;
+            }
+            return members;
+        }
+
         function buildFocusedClassOnlySource(model, index) {
             const target = model.classes[index];
             if (!target) return '';
@@ -233,10 +336,48 @@
                 lines.push(`  class ${target.name} {`);
             }
             if (target.body) {
-                for (const bl of target.body.split('\n')) lines.push(`    ${bl}`);
+                for (const bl of target.body.split('\n')) {
+                    const stripped = bl.replace(/\s+$/, '');
+                    if (/^\s*%%\s*\{/.test(stripped)) continue;
+                    lines.push(`    ${stripped}`);
+                }
             }
             lines.push('  }');
             return lines.join('\n');
+        }
+
+        function buildAnnotationsPanel(members) {
+            const panel = document.createElement('div');
+            panel.className = 'annotations-panel';
+            if (!members.length) {
+                const empty = document.createElement('div');
+                empty.className = 'annotations-empty';
+                empty.textContent = '(无成员)';
+                panel.appendChild(empty);
+                return panel;
+            }
+            for (const m of members) {
+                const item = document.createElement('div');
+                item.className = 'annotation-item';
+                const head = document.createElement('div');
+                head.className = 'annotation-head';
+                head.textContent = m.text;
+                item.appendChild(head);
+                if (m.brief) {
+                    const b = document.createElement('div');
+                    b.className = 'annotation-brief';
+                    b.textContent = m.brief;
+                    item.appendChild(b);
+                }
+                if (m.example) {
+                    const ex = document.createElement('div');
+                    ex.className = 'annotation-example';
+                    ex.textContent = m.example;
+                    item.appendChild(ex);
+                }
+                panel.appendChild(item);
+            }
+            return panel;
         }
 
         if (window.mermaid) {
@@ -285,7 +426,8 @@
             if (!target) return;
             const myId = 'mermaid-' + (++renderCounter);
             latestRenderId = myId;
-            const source = viewMode === 'focused-only'
+            const focusedOnly = viewMode === 'focused-only';
+            const source = focusedOnly
                 ? buildFocusedClassOnlySource(model, currentIndex)
                 : buildClassSource(model, currentIndex);
             try {
@@ -293,11 +435,18 @@
                 if (myId !== latestRenderId) return; // a newer render started
                 const svg = typeof result === 'string' ? result : result.svg;
                 stage.innerHTML = '';
+                const layout = document.createElement('div');
+                layout.className = focusedOnly ? 'focused-layout' : 'full-layout';
                 const container = document.createElement('div');
                 container.className = 'mermaid-container';
                 container.innerHTML = svg;
-                stage.appendChild(container);
-                status.textContent = `${currentIndex + 1} / ${model.classes.length} · ${target.name}${viewMode === 'focused-only' ? ' · 单' : ''}`;
+                layout.appendChild(container);
+                if (focusedOnly) {
+                    const members = parseClassMembers(target.body);
+                    layout.appendChild(buildAnnotationsPanel(members));
+                }
+                stage.appendChild(layout);
+                status.textContent = `${currentIndex + 1} / ${model.classes.length} · ${target.name}${focusedOnly ? ' · 单' : ''}`;
             } catch (err) {
                 if (myId !== latestRenderId) return;
                 const message = (err && (err.message || err.str || err.toString())) || '未知错误';
