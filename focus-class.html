@@ -436,6 +436,7 @@
         let renderCounter = 0;
         let latestRenderId = 0;
         let viewMode = 'with-neighbors';
+        let currentMemberBriefs = [];
 
         function buildClassSource(model, index) {
             const target = model.classes[index];
@@ -629,6 +630,8 @@
             latestRenderId = myId;
             const focusedOnly = viewMode === 'focused-only';
 
+            currentMemberBriefs = parseClassForRender(target.body).members;
+
             if (focusedOnly) {
                 stage.innerHTML = '';
                 stage.appendChild(buildClassBox(target));
@@ -705,6 +708,15 @@
             }
             if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
                 step(-1);
+                return;
+            }
+            if (!e.altKey && !e.ctrlKey && !e.metaKey && /^[1-9]$/.test(e.key)) {
+                if (!model) return;
+                const member = currentMemberBriefs[parseInt(e.key, 10) - 1];
+                if (member && member.brief) {
+                    e.preventDefault();
+                    speakText(member.brief);
+                }
                 return;
             }
             if (!e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'v' || e.key === 'V')) {
