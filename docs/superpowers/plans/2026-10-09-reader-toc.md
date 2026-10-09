@@ -292,8 +292,10 @@ git commit -m "Render TOC entries from .toc-target headings"
 定位到现有 `</style>` 闭合标签。在 `</style>` 之前再追加：
 
 ```css
-body.toc-hidden #tocPanel { display: none !important; }
+body.toc-hidden #tocPanel { display: none; }
 ```
+
+> 注：该规则与 `body.toc-open #tocPanel { display: block; }` 特异性相同 (1,1,1)。靠 CSS 源码顺序覆盖即可, 不需要 `!important`。
 
 - [ ] **Step 2: 在 keydown 监听器加 Alt+H 分支**
 

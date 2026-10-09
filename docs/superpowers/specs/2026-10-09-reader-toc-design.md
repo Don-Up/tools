@@ -195,10 +195,10 @@ Add a branch to the existing `document.addEventListener('keydown', ...)` (around
 CSS companion:
 
 ```css
-body.toc-hidden #tocPanel { display: none !important; }
+body.toc-hidden #tocPanel { display: none; }
 ```
 
-The `!important` is needed because `#tocPanel` already has `display: none` and `body.toc-open #tocPanel { display: block }`. The `toc-hidden` override wins regardless of whether `toc-open` is also present.
+Both selectors have equal CSS specificity (one id + one class + one element). The `toc-hidden` rule is placed later in the stylesheet so source order makes it win when both classes are on `<body>` simultaneously. No `!important` needed.
 
 `Alt+H` works whether the panel is currently shown or hidden. After unhiding, the `if (!hidden && ...)` block ensures `toc-open` is added without waiting for the next `processText()` run (so the user can toggle between paste cycles).
 

@@ -457,6 +457,7 @@
         .toc-level-3 { padding-left: 30px; font-size: 13px; }
         .toc-level-4 { padding-left: 40px; font-size: 13px; color: #b0b0b0; }
         .toc-level-5 { padding-left: 50px; font-size: 12px; color: #b0b0b0; }
+        body.toc-hidden #tocPanel { display: none; }
     </style>
     <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
@@ -605,6 +606,9 @@
 
     const hideReadCheckbox = document.getElementById("hideReadCheckbox");
     hideReadCheckbox.checked = localStorage.getItem("hideRead") === "true";
+    if (localStorage.getItem("tocHidden") === "true") {
+        document.body.classList.add("toc-hidden");
+    }
     hideReadCheckbox.addEventListener("change", function () {
         localStorage.setItem("hideRead", hideReadCheckbox.checked);
     });
@@ -907,6 +911,14 @@
                     text.style.color = "#dfe1e5";
                 }
             });
+        } else if (event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey && event.code === "KeyH") {
+            event.preventDefault();
+            const hidden = !document.body.classList.contains("toc-hidden");
+            document.body.classList.toggle("toc-hidden", hidden);
+            localStorage.setItem("tocHidden", hidden ? "true" : "false");
+            if (!hidden && document.querySelectorAll("#content .toc-target").length > 0) {
+                document.body.classList.add("toc-open");
+            }
         }
     });
 
