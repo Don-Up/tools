@@ -300,6 +300,47 @@
             currentIndex = 0;
             renderCurrent();
         }
+
+        function step(delta) {
+            if (!model || model.classes.length === 0) return;
+            const n = model.classes.length;
+            currentIndex = (currentIndex + delta + n) % n;
+            renderCurrent();
+        }
+
+        document.addEventListener('paste', (e) => {
+            const text = (e.clipboardData || window.clipboardData).getData('text');
+            if (!text) return;
+            e.preventDefault();
+            loadAndRender(text.trim());
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                showHint();
+                return;
+            }
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                step(+1);
+                return;
+            }
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                step(-1);
+            }
+        });
+
+        closeBtn.addEventListener('click', () => {
+            window.parent.postMessage({ type: 'focus-class-close' }, '*');
+        });
+
+        window.addEventListener('message', (e) => {
+            const data = e.data;
+            if (!data || typeof data !== 'object') return;
+            if (data.type !== 'focus-class-load') return;
+            if (typeof data.content !== 'string' || !data.content) return;
+            loadAndRender(data.content.trim());
+            closeBtn.classList.add('visible');
+        });
     </script>
 </body>
 </html>
