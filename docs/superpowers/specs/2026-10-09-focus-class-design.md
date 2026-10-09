@@ -123,7 +123,9 @@ currentIndex = next;
 renderCurrent();
 ```
 
-`currentIndex` is module-scope state, default `0`. Pasting new text resets `currentIndex` to `0` and triggers render.
+`currentIndex` is module-scope state, default `0`. Pasting new text calls `loadAndRender(text)`, which parses into the module-scope `model`, sets `currentIndex = 0`, and calls `renderCurrent()`.
+
+Both the paste handler and the `focus-class-load` postMessage handler call the same `loadAndRender(text)` entry point. `renderCurrent()` is what `step(delta)` and `loadAndRender()` both call after changing `currentIndex`.
 
 ### Parent-window integration
 
@@ -141,7 +143,7 @@ Both the paste handler and the message handler call the same `loadAndRender(text
 | Empty paste / no text | Do nothing (return from handler). |
 | Paste that parses to 0 classes | Show error: "未找到任何 class 定义". |
 | Mermaid render error | Show error box, keep stage clean. |
-| Class with no edges | Show class alone. Status still updates. |
+| Class with no incident edges | Show class alone (no relationship lines). Status still updates. |
 | Relationship referencing undefined class | Drop the relationship, log warning. |
 | `←` on first class | Wraps to last. |
 | `→` on last class | Wraps to first. |
