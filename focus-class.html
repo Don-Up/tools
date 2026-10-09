@@ -29,6 +29,7 @@
             align-items: center;
             justify-content: center;
             padding: 24px;
+            overflow: auto;
         }
 
         .hint {
@@ -85,75 +86,81 @@
             justify-content: center;
         }
 
-        .focused-layout {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            gap: 16px;
-            padding: 0 16px;
-            box-sizing: border-box;
-        }
-
-        .focused-layout > .mermaid-container {
-            flex: 6 1 0;
-            min-width: 0;
-        }
-
-        .focused-layout > .annotations-panel {
-            flex: 4 1 0;
-            min-width: 0;
-            align-self: center;
-            max-height: calc(100vh - 48px);
-            overflow-y: auto;
+        .class-box {
+            flex-shrink: 0;
+            display: inline-block;
+            min-width: 280px;
+            max-width: 720px;
             background: #252525;
-            border: 1px solid #444;
-            border-radius: 6px;
-            padding: 20px 24px;
+            border: 2px solid #4fc3f7;
+            border-radius: 8px;
             font-family: 'Consolas', 'Monaco', monospace;
             color: #e0e0e0;
         }
 
-        .annotations-empty {
+        .class-box-header {
+            padding: 16px 24px 12px;
+            text-align: center;
+            border-bottom: 1px solid #4fc3f7;
+        }
+
+        .class-box-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #e0e0e0;
+            word-break: break-word;
+        }
+
+        .class-box-stereotype {
+            font-size: 14px;
+            font-style: italic;
+            color: #b0bec5;
+            margin-top: 6px;
+        }
+
+        .class-box-members {
+            padding: 4px 0;
+        }
+
+        .class-box-item {
+            padding: 8px 24px;
+        }
+
+        .class-box-divider {
+            border-top: 1px solid #444;
+            margin: 4px 0;
+        }
+
+        .class-box-member {
+            font-size: 16px;
+            color: #e0e0e0;
+            word-break: break-word;
+        }
+
+        .class-box-brief {
+            font-size: 16px;
+            color: #b0bec5;
+            margin-top: 4px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            line-height: 1.5;
+        }
+
+        .class-box-example {
+            font-size: 16px;
+            font-style: italic;
+            color: #82aaff;
+            margin-top: 4px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            line-height: 1.5;
+        }
+
+        .class-box-empty {
+            padding: 16px 24px;
             color: #888;
             font-style: italic;
             font-size: 16px;
-        }
-
-        .annotation-item {
-            margin-bottom: 18px;
-            padding-bottom: 14px;
-            border-bottom: 1px dashed #3a3a3a;
-        }
-
-        .annotation-item:last-child {
-            border-bottom: none;
-            margin-bottom: 0;
-            padding-bottom: 0;
-        }
-
-        .annotation-head {
-            color: #ffb74d;
-            font-weight: 600;
-            font-size: 18px;
-            margin-bottom: 10px;
-            word-break: break-word;
-        }
-
-        .annotation-brief {
-            color: #b0bec5;
-            font-size: 16px;
-            line-height: 1.6;
-            margin-bottom: 8px;
-            word-break: break-word;
-        }
-
-        .annotation-example {
-            color: #82aaff;
-            font-size: 16px;
-            line-height: 1.6;
-            font-style: italic;
-            word-break: break-word;
-            white-space: pre-wrap;
         }
 
         .status {
@@ -302,15 +309,29 @@
             return lines.join('\n');
         }
 
-        function parseClassMembers(body) {
-            if (!body) return [];
-            const members = [];
+        function isStereotypeLine(text) {
+            return /^<<.+>>$/.test(text);
+        }
+
+        function detectMemberKind(text) {
+            return /\([^)]*\)/.test(text) ? 'method' : 'attribute';
+        }
+
+        function extractDisplayName(display) {
+            if (!display) return null;
+            const m = display.match(/^\["([\s\S]+)"\]$/);
+            return m ? m[1] : null;
+        }
+
+        function parseClassForRender(body) {
+            const result = { stereotype: null, members: [] };
+            if (!body) return result;
             let pendingBrief = null;
             let pendingExample = null;
             for (const rawLine of body.split('\n')) {
                 const line = rawLine.replace(/\s+$/, '');
                 if (!line) continue;
-                const ann = line.match(/^\s*%%\s*(\{.*\})\s*$/);
+                const ann = line.match(/^\s*%%\s*(\{[\s\S]*\})\s*$/);
                 if (ann) {
                     try {
                         const obj = JSON.parse(ann[1]);
@@ -321,65 +342,89 @@
                     } catch (_) { /* ignore malformed JSON */ }
                     continue;
                 }
-                members.push({ text: line.trim(), brief: pendingBrief, example: pendingExample });
+                const trimmed = line.trim();
+                if (isStereotypeLine(trimmed)) {
+                    if (!result.stereotype) {
+                        const m = trimmed.match(/^<<([\s\S]+)>>$/);
+                        if (m) result.stereotype = m[1];
+                    }
+                    pendingBrief = null;
+                    pendingExample = null;
+                    continue;
+                }
+                result.members.push({
+                    text: trimmed,
+                    brief: pendingBrief,
+                    example: pendingExample,
+                    kind: detectMemberKind(trimmed),
+                });
                 pendingBrief = null;
                 pendingExample = null;
             }
-            return members;
+            return result;
         }
 
-        function buildFocusedClassOnlySource(model, index) {
-            const target = model.classes[index];
-            if (!target) return '';
-            const lines = ['classDiagram', '  direction LR'];
-            if (target.display) {
-                lines.push(`  class ${target.name}${target.display} {`);
-            } else {
-                lines.push(`  class ${target.name} {`);
-            }
-            if (target.body) {
-                for (const bl of target.body.split('\n')) {
-                    const stripped = bl.replace(/\s+$/, '');
-                    if (/^\s*%%\s*\{/.test(stripped)) continue;
-                    lines.push(`    ${stripped}`);
-                }
-            }
-            lines.push('  }');
-            return lines.join('\n');
-        }
+        function buildClassBox(target) {
+            const { stereotype, members } = parseClassForRender(target.body);
+            const title = extractDisplayName(target.display) || target.name;
 
-        function buildAnnotationsPanel(members) {
-            const panel = document.createElement('div');
-            panel.className = 'annotations-panel';
-            if (!members.length) {
+            const box = document.createElement('div');
+            box.className = 'class-box';
+
+            const header = document.createElement('div');
+            header.className = 'class-box-header';
+            const titleEl = document.createElement('div');
+            titleEl.className = 'class-box-title';
+            titleEl.textContent = title;
+            header.appendChild(titleEl);
+            if (stereotype) {
+                const stEl = document.createElement('div');
+                stEl.className = 'class-box-stereotype';
+                stEl.textContent = `<<${stereotype}>>`;
+                header.appendChild(stEl);
+            }
+            box.appendChild(header);
+
+            if (members.length === 0) {
                 const empty = document.createElement('div');
-                empty.className = 'annotations-empty';
+                empty.className = 'class-box-empty';
                 empty.textContent = '(无成员)';
-                panel.appendChild(empty);
-                return panel;
+                box.appendChild(empty);
+                return box;
             }
+
+            const memberList = document.createElement('div');
+            memberList.className = 'class-box-members';
+            let lastKind = null;
             for (const m of members) {
+                if (lastKind && lastKind !== m.kind) {
+                    const div = document.createElement('div');
+                    div.className = 'class-box-divider';
+                    memberList.appendChild(div);
+                }
+                lastKind = m.kind;
                 const item = document.createElement('div');
-                item.className = 'annotation-item';
-                const head = document.createElement('div');
-                head.className = 'annotation-head';
-                head.textContent = m.text;
-                item.appendChild(head);
+                item.className = 'class-box-item';
+                const textEl = document.createElement('div');
+                textEl.className = 'class-box-member';
+                textEl.textContent = m.text;
+                item.appendChild(textEl);
                 if (m.brief) {
                     const b = document.createElement('div');
-                    b.className = 'annotation-brief';
+                    b.className = 'class-box-brief';
                     b.textContent = m.brief;
                     item.appendChild(b);
                 }
                 if (m.example) {
                     const ex = document.createElement('div');
-                    ex.className = 'annotation-example';
+                    ex.className = 'class-box-example';
                     ex.textContent = m.example;
                     item.appendChild(ex);
                 }
-                panel.appendChild(item);
+                memberList.appendChild(item);
             }
-            return panel;
+            box.appendChild(memberList);
+            return box;
         }
 
         if (window.mermaid) {
@@ -429,26 +474,28 @@
             const myId = 'mermaid-' + (++renderCounter);
             latestRenderId = myId;
             const focusedOnly = viewMode === 'focused-only';
-            const source = focusedOnly
-                ? buildFocusedClassOnlySource(model, currentIndex)
-                : buildClassSource(model, currentIndex);
+
+            if (focusedOnly) {
+                stage.innerHTML = '';
+                stage.appendChild(buildClassBox(target));
+                status.textContent = `${currentIndex + 1} / ${model.classes.length} · ${target.name} · 单`;
+                return;
+            }
+
+            const source = buildClassSource(model, currentIndex);
             try {
                 const result = await window.mermaid.render(myId, source);
                 if (myId !== latestRenderId) return; // a newer render started
                 const svg = typeof result === 'string' ? result : result.svg;
                 stage.innerHTML = '';
                 const layout = document.createElement('div');
-                layout.className = focusedOnly ? 'focused-layout' : 'full-layout';
+                layout.className = 'full-layout';
                 const container = document.createElement('div');
                 container.className = 'mermaid-container';
                 container.innerHTML = svg;
                 layout.appendChild(container);
-                if (focusedOnly) {
-                    const members = parseClassMembers(target.body);
-                    layout.appendChild(buildAnnotationsPanel(members));
-                }
                 stage.appendChild(layout);
-                status.textContent = `${currentIndex + 1} / ${model.classes.length} · ${target.name}${focusedOnly ? ' · 单' : ''}`;
+                status.textContent = `${currentIndex + 1} / ${model.classes.length} · ${target.name}`;
             } catch (err) {
                 if (myId !== latestRenderId) return;
                 const message = (err && (err.message || err.str || err.toString())) || '未知错误';
