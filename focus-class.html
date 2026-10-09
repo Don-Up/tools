@@ -224,11 +224,13 @@
             font-family: inherit;
             font-size: 13px;
             z-index: 100;
-            display: flex;
+            display: none;
             flex-direction: column;
             gap: 6px;
             min-width: 240px;
         }
+
+        #ttsPanel.visible { display: flex; }
 
         .tts-row {
             display: flex;
@@ -292,6 +294,7 @@
         const stage = document.getElementById('stage');
         const status = document.getElementById('status');
         const closeBtn = document.getElementById('closeBtn');
+        const ttsPanel = document.getElementById('ttsPanel');
         const ttsVoiceSelect = document.getElementById('ttsVoice');
         const ttsRateInput = document.getElementById('ttsRate');
         const ttsRateValue = document.getElementById('ttsRateValue');
@@ -299,11 +302,38 @@
         let ttsVoices = [];
         let ttsSelectedURI = '';
 
+        const TTS_STORAGE_VOICE = 'focus-class.tts.voiceURI';
+        const TTS_STORAGE_RATE = 'focus-class.tts.rate';
+
+        function loadTtsSettings() {
+            try {
+                const uri = localStorage.getItem(TTS_STORAGE_VOICE);
+                if (uri) ttsSelectedURI = uri;
+                const rateStr = localStorage.getItem(TTS_STORAGE_RATE);
+                if (rateStr) {
+                    const rate = parseFloat(rateStr);
+                    if (isFinite(rate) && rate >= 0.5 && rate <= 2.0) {
+                        ttsRateInput.value = String(rate);
+                        ttsRateValue.textContent = `${rate.toFixed(1)}x`;
+                    }
+                }
+            } catch (_) { /* localStorage may be unavailable */ }
+        }
+
+        function saveTtsSettings() {
+            try {
+                localStorage.setItem(TTS_STORAGE_VOICE, ttsSelectedURI);
+                localStorage.setItem(TTS_STORAGE_RATE, ttsRateInput.value);
+            } catch (_) { /* ignore quota / disabled */ }
+        }
+
         function refreshTtsVoices() {
             ttsVoices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
             ttsVoiceSelect.innerHTML = '';
-            let defaultURI = ttsSelectedURI;
-            if (!defaultURI) {
+            let defaultURI = '';
+            if (ttsSelectedURI && ttsVoices.some(v => v.voiceURI === ttsSelectedURI)) {
+                defaultURI = ttsSelectedURI;
+            } else {
                 const zh = ttsVoices.find(v => /^zh/i.test(v.lang));
                 defaultURI = zh ? zh.voiceURI : (ttsVoices[0] && ttsVoices[0].voiceURI);
             }
@@ -332,17 +362,18 @@
         }
 
         if (window.speechSynthesis) {
+            loadTtsSettings();
             refreshTtsVoices();
             window.speechSynthesis.onvoiceschanged = refreshTtsVoices;
             ttsVoiceSelect.addEventListener('change', () => {
                 ttsSelectedURI = ttsVoiceSelect.value;
+                saveTtsSettings();
             });
             ttsRateInput.addEventListener('input', () => {
                 const rate = parseFloat(ttsRateInput.value);
                 ttsRateValue.textContent = `${rate.toFixed(1)}x`;
+                saveTtsSettings();
             });
-        } else {
-            document.getElementById('ttsPanel').style.display = 'none';
         }
 
         function parseClassDiagram(text) {
@@ -659,6 +690,11 @@
         });
 
         document.addEventListener('keydown', (e) => {
+            if (e.altKey && (e.key === 'h' || e.key === 'H')) {
+                e.preventDefault();
+                ttsPanel.classList.toggle('visible');
+                return;
+            }
             if (e.key === 'Escape') {
                 showHint();
                 return;
