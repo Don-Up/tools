@@ -102,12 +102,13 @@
         .focused-layout > .annotations-panel {
             flex: 4 1 0;
             min-width: 0;
-            height: 100%;
+            align-self: center;
+            max-height: calc(100vh - 48px);
             overflow-y: auto;
             background: #252525;
             border: 1px solid #444;
             border-radius: 6px;
-            padding: 16px 20px;
+            padding: 20px 24px;
             font-family: 'Consolas', 'Monaco', monospace;
             color: #e0e0e0;
         }
@@ -115,11 +116,12 @@
         .annotations-empty {
             color: #888;
             font-style: italic;
+            font-size: 16px;
         }
 
         .annotation-item {
-            margin-bottom: 14px;
-            padding-bottom: 12px;
+            margin-bottom: 18px;
+            padding-bottom: 14px;
             border-bottom: 1px dashed #3a3a3a;
         }
 
@@ -132,23 +134,23 @@
         .annotation-head {
             color: #ffb74d;
             font-weight: 600;
-            font-size: 14px;
-            margin-bottom: 6px;
+            font-size: 18px;
+            margin-bottom: 10px;
             word-break: break-word;
         }
 
         .annotation-brief {
             color: #b0bec5;
-            font-size: 12px;
-            line-height: 1.5;
-            margin-bottom: 4px;
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 8px;
             word-break: break-word;
         }
 
         .annotation-example {
             color: #82aaff;
-            font-size: 12px;
-            line-height: 1.5;
+            font-size: 16px;
+            line-height: 1.6;
             font-style: italic;
             word-break: break-word;
             white-space: pre-wrap;
