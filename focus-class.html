@@ -117,7 +117,7 @@
 <body>
     <button id="closeBtn" title="Close">×</button>
     <div class="stage" id="stage">
-        <div class="hint">按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴(带邻居)<br>按 <kbd>Alt</kbd> + <kbd>V</kbd> 粘贴(单 class)</div>
+        <div class="hint">按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴(带邻居)<br>按 <kbd>Alt</kbd> + <kbd>V</kbd> 粘贴(单 class)<br>按 <kbd>V</kbd> 切换模式</div>
     </div>
     <div class="status" id="status"></div>
 
@@ -262,7 +262,7 @@
             stage.innerHTML = '';
             const hint = document.createElement('div');
             hint.className = 'hint';
-            hint.innerHTML = '按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴(带邻居)<br>按 <kbd>Alt</kbd> + <kbd>V</kbd> 粘贴(单 class)';
+            hint.innerHTML = '按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴(带邻居)<br>按 <kbd>Alt</kbd> + <kbd>V</kbd> 粘贴(单 class)<br>按 <kbd>V</kbd> 切换模式';
             stage.appendChild(hint);
             status.textContent = '';
             model = null;
@@ -297,7 +297,7 @@
                 container.className = 'mermaid-container';
                 container.innerHTML = svg;
                 stage.appendChild(container);
-                status.textContent = `${currentIndex + 1} / ${model.classes.length} · ${target.name}`;
+                status.textContent = `${currentIndex + 1} / ${model.classes.length} · ${target.name}${viewMode === 'focused-only' ? ' · 单' : ''}`;
             } catch (err) {
                 if (myId !== latestRenderId) return;
                 const message = (err && (err.message || err.str || err.toString())) || '未知错误';
@@ -350,7 +350,7 @@
                 step(-1);
                 return;
             }
-            if (e.altKey && (e.key === 'v' || e.key === 'V')) {
+            if (!e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'v' || e.key === 'V')) {
                 e.preventDefault();
                 if (!model) return;
                 if (viewMode === 'focused-only') {
