@@ -329,6 +329,7 @@
 
         function refreshTtsVoices() {
             ttsVoices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+            if (ttsVoices.length === 0) return; // voices not loaded yet; onvoiceschanged will retry
             ttsVoiceSelect.innerHTML = '';
             let defaultURI = '';
             if (ttsSelectedURI && ttsVoices.some(v => v.voiceURI === ttsSelectedURI)) {
