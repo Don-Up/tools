@@ -117,7 +117,7 @@
 <body>
     <button id="closeBtn" title="Close">×</button>
     <div class="stage" id="stage">
-        <div class="hint">按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴 mermaid 代码</div>
+        <div class="hint">按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴(带邻居)<br>按 <kbd>Alt</kbd> + <kbd>V</kbd> 粘贴(单 class)</div>
     </div>
     <div class="status" id="status"></div>
 
@@ -185,6 +185,7 @@
         let currentIndex = 0;
         let renderCounter = 0;
         let latestRenderId = 0;
+        let viewMode = 'with-neighbors';
 
         function buildClassSource(model, index) {
             const target = model.classes[index];
@@ -222,6 +223,22 @@
             return lines.join('\n');
         }
 
+        function buildFocusedClassOnlySource(model, index) {
+            const target = model.classes[index];
+            if (!target) return '';
+            const lines = ['classDiagram', '  direction LR'];
+            if (target.display) {
+                lines.push(`  class ${target.name}${target.display} {`);
+            } else {
+                lines.push(`  class ${target.name} {`);
+            }
+            if (target.body) {
+                for (const bl of target.body.split('\n')) lines.push(`    ${bl}`);
+            }
+            lines.push('  }');
+            return lines.join('\n');
+        }
+
         if (window.mermaid) {
             window.mermaid.initialize({
                 startOnLoad: false,
@@ -245,7 +262,7 @@
             stage.innerHTML = '';
             const hint = document.createElement('div');
             hint.className = 'hint';
-            hint.innerHTML = '按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴 mermaid 代码';
+            hint.innerHTML = '按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴(带邻居)<br>按 <kbd>Alt</kbd> + <kbd>V</kbd> 粘贴(单 class)';
             stage.appendChild(hint);
             status.textContent = '';
             model = null;
@@ -268,8 +285,11 @@
             if (!target) return;
             const myId = 'mermaid-' + (++renderCounter);
             latestRenderId = myId;
+            const source = viewMode === 'focused-only'
+                ? buildFocusedClassOnlySource(model, currentIndex)
+                : buildClassSource(model, currentIndex);
             try {
-                const result = await window.mermaid.render(myId, buildClassSource(model, currentIndex));
+                const result = await window.mermaid.render(myId, source);
                 if (myId !== latestRenderId) return; // a newer render started
                 const svg = typeof result === 'string' ? result : result.svg;
                 stage.innerHTML = '';
@@ -285,7 +305,7 @@
             }
         }
 
-        function loadAndRender(text) {
+        function loadAndRender(text, mode) {
             if (!text) return;
             if (!window.mermaid) {
                 showError('mermaid.js 未加载,请检查网络');
@@ -298,6 +318,7 @@
             }
             model = parsed;
             currentIndex = 0;
+            if (mode) viewMode = mode;
             renderCurrent();
         }
 
@@ -312,7 +333,8 @@
             const text = (e.clipboardData || window.clipboardData).getData('text');
             if (!text) return;
             e.preventDefault();
-            loadAndRender(text.trim());
+            const mode = e.altKey ? 'focused-only' : 'with-neighbors';
+            loadAndRender(text.trim(), mode);
         });
 
         document.addEventListener('keydown', (e) => {
@@ -326,6 +348,19 @@
             }
             if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
                 step(-1);
+                return;
+            }
+            if (e.altKey && (e.key === 'v' || e.key === 'V')) {
+                e.preventDefault();
+                if (!model) return;
+                if (viewMode === 'focused-only') {
+                    viewMode = 'with-neighbors';
+                    status.textContent = '已切换到带邻居模式';
+                } else {
+                    viewMode = 'focused-only';
+                    status.textContent = '已切换到单 class 模式';
+                }
+                renderCurrent();
             }
         });
 
