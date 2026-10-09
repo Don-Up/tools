@@ -144,6 +144,20 @@
             white-space: pre-wrap;
             word-break: break-word;
             line-height: 1.5;
+            cursor: pointer;
+            transition: background 0.15s;
+            border-radius: 4px;
+            padding: 2px 4px;
+            margin-left: -4px;
+            margin-right: -4px;
+        }
+
+        .class-box-brief:hover {
+            background: rgba(79, 195, 247, 0.12);
+        }
+
+        .class-box-brief:active {
+            background: rgba(79, 195, 247, 0.2);
         }
 
         .class-box-example {
@@ -197,11 +211,78 @@
             border-color: #00BFFF;
         }
         #closeBtn.visible { display: block; }
+
+        #ttsPanel {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            background: rgba(40, 40, 40, 0.9);
+            border: 1px solid #555;
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: #e0e0e0;
+            font-family: inherit;
+            font-size: 13px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 240px;
+        }
+
+        .tts-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tts-row label {
+            color: #888;
+            font-size: 12px;
+            min-width: 36px;
+        }
+
+        .tts-row select {
+            flex: 1;
+            background: #1e1e1e;
+            color: #e0e0e0;
+            border: 1px solid #555;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 12px;
+            padding: 2px 4px;
+            min-width: 0;
+        }
+
+        .tts-row input[type="range"] {
+            flex: 1;
+            accent-color: #4fc3f7;
+            min-width: 0;
+        }
+
+        #ttsRateValue {
+            color: #b0bec5;
+            font-size: 12px;
+            min-width: 36px;
+            text-align: right;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 </head>
 <body>
     <button id="closeBtn" title="Close">×</button>
+    <div id="ttsPanel">
+        <div class="tts-row">
+            <label for="ttsVoice">语音</label>
+            <select id="ttsVoice"></select>
+        </div>
+        <div class="tts-row">
+            <label for="ttsRate">速度</label>
+            <input id="ttsRate" type="range" min="0.5" max="2.0" step="0.1" value="1.0">
+            <span id="ttsRateValue">1.0x</span>
+        </div>
+    </div>
     <div class="stage" id="stage">
         <div class="hint">按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴(带邻居)<br>按 <kbd>Alt</kbd> + <kbd>V</kbd> 粘贴(单 class)<br>按 <kbd>V</kbd> 切换模式</div>
     </div>
@@ -211,6 +292,58 @@
         const stage = document.getElementById('stage');
         const status = document.getElementById('status');
         const closeBtn = document.getElementById('closeBtn');
+        const ttsVoiceSelect = document.getElementById('ttsVoice');
+        const ttsRateInput = document.getElementById('ttsRate');
+        const ttsRateValue = document.getElementById('ttsRateValue');
+
+        let ttsVoices = [];
+        let ttsSelectedURI = '';
+
+        function refreshTtsVoices() {
+            ttsVoices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+            ttsVoiceSelect.innerHTML = '';
+            let defaultURI = ttsSelectedURI;
+            if (!defaultURI) {
+                const zh = ttsVoices.find(v => /^zh/i.test(v.lang));
+                defaultURI = zh ? zh.voiceURI : (ttsVoices[0] && ttsVoices[0].voiceURI);
+            }
+            for (const v of ttsVoices) {
+                const opt = document.createElement('option');
+                opt.value = v.voiceURI;
+                opt.textContent = `${v.name} (${v.lang})`;
+                if (v.voiceURI === defaultURI) opt.selected = true;
+                ttsVoiceSelect.appendChild(opt);
+            }
+            ttsSelectedURI = defaultURI;
+        }
+
+        function speakText(text) {
+            if (!window.speechSynthesis || !text) return;
+            window.speechSynthesis.cancel();
+            const utter = new SpeechSynthesisUtterance(text);
+            const voice = ttsVoices.find(v => v.voiceURI === ttsSelectedURI);
+            if (voice) {
+                utter.voice = voice;
+                utter.lang = voice.lang;
+            }
+            const rate = parseFloat(ttsRateInput.value);
+            utter.rate = isFinite(rate) ? rate : 1.0;
+            window.speechSynthesis.speak(utter);
+        }
+
+        if (window.speechSynthesis) {
+            refreshTtsVoices();
+            window.speechSynthesis.onvoiceschanged = refreshTtsVoices;
+            ttsVoiceSelect.addEventListener('change', () => {
+                ttsSelectedURI = ttsVoiceSelect.value;
+            });
+            ttsRateInput.addEventListener('input', () => {
+                const rate = parseFloat(ttsRateInput.value);
+                ttsRateValue.textContent = `${rate.toFixed(1)}x`;
+            });
+        } else {
+            document.getElementById('ttsPanel').style.display = 'none';
+        }
 
         function parseClassDiagram(text) {
             const lines = text.split('\n');
@@ -401,6 +534,8 @@
                     const b = document.createElement('div');
                     b.className = 'class-box-brief';
                     b.textContent = m.brief;
+                    b.title = '点击朗读';
+                    b.addEventListener('click', () => speakText(m.brief));
                     item.appendChild(b);
                 }
                 if (m.example) {
