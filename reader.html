@@ -176,6 +176,54 @@
         }
         #sidePanel.shown { display: block; }
         body.side-panel-open { padding-right: 40vw; }
+        #focusTableFrame {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            border: none;
+            background: #121212;
+            z-index: 2000;  /* above .controls (1000) so the iframe fully overlays the reader's top bar */
+            display: none;
+        }
+        #focusTableFrame.shown { display: block; }
+        #focusDataflowFrame {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            border: none;
+            background: #121212;
+            z-index: 2000;  /* above .controls (1000) so the iframe fully overlays the reader's top bar */
+            display: none;
+        }
+        #focusDataflowFrame.shown { display: block; }
+        #focusMermaidFrame {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            border: none;
+            background: #121212;
+            z-index: 2000;  /* above .controls (1000) so the iframe fully overlays the reader's top bar */
+            display: none;
+        }
+        #focusMermaidFrame.shown { display: block; }
+        #focusClassFrame {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            border: none;
+            background: #121212;
+            z-index: 2000;  /* above .controls (1000) so the iframe fully overlays the reader's top bar */
+            display: none;
+        }
+        #focusClassFrame.shown { display: block; }
 
         .controls {
             /* 设置controls为fixed以使其固定在页面顶部 */
@@ -414,20 +462,35 @@
 
         #tocPanel {
             position: fixed;
-            top: 60px;
+            top: 0;
             left: 0;
             bottom: 0;
             width: 220px;
             background: #1e1e1e;
             border-right: 1px solid #333;
             overflow-y: auto;
-            padding: 10px 0;
+            padding: 88px 0 10px 0;
             box-sizing: border-box;
             z-index: 40;
             display: none;
+            scrollbar-width: thin;
+            scrollbar-color: #555 transparent;
+        }
+        #tocPanel::-webkit-scrollbar {
+            width: 6px;
+        }
+        #tocPanel::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        #tocPanel::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 3px;
+        }
+        #tocPanel::-webkit-scrollbar-thumb:hover {
+            background: #777;
         }
         body.toc-open #tocPanel { display: block; }
-        body.toc-open .container { margin-left: 220px; }
+        body.toc-open .container { margin-left: max(220px, calc(50vw - 400px)); }
         #tocPanel:empty { display: none; }
         .toc-target {
             scroll-margin-top: 88px;
@@ -453,11 +516,27 @@
             outline-offset: -2px;
         }
         .toc-level-1 { padding-left: 10px; font-weight: 600; }
-        .toc-level-2 { padding-left: 20px; }
+        .toc-level-2 { padding-left: 20px; color: #FFA500; }
         .toc-level-3 { padding-left: 30px; font-size: 13px; }
         .toc-level-4 { padding-left: 40px; font-size: 13px; color: #b0b0b0; }
         .toc-level-5 { padding-left: 50px; font-size: 12px; color: #b0b0b0; }
         body.toc-hidden #tocPanel { display: none; }
+        .focus-table-btn {
+            display: block;
+            margin: 10px 0 4px 0;
+            padding: 2px 10px;
+            background: transparent;
+            color: #888;
+            border: 1px solid #444;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: inherit;
+            cursor: pointer;
+        }
+        .focus-table-btn:hover {
+            color: #00BFFF;
+            border-color: #00BFFF;
+        }
     </style>
     <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
@@ -577,8 +656,16 @@
 <audio id="soundFX" src="mp3/bounce.mp3"></audio>
 
 <iframe id="sidePanel" src="https://don-up.github.io/tools/card-timer"></iframe>
+<iframe id="focusTableFrame" src="about:blank"></iframe>
+<iframe id="focusDataflowFrame" src="about:blank"></iframe>
+<iframe id="focusMermaidFrame" src="about:blank"></iframe>
+<iframe id="focusClassFrame" src="about:blank"></iframe>
 
 <script>
+    const FOCUS_TABLE_URL = "http://localhost:63342/html-tools/focus-table.html?_ijt=nef83c3obbgm28hunkhqd2ein3&_ij_reload=RELOAD_ON_SAVE"; // temporary JetBrains-served URL
+    const FOCUS_DATAFLOW_URL = "http://localhost:63342/html-tools/focus_dataflow.html?_ijt=a9b8bnbhlng3cb44ckssbrjrta&_ij_reload=RELOAD_ON_SAVE"; // temporary JetBrains-served URL
+    const FOCUS_MERMAID_URL = "http://localhost:63342/html-tools/focus-mermaid.html?_ijt=av6prn444svnt2ts4i6hb2ed27&_ij_reload=RELOAD_ON_SAVE"; // temporary JetBrains-served URL
+    const FOCUS_CLASS_URL = "http://localhost:63342/html-tools/focus-class.html?_ijt=k15mru4hpoaekqksr42peamdok&_ij_reload=RELOAD_ON_SAVE"; // temporary JetBrains-served URL
     let isPlaying = false;
     let voices = [];
     let currentSpeaker = localStorage.getItem("currentSpeaker") || "Microsoft Andrew Online (Natural) - English (United States)";
@@ -1150,7 +1237,7 @@
         rows.forEach(row => {
             html += '    <tr>\n';
             row.forEach(cell => {
-                html += `      <td style="padding: 8px;cursor: pointer" onclick="playText(this.textContent, this)">${cell}</td>\n`;
+                html += `      <td style="padding: 8px;cursor: pointer" onclick="playText(event, this.textContent, this)">${cell}</td>\n`;
             });
             html += '    </tr>\n';
         });
@@ -1173,25 +1260,34 @@
         let isInList = false;
         let list = []
         let table = []
+        let tableRaw = []
         let isInTable = false
 
         lines.forEach((line, index) => {
             if (line.toString().trim().startsWith("|") && line.toString().trim().endsWith("|")) {
+                const rawLine = line.toString().trim();
                 // 将所有**xx**替换为<b>xx</b>
-                line = line.toString().trim().replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
+                let processed = rawLine.replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
                 // 将所有`xx`替换为<span class="code-span">xx</span>
-                line = line.toString().trim().replace(/`(.*?)`/g, "<span class=\"code-span\">$1</span>")
-                table.push(line)
+                processed = processed.replace(/`(.*?)`/g, "<span class=\"code-span\">$1</span>")
+                table.push(processed)
+                tableRaw.push(rawLine)
                 isInTable = true
                 return
             }
 
             if (isInTable) {
                 const div = document.createElement("div");
-                div.innerHTML = markdownTableToHTML(table.join("\n"))
+                const focusBtn = document.createElement("button");
+                focusBtn.className = "focus-table-btn";
+                focusBtn.textContent = "Focus";
+                focusBtn.dataset.tableMd = tableRaw.join("\n");
+                div.appendChild(focusBtn);
+                div.insertAdjacentHTML("beforeend", markdownTableToHTML(table.join("\n")));
                 contentDiv.append(div)
                 isInTable = false
                 table = []
+                tableRaw = []
             }
 
             if (line.startsWith("- ") || line.startsWith("* ")) {
@@ -1212,12 +1308,12 @@
                     li.onclick = function (event) {
                         if (event.ctrlKey) {
                             if (!autoPlay.checked) {
-                                playText(li.textContent, this, false, true);
+                                playText(event, li.textContent, this, false, true);
                             } else {
-                                playText(li.textContent, this, true);
+                                playText(event, li.textContent, this, true);
                             }
                         } else {
-                            playText(li.textContent, this);
+                            playText(event, li.textContent, this);
                         }
                     }
                     ul.dataset.originalText = originalTextList.join("\n")
@@ -1277,8 +1373,8 @@
                 quote.innerHTML = line.substring(2);
                 // quote.style.cursor = "pointer";
                 quote.dataset.originalText = line;
-                quote.onclick = function () {
-                    playText(this.dataset.originalText, this);
+                quote.onclick = function (event) {
+                    playText(event, this.dataset.originalText, this);
                 }
                 contentDiv.appendChild(quote);
                 return;
@@ -1293,8 +1389,8 @@
                 heading.classList.add('toc-target');
                 heading.style.cursor = "pointer";
                 heading.dataset.originalText = line + (line.trim().endsWith(".") ? "" : ". ");
-                heading.onclick = function () {
-                    playText(this.dataset.originalText, this);
+                heading.onclick = function (event) {
+                    playText(event, this.dataset.originalText, this);
                 }
                 heading.innerHTML = text;
                 contentDiv.appendChild(heading);
@@ -1310,9 +1406,9 @@
             textBlock.onclick = function (event) {
                 if (event.ctrlKey) {
                     if (!autoPlay.checked) {
-                        playText(this.dataset.originalText, this, false, true);
+                        playText(event, this.dataset.originalText, this, false, true);
                     } else {
-                        playText(this.dataset.originalText, this, true);
+                        playText(event, this.dataset.originalText, this, true);
                     }
                 } else if (event.altKey) {
                     if (!textBlock.classList.contains("mask-container")) {
@@ -1321,7 +1417,7 @@
                         textBlock.classList.remove("mask-container")
                     }
                 } else {
-                    playText(this.dataset.originalText, this);
+                    playText(event, this.dataset.originalText, this);
                 }
             }
             textBlock.innerHTML = line;
@@ -1350,6 +1446,67 @@
                 })
                 pre.style.position = 'relative'
                 pre.appendChild(button)
+
+                // Add Focus button for dataflow code blocks (to the left of Copy)
+                if (code.className.includes('language-dataflow')) {
+                    const focusBtn = document.createElement('button');
+                    focusBtn.className = 'focus-dataflow-btn';
+                    focusBtn.style.position = 'absolute';
+                    focusBtn.style.top = '10px';
+                    focusBtn.style.right = '60px';
+                    focusBtn.style.padding = '5px';
+                    focusBtn.style.zIndex = '100';
+                    focusBtn.style.backgroundColor = '#666666';
+                    focusBtn.innerText = 'focus';
+                    focusBtn.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        openDataflowFocus(text);
+                    });
+                    pre.appendChild(focusBtn);
+                }
+
+                // Add Fullscreen button for mermaid code blocks (sibling above the pre)
+                const isClassDiagram = code.className.includes('language-classDiagram');
+                if (code.className.includes('language-mermaid') || isClassDiagram) {
+                    const fsBtn = document.createElement('button');
+                    fsBtn.className = 'focus-mermaid-btn';
+                    fsBtn.style.display = 'inline-block';
+                    fsBtn.style.marginBottom = '4px';
+                    fsBtn.style.padding = '4px 12px';
+                    fsBtn.style.backgroundColor = '#666666';
+                    fsBtn.style.color = '#fff';
+                    fsBtn.style.border = 'none';
+                    fsBtn.style.borderRadius = '2px';
+                    fsBtn.style.cursor = 'pointer';
+                    fsBtn.style.fontSize = '12px';
+                    fsBtn.textContent = 'fullscreen';
+                    fsBtn.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        openMermaidFocus(text);
+                    });
+                    pre.parentNode.insertBefore(fsBtn, pre);
+
+                    if (isClassDiagram) {
+                        const focusBtn = document.createElement('button');
+                        focusBtn.className = 'focus-class-btn';
+                        focusBtn.style.display = 'inline-block';
+                        focusBtn.style.marginBottom = '4px';
+                        focusBtn.style.marginLeft = '6px';
+                        focusBtn.style.padding = '4px 12px';
+                        focusBtn.style.backgroundColor = '#666666';
+                        focusBtn.style.color = '#fff';
+                        focusBtn.style.border = 'none';
+                        focusBtn.style.borderRadius = '2px';
+                        focusBtn.style.cursor = 'pointer';
+                        focusBtn.style.fontSize = '12px';
+                        focusBtn.textContent = 'focus';
+                        focusBtn.addEventListener('click', function (e) {
+                            e.stopPropagation();
+                            openClassFocus(text);
+                        });
+                        pre.parentNode.insertBefore(focusBtn, pre);
+                    }
+                }
             })
         }, 100)
         contentDiv.style.padding = "70px 20px 20px";
@@ -1403,7 +1560,7 @@
     })
 
     // Modified playText function for interleaved sentence repetition.
-    function playText(originalText, clickedElement, banContinuous = false, continueAnyway = false, playSelection = false) {
+    function playText(event, originalText, clickedElement, banContinuous = false, continueAnyway = false, playSelection = false) {
         // 判断ALT键是否处于按下状态, 如果是则取消播放。
         if (event.altKey || (!playSelection && window.getSelection().toString())) {
             return;
@@ -1511,7 +1668,7 @@
         //
         utterance.onend = () => {
             if (playSelection) {
-                playText(window.getSelection().toString(), null, false, false, true)
+                playText(event, window.getSelection().toString(), null, false, false, true)
             } else {
                 isPlaying = false;
                 if (!autoPlay.checked && hideReadCheckbox.checked && clickedElement) {
@@ -1556,7 +1713,7 @@
                 const selection = window.getSelection()
                 currentText = selection || currentText
                 if (currentText) {
-                    playText(`${currentText}, `.repeat(inputRepeatCount1.value), this)
+                    playText(event, `${currentText}, `.repeat(inputRepeatCount1.value), this)
                 }
             }
         }
@@ -1633,7 +1790,7 @@
                 }
                 break
             case "KeyR":
-                playText(window.getSelection().toString(), null, false, false, true)
+                playText(event, window.getSelection().toString(), null, false, false, true)
                 break
             case "KeyS":
                 selectionMode = true
@@ -1675,7 +1832,7 @@
                 const selection = window.getSelection()
                 currentText = selection || currentText
                 if (currentText) {
-                    playText(`${currentText}, `.repeat(3), this)
+                    playText(event, `${currentText}, `.repeat(3), this)
                 }
                 break
             case "KeyT":
@@ -1851,8 +2008,32 @@
                 navigator.clipboard.writeText(text)
             })
 
+            // Add Fullscreen button as a sibling above the diagram.
+            // We do NOT append the button to diagramDiv because mermaid (sync or
+            // async) replaces diagramDiv.innerHTML with the rendered SVG, which
+            // would destroy any child button. Keeping it as a sibling in the
+            // document flow means the button survives the replacement.
+            const fsBtn = document.createElement('button');
+            fsBtn.className = 'focus-mermaid-btn';
+            fsBtn.style.display = 'inline-block';
+            fsBtn.style.marginBottom = '4px';
+            fsBtn.style.padding = '4px 12px';
+            fsBtn.style.backgroundColor = '#666666';
+            fsBtn.style.color = '#fff';
+            fsBtn.style.border = 'none';
+            fsBtn.style.borderRadius = '2px';
+            fsBtn.style.cursor = 'pointer';
+            fsBtn.style.fontSize = '12px';
+            fsBtn.textContent = 'fullscreen';
+            fsBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openMermaidFocus(text);
+            });
+
             // Replace the <pre><code> with the new div
             block.parentElement.replaceWith(diagramDiv);
+            // Insert button as sibling above the diagram
+            diagramDiv.parentNode.insertBefore(fsBtn, diagramDiv);
 
             // Render the diagram
             mermaid.init(undefined, `#mermaid-diagram-${index}`);
@@ -1860,6 +2041,114 @@
     });
 
     const sidePanel = document.getElementById('sidePanel');
+    const focusTableFrame = document.getElementById('focusTableFrame');
+    const focusDataflowFrame = document.getElementById('focusDataflowFrame');
+    const focusMermaidFrame = document.getElementById('focusMermaidFrame');
+    const focusClassFrame = document.getElementById('focusClassFrame');
+
+    function sendTableToFocusFrame(md) {
+        focusTableFrame.contentWindow?.postMessage(
+            { type: 'focus-table-load', content: md },
+            '*'
+        );
+    }
+
+    function sendDataflowToFocusFrame(text) {
+        focusDataflowFrame.contentWindow?.postMessage(
+            { type: 'focus-dataflow-load', content: text },
+            '*'
+        );
+    }
+
+    function sendMermaidToFocusFrame(code) {
+        focusMermaidFrame.contentWindow?.postMessage(
+            { type: 'focus-mermaid-load', content: code },
+            '*'
+        );
+    }
+
+    function sendClassToFocusFrame(code) {
+        focusClassFrame.contentWindow?.postMessage(
+            { type: 'focus-class-load', content: code },
+            '*'
+        );
+    }
+
+    function openDataflowFocus(text) {
+        if (focusDataflowFrame.dataset.loaded !== 'true') {
+            focusDataflowFrame.addEventListener('load', () => {
+                focusDataflowFrame.dataset.loaded = 'true';
+                sendDataflowToFocusFrame(text);
+            }, { once: true });
+            focusDataflowFrame.src = FOCUS_DATAFLOW_URL;
+        } else {
+            sendDataflowToFocusFrame(text);
+        }
+        focusDataflowFrame.classList.add('shown');
+    }
+
+    function openMermaidFocus(code) {
+        if (focusMermaidFrame.dataset.loaded !== 'true') {
+            focusMermaidFrame.addEventListener('load', () => {
+                focusMermaidFrame.dataset.loaded = 'true';
+                sendMermaidToFocusFrame(code);
+            }, { once: true });
+            focusMermaidFrame.src = FOCUS_MERMAID_URL;
+        } else {
+            sendMermaidToFocusFrame(code);
+        }
+        focusMermaidFrame.classList.add('shown');
+    }
+
+    async function openClassFocus(code) {
+        try { await navigator.clipboard.writeText(code); } catch (_) {}
+        if (focusClassFrame.dataset.loaded !== 'true') {
+            focusClassFrame.addEventListener('load', () => {
+                focusClassFrame.dataset.loaded = 'true';
+                // small delay so child's clipboard-read attempt runs first; postMessage
+                // is also what surfaces the close button (only shown after parent signals)
+                setTimeout(() => sendClassToFocusFrame(code), 100);
+            }, { once: true });
+            focusClassFrame.src = FOCUS_CLASS_URL;
+        } else {
+            sendClassToFocusFrame(code);
+        }
+        focusClassFrame.classList.add('shown');
+    }
+
+    document.getElementById('content').addEventListener('click', (e) => {
+        const btn = e.target.closest('.focus-table-btn');
+        if (!btn) return;
+        const md = btn.dataset.tableMd || '';
+        if (!md) return;
+
+        if (focusTableFrame.dataset.loaded !== 'true') {
+            focusTableFrame.addEventListener('load', () => {
+                focusTableFrame.dataset.loaded = 'true';
+                sendTableToFocusFrame(md);
+            }, { once: true });
+            focusTableFrame.src = FOCUS_TABLE_URL;
+        } else {
+            sendTableToFocusFrame(md);
+        }
+
+        focusTableFrame.classList.add('shown');
+    });
+
+    window.addEventListener('message', (e) => {
+        const data = e.data;
+        if (!data || typeof data !== 'object') return;
+        if (data.type === 'focus-table-close') {
+            focusTableFrame.classList.remove('shown');
+        } else if (data.type === 'focus-dataflow-close') {
+            focusDataflowFrame.classList.remove('shown');
+        } else if (data.type === 'focus-mermaid-close') {
+            focusMermaidFrame.classList.remove('shown');
+        } else if (data.type === 'focus-class-close') {
+            focusClassFrame.classList.remove('shown');
+        }
+    });
+
     document.addEventListener('keydown', (e) => {
         if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyO') {
             e.preventDefault();

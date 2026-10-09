@@ -746,6 +746,20 @@
             loadAndRender(data.content.trim());
             closeBtn.classList.add('visible');
         });
+
+        // When opened via reader.html's focus button, the parent copies the
+        // class-diagram code to the clipboard. Auto-load it on page load,
+        // mimicking the Ctrl+V paste flow. Skip if postMessage already
+        // populated the model (parent took the postMessage route).
+        (async () => {
+            if (!navigator.clipboard || !navigator.clipboard.readText) return;
+            try {
+                const text = await navigator.clipboard.readText();
+                if (text && text.trim() && !model) {
+                    loadAndRender(text.trim(), 'focused-only');
+                }
+            } catch (_) { /* permission denied / no user gesture */ }
+        })();
     </script>
 </body>
 </html>
