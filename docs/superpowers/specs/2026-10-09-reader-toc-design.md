@@ -71,11 +71,16 @@ body.toc-open .container { margin-left: 220px; }
     font-size: 14px;
     line-height: 1.4;
     overflow-wrap: anywhere;          /* long headings wrap rather than overflow */
+    text-decoration: none;            /* suppress the <a> default underline */
     transition: background-color 0.15s ease, color 0.15s ease;
 }
 .toc-entry:hover {
     background: #2c2c2c;
     color: #00BFFF;
+}
+.toc-entry:focus-visible {
+    outline: 2px solid #00BFFF;
+    outline-offset: -2px;
 }
 .toc-level-1 { padding-left: 10px; font-weight: 600; }
 .toc-level-2 { padding-left: 20px; }
@@ -139,9 +144,10 @@ function renderTOC() {
         const level = parseInt(heading.tagName.substring(1), 10);   // h1 → 1
         const entry = document.createElement('a');
         entry.className = `toc-entry toc-level-${level}`;
+        entry.href = `#${heading.id}`;                              // fragment URL → keyboard focusable, Enter activates, fallback nav
         entry.textContent = heading.textContent.trim();
         entry.addEventListener('click', (e) => {
-            e.preventDefault();
+            e.preventDefault();                                     // skip native jump, run smooth scroll instead
             heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
         panel.appendChild(entry);
@@ -155,7 +161,8 @@ function renderTOC() {
 ```
 
 Notes:
-- Uses native `<a>` for keyboard accessibility (focusable, Enter activates), but `preventDefault` keeps the URL bar clean and the scroll smooth.
+- Uses native `<a>` with `href="#${heading.id}"` for keyboard accessibility (focusable, Enter activates, native fragment fallback). `preventDefault()` in the click handler skips the native instant jump so we can run `scrollIntoView({behavior: 'smooth'})`.
+- `text-decoration: none` and a `:focus-visible` outline are required because the element is an `<a>` (without them, browsers underline it and the focus ring gets hidden).
 - `toc-open` is only added when there are headings AND the user hasn't hidden it. `renderTOC()` is the single source of truth for visibility.
 
 ### 3. Call `renderTOC()` from `processText()`

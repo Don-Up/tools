@@ -432,6 +432,31 @@
         .toc-target {
             scroll-margin-top: 88px;
         }
+        .toc-entry {
+            display: block;
+            padding: 4px 10px;
+            color: #dfe1e5;
+            cursor: pointer;
+            font-family: "Corbel", 'Segoe UI', Tahoma, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.4;
+            overflow-wrap: anywhere;
+            text-decoration: none;
+            transition: background-color 0.15s ease, color 0.15s ease;
+        }
+        .toc-entry:hover {
+            background: #2c2c2c;
+            color: #00BFFF;
+        }
+        .toc-entry:focus-visible {
+            outline: 2px solid #00BFFF;
+            outline-offset: -2px;
+        }
+        .toc-level-1 { padding-left: 10px; font-weight: 600; }
+        .toc-level-2 { padding-left: 20px; }
+        .toc-level-3 { padding-left: 30px; font-size: 13px; }
+        .toc-level-4 { padding-left: 40px; font-size: 13px; color: #b0b0b0; }
+        .toc-level-5 { padding-left: 50px; font-size: 12px; color: #b0b0b0; }
     </style>
     <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
@@ -1317,6 +1342,35 @@
         }, 100)
         contentDiv.style.padding = "70px 20px 20px";
         contentWrapper?.scrollIntoView({behavior: "smooth"});
+        renderTOC();
+    }
+
+    function renderTOC() {
+        const panel = document.getElementById('tocPanel');
+        const targets = document.querySelectorAll('#content .toc-target');
+        panel.innerHTML = '';
+
+        if (targets.length === 0) {
+            document.body.classList.remove('toc-open');
+            return;
+        }
+
+        targets.forEach((heading) => {
+            const level = parseInt(heading.tagName.substring(1), 10);
+            const entry = document.createElement('a');
+            entry.className = `toc-entry toc-level-${level}`;
+            entry.href = `#${heading.id}`;
+            entry.textContent = heading.textContent.trim();
+            entry.addEventListener('click', (e) => {
+                e.preventDefault();
+                heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+            panel.appendChild(entry);
+        });
+
+        if (localStorage.getItem('tocHidden') !== 'true') {
+            document.body.classList.add('toc-open');
+        }
     }
 
     const e2CheckBox = document.getElementById("e2CheckBox")

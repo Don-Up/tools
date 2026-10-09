@@ -183,11 +183,16 @@ git commit -m "Stamp heading id and toc-target class during render"
     font-size: 14px;
     line-height: 1.4;
     overflow-wrap: anywhere;
+    text-decoration: none;
     transition: background-color 0.15s ease, color 0.15s ease;
 }
 .toc-entry:hover {
     background: #2c2c2c;
     color: #00BFFF;
+}
+.toc-entry:focus-visible {
+    outline: 2px solid #00BFFF;
+    outline-offset: -2px;
 }
 .toc-level-1 { padding-left: 10px; font-weight: 600; }
 .toc-level-2 { padding-left: 20px; }
@@ -195,6 +200,8 @@ git commit -m "Stamp heading id and toc-target class during render"
 .toc-level-4 { padding-left: 40px; font-size: 13px; color: #b0b0b0; }
 .toc-level-5 { padding-left: 50px; font-size: 12px; color: #b0b0b0; }
 ```
+
+> 注：`.toc-entry` 是 `<a>` 元素，必须 `text-decoration: none` 去掉默认下划线，并加 `:focus-visible` 焦点环保证键盘可达性。
 
 - [ ] **Step 2: 新增 `renderTOC()` 函数**
 
@@ -221,6 +228,7 @@ function renderTOC() {
         const level = parseInt(heading.tagName.substring(1), 10);
         const entry = document.createElement('a');
         entry.className = `toc-entry toc-level-${level}`;
+        entry.href = `#${heading.id}`;
         entry.textContent = heading.textContent.trim();
         entry.addEventListener('click', (e) => {
             e.preventDefault();
