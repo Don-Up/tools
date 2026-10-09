@@ -122,10 +122,69 @@
     <div class="status" id="status"></div>
 
     <script>
-        'use strict';
+        const stage = document.getElementById('stage');
+        const status = document.getElementById('status');
+        const closeBtn = document.getElementById('closeBtn');
 
-        // Tasks 2-6 fill the script body.
+        function parseClassDiagram(text) {
+            const lines = text.split('\n');
+            const classes = [];
+            const edges = [];
+            const classByName = new Map();
+            let i = 0;
 
+            while (i < lines.length) {
+                const line = lines[i];
+                const trimmed = line.trim();
+
+                // Skip directives and blanks.
+                if (!trimmed || trimmed === 'classDiagram') {
+                    i += 1;
+                    continue;
+                }
+
+                // Class header: `class Foo["Foo (desc)"] {`
+                const classHeaderMatch = line.match(/^\s*class\s+([A-Za-z_][\w]*)\s*(\[.*\])?\s*\{\s*$/);
+                if (classHeaderMatch) {
+                    const name = classHeaderMatch[1];
+                    const display = classHeaderMatch[2] || '';
+                    const bodyLines = [];
+                    i += 1;
+                    while (i < lines.length && !/^\s*\}\s*$/.test(lines[i])) {
+                        bodyLines.push(lines[i]);
+                        i += 1;
+                    }
+                    // skip the closing `}`
+                    if (i < lines.length) i += 1;
+                    const entry = { name, display, body: bodyLines.join('\n') };
+                    classes.push(entry);
+                    classByName.set(name, entry);
+                    continue;
+                }
+
+                // Relationship line — any line containing an arrow token.
+                if (/-->|\.\.>/.test(line)) {
+                    // Extract: <from> <arrow> <to> [": label"]
+                    const relMatch = line.match(/^\s*([A-Za-z_][\w]*)\s+(--\|>|--\>|-->|\.\.>|\.\.|\.\.\|>)\s+([A-Za-z_][\w]*)\s*(?::\s*(.*?))?\s*$/);
+                    if (relMatch) {
+                        const [, from, arrow, to, label] = relMatch;
+                        edges.push({ from, arrow, to, label: (label || '').trim() });
+                    }
+                    i += 1;
+                    continue;
+                }
+
+                // Anything else (comments, etc): skip.
+                i += 1;
+            }
+
+            return { classes, edges, classByName };
+        }
+
+        let model = null;
+        let currentIndex = 0;
+        let renderCounter = 0;
+        let latestRenderId = 0;
     </script>
 </body>
 </html>
