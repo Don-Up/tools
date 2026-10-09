@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>focus-class</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1e1e1e;
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+
+        .stage {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .hint {
+            color: #888;
+            font-size: 24px;
+            text-align: center;
+            line-height: 1.8;
+        }
+
+        .hint kbd {
+            display: inline-block;
+            font-family: inherit;
+            background: #2c2c2c;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 2px 8px;
+            color: #b0bec5;
+        }
+
+        .error {
+            color: #ef5350;
+            font-size: 16px;
+            text-align: left;
+            white-space: pre-wrap;
+            max-width: 80%;
+            background: #2c2c2c;
+            border: 1px solid #444;
+            border-radius: 6px;
+            padding: 16px 20px;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        .mermaid-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: auto;
+        }
+
+        .mermaid-container > svg {
+            max-width: 100% !important;
+            max-height: 100% !important;
+            width: auto !important;
+            height: auto !important;
+        }
+
+        .status {
+            position: fixed;
+            bottom: 16px;
+            right: 20px;
+            color: #666;
+            font-size: 13px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            pointer-events: none;
+        }
+
+        #closeBtn {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            background: rgba(40, 40, 40, 0.85);
+            color: #e0e0e0;
+            border: 1px solid #555;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 20px;
+            line-height: 1;
+            display: none;
+            z-index: 100;
+            font-family: inherit;
+        }
+        #closeBtn:hover {
+            background: rgba(60, 60, 60, 0.95);
+            color: #fff;
+            border-color: #00BFFF;
+        }
+        #closeBtn.visible { display: block; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+    <button id="closeBtn" title="Close">×</button>
+    <div class="stage" id="stage">
+        <div class="hint">按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴 mermaid 代码</div>
+    </div>
+    <div class="status" id="status"></div>
+
+    <script>
+        'use strict';
+
+        // Tasks 2-6 fill the script body.
+
+    </script>
+</body>
+</html>
