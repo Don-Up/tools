@@ -429,6 +429,9 @@
         body.toc-open #tocPanel { display: block; }
         body.toc-open .container { margin-left: 220px; }
         #tocPanel:empty { display: none; }
+        .toc-target {
+            scroll-margin-top: 88px;
+        }
     </style>
     <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
@@ -1249,6 +1252,8 @@
                 const level = headingMatch[1].length;
                 let text = headingMatch[2];
                 const heading = document.createElement(`h${level}`);
+                heading.id = `heading-${index}`;
+                heading.classList.add('toc-target');
                 heading.style.cursor = "pointer";
                 heading.dataset.originalText = line + (line.trim().endsWith(".") ? "" : ". ");
                 heading.onclick = function () {

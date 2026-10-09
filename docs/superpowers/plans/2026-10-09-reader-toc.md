@@ -126,9 +126,11 @@ if (headingMatch) {
 
 ```css
 .toc-target {
-    scroll-margin-top: 70px;
+    scroll-margin-top: 88px;
 }
 ```
+
+> 注：`.controls` 是 `height: 60px` + `padding: 10px 0`，默认 `content-box` 下视觉高度 = 80px。88px 留 8px 呼吸距离。如果实际渲染时不需要呼吸空间可改为 80px。
 
 - [ ] **Step 3: 在浏览器中手动验证**
 
@@ -244,7 +246,7 @@ function renderTOC() {
    - `Sub A2`（h2，缩进 10px）
    - `Title B`（h1，无缩进，加粗）
 2. 期望：主内容区向右移动 220px，不与侧栏重叠
-3. 点击 `Sub A1-1` 条目 → 主内容平滑滚动到对应 h3 处（标题不被顶部 controls 栏遮住，因为 `scroll-margin-top: 70px`）
+3. 点击 `Sub A1-1` 条目 → 主内容平滑滚动到对应 h3 处（标题不被顶部 controls 栏遮住，因为 `scroll-margin-top: 88px`）
 4. 点击条目后没有 TTS 朗读
 5. 直接点击主内容区中的 `Sub A1-1` 标题 → 仍然触发 TTS（原有行为不变）
 

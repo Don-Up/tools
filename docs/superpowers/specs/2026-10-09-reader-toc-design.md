@@ -84,7 +84,7 @@ body.toc-open .container { margin-left: 220px; }
 .toc-level-5 { padding-left: 50px; font-size: 12px; color: #b0b0b0; }
 
 .toc-target {
-    scroll-margin-top: 70px;          /* leave room for the fixed .controls bar */
+    scroll-margin-top: 88px;          /* leave room for the fixed .controls bar (60px height + 10px+10px padding = 80px, plus 8px breathing room) */
 }
 ```
 
