@@ -185,6 +185,42 @@
         let currentIndex = 0;
         let renderCounter = 0;
         let latestRenderId = 0;
+
+        function buildClassSource(model, index) {
+            const target = model.classes[index];
+            if (!target) return '';
+            const incidentClassNames = new Set([target.name]);
+            const incidentEdges = [];
+            for (const e of model.edges) {
+                const fromExists = model.classByName.has(e.from);
+                const toExists = model.classByName.has(e.to);
+                if (!fromExists || !toExists) continue;
+                if (e.from === target.name || e.to === target.name) {
+                    incidentEdges.push(e);
+                    incidentClassNames.add(e.from);
+                    incidentClassNames.add(e.to);
+                }
+            }
+
+            const lines = ['classDiagram', '  direction LR'];
+            for (const c of model.classes) {
+                if (!incidentClassNames.has(c.name)) continue;
+                if (c.display) {
+                    lines.push(`  class ${c.name}${c.display} {`);
+                } else {
+                    lines.push(`  class ${c.name} {`);
+                }
+                if (c.body) {
+                    for (const bl of c.body.split('\n')) lines.push(`    ${bl}`);
+                }
+                lines.push('  }');
+            }
+            for (const e of incidentEdges) {
+                const labelPart = e.label ? ` : ${e.label}` : '';
+                lines.push(`  ${e.from} ${e.arrow} ${e.to}${labelPart}`);
+            }
+            return lines.join('\n');
+        }
     </script>
 </body>
 </html>
