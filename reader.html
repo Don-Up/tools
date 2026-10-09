@@ -2027,6 +2027,28 @@
                 openMermaidFocus(text);
             });
 
+            // Add focus button for classDiagram content (opens focus-class.html)
+            if (text.startsWith('classDiagram')) {
+                const focusBtn = document.createElement('button');
+                focusBtn.className = 'focus-class-btn';
+                focusBtn.style.display = 'inline-block';
+                focusBtn.style.marginBottom = '4px';
+                focusBtn.style.marginLeft = '6px';
+                focusBtn.style.padding = '4px 12px';
+                focusBtn.style.backgroundColor = '#666666';
+                focusBtn.style.color = '#fff';
+                focusBtn.style.border = 'none';
+                focusBtn.style.borderRadius = '2px';
+                focusBtn.style.cursor = 'pointer';
+                focusBtn.style.fontSize = '12px';
+                focusBtn.textContent = 'focus';
+                focusBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    openClassFocus(text);
+                });
+                diagramDiv.parentNode.insertBefore(focusBtn, diagramDiv);
+            }
+
             // Replace the <pre><code> with the new div
             block.parentElement.replaceWith(diagramDiv);
             // Insert button as sibling above the diagram
