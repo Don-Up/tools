@@ -89,8 +89,8 @@
         .class-box {
             flex-shrink: 0;
             display: inline-block;
-            min-width: 280px;
-            max-width: 720px;
+            min-width: 320px;
+            max-width: 960px;
             background: #252525;
             border: 2px solid #4fc3f7;
             border-radius: 8px;
@@ -99,68 +99,68 @@
         }
 
         .class-box-header {
-            padding: 16px 24px 12px;
+            padding: 18px 28px 14px;
             text-align: center;
             border-bottom: 1px solid #4fc3f7;
         }
 
         .class-box-title {
-            font-size: 22px;
+            font-size: 28px;
             font-weight: 700;
             color: #e0e0e0;
             word-break: break-word;
         }
 
         .class-box-stereotype {
-            font-size: 14px;
+            font-size: 16px;
             font-style: italic;
             color: #b0bec5;
-            margin-top: 6px;
+            margin-top: 8px;
         }
 
         .class-box-members {
-            padding: 4px 0;
+            padding: 6px 0;
         }
 
         .class-box-item {
-            padding: 8px 24px;
+            padding: 12px 28px;
         }
 
-        .class-box-divider {
-            border-top: 1px solid #444;
-            margin: 4px 0;
+        .class-box-item + .class-box-item {
+            border-top: 1px dashed #3a3a3a;
         }
 
         .class-box-member {
-            font-size: 16px;
-            color: #e0e0e0;
+            font-size: 20px;
+            color: #ff9800;
+            font-weight: 600;
             word-break: break-word;
         }
 
         .class-box-brief {
-            font-size: 16px;
+            font-size: 18px;
             color: #b0bec5;
-            margin-top: 4px;
+            margin-top: 6px;
             white-space: pre-wrap;
             word-break: break-word;
             line-height: 1.5;
         }
 
         .class-box-example {
-            font-size: 16px;
+            font-size: 18px;
             font-style: italic;
             color: #82aaff;
-            margin-top: 4px;
+            margin-top: 6px;
             white-space: pre-wrap;
             word-break: break-word;
             line-height: 1.5;
         }
 
         .class-box-empty {
-            padding: 16px 24px;
+            padding: 18px 28px;
             color: #888;
             font-style: italic;
-            font-size: 16px;
+            font-size: 18px;
         }
 
         .status {
@@ -313,10 +313,6 @@
             return /^<<.+>>$/.test(text);
         }
 
-        function detectMemberKind(text) {
-            return /\([^)]*\)/.test(text) ? 'method' : 'attribute';
-        }
-
         function extractDisplayName(display) {
             if (!display) return null;
             const m = display.match(/^\["([\s\S]+)"\]$/);
@@ -356,7 +352,6 @@
                     text: trimmed,
                     brief: pendingBrief,
                     example: pendingExample,
-                    kind: detectMemberKind(trimmed),
                 });
                 pendingBrief = null;
                 pendingExample = null;
@@ -395,14 +390,7 @@
 
             const memberList = document.createElement('div');
             memberList.className = 'class-box-members';
-            let lastKind = null;
             for (const m of members) {
-                if (lastKind && lastKind !== m.kind) {
-                    const div = document.createElement('div');
-                    div.className = 'class-box-divider';
-                    memberList.appendChild(div);
-                }
-                lastKind = m.kind;
                 const item = document.createElement('div');
                 item.className = 'class-box-item';
                 const textEl = document.createElement('div');
