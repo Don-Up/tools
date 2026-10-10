@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/svg+xml" href="cn2en-json-favicon.svg">
     <title>口语助手</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
     <style>
         body {
             margin: 0;
@@ -53,10 +54,12 @@
         }
         .counter {
             font-size: 18px;
-            color: #888;
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
+            color: #e0e0e0;
+            background: rgba(37, 37, 37, 0.85);
+            padding: 4px 10px;
+            border: 1px solid #2a2a2a;
+            border-radius: 4px;
+            font-variant-numeric: tabular-nums;
         }
         .cn-text {
             font-size: 50px;
@@ -78,17 +81,6 @@
             max-width: 90vw;
             line-height: 1.3;
             cursor: pointer;
-        }
-        .hint {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 14px;
-            color: #666;
-        }
-        body.side-panel-open .hint {
-            left: calc(50% - 20vw);
         }
         .empty-state {
             font-size: 24px;
@@ -255,6 +247,71 @@
             font-size: 14px;
         }
         .bg-modal-actions button:hover { background: #3a3a3a; }
+        .help-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .help-modal[hidden] { display: none; }
+        .help-modal-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+        }
+        .help-modal-panel {
+            position: relative;
+            background: #1e1e1e;
+            padding: 24px 28px;
+            border-radius: 8px;
+            min-width: 360px;
+            max-width: 560px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .help-modal-title {
+            font-size: 18px;
+            color: #e0e0e0;
+            margin: 0 0 16px;
+            text-align: center;
+        }
+        .help-modal-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: grid;
+            grid-template-columns: max-content 1fr;
+            column-gap: 16px;
+            row-gap: 8px;
+            font-size: 14px;
+            color: #cfd8dc;
+        }
+        .help-modal-list kbd {
+            font-family: Consolas, Monaco, monospace;
+            font-size: 12px;
+            background: #2c2c2c;
+            border: 1px solid #444;
+            border-radius: 3px;
+            padding: 2px 6px;
+            color: #e0e0e0;
+            white-space: nowrap;
+        }
+        .help-modal-close {
+            margin-top: 16px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 6px 16px;
+            background: #2c2c2c;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .help-modal-close:hover { background: #3a3a3a; }
         body.has-bg {
             background-size: cover;
             background-position: center;
@@ -271,6 +328,207 @@
             margin-right: auto;
             width: fit-content;
             max-width: 100%;
+        }
+        .ai-panel {
+            margin-left: 10px;
+            margin-right: auto;
+            margin-top: 20px;
+            padding: 10px;
+            background: rgba(30, 30, 30, 0.45);
+            border: 1px solid rgba(42, 42, 42, 0.45);
+            border-radius: 8px;
+            width: 18%;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            bottom: 10px;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        .ai-panel-title {
+            font-size: 18px;
+            color: #888;
+            width: 100%;
+            text-align: center;
+            cursor: pointer;
+        }
+        .ai-panel-title:hover { color: #cfd8dc; }
+        .ai-answer {
+            position: fixed;
+            bottom: 10px;
+            left: calc(20% + 20px);
+            width: 36vw;
+            min-height: 220px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 12px 14px;
+            background: rgba(37, 37, 37, 0.92);
+            border: 1px solid #2a2a2a;
+            border-radius: 4px;
+            z-index: 10;
+        }
+        .ai-answer[hidden] { display: none; }
+        .ai-answer {
+            scrollbar-width: thin;
+            scrollbar-color: #4a4a4a transparent;
+        }
+        .ai-answer::-webkit-scrollbar { width: 8px; }
+        .ai-answer::-webkit-scrollbar-track { background: transparent; }
+        .ai-answer::-webkit-scrollbar-thumb {
+            background: #4a4a4a;
+            border-radius: 4px;
+        }
+        .ai-answer::-webkit-scrollbar-thumb:hover { background: #5a5a5a; }
+        .ai-input-row {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+        }
+        .ai-button-row {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+        .ai-textarea {
+            flex: 1;
+            width: 100%;
+            box-sizing: border-box;
+            background: rgba(37, 37, 37, 0.92);
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            min-height: 90px;
+            margin-top: 10px;
+            scrollbar-width: thin;
+            scrollbar-color: #4a4a4a transparent;
+        }
+        .ai-textarea::-webkit-scrollbar { width: 8px; }
+        .ai-textarea::-webkit-scrollbar-track { background: transparent; }
+        .ai-textarea::-webkit-scrollbar-thumb {
+            background: #4a4a4a;
+            border-radius: 4px;
+        }
+        .ai-textarea::-webkit-scrollbar-thumb:hover { background: #5a5a5a; }
+        .ai-textarea:disabled {
+            opacity: 0.6;
+        }
+        .ai-send {
+            flex: 1;
+            box-sizing: border-box;
+            padding: 6px 16px;
+            background: #2c2c2c;
+            color: #cfd8dc;
+            border: 1px solid #444;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .ai-toggle {
+            flex: 1;
+            box-sizing: border-box;
+            padding: 6px 16px;
+            background: #2c2c2c;
+            color: #cfd8dc;
+            border: 1px solid #444;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .ai-send:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .ai-send.ai-send-stopping {
+            background: #7f1d1d;
+            color: #fff;
+            border-color: #7f1d1d;
+        }
+        .ai-bubble {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin: 6px 0;
+        }
+        .ai-bubble-label {
+            font-size: 11px;
+            color: #888;
+            padding: 0 4px;
+        }
+        .ai-bubble-body {
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .ai-bubble-user .ai-bubble-label { align-self: flex-end; }
+        .ai-bubble-user .ai-bubble-body {
+            background: #2a3a4a;
+            align-self: flex-end;
+            max-width: 80%;
+            color: #e0e0e0;
+        }
+        .ai-bubble-assistant .ai-bubble-body {
+            background: #2a2a2a;
+            color: #e0e0e0;
+        }
+        .ai-bubble-streaming .ai-bubble-body {
+            white-space: pre-wrap;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 13px;
+        }
+        .ai-cursor {
+            display: inline-block;
+            width: 7px;
+            height: 14px;
+            background: #4fc3f7;
+            margin-left: 2px;
+            vertical-align: -2px;
+            animation: ai-blink 1s step-start infinite;
+        }
+        @keyframes ai-blink {
+            50% { opacity: 0; }
+        }
+        .ai-bubble-body h1, .ai-bubble-body h2, .ai-bubble-body h3 {
+            margin: 8px 0 4px;
+            color: #e0e0e0;
+        }
+        .ai-bubble-body h1 { font-size: 18px; }
+        .ai-bubble-body h2 { font-size: 16px; }
+        .ai-bubble-body h3 { font-size: 14px; }
+        .ai-bubble-body p { margin: 4px 0; }
+        .ai-bubble-body ul, .ai-bubble-body ol { margin: 4px 0 4px 16px; padding: 0; }
+        .ai-bubble-body code {
+            font-family: Consolas, Monaco, monospace;
+            font-size: 13px;
+            background: #1a1a1a;
+            padding: 1px 4px;
+            border-radius: 3px;
+        }
+        .ai-bubble-body pre {
+            font-family: Consolas, Monaco, monospace;
+            font-size: 13px;
+            background: #1a1a1a;
+            padding: 8px 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 6px 0;
+        }
+        .ai-bubble-body pre code {
+            background: transparent;
+            padding: 0;
+        }
+        .ai-bubble-body blockquote {
+            border-left: 3px solid #4fc3f7;
+            margin: 4px 0;
+            padding: 2px 8px;
+            color: #cfd8dc;
+            background: rgba(79, 195, 247, 0.05);
         }
         .bg-list {
             list-style: none;
@@ -547,14 +805,24 @@
             width: 380px;
             max-width: 100%;
             box-sizing: border-box;
-            min-height: 90px;
+            min-height: 220px;
+            max-height: 60vh;
             resize: vertical;
             font-family: inherit;
             line-height: 1.5;
             padding: 10px 12px;
             margin: 0 auto;
             display: block;
+            scrollbar-width: thin;
+            scrollbar-color: #4a4a4a transparent;
         }
+        .fav-input.note-textarea::-webkit-scrollbar { width: 8px; }
+        .fav-input.note-textarea::-webkit-scrollbar-track { background: transparent; }
+        .fav-input.note-textarea::-webkit-scrollbar-thumb {
+            background: #4a4a4a;
+            border-radius: 4px;
+        }
+        .fav-input.note-textarea::-webkit-scrollbar-thumb:hover { background: #5a5a5a; }
         .json-edit-textarea {
             width: 720px;
             max-width: calc(100vw - 80px);
@@ -745,6 +1013,7 @@
                 <label class="mode-radio-label"><input type="radio" name="mode" value="2"> Mode 2</label>
                 <label class="mode-radio-label"><input type="radio" name="mode" value="3"> Mode 3</label>
             </div>
+            <div id="counter" class="counter" hidden></div>
             <div id="favStatus" class="fav-status" hidden></div>
         </div>
         <div id="speedControls" class="speed-controls">
@@ -765,10 +1034,33 @@
             <div id="enText" class="en-text" hidden></div>
             <div id="noteDisplay" class="note-display" hidden></div>
         </div>
-        <div id="counter" class="counter" hidden></div>
 
-        <div id="hint" class="hint">Ctrl+V 粘贴 · ← → 切换 · 1-3 切 Mode · ↓ 揭示 · E 读EN · Alt+R 读全文 · Z 全文 · N 笔记 · Space 停读 · F 收藏 · Alt+F 收藏夹 · Alt+J 编辑JSON · Ctrl+I 背景</div>
+
         <div id="emptyState" class="empty-state">按 Ctrl+V 粘贴 JSON 数据</div>
+        <div id="helpModal" class="help-modal" hidden>
+            <div id="helpModalBackdrop" class="help-modal-backdrop"></div>
+            <div id="helpModalPanel" class="help-modal-panel">
+                <h2 class="help-modal-title">操作提示</h2>
+                <ul class="help-modal-list">
+                    <li><kbd>Ctrl+V</kbd></li><li>粘贴 JSON 数据</li>
+                    <li><kbd>←</kbd> <kbd>→</kbd></li><li>上 / 下一条</li>
+                    <li><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></li><li>切换 Mode</li>
+                    <li><kbd>↓</kbd></li><li>揭示英文 / 笔记</li>
+                    <li><kbd>Space</kbd></li><li>暂停 / 继续朗读</li>
+                    <li><kbd>E</kbd></li><li>读当前英文</li>
+                    <li><kbd>Z</kbd></li><li>读全文</li>
+                    <li><kbd>R</kbd></li><li>读 EN</li>
+                    <li><kbd>N</kbd></li><li>添加笔记</li>
+                    <li><kbd>F</kbd></li><li>收藏当前条</li>
+                    <li><kbd>Alt+F</kbd></li><li>打开收藏夹</li>
+                    <li><kbd>Alt+R</kbd></li><li>读全文</li>
+                    <li><kbd>Alt+J</kbd></li><li>编辑 JSON</li>
+                    <li><kbd>Ctrl+I</kbd></li><li>设置背景</li>
+                    <li><kbd>Alt+1</kbd></li><li>显示 / 隐藏此帮助</li>
+                </ul>
+                <button id="helpModalClose" class="help-modal-close" type="button">关闭 (Esc)</button>
+            </div>
+        </div>
         <div id="cnModal" class="cn-modal" hidden>
             <div id="cnModalBackdrop" class="cn-modal-backdrop"></div>
             <div id="cnModalPanel" class="cn-modal-panel">
@@ -826,6 +1118,18 @@
                 </div>
             </div>
         </div>
+        <div id="systemPromptModal" class="fav-modal" hidden>
+            <div id="systemPromptBackdrop" class="fav-modal-backdrop"></div>
+            <div class="fav-modal-panel">
+                <div class="fav-modal-title">编辑 AI 角色设定</div>
+                <textarea id="systemPromptInput" class="fav-input note-textarea" placeholder="自定义 system prompt..."></textarea>
+                <div class="fav-modal-actions">
+                    <button id="systemPromptReset">恢复默认</button>
+                    <button id="systemPromptOk">保存</button>
+                    <button id="systemPromptCancel">取消</button>
+                </div>
+            </div>
+        </div>
         <div id="jsonEditModal" class="fav-modal" hidden>
             <div id="jsonEditBackdrop" class="fav-modal-backdrop"></div>
             <div class="fav-modal-panel">
@@ -868,6 +1172,18 @@
         <div id="rubyTooltip" class="ruby-tooltip" hidden></div>
     </div>
 
+    <div id="aiPanel" class="ai-panel">
+        <div class="ai-panel-title">AI 问答</div>
+        <div class="ai-input-row">
+            <textarea id="aiQuestion" class="ai-textarea" placeholder="向 AI 提问当前句子...（Ctrl+Enter 发送，Esc 中止/清空）"></textarea>
+            <div class="ai-button-row">
+                <button id="aiToggle" class="ai-toggle" type="button">▲ 显示</button>
+                <button id="aiSend" class="ai-send" type="button">发送</button>
+            </div>
+        </div>
+    </div>
+    <div id="aiAnswer" class="ai-answer" hidden></div>
+
     <iframe id="sidePanel" class="shown" src="https://don-up.github.io/tools/card-timer"></iframe>
 <!--    <iframe id="sidePanel" class="shown" src="http://localhost:63342/html-tools/card-timer.html?_ijt=nl1ebbpue1gpnpli47odeburp5&_ij_reload=RELOAD_ON_SAVE"></iframe>-->
 </div>
@@ -881,7 +1197,6 @@
     const counter = document.getElementById('counter');
     const cnText = document.getElementById('cnText');
     const enText = document.getElementById('enText');
-    const hint = document.getElementById('hint');
     const emptyState = document.getElementById('emptyState');
     const voiceSelect = document.getElementById('voiceSelect');
     const ttsToggle = document.getElementById('ttsToggle');
@@ -952,6 +1267,13 @@
     const noteCancel = document.getElementById('noteCancel');
     const noteIndexLabel = document.getElementById('noteIndexLabel');
     const noteDisplay = document.getElementById('noteDisplay');
+    const systemPromptModal = document.getElementById('systemPromptModal');
+    const systemPromptBackdrop = document.getElementById('systemPromptBackdrop');
+    const systemPromptInput = document.getElementById('systemPromptInput');
+    const systemPromptOk = document.getElementById('systemPromptOk');
+    const systemPromptCancel = document.getElementById('systemPromptCancel');
+    const systemPromptReset = document.getElementById('systemPromptReset');
+    const aiPanelTitle = document.querySelector('.ai-panel-title');
     const jsonEditModal = document.getElementById('jsonEditModal');
     const jsonEditBackdrop = document.getElementById('jsonEditBackdrop');
     const jsonEditInput = document.getElementById('jsonEditInput');
@@ -973,6 +1295,14 @@
     const rubyNotesModalCancel = document.getElementById('rubyNotesModalCancel');
     const rubyNotesModalSave = document.getElementById('rubyNotesModalSave');
     const rubyTooltip = document.getElementById('rubyTooltip');
+    const helpModal = document.getElementById('helpModal');
+    const helpModalBackdrop = document.getElementById('helpModalBackdrop');
+    const helpModalClose = document.getElementById('helpModalClose');
+    const aiPanel = document.getElementById('aiPanel');
+    const aiAnswer = document.getElementById('aiAnswer');
+    const aiQuestion = document.getElementById('aiQuestion');
+    const aiSend = document.getElementById('aiSend');
+    const aiToggle = document.getElementById('aiToggle');
     let bgImages = [];
     let currentBgId = -1;
     let onlyBgId = -1;
@@ -985,6 +1315,25 @@
     let currentRubyModalSentenceIdx = null;
     let rubyNotesInitialSnapshot = null;
     let currentRubyModalFavId = null;
+
+    const AI_BASE_URL = 'https://next-reader-psi.vercel.app/api/minimax';
+    const AI_MODEL = 'MiniMax-M3';
+    const AI_MAX_TOKENS = 4096;
+    let AI_SYSTEM_PROMPT = `你是一位经验丰富的中英口语老师,亲切、耐心、简洁。
+针对用户当前学习的中文句子,你可以:
+1. 解释语法点(词性、从句、固定搭配、时态等)
+2. 拓展同义词、反义词、相似表达
+3. 提供例句,展示该句在不同场景下的用法(英文例句用代码块包裹)
+4. 纠正用户的翻译或表达
+回答要点:
+- 默认用中文回答,除非用户用英文提问
+- 用 Markdown 排版: 标题分点、列表展示要点、英文例句用 \`\`\` 包裹
+- 简洁但有信息密度,不啰嗦,不重复问题本身`;
+
+    let aiMessages = [];
+    let aiAbortController = null;
+    let isAiStreaming = false;
+    let lastRenderedIndex = null;
 
     function copyEntryToClipboard() {
         if (entries.length === 0) return;
@@ -1898,6 +2247,39 @@
             noteOk.click();
         }
     });
+
+    function openSystemPromptModal() {
+        systemPromptInput.value = AI_SYSTEM_PROMPT;
+        systemPromptModal.hidden = false;
+    }
+    function closeSystemPromptModal() {
+        systemPromptModal.hidden = true;
+    }
+    function saveSystemPrompt() {
+        const v = systemPromptInput.value.trim();
+        if (!v) {
+            localStorage.removeItem(STORAGE_KEY_AI_SYSTEM_PROMPT);
+            AI_SYSTEM_PROMPT = DEFAULT_AI_SYSTEM_PROMPT;
+        } else {
+            localStorage.setItem(STORAGE_KEY_AI_SYSTEM_PROMPT, v);
+            AI_SYSTEM_PROMPT = v;
+        }
+        closeSystemPromptModal();
+    }
+    function resetSystemPrompt() {
+        systemPromptInput.value = DEFAULT_AI_SYSTEM_PROMPT;
+    }
+    aiPanelTitle.addEventListener('click', openSystemPromptModal);
+    systemPromptOk.addEventListener('click', saveSystemPrompt);
+    systemPromptCancel.addEventListener('click', closeSystemPromptModal);
+    systemPromptReset.addEventListener('click', resetSystemPrompt);
+    systemPromptBackdrop.addEventListener('click', closeSystemPromptModal);
+    systemPromptInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            systemPromptOk.click();
+        }
+    });
     jsonEditOk.addEventListener('click', saveJsonEdit);
     jsonEditCancel.addEventListener('click', closeJsonEditModal);
     jsonEditBackdrop.addEventListener('click', closeJsonEditModal);
@@ -1922,6 +2304,184 @@
     rubyNotesModalCancel.addEventListener('click', closeRubyNotesModal);
     rubyNotesModalSave.addEventListener('click', closeRubyNotesModal);
     rubyNotesModalBackdrop.addEventListener('click', closeRubyNotesModal);
+
+    function openHelpModal() {
+        helpModal.hidden = false;
+    }
+    function closeHelpModal() {
+        helpModal.hidden = true;
+    }
+    helpModalClose.addEventListener('click', closeHelpModal);
+    helpModalBackdrop.addEventListener('click', closeHelpModal);
+
+    function buildAiMessages(userQuestion) {
+        const [cn, en] = entries[currentIndex] || ['', ''];
+        const ctxUser = en
+                ? `当前学习句子:\n中文: ${cn}\n英文: ${en}`
+                : `当前学习句子:\n中文: ${cn}`;
+        const msgs = [
+            { role: 'user', content: ctxUser },
+            { role: 'assistant', content: '好的,我了解了当前句子。请提问。' },
+            ...aiMessages,
+            { role: 'user', content: userQuestion }
+        ];
+        return [{ role: 'system', content: AI_SYSTEM_PROMPT }, ...msgs];
+    }
+
+    function appendAiBubble(role) {
+        const wrap = document.createElement('div');
+        wrap.className = `ai-bubble ai-bubble-${role}`;
+        const label = document.createElement('div');
+        label.className = 'ai-bubble-label';
+        label.textContent = role === 'user' ? '我' : '老师';
+        const body = document.createElement('div');
+        body.className = 'ai-bubble-body';
+        wrap.appendChild(label);
+        wrap.appendChild(body);
+        aiAnswer.appendChild(wrap);
+        aiAnswer.scrollTop = aiAnswer.scrollHeight;
+        return body;
+    }
+
+    function renderAiHistory() {
+        aiAnswer.innerHTML = '';
+        aiMessages.forEach(m => {
+            const body = appendAiBubble(m.role === 'user' ? 'user' : 'assistant');
+            body.innerHTML = marked.parse(m.content);
+        });
+        aiAnswer.scrollTop = aiAnswer.scrollHeight;
+    }
+
+    function clearAiHistory() {
+        if (isAiStreaming && aiAbortController) aiAbortController.abort();
+        aiMessages = [];
+        aiAnswer.innerHTML = '';
+    }
+
+    function setAiStreaming(enabled) {
+        isAiStreaming = enabled;
+        aiSend.textContent = enabled ? '停止' : '发送';
+        aiSend.classList.toggle('ai-send-stopping', enabled);
+        aiQuestion.disabled = enabled;
+    }
+
+    async function sendAiQuestion() {
+        const q = aiQuestion.value.trim();
+        if (!q || entries.length === 0) return;
+        if (isAiStreaming) {
+            if (aiAbortController) aiAbortController.abort();
+            return;
+        }
+        const userBody = appendAiBubble('user');
+        userBody.textContent = q;
+        aiMessages.push({ role: 'user', content: q });
+        aiQuestion.value = '';
+        showAiAnswer();
+        const asstBody = appendAiBubble('assistant');
+        asstBody.classList.add('ai-bubble-streaming');
+        const asstCursor = document.createElement('span');
+        asstCursor.className = 'ai-cursor';
+        asstBody.appendChild(asstCursor);
+        let buffer = '';
+        aiAbortController = new AbortController();
+        setAiStreaming(true);
+        try {
+            const res = await fetch(AI_BASE_URL, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json', 'anthropic-version': '2023-06-01' },
+                body: JSON.stringify({
+                    model: AI_MODEL,
+                    max_tokens: AI_MAX_TOKENS,
+                    stream: true,
+                    messages: buildAiMessages(q)
+                }),
+                signal: aiAbortController.signal
+            });
+            if (!res.ok || !res.body) {
+                throw new Error(`HTTP ${res.status}`);
+            }
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder('utf-8', { stream: true });
+            let leftover = '';
+            let pending = [];
+            const flushBubble = () => {
+                pending.forEach(delta => { buffer += delta; });
+                pending = [];
+                asstBody.textContent = buffer;
+                asstBody.appendChild(asstCursor);
+                aiAnswer.scrollTop = aiAnswer.scrollHeight;
+            };
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                leftover += decoder.decode(value, { stream: true });
+                let idx;
+                while ((idx = leftover.indexOf('\n\n')) !== -1) {
+                    const raw = leftover.slice(0, idx);
+                    leftover = leftover.slice(idx + 2);
+                    const lines = raw.split('\n');
+                    let ev = 'message', data = '';
+                    for (const line of lines) {
+                        if (line.startsWith('event:')) ev = line.slice(6).trim();
+                        else if (line.startsWith('data:')) data += line.slice(5).trim();
+                    }
+                    if (!data) continue;
+                    if (data === '[DONE]') continue;
+                    let payload;
+                    try { payload = JSON.parse(data); } catch { continue; }
+                    if (ev === 'content_block_delta' && payload.delta?.type === 'text_delta') {
+                        pending.push(payload.delta.text || '');
+                    } else if (ev === 'content_block_stop') {
+                        flushBubble();
+                    }
+                }
+                flushBubble();
+            }
+            flushBubble();
+            asstBody.classList.remove('ai-bubble-streaming');
+            asstBody.innerHTML = marked.parse(buffer || '(空响应)');
+            aiMessages.push({ role: 'assistant', content: buffer });
+        } catch (err) {
+            asstBody.classList.remove('ai-bubble-streaming');
+            asstBody.textContent = buffer + (buffer ? '\n\n' : '') + `[错误: ${err.message}]`;
+        } finally {
+            aiAbortController = null;
+            setAiStreaming(false);
+        }
+    }
+
+    aiSend.addEventListener('click', sendAiQuestion);
+    aiQuestion.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            sendAiQuestion();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            if (isAiStreaming && aiAbortController) aiAbortController.abort();
+            else aiQuestion.value = '';
+        }
+    });
+
+    function showAiAnswer() {
+        aiAnswer.hidden = false;
+        aiToggle.textContent = '▼ 隐藏';
+    }
+    function hideAiAnswer() {
+        aiAnswer.hidden = true;
+        aiToggle.textContent = '▲ 显示';
+    }
+    function toggleAiAnswer() {
+        if (aiAnswer.hidden) showAiAnswer();
+        else hideAiAnswer();
+    }
+    aiToggle.addEventListener('click', toggleAiAnswer);
+    document.addEventListener('click', (e) => {
+        if (aiAnswer.hidden) return;
+        if (!systemPromptModal.hidden) return;
+        if (e.target.closest('#aiPanel') || e.target.closest('#aiAnswer')) return;
+        if (e.target.closest('.fav-modal')) return;
+        hideAiAnswer();
+    });
 
     function applyBg(dataUrl) {
         if (dataUrl) {
@@ -2068,6 +2628,7 @@
     bgModalBackdrop.addEventListener('click', () => { bgModal.hidden = true; });
 
     document.addEventListener('keydown', (e) => {
+        if (document.activeElement === aiQuestion) return;
         if (e.code === 'Space' && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) {
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
@@ -2121,13 +2682,28 @@
                 e.preventDefault();
                 e.stopPropagation();
                 closeRubyNotesModal();
+            } else if (!systemPromptModal.hidden) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeSystemPromptModal();
+            } else if (!helpModal.hidden) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeHelpModal();
             } else if (!cnModal.hidden) {
                 e.preventDefault();
                 e.stopPropagation();
                 hideAllCn();
             }
         }
-        if (!favSaveModal.hidden || !noteModal.hidden || !jsonEditModal.hidden || !cardsModal.hidden || !rubyNotesModal.hidden) {
+        if (e.key === '1' && e.altKey && !e.ctrlKey && !e.shiftKey && !e.metaKey) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (helpModal.hidden) openHelpModal();
+            else closeHelpModal();
+            return;
+        }
+        if (!favSaveModal.hidden || !noteModal.hidden || !jsonEditModal.hidden || !cardsModal.hidden || !rubyNotesModal.hidden || !systemPromptModal.hidden || !helpModal.hidden || !cnModal.hidden || !bgModal.hidden) {
             return;
         }
         if (e.key === 'f' && e.altKey && !e.ctrlKey && !e.metaKey) {
@@ -2174,6 +2750,15 @@
                     '*'
                 );
             }
+        }
+        if (e.key === 's' && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) {
+            e.preventDefault();
+            const sel = window.getSelection()?.toString().trim();
+            if (!sel) return;
+            const cur = aiQuestion.value;
+            aiQuestion.value = cur ? `${cur} ${sel}` : sel;
+            aiQuestion.focus();
+            aiQuestion.setSelectionRange(aiQuestion.value.length, aiQuestion.value.length);
         }
         if (e.key === 'e' && !e.ctrlKey && !e.altKey && !e.metaKey) {
             e.preventDefault();
@@ -2307,12 +2892,15 @@
     }
 
     function render() {
+        if (lastRenderedIndex !== null && lastRenderedIndex !== currentIndex) {
+            clearAiHistory();
+        }
+        lastRenderedIndex = currentIndex;
         if (entries.length === 0) {
             emptyState.hidden = false;
             counter.hidden = true;
             cnText.hidden = true;
             enText.hidden = true;
-            hint.hidden = true;
             noteDisplay.hidden = true;
             return;
         }
@@ -2320,7 +2908,6 @@
         counter.hidden = false;
         cnText.hidden = false;
         enText.hidden = false;
-        hint.hidden = false;
         const [cn, en] = entries[currentIndex];
         counter.textContent = `${currentIndex + 1}/${entries.length}`;
         // <ruby>staples<rt>ˈsteɪplz</rt></ruby>
@@ -2349,6 +2936,8 @@
     const STORAGE_KEY_RATE_EN = 'cn2en-json:rateEn';
     const STORAGE_KEY_MODE = 'cn2en-json:mode';
     const STORAGE_KEY_ONLY_BG = 'cn2en-json:onlyBg';
+    const STORAGE_KEY_AI_SYSTEM_PROMPT = 'cn2en-json:aiSystemPrompt';
+    const DEFAULT_AI_SYSTEM_PROMPT = AI_SYSTEM_PROMPT;
 
     let voicesCN = [];
     let selectedVoice = null;
@@ -2375,6 +2964,10 @@
             if (data && index !== null) {
                 entries = JSON.parse(data);
                 currentIndex = parseInt(index, 10) || 0;
+            }
+            const savedPrompt = localStorage.getItem(STORAGE_KEY_AI_SYSTEM_PROMPT);
+            if (savedPrompt) {
+                AI_SYSTEM_PROMPT = savedPrompt;
             }
         } catch (err) {
             console.error('恢复状态失败:', err);
@@ -2525,6 +3118,7 @@
     }
 
     document.addEventListener('keydown', async function (e) {
+        if (document.activeElement === aiQuestion) return;
         if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyI') {
             e.preventDefault();
             renderBgList();
@@ -2583,7 +3177,7 @@
                 hideAllCn();
             }
         }
-        if (!e.ctrlKey && !e.altKey && !e.shiftKey && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden) {
+        if (!e.ctrlKey && !e.altKey && !e.shiftKey && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
             const tag = e.target.tagName;
             if (e.code === 'KeyN' && noteModal.hidden && tag !== 'INPUT' && tag !== 'TEXTAREA') {
                 if (entries.length === 0) return;
