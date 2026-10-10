@@ -1,513 +1,98 @@
-<div id="source-text">
-    {{Front}}
-</div>
-<div style="display: flex;justify-content: center">
-    <button id="showDialog">View</button>
-    <button id="hidePrompt">Hide Prompt</button>
-</div>
-<div style="display: flex;flex-direction: column;align-items: center;justify-content: center">
-    <div id="mindmap-container" style="margin-top:0%">
-    </div>
-</div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        ruby.ruby-wrap {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+            border-bottom: 1px dashed #999;
+        }
 
-<div id="custom-dialog-overlay">
-    <div id="custom-dialog-box">
-        <button id="dialog-close-button">✕</button>
-        <div id="dialog-content">
-            {{Back}}
-        </div>
-    </div>
-</div>
+        #global-tip {
+            position: fixed;
+            background: #222;
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.5;
+            max-width: 260px;
+            box-shadow: 0 4px 12px rgba(0,0,0,.25);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity .15s;
+            pointer-events: none;
+            z-index: 9999;
+        }
+        #global-tip.show {
+            opacity: 1;
+            visibility: visible;
+        }
+    </style>
+</head>
+<body>
 
-<style>
-    /* 弹窗遮罩层样式 */
-    #custom-dialog-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-        visibility: hidden;
-        opacity: 0;
-    }
+<ruby class="ruby-wrap"
+      data-tip="<b>staples</b><br>n. 订书钉；主要产品<br>音标：/ˈsteɪplz/">
+    staples<rt>ˈsteɪplz</rt>
+</ruby>
 
-    /* 弹窗主体样式 */
-    #custom-dialog-box {
-        max-width: 800px;
-        width: 75%;
-        height: 75%;
-        background-color: #2c3e50;
-        border-radius: 12px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        color: white;
-        font-size: 1rem;
-        font-family: Arial, sans-serif;
-        position: relative;
-        padding: 20px;
-        box-sizing: border-box;
-    }
+&nbsp;&nbsp;
 
-    /* 关闭按钮样式 */
-    #dialog-close-button {
-        position: absolute;
-        top: 15px;
-        right: 20px;
-        background: none;
-        border: none;
-        color: white;
-        font-size: 28px;
-        cursor: pointer;
-        font-weight: bold;
-    }
+<ruby class="ruby-wrap"
+      data-tip="<b>apple</b><br>n. 苹果<br>音标：/ˈæp.əl/">
+    apple<rt>ˈæp.əl</rt>
+</ruby>
 
-    #dialog-close-button:hover {
-        opacity: 0.8;
-    }
+&nbsp;&nbsp;
 
-    /* 弹窗内容样式 - 字体调小 */
-    #dialog-content {
-        text-align: left;
-        word-wrap: break-word;
-        overflow-y: auto;
-        max-height: 90%;
-        padding: 20px;
-        width: 100%;
-        box-sizing: border-box;
-        font-size: 0.9rem;
-        line-height: 1.5;
-    }
+<ruby class="ruby-wrap"
+      data-tip="<b>computer</b><br>n. 计算机<br>音标：/kəmˈpjuː.tər/">
+    computer<rt>kəmˈpjuː.tər</rt>
+</ruby>
 
-    /* 针对思维导图等内容调整 */
-    #dialog-content ul {
-        margin: 0;
-        padding-left: 20px;
-    }
-
-    #dialog-content li {
-        display: block;
-        margin: 8px 0;
-    }
-
-    #dialog-content input {
-        font-size: 0.9rem;
-        padding: 4px;
-    }
-</style>
-
-<style>
-    li {
-        display: inline-block;
-        cursor: pointer;
-    }
-</style>
-
+<div id="global-tip"></div>
 
 <script>
-    // 核心功能：解析文本并生成思维导图
-    function initMindmap() {
-        // 1. 获取指定ID的div文本内容
-        const sourceDiv = document.getElementById('source-text');
-        if (!sourceDiv) {
-            alert('未找到指定ID的div！');
-            return;
-        }
-        // 清理文本：去除多余空格、按行分割
-        const rawText = sourceDiv.innerHTML.includes("\n") ? sourceDiv.innerHTML.replaceAll(" **", "\n**").trim() : sourceDiv.innerHTML;
-        const textLines = rawText.split('\n').map(line => line.trim()).filter(line => line);
+    const tip = document.getElementById('global-tip');
 
-        // 2. 解析每行文本，提取层级和内容（通用层级判断，支持无限扩展）
-        const nodes = [];
-        textLines.forEach(line => {
-            // 通用层级判断：统计开头连续的*数量
-            const starMatch = line.match(/^\*+/); // 匹配开头所有连续的*
-            let level = 0;
-            let content = line;
-
-            if (starMatch) {
-                const starCount = starMatch[0].length;
-                level = starCount - 1; // **（2个*）→ 层级1，***（3个）→ 层级2，以此类推
-                content = line.replace(/^\*+/, '').trim(); // 移除开头所有*
-            }
-
-            const originalContent = content
-
-            // 处理~包裹的内容，替换为input标签
-            const processedContent = content.replace(/~([^~]+)~+/g, (match, placeholderText) => {
-                return `<input type="text" data-answer="${placeholderText.trim()}">`;
-            });
-
-            // 限制最大层级（可选：避免层级过深导致样式混乱，这里设为4）
-            level = Math.min(level, 4);
-            nodes.push({level, content: processedContent, originalContent: originalContent});
+    document.querySelectorAll('ruby.ruby-wrap').forEach(el => {
+        el.addEventListener('mouseenter', () => {
+            tip.innerHTML = el.dataset.tip;
+            tip.classList.add('show');
+            positionTip(el);
         });
 
-        // 3. 渲染思维导图到页面
-        const container = document.getElementById('mindmap-container');
-        container.innerHTML = ''; // 清空容器
-
-        const ul = document.createElement('ul');
-        nodes.forEach(node => {
-            if (node.content === "hr") {
-                ul.append(document.createElement("hr"))
-            } else {
-                const li = document.createElement('li');
-                const br = document.createElement('br');
-                li.className = `mindmap-node node-level-${node.level}`;
-                li.innerHTML = node.content;
-                li.addEventListener("click", (e) => {
-                    // if (e.ctrlKey && node.level === 2) {
-                    //     if (li.style.backgroundColor !== "orange") {
-                    //         li.style.backgroundColor = "orange"
-                    //         const input = li.querySelector("input")
-                    //         if(input){
-                    //             input.value = "";
-                    //             input.dataset.charIndex = "0";
-                    //             input.dataset.wordIndex = "0";
-                    //             input.style.color = "#333"
-                    //             input.style.background = "lightgrey"
-                    //         }
-                    //     } else {
-                    //         li.style.backgroundColor = "#1d953f"
-                    //     }
-                    // } else {
-                    //     speakText(node.originalContent.replaceAll("^", "").replaceAll("-", ""))
-                    // }
-                    if (node.level === 2) {
-                        if (li.style.backgroundColor !== "orange") {
-                            li.style.backgroundColor = "orange"
-                            const input = li.querySelector("input")
-                            if(input){
-                                speakText(input.value)
-                                input.value = "";
-                                input.dataset.charIndex = "0";
-                                input.dataset.wordIndex = "0";
-                                input.style.color = "#333"
-                                input.style.background = "lightgrey"
-                            }
-                        } else {
-                            li.style.backgroundColor = "#1d953f"
-                        }
-                    } else {
-                        speakText(node.originalContent.replaceAll("^", "").replaceAll("-", " "))
-                    }
-                })
-                ul.appendChild(li);
-                ul.appendChild(br);
-            }
+        el.addEventListener('mousemove', () => {
+            positionTip(el);
         });
 
-        container.appendChild(ul);
-
-        initInputs()
-
-        document.querySelector(".node-level-0").addEventListener("click", (e) => {
-            copyToClipboard(document.querySelector(".node-level-0").textContent)
-        })
-    }
-
-    document.getElementById("hidePrompt").addEventListener("click", (e) => {
-        // document.querySelectorAll("input").forEach(input => {
-        //     input.value = "-"
-        // })
-        getClipboardText().then(text => {
-            alert(text)
-        })
-    })
-
-    function copyToClipboard(text) {
-        navigator.clipboard.writeText(text).then(() => {
-            // Optional: brief visual feedback could be added here
-        }).catch(err => {
-            console.error('Failed to copy:', err);
+        el.addEventListener('mouseleave', () => {
+            tip.classList.remove('show');
         });
+    });
+
+    function positionTip(target) {
+        const rect = target.getBoundingClientRect();
+        const tipRect = tip.getBoundingClientRect();
+
+        let left = rect.left + rect.width / 2 - tipRect.width / 2;
+        let top = rect.top - tipRect.height - 10;
+
+        // 防止超出左右边界
+        left = Math.max(8, Math.min(left, window.innerWidth - tipRect.width - 8));
+
+        // 上方空间不够时显示在下方
+        if (top < 8) {
+            top = rect.bottom + 10;
+        }
+
+        tip.style.left = left + 'px';
+        tip.style.top = top + 'px';
     }
-
-    async function getClipboardText() {
-        try {
-            return await navigator.clipboard.readText();
-        } catch (err) {
-            return null;
-        }
-    }
-
-    // 朗读指定文本
-    function speakText(text, isEn = true, stop = true) {
-        if (!text) return;
-
-        // 停止当前播放（防止堆积）
-        if (stop) {
-            window.speechSynthesis.cancel();
-        }
-
-        const utterance = new SpeechSynthesisUtterance(text.replaceAll("💡", ""));
-        utterance.rate = isEn ? 1 : 2;
-
-        if (!isEn) utterance.pitch = 0.5
-
-        function findVoice() {
-            const voices = window.speechSynthesis.getVoices();
-            return voices.find(v =>
-                v.name === (isEn ? "Microsoft David - English (United States)" : "Microsoft Yaoyao - Chinese (Simplified, PRC)") &&
-                v.lang === (isEn ? "en-US" : "zh-CN")
-            );
-        }
-
-        // 尝试找到指定语音
-        let voice = findVoice();
-        if (voice) {
-            utterance.voice = voice;
-            window.speechSynthesis.speak(utterance);
-        } else {
-            // 等待语音加载
-            window.speechSynthesis.onvoiceschanged = () => {
-                voice = findVoice();
-                utterance.voice = voice || null;
-                utterance.lang = voice ? voice.lang : "zh-CN";
-                window.speechSynthesis.speak(utterance);
-                // 移除监听器，防止多次触发
-                window.speechSynthesis.onvoiceschanged = null;
-            };
-        }
-    }
-
-    function initInputs() {
-        let initialInputLength = 0;
-
-        document.querySelectorAll('input').forEach((input, index) => {
-            if (input.id === "inpInterval" || input.id === "useTTS") return
-            let answer = input.dataset.answer.trim();
-            const answerArray = answer.split(" ")
-            let len = answerArray.length;
-            if (len > 0) {
-                let temp = ""
-                for (let i = 0; i < answerArray.length; i++) {
-                    if (answerArray[i].length <= 1) {
-                        temp += (answerArray[i] + " ")
-                    } else {
-                        temp += ((answerArray[i].startsWith("^")||answerArray[0].startsWith("*")) ? answerArray[i][1] + (answerArray[i].length - 1) + " " : (i === 0?"":"")+answerArray[i].length + " ")
-                    }
-                }
-                input.placeholder = temp;
-            }
-            // const hint = input.dataset.hint;
-            // if (hint) {
-            //     input.placeholder = `${answer.split(" ").length}-${hint}`;
-            // }
-            initialInputLength = input.dataset.len || 0;
-            const length = answer.length;
-            let width = Math.max(length * (length > 10 ? 8 : 10), 40);
-            width = Math.min(width, 500);
-            input.style.width = width + 'px';
-            input.dataset.charIndex = "0";
-            input.dataset.wordIndex = "0";
-            input.value = answer.substring(0, initialInputLength);
-            input.dataset.charIndex = String(input.value.length);
-            if (index === 0) input.focus();
-
-            // 监听输入事件
-            input.addEventListener('input', () => {
-                const targetString = answer.toLowerCase();
-                const userInput = input.value.toLowerCase();
-                input.dataset.charIndex = String(userInput.length);
-                if (targetString) {
-                    if (userInput.replaceAll(" ", "") === targetString.replaceAll(" ", "")) {
-                        input.style.color = 'yellow';
-                    } else if (targetString.replaceAll(" ", "").includes(userInput.replaceAll(" ", ""))) {
-                        input.style.color = 'green';
-                    } else {
-                        input.style.color = 'red';
-                    }
-                }
-            });
-
-            input.addEventListener('focus', () => {
-                input.dataset.charIndex = String(input.value.length);
-                const length = input.value.length;
-                input.setSelectionRange(length, length);
-            });
-
-            // 点击补字逻辑
-            input.addEventListener('click', (event) => {
-                event.preventDefault();
-                event.stopPropagation()
-                if (document.activeElement === input) {
-                    const placeholderValue = answer;
-                    if (event.shiftKey && event.ctrlKey) {
-                        document.querySelectorAll('input').forEach(input => {
-                            input.value = "";
-                            input.dataset.charIndex = "0";
-                            input.dataset.wordIndex = "0";
-                            input.style.color = "#333"
-                            input.style.background = "lightgrey"
-                        });
-                    } else if (event.ctrlKey) {
-                        input.value = "";
-                        input.dataset.charIndex = "0";
-                        input.dataset.wordIndex = "0";
-                        input.style.color = "#333"
-                        input.style.background = "lightgrey"
-                    } else if (event.shiftKey) {
-                        document.querySelectorAll('input').forEach(input => {
-                            input.value = input.dataset.answer;
-                            input.dataset.charIndex = String(input.dataset.answer.length);
-                            input.style.color = 'yellow';
-                        });
-                    } else if (event.altKey) {
-                        if (!input.value) {
-                            const hint = placeholderValue.split(" ").map(item => item[0] + item.length).join(" ")
-                            input.value = hint;
-                            input.dataset.charIndex = String(hint.length);
-                        } else {
-                            input.value = placeholderValue;
-                            input.dataset.charIndex = String(placeholderValue.length);
-                            input.style.color = 'yellow';
-                            speakText(input.value, true)
-                        }
-                    } else {
-                        //     let wordIndex = Number(input.dataset.wordIndex)
-                        //
-                        //     const words = input.dataset.answer.split(" ")
-                        //     if (wordIndex < words.length) {
-                        //         input.value = words.slice(0, wordIndex + 1).map(word => word.startsWith("^") ? word.slice(1, word.length) : word).join(" ")
-                        //         wordIndex++;
-                        //         input.dataset.wordIndex = String(wordIndex); // 存储新的索引
-                        //         input.dataset.charIndex = String(input.value.length)
-                        //         if (input.value === input.dataset.answer.replaceAll("^", "")) {
-                        //             input.style.color = 'yellow';
-                        //             input.style.background = '#666'
-                        //             speakText(input.value.replaceAll("💡", ""))
-                        //         }
-                        //     }
-                        input.value = input.dataset.answer.replaceAll("^", "")
-                        if(input.value.startsWith("*")) input.value = input.value.substring(1)
-                        input.style.color = 'yellow';
-                        input.style.background = '#666'
-                        speakText(input.value)
-                    }
-                }
-            });
-
-            // 键盘逻辑
-            input.addEventListener('keydown', (event) => {
-                if (document.activeElement === input) {
-                    if (event.key === '`') {
-                        event.preventDefault();
-                        const placeholderValue = answer;
-                        let charIndex = parseInt(input.dataset.charIndex, 10);
-                        if (placeholderValue && charIndex < placeholderValue.length) {
-                            input.value += placeholderValue.charAt(charIndex);
-                            charIndex++;
-                            input.dataset.charIndex = String(charIndex);
-                            if (input.value.replaceAll(" ", "") === placeholderValue.replaceAll(" ", "")) {
-                                input.style.color = 'yellow';
-                                speakText(input.value, true)
-                            }
-                        }
-                    } else if (event.key === 'F4') {
-                        document.querySelectorAll('input').forEach(input => {
-                            input.value = answer.substring(0, initialInputLength);
-                        });
-                    } else if (event.key === 'F3') {
-                        input.blur();
-                    } else if (event.key === 'F2') {
-                        const placeholderValue = answer;
-                        input.value = placeholderValue;
-                        input.dataset.charIndex = String(placeholderValue.length);
-                        input.style.color = 'yellow';
-                    } else if (event.key === 'F6') {
-                        document.querySelectorAll('input').forEach(input => {
-                            input.value = input.dataset.answer;
-                            input.dataset.charIndex = String(input.dataset.answer.length);
-                            input.style.color = 'yellow';
-                        });
-                    }
-                }
-            });
-        });
-    }
-
-    // if (typeof ankiDeckObserverAttached === "undefined") {
-    //     document.addEventListener("anki-show", () => {
-    //         initMindmap()
-    //     });
-    //     window.ankiDeckObserverAttached = true;
-    // }
-
-    // ✅ 保证每次显示新卡时都重新朗读
-    if (typeof ankiDeckObserverAttached === "undefined") {
-        speakText(getTitle())
-    }
-
-
-    function getTitle() {
-        const sourceText = document.getElementById("source-text").textContent.trim()
-        for (let i = 0; i < sourceText.length; i++) {
-            if (i !== 0 && sourceText[i] === "*") {
-                return sourceText.substring(1, i).replace(/\([^)]*\)/g, '')
-            }
-        }
-        return "hello"
-    }
-
-    speakText(getTitle())
-
-    // 页面加载完成后执行
-    initMindmap()
-
-    function initDialog() {
-        const overlay = document.getElementById('custom-dialog-overlay');
-
-// 弹窗控制函数
-        function showDialog() {
-            if (overlay) {
-                overlay.style.visibility = 'visible';
-                overlay.style.opacity = '1';
-            }
-        }
-
-        function hideDialog() {
-            if (overlay) {
-                overlay.style.visibility = 'hidden';
-                overlay.style.opacity = '0';
-            }
-        }
-
-        // 绑定关闭按钮事件
-        const closeBtn = document.getElementById('dialog-close-button');
-        if (closeBtn) {
-            closeBtn.addEventListener('click', hideDialog);
-        }
-
-        // 点击遮罩层关闭弹窗
-        if (overlay) {
-            overlay.addEventListener('click', function (e) {
-                if (e.target === overlay) {
-                    hideDialog();
-                }
-            });
-        }
-
-        // 绑定View按钮（假设页面上有id为showDialog的按钮）
-        const viewButton = document.getElementById('showDialog');
-        if (viewButton) {
-            viewButton.addEventListener('click', showDialog);
-        }
-
-        document.querySelectorAll("h2, h3, p").forEach(pTag => {
-            pTag.addEventListener("click", (e) => {
-                speakText(pTag.textContent, false)
-            })
-        })
-    }
-
-    initDialog()
 </script>
+
+</body>
+</html>

@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>focus-dataflow</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1e1e1e;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 48px 5vw;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stage {
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .hint {
+            color: #888;
+            font-size: 24px;
+            text-align: center;
+            line-height: 1.8;
+        }
+
+        .hint kbd {
+            display: inline-block;
+            font-family: inherit;
+            background: #2c2c2c;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 2px 8px;
+            color: #b0bec5;
+        }
+
+        .error {
+            color: #ef5350;
+            font-size: 20px;
+            text-align: center;
+        }
+
+        .card {
+            background: #252525;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 44px 48px;
+            cursor: pointer;
+        }
+
+        .card.copied {
+            border-color: #81c784;
+        }
+
+        .flow-line {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 28px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .flow-line .marker {
+            color: #4fc3f7;
+        }
+
+        .flow-line .arrow {
+            color: #4fc3f7;
+        }
+
+        .flow-line .method {
+            color: #81c784;
+        }
+
+        .notes {
+            margin-top: 32px;
+            padding-top: 28px;
+            border-top: 1px solid #333;
+        }
+
+        .note + .note {
+            margin-top: 24px;
+        }
+
+        .note-en {
+            font-size: 22px;
+            line-height: 1.6;
+            color: #cfd8dc;
+            cursor: pointer;
+            border-radius: 3px;
+            transition: background-color 0.1s;
+        }
+
+        .note-en:hover {
+            background: rgba(79, 195, 247, 0.08);
+        }
+
+        .note-cn {
+            margin-top: 8px;
+            font-size: 17px;
+            line-height: 1.6;
+            color: #78909c;
+        }
+
+        .status {
+            margin-top: 28px;
+            text-align: center;
+            color: #888;
+            font-size: 18px;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        .status kbd {
+            display: inline-block;
+            padding: 2px 8px;
+            margin: 0 2px;
+            background: #2c2c2c;
+            border: 1px solid #444;
+            border-radius: 4px;
+            font-family: inherit;
+            color: #b0bec5;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+            padding: 10px 16px;
+            background: #252525;
+            border: 1px solid #333;
+            border-radius: 8px;
+        }
+
+        .controls.hidden {
+            display: none;
+        }
+
+        .ctrl-row {
+            flex-basis: 100%;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            min-width: 0;
+        }
+
+        .controls label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #b0bec5;
+        }
+
+        .controls select {
+            width: 240px;
+            padding: 5px;
+            font-size: 12px;
+            background: #2c2c2c;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+        }
+
+        .controls input[type="range"] {
+            width: 120px;
+        }
+
+        .controls input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: #4fc3f7;
+        }
+
+        .tts-highlight {
+            background: #4fc3f7;
+            color: #1e1e1e;
+            border-radius: 3px;
+        }
+
+        .controls button {
+            padding: 6px 14px;
+            font-size: 13px;
+            color: #fff;
+            background: #3a86ff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .controls button:hover {
+            background: #2a6edc;
+        }
+
+        .controls button.speaking {
+            background: #ff5252;
+        }
+
+        .controls button:disabled {
+            background: #3a3a3a;
+            color: #777;
+            cursor: default;
+        }
+
+        .stage.with-code {
+            display: flex;
+            gap: 28px;
+            align-items: flex-start;
+            justify-content: space-between;
+            max-width: none;
+        }
+
+        body.with-code {
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+
+        .step-pane {
+            flex: 1 1 0;
+            min-width: 0;
+        }
+
+        .code-pane {
+            flex: 1 1 0;
+            min-width: 0;
+            background: #252525;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 20px 24px;
+            max-height: 72vh;
+            overflow: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #4a4a4a #1e1e1e;
+        }
+
+        .code-pane::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        .code-pane::-webkit-scrollbar-track {
+            background: #1e1e1e;
+            border-radius: 5px;
+        }
+
+        .code-pane::-webkit-scrollbar-thumb {
+            background: #4a4a4a;
+            border-radius: 5px;
+            border: 2px solid #1e1e1e;
+        }
+
+        .code-pane::-webkit-scrollbar-thumb:hover {
+            background: #5a5a5a;
+        }
+
+        .code-pane::-webkit-scrollbar-thumb:active {
+            background: #4fc3f7;
+        }
+
+        .code-pane::-webkit-scrollbar-corner {
+            background: #1e1e1e;
+        }
+
+        .code-pane pre {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            line-height: 1.55;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: #d4d4d4;
+        }
+
+        .code-pane .cmt {
+            color: #6a9955;
+            cursor: pointer;
+            border-radius: 3px;
+            transition: background-color 0.1s;
+        }
+
+        .code-pane .cmt:hover {
+            background: rgba(106, 153, 85, 0.18);
+        }
+
+        .code-pane .cmt.speaking {
+            background: #000000;
+            color: #ffffff;
+        }
+
+        .code-pane .cls {
+            color: #ffb74d;
+        }
+
+        .code-pane .mth {
+            color: #81c784;
+        }
+
+        .code-pane .ann {
+            color: #4fc3f7;
+        }
+
+        .code-pane .code-empty {
+            font-family: inherit;
+            font-size: 16px;
+            color: #666;
+        }
+
+        .code-paste {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 2px;
+            height: 2px;
+            opacity: 0;
+            border: none;
+            padding: 0;
+        }
+
+        .code-hint {
+            position: fixed;
+            left: 50%;
+            bottom: 40px;
+            transform: translateX(-50%);
+            background: #333;
+            border: 1px solid #4a4a4a;
+            border-radius: 6px;
+            padding: 10px 18px;
+            font-size: 14px;
+            color: #cfd8dc;
+            z-index: 10;
+        }
+
+        .code-hint.hidden {
+            display: none;
+        }
+
+        .kw-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 1500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .kw-modal.hidden { display: none; }
+        .kw-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+        }
+        .kw-panel {
+            position: relative;
+            width: min(560px, calc(100vw - 48px));
+            background: #252525;
+            border: 1px solid #444;
+            border-radius: 10px;
+            padding: 20px 22px 18px;
+            color: #cfd8dc;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+        }
+        .kw-panel h3 {
+            font-size: 16px;
+            color: #e0e0e0;
+            margin-bottom: 4px;
+        }
+        .kw-panel .kw-hint {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 14px;
+        }
+        .kw-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        .kw-row input[type="color"] {
+            width: 56px;
+            height: 40px;
+            padding: 2px;
+            border: 1px solid #444;
+            border-radius: 6px;
+            background: #1e1e1e;
+            cursor: pointer;
+        }
+        .kw-row textarea {
+            flex: 1;
+            min-height: 40px;
+            padding: 8px 10px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            color: #e0e0e0;
+            background: #1e1e1e;
+            border: 1px solid #444;
+            border-radius: 6px;
+            resize: vertical;
+        }
+        .kw-row textarea:focus {
+            outline: none;
+            border-color: #4fc3f7;
+        }
+        .kw-row .kw-preview {
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 12px;
+        }
+        .kw-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #333;
+        }
+        .kw-actions .kw-status {
+            font-size: 12px;
+            color: #81c784;
+        }
+        .kw-actions .kw-status.unsaved {
+            color: #ffb74d;
+        }
+        .kw-actions button {
+            padding: 6px 14px;
+            font-size: 13px;
+            background: #3a86ff;
+            border: none;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .kw-actions button:hover { background: #2a6edc; }
+
+        #closeBtn {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            background: rgba(40, 40, 40, 0.85);
+            color: #e0e0e0;
+            border: 1px solid #555;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 20px;
+            line-height: 1;
+            display: none;
+            z-index: 100;
+            font-family: inherit;
+        }
+        #closeBtn:hover {
+            background: rgba(60, 60, 60, 0.95);
+            color: #fff;
+            border-color: #00BFFF;
+        }
+        #closeBtn.visible { display: block; }
+    </style>
+</head>
+<body>
+    <button id="closeBtn" title="Close">×</button>
+    <div id="kwModal" class="kw-modal hidden" role="dialog" aria-modal="true" aria-label="关键字高亮">
+        <div class="kw-backdrop" id="kwBackdrop"></div>
+        <div class="kw-panel">
+            <h3>关键字高亮</h3>
+            <div class="kw-hint">每行 1 个十六进制颜色 + 逗号分隔的关键字。匹配项在代码片段中显示为指定颜色。</div>
+            <div class="kw-rows" id="kwRows"></div>
+            <div class="kw-actions">
+                <span id="kwStatus" class="kw-status"></span>
+                <button id="kwCloseBtn" type="button">关闭</button>
+            </div>
+        </div>
+    </div>
+    <div class="stage" id="stage">
+        <div class="hint" id="hint">按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴数据流文本<br>可选:用 <kbd>---</kbd> 分隔后追加 JSON 讲解</div>
+    </div>
+    <textarea id="codePaste" class="code-paste"></textarea>
+    <div id="codeHint" class="code-hint hidden">按 <b>Ctrl</b> + <b>V</b> 粘贴代码片段,按 <b>Esc</b> 取消</div>
+
+    <script>
+        'use strict';
+
+        let steps = [];
+        let currentIndex = 0;
+        let validStepNumbers = new Set();
+        let controlsVisible = false;
+        let selectedVoiceName = localStorage.getItem('focusDataflowVoiceName') || '';
+        let selectedCnVoiceName = localStorage.getItem('focusDataflowCnVoiceName') || '';
+        let speechSpeedEn = (() => {
+            const v = parseFloat(localStorage.getItem('focusDataflowSpeedEn'));
+            return Number.isFinite(v) ? v : (parseFloat(localStorage.getItem('focusDataflowSpeed')) || 1.0);
+        })();
+        let speechSpeedCn = (() => {
+            const v = parseFloat(localStorage.getItem('focusDataflowSpeedCn'));
+            return Number.isFinite(v) ? v : 1.0;
+        })();
+        const KEYWORD_ROW_COUNT = 6;
+        const KEYWORD_DEFAULTS = ['#ffb74d', '#82aaff', '#c3e88d', '#f78c6c', '#c792ea', '#ff5370'];
+        let keywordColors = (() => {
+            try {
+                const raw = localStorage.getItem('focusDataflowKeywordColors');
+                if (!raw) throw 0;
+                const arr = JSON.parse(raw);
+                if (!Array.isArray(arr) || arr.length === 0) throw 0;
+                const out = [];
+                for (let i = 0; i < KEYWORD_ROW_COUNT; i++) {
+                    const entry = arr[i] || {};
+                    out.push({
+                        color: typeof entry.color === 'string' && /^#[0-9a-fA-F]{6}$/.test(entry.color)
+                            ? entry.color
+                            : KEYWORD_DEFAULTS[i],
+                        keywords: typeof entry.keywords === 'string' ? entry.keywords : '',
+                    });
+                }
+                return out;
+            } catch (e) {
+                return KEYWORD_DEFAULTS.map(c => ({ color: c, keywords: '' }));
+            }
+        })();
+        let availableVoices = [];
+        let isSpeaking = false;
+        let autoPlay = localStorage.getItem('focusDataflowAutoPlay') === 'true';
+        let highlightEnabled = localStorage.getItem('focusDataflowHighlight') === 'true';
+        let noteSegments = [];
+        let codeSnippets = {};
+        let awaitingCodePaste = false;
+        let commentUtterance = null;
+        let speakingCmtEl = null;
+        const stage = document.getElementById('stage');
+        const codePasteInput = document.getElementById('codePaste');
+        const codeHint = document.getElementById('codeHint');
+        let codeHintTimer = null;
+
+        function isDecorationLine(line) {
+            return /^\s*```/.test(line) || /^\s*\/\/\s*=+\s*$/.test(line);
+        }
+
+        function parseCodeSnippets(text, validSteps) {
+            const lines = text.replace(/\r\n/g, '\n').split('\n');
+            const snippets = {};
+            let current = null;
+            let lastStep = 0;
+            let buffer = [];
+            const flush = () => {
+                if (current === null) return;
+                snippets[current] = buffer.join('\n').replace(/^(?:\s*\/\/\s*\n|\n)+/, '').replace(/\s+$/, '');
+            };
+            const allowed = validSteps instanceof Set ? validSteps : null;
+            lines.forEach(line => {
+                const m = line.match(/^\s*\/\/\s*(\d{2,3})(?=\s|$)/);
+                const step = m ? parseInt(m[1], 10) : 0;
+                const inRange = allowed ? allowed.has(step) : true;
+                const isMarker = step > lastStep && inRange;
+                if (isMarker) {
+                    flush();
+                    lastStep = step;
+                    current = step;
+                    buffer = [];
+                    return;
+                }
+                if (current !== null && !isDecorationLine(line)) buffer.push(line);
+            });
+            flush();
+            return snippets;
+        }
+
+        function openCodePaste() {
+            awaitingCodePaste = true;
+            codePasteInput.value = '';
+            codePasteInput.focus();
+            codeHint.classList.remove('hidden');
+            clearTimeout(codeHintTimer);
+            codeHintTimer = setTimeout(() => {
+                codeHint.classList.add('hidden');
+                awaitingCodePaste = false;
+            }, 6000);
+        }
+
+        function closeCodePaste() {
+            awaitingCodePaste = false;
+            codePasteInput.value = '';
+            codePasteInput.blur();
+            codeHint.classList.add('hidden');
+            clearTimeout(codeHintTimer);
+        }
+
+        function loadCode(text) {
+            const snippets = parseCodeSnippets(text, validStepNumbers);
+            closeCodePaste();
+            if (Object.keys(snippets).length === 0) return false;
+            codeSnippets = snippets;
+            render();
+            return true;
+        }
+
+        async function requestCodePaste() {
+            if (navigator.clipboard && navigator.clipboard.readText) {
+                try {
+                    const text = await navigator.clipboard.readText();
+                    if (text && text.trim() && loadCode(text)) return;
+                } catch (err) {
+                    console.warn('clipboard read failed', err);
+                }
+            }
+            openCodePaste();
+        }
+
+        function appendCodeLine(pre, line) {
+            const re = /(@)([A-Z][A-Za-z0-9_]*)|(\s)([A-Z][A-Za-z0-9_]*)(\s\{)|(\s)([a-z][A-Za-z0-9_]*)(\s*\()/g;
+            let last = 0;
+            let m;
+            while ((m = re.exec(line)) !== null) {
+                if (m.index > last) pre.appendChild(document.createTextNode(line.slice(last, m.index)));
+                if (m[2]) {
+                    const span = document.createElement('span');
+                    span.className = 'ann';
+                    span.textContent = m[1] + m[2];
+                    pre.appendChild(span);
+                } else {
+                    pre.appendChild(document.createTextNode(m[3] || m[6]));
+                    const span = document.createElement('span');
+                    if (m[4]) {
+                        span.className = 'cls';
+                        span.textContent = m[4];
+                        pre.appendChild(span);
+                        pre.appendChild(document.createTextNode(m[5]));
+                    } else {
+                        span.className = 'mth';
+                        span.textContent = m[7];
+                        pre.appendChild(span);
+                        pre.appendChild(document.createTextNode(m[8]));
+                    }
+                }
+                last = re.lastIndex;
+            }
+            if (last < line.length) pre.appendChild(document.createTextNode(line.slice(last)));
+            pre.appendChild(document.createTextNode('\n'));
+        }
+
+        function isCommentLine(line, inBlock) {
+            if (inBlock) return true;
+            const t = line.trim();
+            return t.startsWith('//') || t.startsWith('/*') || t.startsWith('*');
+        }
+
+        function buildKeywordRegexes() {
+            return keywordColors.map((kc, i) => {
+                const parts = (kc.keywords || '')
+                    .split(',')
+                    .map(s => s.trim())
+                    .filter(Boolean);
+                if (!parts.length) return null;
+                const escaped = parts.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                return { idx: i, color: kc.color, re: new RegExp('\\b(?:' + escaped.join('|') + ')\\b', 'g') };
+            }).filter(Boolean);
+        }
+
+        function applyKeywordHighlights(root) {
+            const rules = buildKeywordRegexes();
+            if (!rules.length) return;
+            const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+            const nodes = [];
+            let n;
+            while ((n = walker.nextNode())) nodes.push(n);
+            nodes.forEach(node => {
+                let parent = node.parentNode;
+                while (parent && parent !== root) {
+                    if (parent.classList && (parent.classList.contains('cls') || parent.classList.contains('mth')
+                        || parent.classList.contains('ann') || parent.classList.contains('cmt')
+                        || parent.classList.contains('kw'))) {
+                        return;
+                    }
+                    parent = parent.parentNode;
+                }
+                const text = node.nodeValue;
+                if (!text) return;
+                const matches = [];
+                rules.forEach(rule => {
+                    rule.re.lastIndex = 0;
+                    let m;
+                    while ((m = rule.re.exec(text)) !== null) {
+                        matches.push({ start: m.index, end: m.index + m[0].length, rule });
+                        if (m.index === rule.re.lastIndex) rule.re.lastIndex++;
+                    }
+                });
+                if (!matches.length) return;
+                matches.sort((a, b) => a.start - b.start || (b.end - b.start) - (a.end - a.start));
+                const filtered = [];
+                let lastEnd = -1;
+                matches.forEach(m => {
+                    if (m.start >= lastEnd) { filtered.push(m); lastEnd = m.end; }
+                });
+                const frag = document.createDocumentFragment();
+                let pos = 0;
+                filtered.forEach(m => {
+                    if (m.start > pos) frag.appendChild(document.createTextNode(text.slice(pos, m.start)));
+                    const span = document.createElement('span');
+                    span.className = 'kw';
+                    span.style.color = m.rule.color;
+                    span.textContent = text.slice(m.start, m.end);
+                    frag.appendChild(span);
+                    pos = m.end;
+                });
+                if (pos < text.length) frag.appendChild(document.createTextNode(text.slice(pos)));
+                node.parentNode.replaceChild(frag, node);
+            });
+        }
+
+        function buildCodePane() {
+            const pane = document.createElement('div');
+            pane.className = 'code-pane';
+            const code = codeSnippets[currentIndex + 1];
+            if (!code) {
+                const empty = document.createElement('div');
+                empty.className = 'code-empty';
+                empty.textContent = '本步骤没有对应的代码片段';
+                pane.appendChild(empty);
+                return pane;
+            }
+            const pre = document.createElement('pre');
+            let inBlock = false;
+            code.split('\n').forEach(line => {
+                const comment = isCommentLine(line, inBlock);
+                if (comment) {
+                    const span = document.createElement('span');
+                    span.className = 'cmt';
+                    span.textContent = line;
+                    pre.appendChild(span);
+                    pre.appendChild(document.createTextNode('\n'));
+                } else {
+                    appendCodeLine(pre, line);
+                }
+                if (inBlock && line.includes('*/')) inBlock = false;
+                else if (!inBlock && line.includes('/*') && !line.includes('*/')) inBlock = true;
+            });
+            pane.appendChild(pre);
+            applyKeywordHighlights(pre);
+            return pane;
+        }
+
+        function parseExplanations(jsonText) {
+            const entries = [];
+            const fenced = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/);
+            const body = fenced ? fenced[1] : jsonText;
+            const re = /"(\d+)"\s*:\s*"((?:[^"\\]|\\.)*)"/g;
+            let m;
+            while ((m = re.exec(body)) !== null) {
+                let value;
+                try {
+                    value = JSON.parse('"' + m[2] + '"');
+                } catch (err) {
+                    value = m[2];
+                }
+                entries.push({ index: parseInt(m[1], 10) - 1, value: value });
+            }
+            return entries;
+        }
+
+        function parseInput(text) {
+            const parts = text.split(/^\s*---\s*$/m);
+            const jsonOnly = parts.length === 1 && text.trim().startsWith('{');
+            const traceLines = jsonOnly ? [] : parts[0]
+                .split('\n')
+                .map(l => l.replace(/\s+$/, ''))
+                .filter(l => l.trim().length > 0);
+
+            const entries = parseExplanations(jsonOnly ? text : parts.slice(1).join('\n'));
+            validStepNumbers = new Set(entries.map(e => e.index + 1));
+            const items = traceLines.map(line => ({ line: line, notes: [] }));
+
+            if (items.length === 0) {
+                entries.forEach(entry => {
+                    items.push({ line: '', notes: [entry.value] });
+                });
+                return items;
+            }
+
+            entries.forEach(entry => {
+                const target = items[entry.index];
+                if (target) target.notes.push(entry.value);
+            });
+            return items;
+        }
+
+        function splitNote(note) {
+            const open = note.indexOf('【');
+            if (open < 0) return { en: note.trim(), cn: '' };
+            return {
+                en: note.slice(0, open).trim(),
+                cn: note.slice(open + 1).replace(/】\s*$/, '').trim()
+            };
+        }
+
+        function appendEndingPunctuation(text, mark) {
+            const trimmed = (text || '').replace(/\s+$/, '');
+            if (!trimmed) return text;
+            const last = trimmed[trimmed.length - 1];
+            if (/[.!?！？。．;；]/.test(last)) return text;
+            return trimmed + mark;
+        }
+
+        function renderLine(text) {
+            const span = document.createElement('span');
+            span.className = 'flow-line';
+            if (!text) {
+                span.textContent = '—';
+                return span;
+            }
+            const m = text.match(/^(\s*)((?:\d+\s*)?)((?:→|↳)?)([\s\S]*)$/);
+            if (!m) {
+                span.textContent = text;
+                return span;
+            }
+            if (m[1]) span.appendChild(document.createTextNode(m[1]));
+            if (m[2]) {
+                const num = document.createElement('span');
+                num.className = 'marker';
+                num.textContent = m[2];
+                span.appendChild(num);
+            }
+            if (m[3]) {
+                const arrow = document.createElement('span');
+                arrow.className = 'arrow';
+                arrow.textContent = m[3];
+                span.appendChild(arrow);
+            }
+            appendMethods(span, m[4]);
+            return span;
+        }
+
+        function appendMethods(parent, text) {
+            const re = /\.([A-Za-z_$][A-Za-z0-9_$]*)(?=\s*\()/g;
+            let last = 0;
+            let m;
+            while ((m = re.exec(text)) !== null) {
+                parent.appendChild(document.createTextNode(text.slice(last, m.index + 1)));
+                const span = document.createElement('span');
+                span.className = 'method';
+                span.textContent = m[1];
+                parent.appendChild(span);
+                last = m.index + 1 + m[1].length;
+            }
+            parent.appendChild(document.createTextNode(text.slice(last)));
+        }
+
+        function buildToggle(labelText, checked, onChange) {
+            const label = document.createElement('label');
+            const box = document.createElement('input');
+            box.type = 'checkbox';
+            box.checked = checked;
+            box.addEventListener('change', () => onChange(box.checked));
+            label.appendChild(box);
+            label.appendChild(document.createTextNode(' ' + labelText));
+            return label;
+        }
+
+        function attachWordSegments(card) {
+            const notes = [];
+            const boxes = Array.from(card.querySelectorAll('.note-en'));
+            boxes.forEach(box => {
+                const segments = [];
+                const text = box.textContent;
+                if (!text) {
+                    notes.push({ el: box, segments });
+                    return;
+                }
+                box.textContent = '';
+                let i = 0;
+                while (i < text.length) {
+                    const rest = text.slice(i);
+                    const m = rest.match(/^[A-Za-z0-9_'-]+/);
+                    if (m) {
+                        const span = document.createElement('span');
+                        span.textContent = m[0];
+                        box.appendChild(span);
+                        segments.push({ el: span, start: i, end: i + m[0].length });
+                        i += m[0].length;
+                    } else {
+                        box.appendChild(document.createTextNode(text[i]));
+                        i += 1;
+                    }
+                }
+                notes.push({ el: box, segments });
+            });
+            return notes;
+        }
+
+        function clearHighlights() {
+            noteSegments.forEach(note => note.segments.forEach(seg => seg.el.classList.remove('tts-highlight')));
+        }
+
+        function applyHighlight(charIndex, noteIndex) {
+            if (!highlightEnabled) return;
+            const note = noteSegments[noteIndex];
+            if (!note) return;
+            let current = null;
+            for (const seg of note.segments) {
+                if (charIndex >= seg.start && charIndex < seg.end) {
+                    current = seg;
+                    break;
+                }
+            }
+            noteSegments.forEach(n => n.segments.forEach(seg => seg.el.classList.toggle('tts-highlight', seg === current)));
+        }
+
+        function goTo(index) {
+            if (index < 0 || index >= steps.length || index === currentIndex) return;
+            stopSpeaking();
+            currentIndex = index;
+            render();
+            if (autoPlay) speakCurrentStep();
+        }
+
+        function buildSpeed(initialSpeed, storageKey) {
+            const speedLabel = document.createElement('label');
+            speedLabel.textContent = 'Speed';
+            const speedRange = document.createElement('input');
+            speedRange.type = 'range';
+            speedRange.min = '0.5';
+            speedRange.max = '2';
+            speedRange.step = '0.1';
+            speedRange.value = String(initialSpeed);
+            const speedValue = document.createElement('span');
+            speedValue.textContent = initialSpeed.toFixed(1);
+            speedRange.addEventListener('input', () => {
+                const v = parseFloat(speedRange.value);
+                speedValue.textContent = v.toFixed(1);
+                localStorage.setItem(storageKey, String(v));
+            });
+            speedLabel.appendChild(speedRange);
+            speedLabel.appendChild(speedValue);
+            return { speedLabel, speedRange, setSpeed: (v) => {
+                speedRange.value = String(v);
+                speedValue.textContent = v.toFixed(1);
+            } };
+        }
+
+        function buildControls() {
+            const controls = document.createElement('div');
+            controls.className = controlsVisible ? 'controls' : 'controls hidden';
+
+            const voiceLabel = document.createElement('label');
+            voiceLabel.textContent = 'EN';
+            const voiceSelect = document.createElement('select');
+            const defaultOpt = document.createElement('option');
+            defaultOpt.value = '';
+            defaultOpt.textContent = 'Default';
+            voiceSelect.appendChild(defaultOpt);
+            availableVoices.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v.name;
+                opt.textContent = `${v.name} (${v.lang})`;
+                voiceSelect.appendChild(opt);
+            });
+            if (selectedVoiceName && availableVoices.some(v => v.name === selectedVoiceName)) {
+                voiceSelect.value = selectedVoiceName;
+            }
+            voiceSelect.addEventListener('change', () => {
+                selectedVoiceName = voiceSelect.value;
+                localStorage.setItem('focusDataflowVoiceName', selectedVoiceName);
+            });
+            voiceLabel.appendChild(voiceSelect);
+            controls.appendChild(voiceLabel);
+
+            const enSpeed = buildSpeed(speechSpeedEn, 'focusDataflowSpeedEn');
+            enSpeed.speedRange.addEventListener('input', () => {
+                speechSpeedEn = parseFloat(enSpeed.speedRange.value);
+            });
+            controls.appendChild(enSpeed.speedLabel);
+
+            const readBtn = document.createElement('button');
+            const english = currentEnglishText();
+            readBtn.textContent = isSpeaking ? 'Stop' : 'Read';
+            readBtn.disabled = !english;
+            if (isSpeaking) readBtn.classList.add('speaking');
+            readBtn.addEventListener('click', () => {
+                if (isSpeaking) {
+                    stopSpeaking();
+                } else {
+                    speakCurrentStep();
+                }
+            });
+            controls.appendChild(readBtn);
+
+            controls.appendChild(buildToggle('Auto Play', autoPlay, (checked) => {
+                autoPlay = checked;
+                localStorage.setItem('focusDataflowAutoPlay', String(checked));
+            }));
+
+            controls.appendChild(buildToggle('Highlight', highlightEnabled, (checked) => {
+                highlightEnabled = checked;
+                localStorage.setItem('focusDataflowHighlight', String(checked));
+                if (!checked) clearHighlights();
+            }));
+
+            const ctrlRow = document.createElement('div');
+            ctrlRow.className = 'ctrl-row';
+
+            const cnVoiceLabel = document.createElement('label');
+            cnVoiceLabel.textContent = 'CN';
+            const cnVoiceSelect = document.createElement('select');
+            const cnDefaultOpt = document.createElement('option');
+            cnDefaultOpt.value = '';
+            cnDefaultOpt.textContent = 'Default';
+            cnVoiceSelect.appendChild(cnDefaultOpt);
+            availableVoices.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v.name;
+                opt.textContent = `${v.name} (${v.lang})`;
+                cnVoiceSelect.appendChild(opt);
+            });
+            if (selectedCnVoiceName && availableVoices.some(v => v.name === selectedCnVoiceName)) {
+                cnVoiceSelect.value = selectedCnVoiceName;
+            }
+            cnVoiceSelect.addEventListener('change', () => {
+                selectedCnVoiceName = cnVoiceSelect.value;
+                localStorage.setItem('focusDataflowCnVoiceName', selectedCnVoiceName);
+            });
+            cnVoiceLabel.appendChild(cnVoiceSelect);
+            ctrlRow.appendChild(cnVoiceLabel);
+
+            const cnSpeed = buildSpeed(speechSpeedCn, 'focusDataflowSpeedCn');
+            cnSpeed.speedRange.addEventListener('input', () => {
+                speechSpeedCn = parseFloat(cnSpeed.speedRange.value);
+            });
+            ctrlRow.appendChild(cnSpeed.speedLabel);
+
+            controls.appendChild(ctrlRow);
+
+            return controls;
+        }
+
+        function currentEnglishText() {
+            const step = steps[currentIndex];
+            if (!step) return '';
+            return step.notes
+                .map(note => splitNote(note).en)
+                .filter(Boolean)
+                .join(' ');
+        }
+
+        function setReadButtonState(speaking) {
+            const btn = stage.querySelector('.controls button');
+            if (!btn) return;
+            isSpeaking = speaking;
+            btn.textContent = speaking ? 'Stop' : 'Read';
+            btn.classList.toggle('speaking', speaking);
+        }
+
+        function pickTTSVoice(text) {
+            const hasCJK = /[぀-ヿ㐀-䶿一-鿿＀-￯]/.test(text);
+            const voiceName = hasCJK ? selectedCnVoiceName : selectedVoiceName;
+            const lang = hasCJK ? 'zh-CN' : 'en-US';
+            const rate = hasCJK ? speechSpeedCn : speechSpeedEn;
+            if (!voiceName) return { lang, rate };
+            const voice = availableVoices.find(v => v.name === voiceName);
+            return { lang, rate, voice };
+        }
+
+        function prepareTextForTTS(text) {
+            if (!text) return text;
+            const hasCJK = /[぀-ヿ㐀-䶿一-鿿＀-￯]/.test(text);
+            const eqWord = hasCJK ? '等于' : 'equals';
+            const neqWord = hasCJK ? '不等于' : "doesn't equal";
+            return text
+                .replace(/===/g, eqWord)
+                .replace(/!==/g, neqWord)
+                .replace(/==/g, eqWord)
+                .replace(/!=/g, neqWord)
+                .replace(/_/g, ' ');
+        }
+
+        function speakText(text, sourceEl) {
+            if (!('speechSynthesis' in window)) return;
+            if (!text) return;
+            stopSpeaking();
+            const noteIndex = sourceEl
+                ? noteSegments.findIndex(n => n.el === sourceEl)
+                : -1;
+            text = prepareTextForTTS(text);
+            const utterance = new SpeechSynthesisUtterance(text);
+            const { lang, rate, voice } = pickTTSVoice(text);
+            utterance.lang = lang;
+            utterance.rate = rate;
+            if (voice) utterance.voice = voice;
+            const done = () => {
+                clearHighlights();
+                setReadButtonState(false);
+            };
+            utterance.onboundary = (event) => {
+                if (typeof event.charIndex === 'number') {
+                    applyHighlight(event.charIndex, noteIndex);
+                }
+            };
+            utterance.onend = done;
+            utterance.onerror = done;
+            setReadButtonState(true);
+            speechSynthesis.speak(utterance);
+        }
+
+        function speakCurrentStep() {
+            if (!('speechSynthesis' in window)) return;
+            const step = steps[currentIndex];
+            if (!step) return;
+            const items = [];
+            step.notes.forEach((note, i) => {
+                const en = appendEndingPunctuation(splitNote(note).en, '.');
+                if (!en) return;
+                const segNote = noteSegments[i];
+                const noteIndex = segNote && segNote.segments.length > 0 ? i : -1;
+                items.push({ text: en, noteIndex });
+            });
+            if (!items.length) return;
+            stopSpeaking();
+            setReadButtonState(true);
+            let done = 0;
+            const total = items.length;
+            const onAnyDone = () => {
+                if (++done >= total) {
+                    clearHighlights();
+                    setReadButtonState(false);
+                }
+            };
+            items.forEach(item => {
+                const text = prepareTextForTTS(item.text);
+                const utterance = new SpeechSynthesisUtterance(text);
+                const { lang, rate, voice } = pickTTSVoice(item.text);
+                utterance.lang = lang;
+                utterance.rate = rate;
+                if (voice) utterance.voice = voice;
+                utterance.onboundary = (event) => {
+                    if (typeof event.charIndex === 'number') applyHighlight(event.charIndex, item.noteIndex);
+                };
+                utterance.onend = onAnyDone;
+                utterance.onerror = onAnyDone;
+                speechSynthesis.speak(utterance);
+            });
+        }
+
+        function stopSpeaking() {
+            if ('speechSynthesis' in window) {
+                speechSynthesis.cancel();
+            }
+            clearHighlights();
+            setReadButtonState(false);
+        }
+
+        function stripCommentMarkers(text) {
+            return text
+                .replace(/^\s*(?:\/\/|\/\*\*?|\*)\s?/, '')
+                .replace(/\s*\*\/\s*$/, '')
+                .trim();
+        }
+
+        function stopCommentTTS() {
+            if (speakingCmtEl) {
+                speakingCmtEl.classList.remove('speaking');
+                speakingCmtEl = null;
+            }
+            if (!commentUtterance) return;
+            if ('speechSynthesis' in window) speechSynthesis.cancel();
+            commentUtterance = null;
+        }
+
+        function speakComment(rawText, sourceEl) {
+            if (!('speechSynthesis' in window)) return;
+            const cleaned = stripCommentMarkers(rawText);
+            if (!cleaned) return;
+            if (/^[=\-*_~+\s]+$/.test(cleaned)) return;
+
+            stopCommentTTS();
+            const ttsReady = prepareTextForTTS(cleaned);
+            const { lang, rate, voice } = pickTTSVoice(cleaned);
+            const utterance = new SpeechSynthesisUtterance(ttsReady);
+            utterance.lang = lang;
+            utterance.rate = rate;
+            if (voice && voice.lang && voice.lang.toLowerCase().startsWith(lang.slice(0, 2).toLowerCase())) {
+                utterance.voice = voice;
+            }
+            utterance.onend = () => {
+                if (sourceEl) sourceEl.classList.remove('speaking');
+                if (speakingCmtEl === sourceEl) speakingCmtEl = null;
+                if (commentUtterance === utterance) commentUtterance = null;
+            };
+            utterance.onerror = () => {
+                if (sourceEl) sourceEl.classList.remove('speaking');
+                if (speakingCmtEl === sourceEl) speakingCmtEl = null;
+                if (commentUtterance === utterance) commentUtterance = null;
+            };
+            if (sourceEl) {
+                sourceEl.classList.add('speaking');
+                speakingCmtEl = sourceEl;
+            }
+            commentUtterance = utterance;
+            speechSynthesis.speak(utterance);
+        }
+
+        let voicesInitialized = false;
+        function loadVoices() {
+            if (!('speechSynthesis' in window)) return;
+            availableVoices = speechSynthesis.getVoices();
+            if (voicesInitialized) return;
+            voicesInitialized = true;
+            if (steps.length > 0 && controlsVisible) render();
+        }
+
+        function render() {
+            const codePane = stage.querySelector('.code-pane');
+            const codeScroll = codePane ? codePane.scrollTop : 0;
+            stage.innerHTML = '';
+            const hasCode = Object.keys(codeSnippets).length > 0;
+            stage.classList.toggle('with-code', hasCode);
+            document.body.classList.toggle('with-code', hasCode);
+            if (steps.length === 0) return;
+
+            const pane = document.createElement('div');
+            pane.className = 'step-pane';
+            pane.appendChild(buildControls());
+
+            const step = steps[currentIndex];
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.appendChild(renderLine(step.line));
+
+            if (step.notes.length > 0) {
+                const notes = document.createElement('div');
+                notes.className = 'notes';
+                step.notes.forEach(note => {
+                    const parts = splitNote(note);
+                    const box = document.createElement('div');
+                    box.className = 'note';
+                    if (parts.en) {
+                        const en = document.createElement('div');
+                        en.className = 'note-en';
+                        en.textContent = appendEndingPunctuation(parts.en, '.');
+                        box.appendChild(en);
+                    }
+                    if (parts.cn) {
+                        const cn = document.createElement('div');
+                        cn.className = 'note-cn';
+                        cn.textContent = appendEndingPunctuation(parts.cn, '。');
+                        box.appendChild(cn);
+                    }
+                    notes.appendChild(box);
+                });
+                card.appendChild(notes);
+            }
+            noteSegments = attachWordSegments(card);
+            card.addEventListener('click', (e) => {
+                const enEl = e.target.closest('.note-en');
+                if (enEl) {
+                    speakText(enEl.textContent, enEl);
+                    return;
+                }
+                copyStepText();
+            });
+            pane.appendChild(card);
+
+            const status = document.createElement('div');
+            status.className = 'status';
+            status.textContent = `${currentIndex + 1} / ${steps.length}`;
+            const hint = document.createElement('span');
+            hint.innerHTML = ' &nbsp; <kbd>↑</kbd> <kbd>↓</kbd> 切换';
+            status.appendChild(hint);
+            pane.appendChild(status);
+            stage.appendChild(pane);
+
+            if (Object.keys(codeSnippets).length > 0) {
+                const codePaneEl = buildCodePane();
+                stage.appendChild(codePaneEl);
+                if (codeScroll) codePaneEl.scrollTop = codeScroll;
+            }
+        }
+
+        function copyStepText() {
+            const step = steps[currentIndex];
+            if (!step || !step.line) return;
+            const flash = () => {
+                const card = stage.querySelector('.card');
+                if (!card) return;
+                card.classList.add('copied');
+                setTimeout(() => card.classList.remove('copied'), 600);
+            };
+            const text = step.line;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(flash).catch(() => legacyCopy(text, flash));
+            } else {
+                legacyCopy(text, flash);
+            }
+        }
+
+        function legacyCopy(text, done) {
+            const area = document.createElement('textarea');
+            area.value = text;
+            area.style.position = 'fixed';
+            area.style.opacity = '0';
+            document.body.appendChild(area);
+            area.select();
+            try {
+                document.execCommand('copy');
+            } catch (err) {
+                return;
+            } finally {
+                document.body.removeChild(area);
+            }
+            done();
+        }
+
+        function showError(msg) {
+            stage.innerHTML = '';
+            const div = document.createElement('div');
+            div.className = 'error';
+            div.textContent = msg;
+            stage.appendChild(div);
+        }
+
+        function loadText(text) {
+            const parts = text.split(/^\s*---\s*$/m);
+            const jsonOnly = parts.length === 1 && text.trim().startsWith('{');
+            let inputForParse, codeText = null;
+            if (jsonOnly) {
+                inputForParse = text;
+            } else if (parts.length >= 3) {
+                inputForParse = parts[0] + '\n---\n' + parts[1];
+                codeText = parts.slice(2).join('\n---\n');
+            } else {
+                inputForParse = text;
+            }
+            const parsed = parseInput(inputForParse);
+            if (parsed.length === 0) {
+                showError('没有解析到数据流步骤');
+                return;
+            }
+            steps = parsed;
+            currentIndex = 0;
+            if (codeText) loadCode(codeText);
+            render();
+        }
+
+        document.addEventListener('paste', (e) => {
+            const text = (e.clipboardData || window.clipboardData).getData('text');
+            if (!text) return;
+            if (!document.getElementById('kwModal').classList.contains('hidden')) {
+                return;
+            }
+            e.preventDefault();
+            if (awaitingCodePaste || e.target === codePasteInput) {
+                loadCode(text);
+                return;
+            }
+            loadText(text);
+        });
+
+        stage.addEventListener('click', (e) => {
+            const cmt = e.target.closest('.cmt');
+            if (!cmt) return;
+            speakComment(cmt.textContent, cmt);
+        });
+
+        const closeBtn = document.getElementById('closeBtn');
+        closeBtn.addEventListener('click', () => {
+            window.parent.postMessage({ type: 'focus-dataflow-close' }, '*');
+        });
+
+        window.addEventListener('message', (e) => {
+            const data = e.data;
+            if (!data || typeof data !== 'object') return;
+            if (data.type !== 'focus-dataflow-load') return;
+            if (typeof data.content !== 'string' || !data.content) return;
+            loadText(data.content);
+            closeBtn.classList.add('visible');
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.altKey && !e.ctrlKey && !e.shiftKey && !e.metaKey && (e.key === 'v' || e.key === 'V')) {
+                e.preventDefault();
+            }
+        }, true);
+
+        function refreshKeywordHighlights() {
+            const pre = stage.querySelector('.code-pane pre');
+            if (!pre) return;
+            pre.querySelectorAll('span.kw').forEach(span => {
+                const text = document.createTextNode(span.textContent);
+                span.parentNode.replaceChild(text, span);
+            });
+            pre.normalize();
+            applyKeywordHighlights(pre);
+        }
+
+        function openKwModal() {
+            const modal = document.getElementById('kwModal');
+            const rows = document.getElementById('kwRows');
+            if (!rows.children.length) {
+                for (let i = 0; i < KEYWORD_ROW_COUNT; i++) {
+                    const row = document.createElement('div');
+                    row.className = 'kw-row';
+                    const colorInput = document.createElement('input');
+                    colorInput.type = 'color';
+                    colorInput.className = 'kw-color';
+                    colorInput.dataset.i = String(i);
+                    const ta = document.createElement('textarea');
+                    ta.className = 'kw-keywords';
+                    ta.dataset.i = String(i);
+                    ta.placeholder = '逗号分隔的关键字';
+                    row.appendChild(colorInput);
+                    row.appendChild(ta);
+                    rows.appendChild(row);
+                }
+                rows.addEventListener('input', (e) => {
+                    const t = e.target;
+                    const i = parseInt(t.dataset.i, 10);
+                    if (Number.isNaN(i) || i < 0 || i >= keywordColors.length) return;
+                    if (t.classList.contains('kw-color')) {
+                        keywordColors[i].color = t.value;
+                    } else if (t.classList.contains('kw-keywords')) {
+                        keywordColors[i].keywords = t.value;
+                    } else {
+                        return;
+                    }
+                    try {
+                        localStorage.setItem('focusDataflowKeywordColors', JSON.stringify(keywordColors));
+                    } catch (err) {}
+                    document.getElementById('kwStatus').textContent = '已自动保存';
+                    document.getElementById('kwStatus').classList.remove('unsaved');
+                    refreshKeywordHighlights();
+                });
+            }
+            for (let i = 0; i < KEYWORD_ROW_COUNT; i++) {
+                rows.querySelector('.kw-color[data-i="' + i + '"]').value = keywordColors[i].color;
+                rows.querySelector('.kw-keywords[data-i="' + i + '"]').value = keywordColors[i].keywords;
+            }
+            document.getElementById('kwStatus').textContent = '已自动保存';
+            document.getElementById('kwStatus').classList.remove('unsaved');
+            modal.classList.remove('hidden');
+        }
+
+        function closeKwModal() {
+            document.getElementById('kwModal').classList.add('hidden');
+        }
+
+        document.getElementById('kwBackdrop').addEventListener('click', closeKwModal);
+        document.getElementById('kwCloseBtn').addEventListener('click', closeKwModal);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !document.getElementById('kwModal').classList.contains('hidden')) {
+                e.preventDefault();
+                closeKwModal();
+                return;
+            }
+            if (e.altKey && !e.ctrlKey && !e.shiftKey && !e.metaKey && (e.key === 'v' || e.key === 'V')) {
+                e.preventDefault();
+                requestCodePaste();
+                return;
+            }
+            if (e.key === 'Escape' && document.activeElement === codePasteInput) {
+                e.preventDefault();
+                closeCodePaste();
+                return;
+            }
+            if (e.altKey && !e.ctrlKey && !e.shiftKey && !e.metaKey && (e.key === 'h' || e.key === 'H')) {
+                e.preventDefault();
+                controlsVisible = !controlsVisible;
+                if (steps.length > 0) render();
+                return;
+            }
+            if (e.altKey && !e.ctrlKey && !e.shiftKey && !e.metaKey && (e.key === 'c' || e.key === 'C')) {
+                e.preventDefault();
+                openKwModal();
+                return;
+            }
+            if (steps.length === 0) return;
+            const tag = (e.target && e.target.tagName) || '';
+            if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+            if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+                e.preventDefault();
+                goTo(currentIndex + 1);
+            } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'PageUp') {
+                e.preventDefault();
+                goTo(currentIndex - 1);
+            }
+        });
+
+        if ('speechSynthesis' in window) {
+            loadVoices();
+            speechSynthesis.onvoiceschanged = loadVoices;
+        }
+    </script>
+</body>
+</html>

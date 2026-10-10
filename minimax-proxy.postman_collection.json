@@ -1,0 +1,67 @@
+{
+  "info": {
+    "name": "MiniMax via next-reader proxy",
+    "description": "Test the deployed Vercel proxy at https://next-reader-psi.vercel.app/api/minimax. The proxy holds MINIMAX_API_KEY on the server, so no x-api-key header is needed here — only content-type. Body stays in Anthropic format and is forwarded transparently to api.minimaxi.com.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Simple (non-streaming)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "content-type", "value": "application/json", "type": "text" }
+        ],
+        "url": {
+          "raw": "https://next-reader-psi.vercel.app/api/minimax",
+          "protocol": "https",
+          "host": ["next-reader-psi", "vercel", "app"],
+          "path": ["api", "minimax"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"model\": \"MiniMax-M3\",\n  \"max_tokens\": 256,\n  \"system\": \"你是一个简洁、准确的助手。\",\n  \"messages\": [\n    {\"role\": \"user\", \"content\": \"用一句话介绍 MiniMax\"}\n  ]\n}"
+        }
+      }
+    },
+    {
+      "name": "2. Streaming (SSE, with thinking)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "content-type", "value": "application/json", "type": "text" },
+          { "key": "accept", "value": "text/event-stream", "type": "text" }
+        ],
+        "url": {
+          "raw": "https://next-reader-psi.vercel.app/api/minimax",
+          "protocol": "https",
+          "host": ["next-reader-psi", "vercel", "app"],
+          "path": ["api", "minimax"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"model\": \"MiniMax-M3\",\n  \"max_tokens\": 1024,\n  \"stream\": true,\n  \"thinking\": { \"type\": \"enabled\" },\n  \"system\": \"你是一个简洁、准确的助手。\",\n  \"messages\": [\n    {\"role\": \"user\", \"content\": \"用 JS 写一个 hello world, 并用 Markdown 解释\"}\n  ]\n}"
+        }
+      }
+    },
+    {
+      "name": "3. Error case (empty body → expect 400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "content-type", "value": "application/json", "type": "text" }
+        ],
+        "url": {
+          "raw": "https://next-reader-psi.vercel.app/api/minimax",
+          "protocol": "https",
+          "host": ["next-reader-psi", "vercel", "app"],
+          "path": ["api", "minimax"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "not-json"
+        }
+      }
+    }
+  ]
+}

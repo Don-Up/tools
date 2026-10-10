@@ -96,11 +96,16 @@
             text-align: center;
         }
         [hidden] { display: none; }
-        .tts-controls {
+        .top-left-controls {
             position: fixed;
             top: 20px;
             left: 20px;
             z-index: 5;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+        .tts-controls {
             display: flex;
             gap: 10px;
             align-items: center;
@@ -112,7 +117,7 @@
             color: #e0e0e0;
             border: 1px solid #444;
             border-radius: 4px;
-            width: 400px;
+            width: 180px;
         }
         .tts-toggle-label {
             font-size: 14px;
@@ -127,7 +132,6 @@
             height: 16px;
             margin: 0;
         }
-        #ttsControlsEn { top: 60px; }
         .speed-controls {
             position: fixed;
             top: 20px;
@@ -160,10 +164,6 @@
             font-variant-numeric: tabular-nums;
         }
         .mode-controls {
-            position: fixed;
-            top: 100px;
-            left: 20px;
-            z-index: 5;
             display: flex;
             gap: 10px;
             align-items: center;
@@ -491,10 +491,6 @@
             padding: 8px;
         }
         .fav-status {
-            position: fixed;
-            top: 135px;
-            left: 20px;
-            z-index: 5;
             font-size: 13px;
             color: #6cf;
             padding: 4px 8px;
@@ -502,6 +498,7 @@
             border-radius: 4px;
             cursor: pointer;
             user-select: none;
+            white-space: nowrap;
         }
         .fav-status:hover { background: rgba(102, 204, 255, 0.2); }
         #sidePanel {
@@ -734,20 +731,22 @@
     <div id="card">
 
         <div id="errorBar" class="error-bar"></div>
-        <div id="ttsControls" class="tts-controls">
-            <select id="voiceSelect" class="voice-select"></select>
-            <label class="tts-toggle-label"><input type="checkbox" id="ttsToggle" checked> CN</label>
+        <div id="topLeftControls" class="top-left-controls">
+            <div id="ttsControls" class="tts-controls">
+                <select id="voiceSelect" class="voice-select"></select>
+                <label class="tts-toggle-label"><input type="checkbox" id="ttsToggle" checked> CN</label>
+            </div>
+            <div id="ttsControlsEn" class="tts-controls">
+                <select id="voiceSelectEn" class="voice-select"></select>
+                <label class="tts-toggle-label"><input type="checkbox" id="ttsToggleEn"> EN</label>
+            </div>
+            <div id="modeControls" class="mode-controls">
+                <label class="mode-radio-label"><input type="radio" name="mode" value="1" checked> Mode 1</label>
+                <label class="mode-radio-label"><input type="radio" name="mode" value="2"> Mode 2</label>
+                <label class="mode-radio-label"><input type="radio" name="mode" value="3"> Mode 3</label>
+            </div>
+            <div id="favStatus" class="fav-status" hidden></div>
         </div>
-        <div id="ttsControlsEn" class="tts-controls">
-            <select id="voiceSelectEn" class="voice-select"></select>
-            <label class="tts-toggle-label"><input type="checkbox" id="ttsToggleEn"> EN</label>
-        </div>
-        <div id="modeControls" class="mode-controls">
-            <label class="mode-radio-label"><input type="radio" name="mode" value="1" checked> Mode 1</label>
-            <label class="mode-radio-label"><input type="radio" name="mode" value="2"> Mode 2</label>
-            <label class="mode-radio-label"><input type="radio" name="mode" value="3"> Mode 3</label>
-        </div>
-        <div id="favStatus" class="fav-status" hidden></div>
         <div id="speedControls" class="speed-controls">
             <div class="speed-row">
                 <span class="speed-label">CN</span>

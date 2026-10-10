@@ -45,20 +45,26 @@ Insert a single empty container as the first child of `#wrapper` (so it renders 
 ```css
 #tocPanel {
     position: fixed;
-    top: 60px;          /* below the .controls bar */
+    top: 0;             /* full height */
     left: 0;
     bottom: 0;
     width: 220px;
     background: #1e1e1e;
     border-right: 1px solid #333;
     overflow-y: auto;
-    padding: 10px 0;
+    padding: 88px 0 10px 0;   /* 88px top padding clears the fixed .controls bar (60px height + 10px+10px padding = 80px, plus 8px breathing room); bottom keeps a 10px gutter above the viewport edge */
     box-sizing: border-box;
     z-index: 40;        /* below the .controls bar (z-index: 1000) and the right sidePanel */
     display: none;
+    scrollbar-width: thin;
+    scrollbar-color: #555 transparent;
 }
+#tocPanel::-webkit-scrollbar { width: 6px; }
+#tocPanel::-webkit-scrollbar-track { background: transparent; }
+#tocPanel::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
+#tocPanel::-webkit-scrollbar-thumb:hover { background: #777; }
 body.toc-open #tocPanel { display: block; }
-body.toc-open .container { margin-left: 220px; }
+body.toc-open .container { margin-left: max(220px, calc(50vw - 400px)); }
 
 #tocPanel:empty { display: none; }   /* no headings → no panel even when body has toc-open */
 
@@ -83,7 +89,7 @@ body.toc-open .container { margin-left: 220px; }
     outline-offset: -2px;
 }
 .toc-level-1 { padding-left: 10px; font-weight: 600; }
-.toc-level-2 { padding-left: 20px; }
+.toc-level-2 { padding-left: 20px; color: #FFA500; }
 .toc-level-3 { padding-left: 30px; font-size: 13px; }
 .toc-level-4 { padding-left: 40px; font-size: 13px; color: #b0b0b0; }
 .toc-level-5 { padding-left: 50px; font-size: 12px; color: #b0b0b0; }
@@ -99,7 +105,7 @@ Z-index layering recap:
 - `#sidePanel`: `50`
 - `#tocPanel`: `40` (below the right panel — if both are open and overlap horizontally, the right one wins)
 
-The container margin shift (`margin-left: 220px`) is additive with the right-side `body.side-panel-open { padding-right: 40vw }` rule — both can be active simultaneously.
+The container margin shift uses `margin-left: max(220px, calc(50vw - 400px))` to keep the reading area visually centered when the viewport is wide enough. The reading area's natural centered position assumes an 800px (50vw − 400px) half-width; once the viewport is at least 1240px wide, the formula yields ≥ 220px (clears the TOC) and continues to grow, so the container stays centered. For viewports narrower than 1240px the formula falls back to 220px (just clears the TOC). Additive with the right-side `body.side-panel-open { padding-right: 40vw }` rule — both can be active simultaneously, and the centering rebalances against the right-panel padding automatically.
 
 ---
 

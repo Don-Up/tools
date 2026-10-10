@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>focus-explanation</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1e1e1e;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 40px 5vw;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stage {
+            width: 100%;
+            max-width: 1100px;
+        }
+
+        .hint {
+            color: #888;
+            font-size: 24px;
+            text-align: center;
+        }
+
+        .hint kbd {
+            display: inline-block;
+            font-family: inherit;
+            background: #2c2c2c;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 2px 8px;
+            color: #b0bec5;
+        }
+
+        .error {
+            color: #ef5350;
+            font-size: 20px;
+            text-align: center;
+        }
+
+        .card {
+            background: #252525;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 40px 48px;
+        }
+
+        .section-title {
+            font-size: 28px;
+            color: #4fc3f7;
+            margin-bottom: 24px;
+            font-weight: 600;
+        }
+
+        .section-body {
+            font-size: 30px;
+            line-height: 1.6;
+            color: #e0e0e0;
+            word-break: break-word;
+        }
+
+        .section-body code {
+            font-family: 'Consolas', 'Monaco', monospace;
+            background: #2c2c2c;
+            color: #b0bec5;
+            padding: 2px 10px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            word-break: break-all;
+        }
+
+        .mappings {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .mappings li {
+            margin-bottom: 16px;
+            display: flex;
+            align-items: baseline;
+            gap: 14px;
+            font-size: 26px;
+            line-height: 1.5;
+            flex-wrap: wrap;
+        }
+
+        .mappings .arrow {
+            color: #888;
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+
+        .mappings .noumenon {
+            color: #ffd54f;
+            font-family: 'Consolas', 'Monaco', monospace;
+            flex-shrink: 0;
+        }
+
+        .mappings .metaphor {
+            color: #e0e0e0;
+            flex: 1;
+        }
+
+        .status {
+            margin-top: 32px;
+            text-align: center;
+            color: #888;
+            font-size: 18px;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        .reset-link {
+            background: transparent;
+            color: #4fc3f7;
+            border: 1px solid #4fc3f7;
+            border-radius: 4px;
+            padding: 2px 10px;
+            font-size: 14px;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .reset-link:hover {
+            background: #4fc3f7;
+            color: #1e1e1e;
+        }
+
+        .cn-translation {
+            margin-top: 14px;
+            text-align: left;
+            color: #b0bec5;
+            font-size: 18px;
+            line-height: 1.6;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cn-translation code {
+            font-family: 'Consolas', 'Monaco', monospace;
+            background: #2c2c2c;
+            color: #ffd54f;
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+
+        .sentences {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sentences li {
+            margin-bottom: 18px;
+            line-height: 1.6;
+            display: flex;
+            gap: 16px;
+            align-items: baseline;
+            font-size: 26px;
+        }
+
+        .sentences .sentence-num {
+            color: #4fc3f7;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-weight: 600;
+            flex-shrink: 0;
+            min-width: 28px;
+            text-align: right;
+            font-size: 22px;
+        }
+
+        .sentences .sentence-text {
+            flex: 1;
+            word-break: break-word;
+        }
+
+        .sentences .sentence-text code {
+            font-family: 'Consolas', 'Monaco', monospace;
+            background: #2c2c2c;
+            color: #b0bec5;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .cn-sentences {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .cn-sentences li {
+            margin-bottom: 6px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            line-height: 1.6;
+            font-size: 17px;
+        }
+
+        .cn-sentences li.cn-sentence-highlight {
+            background: #4fc3f7;
+            color: #1e1e1e;
+        }
+
+        .cn-sentences li.cn-sentence-highlight code {
+            background: rgba(0, 0, 0, 0.2);
+            color: #1e1e1e;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 28px;
+            padding: 12px 20px;
+            background: #252525;
+            border: 1px solid #333;
+            border-radius: 6px;
+        }
+
+        .controls.hidden {
+            display: none;
+        }
+
+        .controls label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #b0bec5;
+            font-size: 14px;
+        }
+
+        .controls select {
+            background: #2c2c2c;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 6px 10px;
+            font-size: 14px;
+            outline: none;
+            min-width: 160px;
+            max-width: 220px;
+        }
+
+        .controls input[type="range"] {
+            width: 140px;
+            padding: 0;
+            accent-color: #4fc3f7;
+        }
+
+        .controls .speed-value {
+            color: #e0e0e0;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            min-width: 32px;
+            text-align: right;
+        }
+
+        .controls select:focus {
+            border-color: #4fc3f7;
+        }
+
+        .controls button {
+            background: #3a86ff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 18px;
+            font-size: 14px;
+            cursor: pointer;
+            font-family: inherit;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .controls button:hover {
+            background: #2a6edc;
+        }
+
+        .controls button.speaking {
+            background: #ff5252;
+        }
+
+        .controls button.speaking:hover {
+            background: #d84545;
+        }
+
+        .controls input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #4fc3f7;
+        }
+
+        .tts-highlight {
+            background: #4fc3f7;
+            color: #1e1e1e;
+            border-radius: 3px;
+        }
+
+        .stage.with-code {
+            display: flex;
+            gap: 28px;
+            align-items: flex-start;
+            justify-content: space-between;
+            max-width: none;
+            width: 100%;
+        }
+
+        .step-pane {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .code-pane {
+            flex: 0 0 46%;
+            background: #252525;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 20px 24px;
+            max-height: 72vh;
+            overflow: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #4a4a4a #1e1e1e;
+        }
+
+        .code-pane::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        .code-pane::-webkit-scrollbar-track {
+            background: #1e1e1e;
+            border-radius: 5px;
+        }
+
+        .code-pane::-webkit-scrollbar-thumb {
+            background: #4a4a4a;
+            border-radius: 5px;
+            border: 2px solid #1e1e1e;
+        }
+
+        .code-pane-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #333;
+        }
+
+        .code-pane-title {
+            font-size: 14px;
+            color: #888;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        .code-copy-btn {
+            background: transparent;
+            color: #4fc3f7;
+            border: 1px solid #4fc3f7;
+            border-radius: 4px;
+            padding: 4px 12px;
+            font-size: 13px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .code-copy-btn:hover {
+            background: #4fc3f7;
+            color: #1e1e1e;
+        }
+
+        .code-copy-btn.copied {
+            background: #81c784;
+            border-color: #81c784;
+            color: #1e1e1e;
+        }
+
+        .code-pane pre {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            line-height: 1.55;
+            white-space: pre;
+            color: #d4d4d4;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="stage" id="stage">
+        <div class="hint">按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴 JSON<br>可选:用 <kbd>---</kbd> 分隔后追加代码片段</div>
+    </div>
+
+    <script>
+        'use strict';
+
+        let sections = [];
+        let currentIndex = 0;
+        let currentCodeText = null;
+        let controlsVisible = localStorage.getItem('focusExpControlsVisible') === 'true';
+        let selectedVoiceName = localStorage.getItem('focusExpVoiceName') || '';
+        let speechSpeed = parseFloat(localStorage.getItem('focusExpSpeed')) || 1.0;
+        let highlightEnabled = localStorage.getItem('focusExpHighlight') === 'true';
+        let availableVoices = [];
+        let isSpeaking = false;
+        let currentSegments = [];
+        let sentenceStarts = [];
+        const stage = document.getElementById('stage');
+
+        function tokenizeText(text, container, startPos) {
+            const segments = [];
+            let pos = startPos;
+            let i = 0;
+            const wordRe = /^[A-Za-z0-9_'-]+/;
+            const wsRe = /^\s+/;
+            while (i < text.length) {
+                const rest = text.slice(i);
+                let m = rest.match(wordRe);
+                if (m && m[0].startsWith('_')) {
+                    container.appendChild(document.createTextNode('_'));
+                    pos += 1;
+                    i += 1;
+                    continue;
+                }
+                if (m) {
+                    const span = document.createElement('span');
+                    span.dataset.ttsStart = String(pos);
+                    span.dataset.ttsEnd = String(pos + m[0].length);
+                    span.textContent = m[0];
+                    container.appendChild(span);
+                    segments.push({ el: span, start: pos, end: pos + m[0].length });
+                    pos += m[0].length;
+                    i += m[0].length;
+                    continue;
+                }
+                m = rest.match(wsRe);
+                if (m) {
+                    container.appendChild(document.createTextNode(m[0]));
+                    pos += m[0].length;
+                    i += m[0].length;
+                    continue;
+                }
+                container.appendChild(document.createTextNode(text[i]));
+                pos += 1;
+                i += 1;
+            }
+            return segments;
+        }
+
+        function buildHighlightSegments(originalText, container, startPos) {
+            const segments = [];
+            let speechPos = startPos || 0;
+            let i = 0;
+            while (i < originalText.length) {
+                if (originalText[i] === '`') {
+                    const end = originalText.indexOf('`', i + 1);
+                    if (end >= 0) {
+                        const codeText = originalText.slice(i + 1, end);
+                        const speechLen = codeText.replace(/_/g, ' ').length;
+                        const code = document.createElement('code');
+                        code.dataset.ttsStart = String(speechPos);
+                        code.dataset.ttsEnd = String(speechPos + speechLen);
+                        code.textContent = codeText;
+                        container.appendChild(code);
+                        segments.push({ el: code, start: speechPos, end: speechPos + speechLen });
+                        speechPos += speechLen;
+                        i = end + 1;
+                        continue;
+                    }
+                }
+                let j = i;
+                while (j < originalText.length && originalText[j] !== '`') j++;
+                const textPart = originalText.slice(i, j);
+                if (textPart.length > 0) {
+                    const segs = tokenizeText(textPart, container, speechPos);
+                    segments.push(...segs);
+                    speechPos += textPart.length;
+                }
+                i = j;
+            }
+            return { segments, endPos: speechPos };
+        }
+
+        function renderMappingsWithHighlight(mappings, container) {
+            const ul = document.createElement('ul');
+            ul.className = 'mappings';
+            const segments = [];
+            let speechPos = 0;
+            mappings.forEach((m, pairIdx) => {
+                if (pairIdx > 0) {
+                    speechPos += 2;
+                }
+                const li = document.createElement('li');
+
+                const noumenon = document.createElement('span');
+                noumenon.className = 'noumenon';
+                const nText = m.noumenon || '';
+                const nBuilt = buildHighlightSegments(nText, noumenon, speechPos);
+                const nEnd = nBuilt.endPos;
+                noumenon.dataset.ttsStart = String(speechPos);
+                noumenon.dataset.ttsEnd = String(nEnd);
+                speechPos = nEnd + 2;
+                li.appendChild(noumenon);
+                segments.push(...nBuilt.segments);
+                segments.push({ el: noumenon, start: parseInt(noumenon.dataset.ttsStart, 10), end: parseInt(noumenon.dataset.ttsEnd, 10) });
+
+                const arrow = document.createElement('span');
+                arrow.className = 'arrow';
+                arrow.textContent = '→';
+                li.appendChild(arrow);
+
+                const metaphor = document.createElement('span');
+                metaphor.className = 'metaphor';
+                const mText = m.metaphor || '';
+                const mBuilt = buildHighlightSegments(mText, metaphor, speechPos);
+                const mEnd = mBuilt.endPos;
+                metaphor.dataset.ttsStart = String(speechPos);
+                metaphor.dataset.ttsEnd = String(mEnd);
+                speechPos = mEnd;
+                li.appendChild(metaphor);
+                segments.push(...mBuilt.segments);
+                segments.push({ el: metaphor, start: parseInt(metaphor.dataset.ttsStart, 10), end: parseInt(metaphor.dataset.ttsEnd, 10) });
+
+                ul.appendChild(li);
+            });
+            container.appendChild(ul);
+            return segments;
+        }
+
+        function splitSentences(text) {
+            const result = [];
+            let lastEnd = 0;
+            const re = /\.\s*/g;
+            let m;
+            while ((m = re.exec(text)) !== null) {
+                const end = m.index + m[0].length;
+                result.push(text.slice(lastEnd, end));
+                lastEnd = end;
+            }
+            if (lastEnd < text.length) {
+                result.push(text.slice(lastEnd));
+            }
+            if (result.length > 0) {
+                result[0] = result[0].replace(/^\s+/, '');
+            }
+            return result;
+        }
+
+        function splitChineseSentences(text) {
+            return text.split(/(?<=[。！？])\s*/).map(s => s.trim()).filter(s => s.length > 0);
+        }
+
+        function normalizeSource(text) {
+            return text
+                .replace(/【[^】]*】/g, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function buildSections(data) {
+            const result = [];
+            if (typeof data.tech === 'string' && data.tech.length > 0) {
+                const cnText = typeof data.tech_cn === 'string' ? data.tech_cn : '';
+                const text = normalizeSource(data.tech);
+                result.push({
+                    title: 'Technology',
+                    kind: 'text',
+                    text: text,
+                    plainText: text,
+                    text_cn: cnText,
+                    sentences: splitSentences(text),
+                    cnSentences: cnText ? splitChineseSentences(cnText) : []
+                });
+            }
+            if (typeof data.metaphor === 'string' && data.metaphor.length > 0) {
+                const cnText = typeof data.metaphor_cn === 'string' ? data.metaphor_cn : '';
+                const text = normalizeSource(data.metaphor);
+                result.push({
+                    title: 'Metaphor',
+                    kind: 'text',
+                    text: text,
+                    plainText: text,
+                    text_cn: cnText,
+                    sentences: splitSentences(text),
+                    cnSentences: cnText ? splitChineseSentences(cnText) : []
+                });
+            }
+            if (Array.isArray(data.mappings) && data.mappings.length > 0) {
+                const mappings = data.mappings.map(m => ({
+                    noumenon: normalizeSource(typeof m.noumenon === 'string' ? m.noumenon : ''),
+                    metaphor: normalizeSource(typeof m.metaphor === 'string' ? m.metaphor : '')
+                }));
+                const plainText = mappings
+                    .map(m => `${m.noumenon}, ${m.metaphor}`)
+                    .join('. ');
+                result.push({ title: 'Mappings', kind: 'mappings', mappings: mappings, plainText });
+            }
+            if (typeof data.simple === 'string' && data.simple.length > 0) {
+                const text = normalizeSource(data.simple);
+                result.push({ title: 'Simple Memory', kind: 'text', text: text, plainText: text });
+            }
+            return result;
+        }
+
+        function renderSimpleText(text, container) {
+            const parts = text.split('`');
+            parts.forEach((part, i) => {
+                if (i % 2 === 0) {
+                    if (part.length > 0) container.appendChild(document.createTextNode(part));
+                } else {
+                    const code = document.createElement('code');
+                    code.textContent = part;
+                    container.appendChild(code);
+                }
+            });
+        }
+
+        function buildControls() {
+            const controls = document.createElement('div');
+            controls.className = controlsVisible ? 'controls' : 'controls hidden';
+
+            const voiceLabel = document.createElement('label');
+            const voiceText = document.createElement('span');
+            voiceText.textContent = 'Voice';
+            voiceLabel.appendChild(voiceText);
+            const voiceSelect = document.createElement('select');
+            const defaultOpt = document.createElement('option');
+            defaultOpt.value = '';
+            defaultOpt.textContent = 'Default';
+            voiceSelect.appendChild(defaultOpt);
+            availableVoices.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v.name;
+                opt.textContent = `${v.name} (${v.lang})`;
+                voiceSelect.appendChild(opt);
+            });
+            if (selectedVoiceName && availableVoices.some(v => v.name === selectedVoiceName)) {
+                voiceSelect.value = selectedVoiceName;
+            }
+            voiceSelect.addEventListener('change', () => {
+                selectedVoiceName = voiceSelect.value;
+                localStorage.setItem('focusExpVoiceName', selectedVoiceName);
+            });
+            voiceLabel.appendChild(voiceSelect);
+            controls.appendChild(voiceLabel);
+
+            const speedLabel = document.createElement('label');
+            const speedText = document.createElement('span');
+            speedText.textContent = 'Speed';
+            speedLabel.appendChild(speedText);
+            const speedRange = document.createElement('input');
+            speedRange.type = 'range';
+            speedRange.min = '0.5';
+            speedRange.max = '2';
+            speedRange.step = '0.1';
+            speedRange.value = String(speechSpeed);
+            const speedValue = document.createElement('span');
+            speedValue.className = 'speed-value';
+            speedValue.textContent = speechSpeed.toFixed(1);
+            speedRange.addEventListener('input', () => {
+                speechSpeed = parseFloat(speedRange.value);
+                localStorage.setItem('focusExpSpeed', String(speechSpeed));
+                speedValue.textContent = speechSpeed.toFixed(1);
+            });
+            speedLabel.appendChild(speedRange);
+            speedLabel.appendChild(speedValue);
+            controls.appendChild(speedLabel);
+
+            const highlightLabel = document.createElement('label');
+            const highlightCheckbox = document.createElement('input');
+            highlightCheckbox.type = 'checkbox';
+            highlightCheckbox.checked = highlightEnabled;
+            highlightCheckbox.addEventListener('change', () => {
+                highlightEnabled = highlightCheckbox.checked;
+                localStorage.setItem('focusExpHighlight', String(highlightEnabled));
+                if (!highlightEnabled) {
+                    currentSegments.forEach(s => s.el.classList.remove('tts-highlight'));
+                }
+            });
+            highlightLabel.appendChild(highlightCheckbox);
+            highlightLabel.appendChild(document.createTextNode(' Highlight'));
+            controls.appendChild(highlightLabel);
+
+            const readBtn = document.createElement('button');
+            readBtn.id = 'readBtn';
+            readBtn.textContent = isSpeaking ? 'Stop' : 'Read';
+            if (isSpeaking) readBtn.classList.add('speaking');
+            readBtn.addEventListener('click', () => {
+                if (isSpeaking) {
+                    stopSpeaking();
+                } else {
+                    speakCurrentSection();
+                }
+            });
+            controls.appendChild(readBtn);
+
+            return controls;
+        }
+
+        function renderStepContent(parent) {
+            parent.appendChild(buildControls());
+
+            const section = sections[currentIndex];
+
+            const card = document.createElement('div');
+            card.className = 'card';
+
+            const title = document.createElement('h2');
+            title.className = 'section-title';
+            title.textContent = section.title;
+            card.appendChild(title);
+
+            const body = document.createElement('div');
+            body.className = 'section-body';
+            if (section.sentences && section.sentences.length > 0) {
+                const ol = document.createElement('ol');
+                ol.className = 'sentences';
+                let speechPos = 0;
+                section.sentences.forEach((s, i) => {
+                    const li = document.createElement('li');
+                    const num = document.createElement('span');
+                    num.className = 'sentence-num';
+                    num.textContent = String(i + 1);
+                    const text = document.createElement('span');
+                    text.className = 'sentence-text';
+                    const lead = s.length - s.replace(/^\s+/, '').length;
+                    sentenceStarts[i] = speechPos + lead;
+                    const segs = buildHighlightSegments(s, text, speechPos);
+                    currentSegments.push(...segs.segments);
+                    speechPos = segs.endPos;
+                    li.appendChild(num);
+                    li.appendChild(text);
+                    ol.appendChild(li);
+                });
+                body.appendChild(ol);
+            } else if (section.kind === 'text') {
+                currentSegments = buildHighlightSegments(section.text, body).segments;
+            } else if (section.kind === 'mappings') {
+                currentSegments = renderMappingsWithHighlight(section.mappings, body);
+            }
+            card.appendChild(body);
+
+            parent.appendChild(card);
+
+            const status = document.createElement('div');
+            status.className = 'status';
+            status.textContent = `${currentIndex + 1} / ${sections.length}`;
+            if (currentIndex === sections.length - 1) {
+                const resetLink = document.createElement('button');
+                resetLink.className = 'reset-link';
+                resetLink.textContent = '← 1';
+                resetLink.title = '回到第一段（也可以右键页面）';
+                resetLink.addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    goToFirst();
+                });
+                status.appendChild(document.createTextNode('  '));
+                status.appendChild(resetLink);
+            }
+            parent.appendChild(status);
+
+            if (section.text_cn) {
+                const cn = document.createElement('div');
+                cn.className = 'cn-translation';
+                if (section.cnSentences && section.cnSentences.length > 0) {
+                    const ol = document.createElement('ol');
+                    ol.className = 'cn-sentences';
+                    section.cnSentences.forEach((s, i) => {
+                        const li = document.createElement('li');
+                        li.dataset.idx = String(i);
+                        renderSimpleText(s, li);
+                        ol.appendChild(li);
+                    });
+                    cn.appendChild(ol);
+                } else {
+                    renderSimpleText(section.text_cn, cn);
+                }
+                parent.appendChild(cn);
+            }
+        }
+
+        function buildCodePane(code) {
+            const pane = document.createElement('div');
+            pane.className = 'code-pane';
+
+            const header = document.createElement('div');
+            header.className = 'code-pane-header';
+            const title = document.createElement('span');
+            title.className = 'code-pane-title';
+            title.textContent = '代码片段';
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'code-copy-btn';
+            copyBtn.textContent = '复制';
+            copyBtn.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                copyText(code, copyBtn);
+            });
+            header.appendChild(title);
+            header.appendChild(copyBtn);
+            pane.appendChild(header);
+
+            const pre = document.createElement('pre');
+            pre.textContent = code;
+            pane.appendChild(pre);
+
+            return pane;
+        }
+
+        function copyText(text, btn) {
+            const flash = () => {
+                if (!btn) return;
+                const oldText = btn.textContent;
+                btn.textContent = '已复制';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = oldText;
+                    btn.classList.remove('copied');
+                }, 1200);
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(flash).catch(() => legacyCopy(text, flash));
+            } else {
+                legacyCopy(text, flash);
+            }
+        }
+
+        function legacyCopy(text, done) {
+            const area = document.createElement('textarea');
+            area.value = text;
+            area.style.position = 'fixed';
+            area.style.opacity = '0';
+            document.body.appendChild(area);
+            area.select();
+            try {
+                document.execCommand('copy');
+            } catch (err) {
+                return;
+            } finally {
+                document.body.removeChild(area);
+            }
+            done();
+        }
+
+        function render() {
+            stage.innerHTML = '';
+            currentSegments = [];
+            sentenceStarts = [];
+
+            const showCode = !!currentCodeText && currentIndex === 0;
+            stage.classList.toggle('with-code', showCode);
+
+            if (sections.length === 0) return;
+
+            if (showCode) {
+                const stepPane = document.createElement('div');
+                stepPane.className = 'step-pane';
+                renderStepContent(stepPane);
+                stage.appendChild(stepPane);
+                stage.appendChild(buildCodePane(currentCodeText));
+            } else {
+                renderStepContent(stage);
+            }
+        }
+
+        function showError(msg) {
+            stage.innerHTML = '';
+            const div = document.createElement('div');
+            div.className = 'error';
+            div.textContent = msg;
+            stage.appendChild(div);
+        }
+
+        function loadJson(text) {
+            const parts = text.split(/^\s*---\s*$/m);
+            let jsonText, codeRaw = null;
+            if (parts.length === 1) {
+                jsonText = text;
+            } else {
+                jsonText = parts[0];
+                codeRaw = parts.slice(1).join('\n---\n');
+            }
+            const cleanJson = extractJsonText(jsonText);
+            let data;
+            try {
+                data = JSON.parse(cleanJson);
+            } catch (e) {
+                showError('不是有效的 JSON: ' + e.message);
+                return;
+            }
+            const built = buildSections(data);
+            if (built.length === 0) {
+                showError('JSON 中没有可显示的字段（需要 tech / metaphor / mappings / simple）');
+                return;
+            }
+            stopSpeaking();
+            sections = built;
+            currentIndex = 0;
+            currentCodeText = extractCodeText(codeRaw);
+            render();
+        }
+
+        function extractJsonText(text) {
+            const trimmed = (text || '').trim();
+            if (trimmed.startsWith('```')) {
+                const m = trimmed.match(/^```(?:[A-Za-z]+)?[^\n]*\n([\s\S]*?)\n?```/);
+                if (m) return m[1];
+            }
+            return trimmed;
+        }
+
+        function extractCodeText(raw) {
+            if (!raw) return null;
+            const m = raw.match(/```[A-Za-z]*[^\n]*\n([\s\S]*?)\n?```/);
+            if (m) return m[1].replace(/^\n+|\n+$/g, '');
+            const trimmed = raw.trim();
+            return trimmed || null;
+        }
+
+        function preprocessForSpeech(text) {
+            return text
+                .replace(/【[^】]*】/g, '')
+                .replace(/_/g, ' ')
+                .replace(/`([^`]+)`/g, '$1')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function setReadButtonState(speaking) {
+            const btn = document.getElementById('readBtn');
+            if (!btn) return;
+            isSpeaking = speaking;
+            btn.textContent = speaking ? 'Stop' : 'Read';
+            btn.classList.toggle('speaking', speaking);
+        }
+
+        function clearHighlights() {
+            currentSegments.forEach(s => s.el.classList.remove('tts-highlight'));
+        }
+
+        function applyHighlight(charIndex) {
+            if (!highlightEnabled) return;
+            let current = null;
+            for (const seg of currentSegments) {
+                if (charIndex >= seg.start && charIndex < seg.end) {
+                    current = seg;
+                    break;
+                }
+            }
+            currentSegments.forEach(s => s.el.classList.toggle('tts-highlight', s === current));
+        }
+
+        function stopSpeaking() {
+            if ('speechSynthesis' in window) {
+                speechSynthesis.cancel();
+            }
+            clearHighlights();
+            setReadButtonState(false);
+        }
+
+        function speakCurrentSection() {
+            if (sections.length === 0) return;
+            if (!('speechSynthesis' in window)) return;
+            const raw = sections[currentIndex].plainText || '';
+            const text = preprocessForSpeech(raw);
+            if (!text) return;
+            stopSpeaking();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = speechSpeed;
+            if (selectedVoiceName) {
+                const voice = availableVoices.find(v => v.name === selectedVoiceName);
+                if (voice) utterance.voice = voice;
+            }
+            utterance.onboundary = (event) => {
+                if (typeof event.charIndex === 'number') {
+                    applyHighlight(event.charIndex);
+                }
+            };
+            utterance.onend = () => {
+                clearHighlights();
+                setReadButtonState(false);
+            };
+            utterance.onerror = () => {
+                clearHighlights();
+                setReadButtonState(false);
+            };
+            setReadButtonState(true);
+            speechSynthesis.speak(utterance);
+        }
+
+        function speakSentence(section, idx) {
+            if (!('speechSynthesis' in window)) return;
+            const rawSentence = section.sentences[idx] || '';
+            const text = preprocessForSpeech(rawSentence);
+            if (!text) return;
+            stopSpeaking();
+            const start = sentenceStarts[idx] || 0;
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = speechSpeed;
+            if (selectedVoiceName) {
+                const voice = availableVoices.find(v => v.name === selectedVoiceName);
+                if (voice) utterance.voice = voice;
+            }
+            utterance.onboundary = (event) => {
+                if (typeof event.charIndex === 'number') {
+                    applyHighlight(start + event.charIndex);
+                }
+            };
+            const clear = () => {
+                clearHighlights();
+                setReadButtonState(false);
+            };
+            utterance.onend = clear;
+            utterance.onerror = clear;
+            setReadButtonState(true);
+            speechSynthesis.speak(utterance);
+        }
+
+        function loadVoices() {
+            if (!('speechSynthesis' in window)) return;
+            availableVoices = speechSynthesis.getVoices();
+            if (sections.length > 0) render();
+        }
+
+        document.addEventListener('paste', (e) => {
+            const text = (e.clipboardData || window.clipboardData).getData('text');
+            if (!text) return;
+            e.preventDefault();
+            loadJson(text);
+        });
+
+        function goToFirst() {
+            stopSpeaking();
+            currentIndex = 0;
+            render();
+        }
+
+        document.addEventListener('mousedown', (e) => {
+            if (e.button !== 2) return;
+            if (sections.length === 0) return;
+            if (currentIndex !== sections.length - 1) return;
+            e.preventDefault();
+            e.stopPropagation();
+            goToFirst();
+        }, true);
+
+        document.addEventListener('contextmenu', (e) => {
+            if (sections.length === 0) return;
+            if (currentIndex !== sections.length - 1) return;
+            e.preventDefault();
+            e.stopPropagation();
+            goToFirst();
+        }, true);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.altKey && !e.ctrlKey && !e.shiftKey && !e.metaKey && (e.key === 'h' || e.key === 'H')) {
+                e.preventDefault();
+                controlsVisible = !controlsVisible;
+                localStorage.setItem('focusExpControlsVisible', String(controlsVisible));
+                if (sections.length > 0) render();
+                return;
+            }
+            if (sections.length === 0) return;
+            if (e.key === ' ' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                const tag = (e.target && e.target.tagName) || '';
+                if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+                e.preventDefault();
+                if (isSpeaking) stopSpeaking();
+                return;
+            }
+            if (/^[1-9]$/.test(e.key) && !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
+                const section = sections[currentIndex];
+                if (section.sentences) {
+                    const idx = parseInt(e.key, 10) - 1;
+                    if (idx < section.sentences.length) {
+                        e.preventDefault();
+                        speakSentence(section, idx);
+                        return;
+                    }
+                }
+            }
+            if (e.key === 'p' || e.key === 'P' || e.key === 'PageDown') {
+                e.preventDefault();
+                if (isSpeaking) {
+                    stopSpeaking();
+                } else {
+                    speakCurrentSection();
+                }
+                return;
+            }
+            if (e.key === 'PageUp') {
+                e.preventDefault();
+                stopSpeaking();
+                currentIndex = 0;
+                render();
+                return;
+            }
+            if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+                e.preventDefault();
+                if (currentIndex < sections.length - 1) {
+                    currentIndex++;
+                    render();
+                }
+            } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                e.preventDefault();
+                if (currentIndex > 0) {
+                    currentIndex--;
+                    render();
+                }
+            }
+        });
+
+        if ('speechSynthesis' in window) {
+            loadVoices();
+            speechSynthesis.onvoiceschanged = loadVoices;
+        }
+    </script>
+</body>
+</html>

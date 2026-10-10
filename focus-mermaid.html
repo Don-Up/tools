@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>focus-mermaid</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1e1e1e;
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+
+        .stage {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .hint {
+            color: #888;
+            font-size: 24px;
+            text-align: center;
+            line-height: 1.8;
+        }
+
+        .hint kbd {
+            display: inline-block;
+            font-family: inherit;
+            background: #2c2c2c;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 2px 8px;
+            color: #b0bec5;
+        }
+
+        .error {
+            color: #ef5350;
+            font-size: 16px;
+            text-align: left;
+            white-space: pre-wrap;
+            max-width: 80%;
+            background: #2c2c2c;
+            border: 1px solid #444;
+            border-radius: 6px;
+            padding: 16px 20px;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        .mermaid-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: auto;
+        }
+
+        .mermaid-container > svg {
+            max-width: 100% !important;
+            max-height: 100% !important;
+            width: auto !important;
+            height: auto !important;
+        }
+
+        .status {
+            position: fixed;
+            bottom: 16px;
+            right: 20px;
+            color: #666;
+            font-size: 13px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            pointer-events: none;
+        }
+
+        #closeBtn {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            background: rgba(40, 40, 40, 0.85);
+            color: #e0e0e0;
+            border: 1px solid #555;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 20px;
+            line-height: 1;
+            display: none;
+            z-index: 100;
+            font-family: inherit;
+        }
+        #closeBtn:hover {
+            background: rgba(60, 60, 60, 0.95);
+            color: #fff;
+            border-color: #00BFFF;
+        }
+        #closeBtn.visible { display: block; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+    <button id="closeBtn" title="Close">×</button>
+    <div class="stage" id="stage">
+        <div class="hint">按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴 mermaid 代码</div>
+    </div>
+    <div class="status" id="status"></div>
+
+    <script>
+        'use strict';
+
+        const stage = document.getElementById('stage');
+        const status = document.getElementById('status');
+        let renderCounter = 0;
+
+        if (window.mermaid) {
+            window.mermaid.initialize({
+                startOnLoad: false,
+                theme: 'dark',
+                securityLevel: 'strict',
+                themeVariables: {
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    background: '#1e1e1e',
+                    primaryColor: '#252525',
+                    primaryTextColor: '#e0e0e0',
+                    primaryBorderColor: '#4fc3f7',
+                    lineColor: '#81c784',
+                    secondaryColor: '#2c2c2c',
+                    tertiaryColor: '#1e1e1e',
+                },
+            });
+        }
+
+        function showHint() {
+            stage.innerHTML = '';
+            const hint = document.createElement('div');
+            hint.className = 'hint';
+            hint.innerHTML = '按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴 mermaid 代码';
+            stage.appendChild(hint);
+            status.textContent = '';
+        }
+
+        function showError(msg) {
+            stage.innerHTML = '';
+            const err = document.createElement('div');
+            err.className = 'error';
+            err.textContent = msg;
+            stage.appendChild(err);
+            status.textContent = '';
+        }
+
+        async function renderMermaid(code) {
+            if (!window.mermaid) {
+                showError('mermaid.js 未加载,请检查网络');
+                return;
+            }
+            const id = 'mermaid-' + (++renderCounter);
+            try {
+                const result = await window.mermaid.render(id, code);
+                const svg = typeof result === 'string' ? result : result.svg;
+                stage.innerHTML = '';
+                const container = document.createElement('div');
+                container.className = 'mermaid-container';
+                container.innerHTML = svg;
+                stage.appendChild(container);
+                const lines = code.split('\n').length;
+                status.textContent = `${lines} 行 · 按 Ctrl+V 重新粘贴`;
+            } catch (err) {
+                const message = (err && (err.message || err.str || err.toString())) || '未知错误';
+                showError('mermaid 语法错误:\n\n' + message);
+            }
+        }
+
+        document.addEventListener('paste', (e) => {
+            const text = (e.clipboardData || window.clipboardData).getData('text');
+            if (!text) return;
+            e.preventDefault();
+            renderMermaid(text.trim());
+        });
+
+        const closeBtn = document.getElementById('closeBtn');
+        closeBtn.addEventListener('click', () => {
+            window.parent.postMessage({ type: 'focus-mermaid-close' }, '*');
+        });
+
+        window.addEventListener('message', (e) => {
+            const data = e.data;
+            if (!data || typeof data !== 'object') return;
+            if (data.type !== 'focus-mermaid-load') return;
+            if (typeof data.content !== 'string' || !data.content) return;
+            renderMermaid(data.content.trim());
+            closeBtn.classList.add('visible');
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                showHint();
+            }
+        });
+    </script>
+</body>
+</html>

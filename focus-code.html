@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>focus-code</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1e1e1e;
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+
+        .stage {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hint {
+            color: #888;
+            font-size: 24px;
+            text-align: center;
+            line-height: 1.8;
+        }
+
+        .hint kbd {
+            display: inline-block;
+            font-family: inherit;
+            background: #2c2c2c;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 2px 8px;
+            color: #b0bec5;
+        }
+
+        .code-pane {
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            padding: 48px 64px;
+        }
+
+        .code-pane pre {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 28px;
+            line-height: 1.55;
+            color: #d4d4d4;
+            white-space: pre;
+            tab-size: 4;
+        }
+
+        .code-pane .cmt {
+            color: #6a9955;
+            cursor: pointer;
+            border-radius: 3px;
+            transition: background-color 0.1s;
+        }
+
+        .code-pane .cmt:hover {
+            background: rgba(106, 153, 85, 0.18);
+        }
+
+        .code-pane .cmt.speaking {
+            background: #000000;
+            color: #ffffff;
+        }
+
+        .code-pane .cls {
+            color: #ffb74d;
+        }
+
+        .code-pane .mth {
+            color: #81c784;
+        }
+
+        .code-pane .ann {
+            color: #4fc3f7;
+        }
+    </style>
+</head>
+<body>
+    <div class="stage" id="stage">
+        <div class="hint">按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴代码</div>
+    </div>
+
+    <script>
+        'use strict';
+
+        const stage = document.getElementById('stage');
+        let commentUtterance = null;
+        let speakingCmtEl = null;
+
+        const HIGHLIGHT_RE = /(@)([A-Z][A-Za-z0-9_]*)|(\s)([A-Z][A-Za-z0-9_]*)(\s\{)|(\s)([a-z][A-Za-z0-9_]*)(\s*\()/g;
+
+        function isCommentLine(line, inBlock) {
+            if (inBlock) return true;
+            const t = line.trim();
+            return t.startsWith('//') || t.startsWith('/*') || t.startsWith('*');
+        }
+
+        function appendCodeLine(pre, line) {
+            HIGHLIGHT_RE.lastIndex = 0;
+            let last = 0;
+            let m;
+            while ((m = HIGHLIGHT_RE.exec(line)) !== null) {
+                if (m.index > last) pre.appendChild(document.createTextNode(line.slice(last, m.index)));
+                if (m[2]) {
+                    const span = document.createElement('span');
+                    span.className = 'ann';
+                    span.textContent = m[1] + m[2];
+                    pre.appendChild(span);
+                } else {
+                    pre.appendChild(document.createTextNode(m[3] || m[6]));
+                    const span = document.createElement('span');
+                    if (m[4]) {
+                        span.className = 'cls';
+                        span.textContent = m[4];
+                        pre.appendChild(span);
+                        pre.appendChild(document.createTextNode(m[5]));
+                    } else {
+                        span.className = 'mth';
+                        span.textContent = m[7];
+                        pre.appendChild(span);
+                        pre.appendChild(document.createTextNode(m[8]));
+                    }
+                }
+                last = HIGHLIGHT_RE.lastIndex;
+            }
+            if (last < line.length) pre.appendChild(document.createTextNode(line.slice(last)));
+            pre.appendChild(document.createTextNode('\n'));
+        }
+
+        function showHint() {
+            stage.innerHTML = '';
+            const hint = document.createElement('div');
+            hint.className = 'hint';
+            hint.innerHTML = '按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴代码';
+            stage.appendChild(hint);
+        }
+
+        function renderCode(code) {
+            stage.innerHTML = '';
+            const pane = document.createElement('div');
+            pane.className = 'code-pane';
+            const pre = document.createElement('pre');
+            let inBlock = false;
+            code.split('\n').forEach(line => {
+                if (isCommentLine(line, inBlock)) {
+                    const span = document.createElement('span');
+                    span.className = 'cmt';
+                    span.textContent = line;
+                    pre.appendChild(span);
+                    pre.appendChild(document.createTextNode('\n'));
+                } else {
+                    appendCodeLine(pre, line);
+                }
+                if (inBlock && line.includes('*/')) inBlock = false;
+                else if (!inBlock && line.includes('/*') && !line.includes('*/')) inBlock = true;
+            });
+            pane.appendChild(pre);
+            stage.appendChild(pane);
+        }
+
+        function stripCommentMarkers(text) {
+            return text
+                .replace(/^\s*(?:\/\/|\/\*\*?|\*)\s?/, '')
+                .replace(/\s*\*\/\s*$/, '')
+                .trim();
+        }
+
+        function stopCommentTTS() {
+            if (speakingCmtEl) {
+                speakingCmtEl.classList.remove('speaking');
+                speakingCmtEl = null;
+            }
+            if (!commentUtterance) return;
+            if ('speechSynthesis' in window) speechSynthesis.cancel();
+            commentUtterance = null;
+        }
+
+        function speakComment(rawText, sourceEl) {
+            if (!('speechSynthesis' in window)) return;
+            const cleaned = stripCommentMarkers(rawText);
+            if (!cleaned) return;
+            if (/^[=\-*_~+\s]+$/.test(cleaned)) return;
+            const hasCJK = /[぀-ヿ㐀-䶿一-鿿＀-￯]/.test(cleaned);
+            const lang = hasCJK ? 'zh-CN' : 'en-US';
+
+            stopCommentTTS();
+            const utterance = new SpeechSynthesisUtterance(cleaned);
+            utterance.lang = lang;
+            utterance.onend = () => {
+                if (sourceEl) sourceEl.classList.remove('speaking');
+                if (speakingCmtEl === sourceEl) speakingCmtEl = null;
+                if (commentUtterance === utterance) commentUtterance = null;
+            };
+            utterance.onerror = () => {
+                if (sourceEl) sourceEl.classList.remove('speaking');
+                if (speakingCmtEl === sourceEl) speakingCmtEl = null;
+                if (commentUtterance === utterance) commentUtterance = null;
+            };
+            if (sourceEl) {
+                sourceEl.classList.add('speaking');
+                speakingCmtEl = sourceEl;
+            }
+            commentUtterance = utterance;
+            speechSynthesis.speak(utterance);
+        }
+
+        stage.addEventListener('click', (e) => {
+            const cmt = e.target.closest('.cmt');
+            if (!cmt) return;
+            speakComment(cmt.textContent, cmt);
+        });
+
+        document.addEventListener('paste', (e) => {
+            const text = (e.clipboardData || window.clipboardData).getData('text');
+            if (!text) return;
+            e.preventDefault();
+            renderCode(text);
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                showHint();
+            }
+        });
+    </script>
+</body>
+</html>

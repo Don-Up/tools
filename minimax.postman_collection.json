@@ -1,0 +1,61 @@
+{
+  "info": {
+    "name": "MiniMax M3 Test",
+    "description": "Test the MiniMax M3 API directly. After import: 1) open the collection Variables tab and set api_key to your real key, 2) send either request. Both use the {{api_key}} variable in the x-api-key header.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "api_key",
+      "value": "",
+      "type": "default"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Simple (non-streaming)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "x-api-key", "value": "{{api_key}}", "type": "text" },
+          { "key": "anthropic-version", "value": "2023-06-01", "type": "text" },
+          { "key": "content-type", "value": "application/json", "type": "text" },
+          { "key": "anthropic-dangerous-direct-browser-access", "value": "true", "type": "text" }
+        ],
+        "url": {
+          "raw": "https://api.minimaxi.com/anthropic/v1/messages",
+          "protocol": "https",
+          "host": ["api", "minimaxi", "com"],
+          "path": ["anthropic", "v1", "messages"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"model\": \"MiniMax-M3\",\n  \"max_tokens\": 256,\n  \"system\": \"你是一个简洁、准确的助手。\",\n  \"messages\": [\n    {\"role\": \"user\", \"content\": \"用一句话介绍 MiniMax\"}\n  ]\n}"
+        }
+      }
+    },
+    {
+      "name": "2. Streaming (SSE, with thinking)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "x-api-key", "value": "{{api_key}}", "type": "text" },
+          { "key": "anthropic-version", "value": "2023-06-01", "type": "text" },
+          { "key": "content-type", "value": "application/json", "type": "text" },
+          { "key": "anthropic-dangerous-direct-browser-access", "value": "true", "type": "text" },
+          { "key": "accept", "value": "text/event-stream", "type": "text" }
+        ],
+        "url": {
+          "raw": "https://api.minimaxi.com/anthropic/v1/messages",
+          "protocol": "https",
+          "host": ["api", "minimaxi", "com"],
+          "path": ["anthropic", "v1", "messages"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"model\": \"MiniMax-M3\",\n  \"max_tokens\": 1024,\n  \"stream\": true,\n  \"thinking\": { \"type\": \"enabled\" },\n  \"system\": \"你是一个简洁、准确的助手。\",\n  \"messages\": [\n    {\"role\": \"user\", \"content\": \"用 JS 写一个 hello world, 并用 Markdown 解释\"}\n  ]\n}"
+        }
+      }
+    }
+  ]
+}

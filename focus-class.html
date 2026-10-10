@@ -362,6 +362,13 @@
             window.speechSynthesis.speak(utter);
         }
 
+        function buildBriefSpeech(member) {
+            if (!member || !member.brief) return null;
+            const m = member.text.match(/^[+\-#~](.+?)(?=\s*[:(]|$)/);
+            if (m) return `${m[1]}, ${member.brief}`;
+            return member.brief;
+        }
+
         if (window.speechSynthesis) {
             loadTtsSettings();
             refreshTtsVoices();
@@ -436,8 +443,11 @@
         let currentIndex = 0;
         let renderCounter = 0;
         let latestRenderId = 0;
-        let viewMode = 'with-neighbors';
+        let viewMode = 'focused-only';
         let currentMemberBriefs = [];
+        let briefableMembers = [];
+        let briefReadIndex = 0;
+        let lastRenderedIndex = -1;
 
         function buildClassSource(model, index) {
             const target = model.classes[index];
@@ -568,7 +578,7 @@
                     b.className = 'class-box-brief';
                     b.textContent = m.brief;
                     b.title = '点击朗读';
-                    b.addEventListener('click', () => speakText(m.brief));
+                    b.addEventListener('click', () => speakText(buildBriefSpeech(m)));
                     item.appendChild(b);
                 }
                 if (m.example) {
@@ -632,6 +642,11 @@
             const focusedOnly = viewMode === 'focused-only';
 
             currentMemberBriefs = parseClassForRender(target.body).members;
+            briefableMembers = currentMemberBriefs.filter(m => m.brief);
+            if (lastRenderedIndex !== currentIndex) {
+                briefReadIndex = 0;
+                lastRenderedIndex = currentIndex;
+            }
 
             if (focusedOnly) {
                 stage.innerHTML = '';
@@ -678,11 +693,20 @@
             renderCurrent();
         }
 
+        function speakCurrentClassName() {
+            if (!model) return;
+            const target = model.classes[currentIndex];
+            if (!target) return;
+            const name = extractDisplayName(target.display) || target.name;
+            if (name) speakText(name);
+        }
+
         function step(delta) {
             if (!model || model.classes.length === 0) return;
             const n = model.classes.length;
             currentIndex = (currentIndex + delta + n) % n;
             renderCurrent();
+            speakCurrentClassName();
         }
 
         document.addEventListener('paste', (e) => {
@@ -691,6 +715,7 @@
             e.preventDefault();
             const mode = e.altKey ? 'with-neighbors' : 'focused-only';
             loadAndRender(text.trim(), mode);
+            speakCurrentClassName();
         });
 
         document.addEventListener('keydown', (e) => {
@@ -711,12 +736,21 @@
                 step(-1);
                 return;
             }
+            if (e.key === 'PageDown') {
+                if (!model || viewMode !== 'focused-only') return;
+                if (briefableMembers.length === 0) return;
+                e.preventDefault();
+                const member = briefableMembers[briefReadIndex];
+                speakText(buildBriefSpeech(member));
+                briefReadIndex = (briefReadIndex + 1) % briefableMembers.length;
+                return;
+            }
             if (!e.altKey && !e.ctrlKey && !e.metaKey && /^[1-9]$/.test(e.key)) {
                 if (!model) return;
                 const member = currentMemberBriefs[parseInt(e.key, 10) - 1];
                 if (member && member.brief) {
                     e.preventDefault();
-                    speakText(member.brief);
+                    speakText(buildBriefSpeech(member));
                 }
                 return;
             }
@@ -744,6 +778,7 @@
             if (data.type !== 'focus-class-load') return;
             if (typeof data.content !== 'string' || !data.content) return;
             loadAndRender(data.content.trim());
+            speakCurrentClassName();
             closeBtn.classList.add('visible');
         });
 
@@ -757,6 +792,7 @@
                 const text = await navigator.clipboard.readText();
                 if (text && text.trim() && !model) {
                     loadAndRender(text.trim(), 'focused-only');
+                    speakCurrentClassName();
                 }
             } catch (_) { /* permission denied / no user gesture */ }
         })();

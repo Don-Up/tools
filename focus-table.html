@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>focus-table</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1e1e1e;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 40px 5vw;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stage {
+            width: 100%;
+            max-width: 1400px;
+        }
+
+        .hint {
+            color: #888;
+            font-size: 24px;
+            text-align: center;
+        }
+
+        .hint kbd {
+            display: inline-block;
+            font-family: inherit;
+            background: #2c2c2c;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 2px 8px;
+            color: #b0bec5;
+        }
+
+        .error {
+            color: #ef5350;
+            font-size: 20px;
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        th {
+            text-align: left;
+            font-size: 18px;
+            font-weight: 600;
+            color: #4fc3f7;
+            padding: 18px 24px;
+            border-bottom: 2px solid #4fc3f7;
+            vertical-align: bottom;
+        }
+
+        td {
+            padding: 36px 24px;
+            border-bottom: 1px solid #2a2a2a;
+            vertical-align: top;
+            font-size: 32px;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+
+        td.cell-name {
+            font-family: 'Consolas', 'Monaco', monospace;
+            color: #ffd54f;
+            font-size: 30px;
+            width: 24%;
+        }
+
+        td.cell-value {
+            font-family: 'Consolas', 'Monaco', monospace;
+            color: #e0e0e0;
+            font-size: 30px;
+            width: 30%;
+        }
+
+        td.cell-text {
+            font-size: 32px;
+            color: #e0e0e0;
+        }
+
+        code {
+            font-family: 'Consolas', 'Monaco', monospace;
+            background: #2c2c2c;
+            color: #b0bec5;
+            padding: 2px 10px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            word-break: break-all;
+        }
+
+        .status {
+            margin-top: 32px;
+            text-align: center;
+            color: #888;
+            font-size: 18px;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        .status kbd {
+            display: inline-block;
+            padding: 2px 8px;
+            margin: 0 2px;
+            background: #2c2c2c;
+            border: 1px solid #444;
+            border-radius: 4px;
+            font-family: inherit;
+            color: #b0bec5;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 28px;
+            padding: 12px 20px;
+            background: #252525;
+            border: 1px solid #333;
+            border-radius: 6px;
+        }
+
+        .controls label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #b0bec5;
+            font-size: 14px;
+        }
+
+        .controls select,
+        .controls input[type="text"] {
+            background: #2c2c2c;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 6px 10px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .controls input[type="text"] {
+            width: 240px;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        .controls input[type="text"]:focus,
+        .controls select:focus {
+            border-color: #4fc3f7;
+        }
+
+        .controls input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .controls.hidden {
+            display: none;
+        }
+
+        #closeBtn {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            background: rgba(40, 40, 40, 0.85);
+            color: #e0e0e0;
+            border: 1px solid #555;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 20px;
+            line-height: 1;
+            display: none;
+            z-index: 100;
+            font-family: inherit;
+        }
+        #closeBtn:hover {
+            background: rgba(60, 60, 60, 0.95);
+            color: #fff;
+            border-color: #00BFFF;
+        }
+        #closeBtn.visible { display: block; }
+    </style>
+</head>
+<body>
+    <button id="closeBtn" title="Close">×</button>
+    <div class="stage" id="stage">
+        <div class="hint" id="hint">按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴 markdown 表格</div>
+    </div>
+
+    <script>
+        'use strict';
+
+        let headers = [];
+        let rows = [];
+        let currentIndex = 0;
+        let ttsEnabled = localStorage.getItem('focusTableTtsEnabled') === 'true';
+        let columnsConfig = localStorage.getItem('focusTableColumns') || '';
+        let selectedVoiceName = localStorage.getItem('focusTableVoiceName') || '';
+        let controlsVisible = localStorage.getItem('focusTableControlsVisible') === 'true';
+        let availableVoices = [];
+        const stage = document.getElementById('stage');
+
+        function splitRow(line) {
+            let s = line.trim();
+            if (s.startsWith('|')) s = s.slice(1);
+            if (s.endsWith('|')) s = s.slice(0, -1);
+            return s.split('|').map(c => c.trim());
+        }
+
+        function isSeparatorRow(line) {
+            const t = line.trim();
+            return /^\|?[\s:|-]+\|?$/.test(t) && t.includes('---');
+        }
+
+        function parseTable(text) {
+            const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+            const tableLines = lines.filter(l => l.startsWith('|'));
+            if (tableLines.length < 3) return null;
+            const headerLine = tableLines[0];
+            const sepIdx = tableLines.findIndex((l, i) => i > 0 && isSeparatorRow(l));
+            if (sepIdx < 0) return null;
+            const headerCells = splitRow(headerLine);
+            const dataLines = tableLines.slice(sepIdx + 1);
+            const dataRows = dataLines.map(splitRow);
+            if (headerCells.length < 1 || dataRows.length < 1) return null;
+            return { headers: headerCells, rows: dataRows };
+        }
+
+        function renderCell(text, td) {
+            const parts = text.split('`');
+            parts.forEach((part, i) => {
+                if (i % 2 === 0) {
+                    if (part.length > 0) td.appendChild(document.createTextNode(part));
+                } else {
+                    const code = document.createElement('code');
+                    code.textContent = part;
+                    td.appendChild(code);
+                }
+            });
+        }
+
+        function columnClass(index, total) {
+            if (total === 1) return 'cell-text';
+            if (index === 0) return 'cell-name';
+            const last = total - 1;
+            if (last > 0 && index === last) return 'cell-value';
+            return 'cell-text';
+        }
+
+        function render() {
+            stage.innerHTML = '';
+            if (headers.length > 0) {
+                const controls = document.createElement('div');
+                controls.className = controlsVisible ? 'controls' : 'controls hidden';
+
+                const voiceLabel = document.createElement('label');
+                const voiceText = document.createElement('span');
+                voiceText.textContent = 'Voice';
+                voiceLabel.appendChild(voiceText);
+                const voiceSelect = document.createElement('select');
+                const defaultOpt = document.createElement('option');
+                defaultOpt.value = '';
+                defaultOpt.textContent = 'Default';
+                voiceSelect.appendChild(defaultOpt);
+                availableVoices.forEach(v => {
+                    const opt = document.createElement('option');
+                    opt.value = v.name;
+                    opt.textContent = `${v.name} (${v.lang})`;
+                    voiceSelect.appendChild(opt);
+                });
+                if (selectedVoiceName && availableVoices.some(v => v.name === selectedVoiceName)) {
+                    voiceSelect.value = selectedVoiceName;
+                }
+                voiceSelect.addEventListener('change', () => {
+                    selectedVoiceName = voiceSelect.value;
+                    localStorage.setItem('focusTableVoiceName', selectedVoiceName);
+                });
+                voiceLabel.appendChild(voiceSelect);
+                controls.appendChild(voiceLabel);
+
+                const ttsLabel = document.createElement('label');
+                const ttsCheckbox = document.createElement('input');
+                ttsCheckbox.type = 'checkbox';
+                ttsCheckbox.checked = ttsEnabled;
+                ttsCheckbox.addEventListener('change', () => {
+                    ttsEnabled = ttsCheckbox.checked;
+                    localStorage.setItem('focusTableTtsEnabled', String(ttsEnabled));
+                    if (!ttsEnabled) stopSpeaking();
+                });
+                ttsLabel.appendChild(ttsCheckbox);
+                ttsLabel.appendChild(document.createTextNode(' TTS'));
+                controls.appendChild(ttsLabel);
+
+                const colsLabel = document.createElement('label');
+                const colsText = document.createElement('span');
+                colsText.textContent = 'Columns';
+                colsLabel.appendChild(colsText);
+                const colsInput = document.createElement('input');
+                colsInput.type = 'text';
+                colsInput.value = columnsConfig;
+                colsInput.placeholder = 'column numbers, comma-separated';
+                colsInput.addEventListener('blur', () => {
+                    columnsConfig = colsInput.value;
+                    localStorage.setItem('focusTableColumns', columnsConfig);
+                });
+                colsLabel.appendChild(colsInput);
+                controls.appendChild(colsLabel);
+
+                stage.appendChild(controls);
+            }
+            const table = document.createElement('table');
+            const thead = document.createElement('thead');
+            const headerTr = document.createElement('tr');
+            headers.forEach((h) => {
+                const th = document.createElement('th');
+                th.textContent = h;
+                headerTr.appendChild(th);
+            });
+            thead.appendChild(headerTr);
+            table.appendChild(thead);
+
+            const tbody = document.createElement('tbody');
+            const tr = document.createElement('tr');
+            const row = rows[currentIndex] || [];
+            for (let i = 0; i < headers.length; i++) {
+                const td = document.createElement('td');
+                td.className = columnClass(i, headers.length);
+                renderCell(row[i] || '', td);
+                tr.appendChild(td);
+            }
+            tbody.appendChild(tr);
+            table.appendChild(tbody);
+            stage.appendChild(table);
+
+            const status = document.createElement('div');
+            status.className = 'status';
+            status.textContent = `${currentIndex + 1} / ${rows.length}`;
+            stage.appendChild(status);
+        }
+
+        function showError(msg) {
+            stage.innerHTML = '';
+            const div = document.createElement('div');
+            div.className = 'error';
+            div.textContent = msg;
+            stage.appendChild(div);
+        }
+
+        function loadTable(text) {
+            const parsed = parseTable(text);
+            if (!parsed) {
+                showError('不是有效的 markdown 表格');
+                return;
+            }
+            headers = parsed.headers;
+            rows = parsed.rows;
+            currentIndex = 0;
+            columnsConfig = '1';
+            localStorage.setItem('focusTableColumns', columnsConfig);
+            render();
+        }
+
+        function stopSpeaking() {
+            if ('speechSynthesis' in window) {
+                speechSynthesis.cancel();
+            }
+        }
+
+        function speakCurrentRow() {
+            if (!ttsEnabled || rows.length === 0) return;
+            const row = rows[currentIndex] || [];
+            const wanted = columnsConfig.split(',')
+                .map(s => parseInt(s.trim(), 10))
+                .filter(n => Number.isFinite(n) && n >= 1);
+            if (wanted.length === 0) return;
+            const parts = [];
+            wanted.forEach(num => {
+                const idx = num - 1;
+                if (idx >= headers.length) return;
+                const cell = (row[idx] || '')
+                    .replace(/【[^】]*】/g, '')
+                    .replace(/_/g, ' ')
+                    .replace(/`([^`]+)`/g, '$1')
+                    .trim();
+                if (cell.length > 0) parts.push(cell);
+            });
+            if (parts.length === 0) return;
+            const text = parts.join(', ');
+            stopSpeaking();
+            const utterance = new SpeechSynthesisUtterance(text);
+            if (selectedVoiceName) {
+                const voice = availableVoices.find(v => v.name === selectedVoiceName);
+                if (voice) utterance.voice = voice;
+            }
+            speechSynthesis.speak(utterance);
+        }
+
+        function loadVoices() {
+            if (!('speechSynthesis' in window)) return;
+            availableVoices = speechSynthesis.getVoices();
+            if (headers.length > 0) render();
+        }
+
+        document.addEventListener('paste', (e) => {
+            const text = (e.clipboardData || window.clipboardData).getData('text');
+            if (!text) return;
+            e.preventDefault();
+            loadTable(text);
+        });
+
+        const closeBtn = document.getElementById('closeBtn');
+        closeBtn.addEventListener('click', () => {
+            window.parent.postMessage({ type: 'focus-table-close' }, '*');
+        });
+
+        window.addEventListener('message', (e) => {
+            const data = e.data;
+            if (!data || typeof data !== 'object') return;
+            if (data.type !== 'focus-table-load') return;
+            if (typeof data.content !== 'string' || !data.content) return;
+            loadTable(data.content);
+            closeBtn.classList.add('visible');
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.altKey && !e.ctrlKey && !e.shiftKey && !e.metaKey && (e.key === 'h' || e.key === 'H')) {
+                e.preventDefault();
+                controlsVisible = !controlsVisible;
+                localStorage.setItem('focusTableControlsVisible', String(controlsVisible));
+                if (headers.length > 0) render();
+                return;
+            }
+            if (rows.length === 0) return;
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (currentIndex < rows.length - 1) {
+                    currentIndex++;
+                    render();
+                    speakCurrentRow();
+                }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (currentIndex > 0) {
+                    currentIndex--;
+                    render();
+                    speakCurrentRow();
+                }
+            }
+        });
+
+        if ('speechSynthesis' in window) {
+            loadVoices();
+            speechSynthesis.onvoiceschanged = loadVoices;
+        }
+    </script>
+</body>
+</html>

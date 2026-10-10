@@ -38,7 +38,7 @@
             background: #2c2c2c; /* Container background (optional) */
             display: inline-block;
             flex-direction: column;
-            align-items: left;
+            align-items: start;
             justify-content: center;
             overflow: hidden; /* Ensures the mask stays within bounds */
         }
@@ -663,7 +663,7 @@
 
 <script>
     const FOCUS_TABLE_URL = "http://localhost:63342/html-tools/focus-table.html?_ijt=nef83c3obbgm28hunkhqd2ein3&_ij_reload=RELOAD_ON_SAVE"; // temporary JetBrains-served URL
-    const FOCUS_DATAFLOW_URL = "http://localhost:63342/html-tools/focus_dataflow.html?_ijt=a9b8bnbhlng3cb44ckssbrjrta&_ij_reload=RELOAD_ON_SAVE"; // temporary JetBrains-served URL
+    const FOCUS_DATAFLOW_URL = "http://localhost:63342/html-tools/focus-dataflow.html?_ijt=a9b8bnbhlng3cb44ckssbrjrta&_ij_reload=RELOAD_ON_SAVE"; // temporary JetBrains-served URL
     const FOCUS_MERMAID_URL = "http://localhost:63342/html-tools/focus-mermaid.html?_ijt=av6prn444svnt2ts4i6hb2ed27&_ij_reload=RELOAD_ON_SAVE"; // temporary JetBrains-served URL
     const FOCUS_CLASS_URL = "http://localhost:63342/html-tools/focus-class.html?_ijt=k15mru4hpoaekqksr42peamdok&_ij_reload=RELOAD_ON_SAVE"; // temporary JetBrains-served URL
     let isPlaying = false;
@@ -1184,8 +1184,56 @@
                         diagramDiv.style.display = 'flex';
                         diagramDiv.style.justifyContent = 'center';
                         diagramDiv.textContent = text;
+                        diagramDiv.addEventListener("click", () => {
+                            navigator.clipboard.writeText(text);
+                        });
+
+                        // Add Fullscreen button as a sibling above the diagram.
+                        const fsBtn = document.createElement('button');
+                        fsBtn.className = 'focus-mermaid-btn';
+                        fsBtn.style.display = 'inline-block';
+                        fsBtn.style.marginBottom = '4px';
+                        fsBtn.style.marginLeft = '10px';
+                        fsBtn.style.padding = '4px 12px';
+                        fsBtn.style.backgroundColor = '#666666';
+                        fsBtn.style.color = '#fff';
+                        fsBtn.style.border = 'none';
+                        fsBtn.style.borderRadius = '2px';
+                        fsBtn.style.cursor = 'pointer';
+                        fsBtn.style.fontSize = '12px';
+                        fsBtn.textContent = 'fullscreen';
+                        fsBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            openMermaidFocus(text);
+                        });
+
+                        // Add focus button for classDiagram content (opens focus-class.html)
+                        let focusBtn = null;
+                        if (text.startsWith('classDiagram')) {
+                            focusBtn = document.createElement('button');
+                            focusBtn.className = 'focus-class-btn';
+                            focusBtn.style.display = 'inline-block';
+                            focusBtn.style.marginBottom = '4px';
+                            focusBtn.style.marginLeft = '10px';
+                            focusBtn.style.padding = '4px 12px';
+                            focusBtn.style.backgroundColor = '#666666';
+                            focusBtn.style.color = '#fff';
+                            focusBtn.style.border = 'none';
+                            focusBtn.style.borderRadius = '2px';
+                            focusBtn.style.cursor = 'pointer';
+                            focusBtn.style.fontSize = '12px';
+                            focusBtn.textContent = 'focus';
+                            focusBtn.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                openClassFocus(text);
+                            });
+                        }
+
                         // Replace the <pre><code> with the new div
                         block.parentElement.replaceWith(diagramDiv);
+                        // Insert buttons as siblings above the diagram
+                        if (focusBtn) diagramDiv.parentNode.insertBefore(focusBtn, diagramDiv);
+                        diagramDiv.parentNode.insertBefore(fsBtn, diagramDiv);
 
                         // Render the diagram
                         mermaid.init(undefined, `#mermaid-diagram-${index}`);
@@ -1475,6 +1523,7 @@
                     fsBtn.style.backgroundColor = '#666666';
                     fsBtn.style.color = '#fff';
                     fsBtn.style.border = 'none';
+                    fsBtn.style.marginLeft = '10px'
                     fsBtn.style.borderRadius = '2px';
                     fsBtn.style.cursor = 'pointer';
                     fsBtn.style.fontSize = '12px';
@@ -1489,19 +1538,20 @@
                     focusBtn.className = 'focus-class-btn';
                     focusBtn.style.display = 'inline-block';
                     focusBtn.style.marginBottom = '4px';
-                    focusBtn.style.marginLeft = '6px';
                     focusBtn.style.padding = '4px 12px';
-                    focusBtn.style.backgroundColor = '#666666';
+                    focusBtn.style.backgroundColor = '#eeeeee';
                     focusBtn.style.color = '#fff';
                     focusBtn.style.border = 'none';
                     focusBtn.style.borderRadius = '2px';
                     focusBtn.style.cursor = 'pointer';
                     focusBtn.style.fontSize = '12px';
                     focusBtn.textContent = 'focus';
+
                     focusBtn.addEventListener('click', function (e) {
                         e.stopPropagation();
                         openClassFocus(text);
                     });
+
                     pre.parentNode.insertBefore(focusBtn, pre);
                 }
             })
@@ -1987,6 +2037,16 @@
 
     mermaid.initialize({startOnLoad: false, theme: "dark"});
 
+    // Frame elements referenced by click handlers registered below — must be
+    // initialized BEFORE the forEach below, because mermaid.init() inside that
+    // loop yields to the event loop and a click can fire before subsequent
+    // const declarations run.
+    const sidePanel = document.getElementById('sidePanel');
+    const focusTableFrame = document.getElementById('focusTableFrame');
+    const focusDataflowFrame = document.getElementById('focusDataflowFrame');
+    const focusMermaidFrame = document.getElementById('focusMermaidFrame');
+    const focusClassFrame = document.getElementById('focusClassFrame');
+
     const codeBlocks = document.querySelectorAll('pre code');
     codeBlocks.forEach((block, index) => {
         const text = block.textContent.trim();
@@ -2022,18 +2082,20 @@
             fsBtn.style.cursor = 'pointer';
             fsBtn.style.fontSize = '12px';
             fsBtn.textContent = 'fullscreen';
+            fsBtn.style.marginLeft = '10px'
             fsBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 openMermaidFocus(text);
             });
 
             // Add focus button for classDiagram content (opens focus-class.html)
+            let focusBtn = null;
             if (text.startsWith('classDiagram')) {
-                const focusBtn = document.createElement('button');
+                focusBtn = document.createElement('button');
                 focusBtn.className = 'focus-class-btn';
                 focusBtn.style.display = 'inline-block';
                 focusBtn.style.marginBottom = '4px';
-                focusBtn.style.marginLeft = '6px';
+                focusBtn.style.marginLeft = '10px';
                 focusBtn.style.padding = '4px 12px';
                 focusBtn.style.backgroundColor = '#666666';
                 focusBtn.style.color = '#fff';
@@ -2046,24 +2108,18 @@
                     e.stopPropagation();
                     openClassFocus(text);
                 });
-                diagramDiv.parentNode.insertBefore(focusBtn, diagramDiv);
             }
 
             // Replace the <pre><code> with the new div
             block.parentElement.replaceWith(diagramDiv);
-            // Insert button as sibling above the diagram
+            // Insert buttons as siblings above the diagram
+            if (focusBtn) diagramDiv.parentNode.insertBefore(focusBtn, diagramDiv);
             diagramDiv.parentNode.insertBefore(fsBtn, diagramDiv);
 
             // Render the diagram
             mermaid.init(undefined, `#mermaid-diagram-${index}`);
         }
     });
-
-    const sidePanel = document.getElementById('sidePanel');
-    const focusTableFrame = document.getElementById('focusTableFrame');
-    const focusDataflowFrame = document.getElementById('focusDataflowFrame');
-    const focusMermaidFrame = document.getElementById('focusMermaidFrame');
-    const focusClassFrame = document.getElementById('focusClassFrame');
 
     function sendTableToFocusFrame(md) {
         focusTableFrame.contentWindow?.postMessage(

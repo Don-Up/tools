@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ai</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #1e1e1e;
+    color: #e0e0e0;
+    min-height: 100vh;
+}
+
+#app {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px 24px 120px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-height: 100vh;
+}
+
+#topBar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #252525;
+    border: 1px solid #333;
+    border-radius: 8px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+#topBar h1 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #4fc3f7;
+    margin: 0;
+}
+
+#apiKeyLabel {
+    color: #888;
+    font-size: 13px;
+    margin-left: auto;
+}
+
+#apiKeyInput {
+    width: 220px;
+    padding: 5px 8px;
+    font-size: 13px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    background: #1e1e1e;
+    color: #e0e0e0;
+    border: 1px solid #444;
+    border-radius: 4px;
+}
+
+#apiKeyInput:focus { outline: none; border-color: #4fc3f7; }
+
+.btn {
+    padding: 5px 12px;
+    font-size: 13px;
+    color: #fff;
+    background: #3a86ff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.btn:hover { background: #2a6edc; }
+.btn:disabled { background: #3a3a3a; color: #777; cursor: default; }
+.btn.secondary { background: #3a3a3a; color: #cfd8dc; }
+.btn.secondary:hover { background: #4a4a4a; }
+
+#settingsRow {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 10px 16px;
+    background: #252525;
+    border: 1px solid #333;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #b0bec5;
+}
+
+#settingsRow label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+#settingsRow input[type="checkbox"] {
+    accent-color: #4fc3f7;
+    cursor: pointer;
+}
+
+#errorBanner {
+    display: none;
+    padding: 10px 16px;
+    background: #7f1d1d;
+    color: #fecaca;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+#errorBanner.visible { display: block; }
+
+#thinkingSection {
+    background: #252525;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 0;
+}
+
+#thinkingSection summary {
+    padding: 10px 16px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #b0bec5;
+    user-select: none;
+}
+
+#thinkingContent {
+    padding: 0 16px 12px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #888;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+#answerSection {
+    background: #252525;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 20px 24px;
+    min-height: 200px;
+    line-height: 1.7;
+    color: #e0e0e0;
+}
+
+#answerSection.empty {
+    color: #666;
+    font-style: italic;
+    text-align: center;
+    padding-top: 80px;
+}
+
+#answerSection h1, #answerSection h2, #answerSection h3 {
+    color: #4fc3f7;
+    margin: 18px 0 10px;
+    font-weight: 600;
+}
+
+#answerSection h1 { font-size: 22px; }
+#answerSection h2 { font-size: 18px; }
+#answerSection h3 { font-size: 16px; }
+
+#answerSection p { margin: 8px 0; }
+#answerSection ul, #answerSection ol { margin: 8px 0 8px 24px; }
+#answerSection li { margin: 4px 0; }
+
+#answerSection a { color: #4fc3f7; text-decoration: none; }
+#answerSection a:hover { text-decoration: underline; }
+
+#answerSection blockquote {
+    border-left: 3px solid #444;
+    padding-left: 12px;
+    color: #b0bec5;
+    margin: 10px 0;
+}
+
+#answerSection table {
+    border-collapse: collapse;
+    margin: 10px 0;
+    width: 100%;
+}
+
+#answerSection th, #answerSection td {
+    border: 1px solid #444;
+    padding: 6px 10px;
+    text-align: left;
+}
+
+#answerSection th { background: #2d2d2d; }
+
+#answerSection pre {
+    position: relative;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin: 10px 0;
+    overflow-x: auto;
+}
+
+#answerSection code {
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 13px;
+}
+
+#answerSection :not(pre) > code {
+    background: #2d2d2d;
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: #ffb74d;
+}
+
+#answerSection .code-copy {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    padding: 3px 8px;
+    font-size: 11px;
+    color: #cfd8dc;
+    background: #3a3a3a;
+    border: 1px solid #555;
+    border-radius: 3px;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+#answerSection .code-copy:hover { background: #4fc3f7; color: #1e1e1e; }
+#answerSection .code-copy.copied { background: #81c784; color: #1e1e1e; }
+
+#answerSection .stream-cursor {
+    display: inline-block;
+    width: 7px;
+    height: 1em;
+    background: #4fc3f7;
+    margin-left: 2px;
+    vertical-align: text-bottom;
+    animation: blink 1s steps(2) infinite;
+}
+
+@keyframes blink {
+    50% { opacity: 0; }
+}
+
+#inputBar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 16px;
+    background: #252525;
+    border: 1px solid #333;
+    border-radius: 8px;
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(852px, calc(100% - 48px));
+    z-index: 5;
+}
+
+#questionInput {
+    width: 100%;
+    min-height: 60px;
+    max-height: 200px;
+    padding: 8px 10px;
+    font-family: inherit;
+    font-size: 14px;
+    color: #e0e0e0;
+    background: #1e1e1e;
+    border: 1px solid #444;
+    border-radius: 4px;
+    resize: none;
+    overflow-y: auto;
+}
+
+#questionInput:focus { outline: none; border-color: #4fc3f7; }
+#questionInput.flash-error { border-color: #ef5350; transition: border-color 0.2s; }
+
+#inputActions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#inputActions .hint {
+    margin-left: auto;
+    font-size: 12px;
+    color: #888;
+}
+
+#inputActions kbd {
+    display: inline-block;
+    padding: 1px 6px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 11px;
+    background: #1a1a1a;
+    border: 1px solid #444;
+    border-radius: 3px;
+    color: #b0bec5;
+}
+    </style>
+</head>
+<body>
+    <main id="app">
+        <header id="topBar">
+            <h1>ai</h1>
+            <label for="apiKeyInput" id="apiKeyLabel">API Key:</label>
+            <input id="apiKeyInput" type="password" placeholder="点击此处设置 API Key">
+            <button id="apiKeySaveBtn" class="btn secondary" type="button">保存</button>
+        </header>
+        <div id="settingsRow">
+            <span>模型: M3 (固定)</span>
+            <label>
+                <input id="showThinkingToggle" type="checkbox">
+                显示思考
+            </label>
+        </div>
+        <div id="errorBanner"></div>
+        <details id="thinkingSection">
+            <summary>思考过程</summary>
+            <div id="thinkingContent"></div>
+        </details>
+        <section id="answerSection" class="empty">答复将显示在这里</section>
+    </main>
+    <div id="inputBar">
+        <textarea id="questionInput" placeholder="输入你的问题... (Ctrl+Enter 发送, Esc 清空)" maxlength="10000"></textarea>
+        <div id="inputActions">
+            <button id="sendBtn" class="btn" type="button" disabled>发送</button>
+            <button id="clearBtn" class="btn secondary" type="button">清空</button>
+            <span class="hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> 发送 · <kbd>Esc</kbd> 清空</span>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+    <script>
+        'use strict';
+
+        const BASE_URL = 'https://next-reader-psi.vercel.app/api/minimax';
+        const MODEL = 'MiniMax-M3';
+        const MAX_TOKENS = 8192;
+        const SYSTEM_PROMPT = '你是一个简洁、准确的助手。优先用中文回答,除非用户用其他语言提问。';
+
+        const state = {
+            apiKey: localStorage.getItem('aiApiKey') || '',
+            showThinking: (() => {
+                const v = localStorage.getItem('aiShowThinking');
+                return v === null ? true : v === 'true';
+            })(),
+            question: '',
+            thinkingBuf: '',
+            textBuf: '',
+            currentBlockType: null,
+            currentBlockIndex: -1,
+            stopReason: null,
+            isStreaming: false,
+            abortController: null,
+            rawAnswerEl: null,
+        };
+
+        const dom = {
+            apiKeyInput: document.getElementById('apiKeyInput'),
+            apiKeySaveBtn: document.getElementById('apiKeySaveBtn'),
+            showThinkingToggle: document.getElementById('showThinkingToggle'),
+            errorBanner: document.getElementById('errorBanner'),
+            thinkingSection: document.getElementById('thinkingSection'),
+            thinkingContent: document.getElementById('thinkingContent'),
+            answerSection: document.getElementById('answerSection'),
+            questionInput: document.getElementById('questionInput'),
+            sendBtn: document.getElementById('sendBtn'),
+            clearBtn: document.getElementById('clearBtn'),
+        };
+
+        marked.setOptions({ breaks: true, gfm: true });
+
+        function showError(msg) {
+            if (!msg) {
+                dom.errorBanner.classList.remove('visible');
+                dom.errorBanner.textContent = '';
+                return;
+            }
+            dom.errorBanner.textContent = msg;
+            dom.errorBanner.classList.add('visible');
+        }
+
+        function setSendButtonState(streaming) {
+            state.isStreaming = streaming;
+            dom.sendBtn.textContent = streaming ? '停止' : '发送';
+            dom.sendBtn.classList.toggle('secondary', streaming);
+            dom.questionInput.disabled = streaming;
+        }
+
+        function updateSendEnabled() {
+            if (state.isStreaming) return;
+            dom.sendBtn.disabled = !dom.questionInput.value.trim();
+        }
+
+        function renderApiKey() {
+            if (state.apiKey) {
+                dom.apiKeyInput.type = 'password';
+                dom.apiKeyInput.value = '•'.repeat(Math.min(state.apiKey.length, 40));
+                dom.apiKeyInput.dataset.masked = '1';
+                dom.apiKeySaveBtn.textContent = '修改';
+            } else {
+                dom.apiKeyInput.type = 'password';
+                dom.apiKeyInput.value = '';
+                dom.apiKeyInput.placeholder = '点击此处设置 API Key';
+                dom.apiKeyInput.dataset.masked = '';
+                dom.apiKeySaveBtn.textContent = '保存';
+            }
+        }
+
+        function unmaskApiKey() {
+            if (!state.apiKey) return;
+            dom.apiKeyInput.type = 'password';
+            dom.apiKeyInput.value = state.apiKey;
+            dom.apiKeyInput.dataset.masked = '';
+            dom.apiKeySaveBtn.textContent = '保存';
+            dom.apiKeyInput.focus();
+            dom.apiKeyInput.select();
+        }
+
+        function saveApiKey() {
+            const v = dom.apiKeyInput.value.trim();
+            if (!v) {
+                showError('API Key 不能为空');
+                return;
+            }
+            state.apiKey = v;
+            localStorage.setItem('aiApiKey', v);
+            renderApiKey();
+            showError(null);
+        }
+
+        dom.apiKeyInput.addEventListener('focus', () => {
+            if (dom.apiKeyInput.dataset.masked === '1') unmaskApiKey();
+        });
+
+        dom.apiKeyInput.addEventListener('blur', () => {
+            if (state.apiKey && dom.apiKeyInput.value === '•'.repeat(Math.min(state.apiKey.length, 40))) return;
+        });
+
+        dom.apiKeySaveBtn.addEventListener('click', () => {
+            if (dom.apiKeySaveBtn.textContent === '修改') {
+                unmaskApiKey();
+            } else {
+                saveApiKey();
+            }
+        });
+
+        dom.apiKeyInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                saveApiKey();
+                dom.apiKeyInput.blur();
+            }
+        });
+
+        renderApiKey();
+        dom.showThinkingToggle.checked = state.showThinking;
+        dom.showThinkingToggle.addEventListener('change', () => {
+            state.showThinking = dom.showThinkingToggle.checked;
+            localStorage.setItem('aiShowThinking', String(state.showThinking));
+            dom.thinkingSection.style.display = state.showThinking ? '' : 'none';
+        });
+        dom.thinkingSection.style.display = state.showThinking ? '' : 'none';
+
+        function buildRequestBody(question) {
+            const body = {
+                model: MODEL,
+                max_tokens: MAX_TOKENS,
+                system: SYSTEM_PROMPT,
+                messages: [{ role: 'user', content: question }],
+                stream: true,
+            };
+            if (state.showThinking) {
+                body.thinking = { type: 'enabled' };
+            }
+            return body;
+        }
+
+        async function callApi(question) {
+            const body = buildRequestBody(question);
+            const res = await fetch(BASE_URL, {
+                method: 'POST',
+                headers: {
+                    'content-type': 'application/json',
+                    'anthropic-version': '2023-06-01',
+                },
+                body: JSON.stringify(body),
+                signal: state.abortController.signal,
+            });
+
+            if (!res.ok) {
+                const err = new Error(`HTTP ${res.status}`);
+                err.status = res.status;
+                throw err;
+            }
+
+            const contentType = res.headers.get('content-type') || '';
+            if (!contentType.includes('text/event-stream')) {
+                const json = await res.json();
+                return handleNonStreaming(json);
+            }
+
+            await parseSseStream(res.body);
+        }
+
+        async function handleNonStreaming(json) {
+            if (Array.isArray(json && json.content)) {
+                for (const block of json.content) {
+                    if (block.type === 'text') state.textBuf += block.text;
+                    else if (block.type === 'thinking') state.thinkingBuf += (block.thinking || '');
+                }
+            }
+            state.stopReason = json.stop_reason || 'end_turn';
+        }
+
+        async function parseSseStream(body) {
+            const reader = body.getReader();
+            const decoder = new TextDecoder('utf-8');
+            let buffer = '';
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                let sep;
+                while ((sep = buffer.indexOf('\n\n')) !== -1) {
+                    const raw = buffer.slice(0, sep);
+                    buffer = buffer.slice(sep + 2);
+                    processSseEvent(raw);
+                }
+            }
+            if (buffer.trim()) processSseEvent(buffer);
+        }
+
+        function processSseEvent(raw) {
+            const lines = raw.split('\n');
+            let eventName = '';
+            const dataLines = [];
+            for (const line of lines) {
+                if (line.startsWith('event:')) eventName = line.slice(6).trim();
+                else if (line.startsWith('data:')) dataLines.push(line.slice(5).trim());
+            }
+            const data = dataLines.join('\n');
+            if (!data || data === '[DONE]') return;
+            let payload;
+            try {
+                payload = JSON.parse(data);
+            } catch (err) {
+                console.warn('SSE JSON parse failed', err, data);
+                return;
+            }
+            handleSsePayload(eventName, payload);
+        }
+
+        function handleSsePayload(eventName, payload) {
+            switch (eventName) {
+                case 'message_start':
+                    if (payload.message && payload.message.stop_reason) {
+                        state.stopReason = payload.message.stop_reason;
+                    }
+                    break;
+                case 'content_block_start':
+                    state.currentBlockIndex = payload.index;
+                    state.currentBlockType = payload.content_block && payload.content_block.type;
+                    break;
+                case 'content_block_delta': {
+                    const idx = payload.index;
+                    if (idx !== state.currentBlockIndex) {
+                        state.currentBlockIndex = idx;
+                    }
+                    const delta = payload.delta || {};
+                    if (delta.type === 'text_delta' || typeof delta.text === 'string') {
+                        state.textBuf += delta.text;
+                        renderStreamingText();
+                    } else if (delta.type === 'thinking_delta' || typeof delta.thinking === 'string') {
+                        state.thinkingBuf += delta.thinking;
+                        renderStreamingThinking();
+                    }
+                    break;
+                }
+                case 'content_block_stop':
+                    if (state.currentBlockType === 'text') {
+                        renderFinalAnswer();
+                    }
+                    state.currentBlockType = null;
+                    break;
+                case 'message_delta':
+                    if (payload.delta && payload.delta.stop_reason) {
+                        state.stopReason = payload.delta.stop_reason;
+                    }
+                    break;
+                case 'message_stop':
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        function renderStreamingThinking() {
+            dom.thinkingContent.textContent = state.thinkingBuf;
+        }
+
+        function renderStreamingText() {
+            if (!state.rawAnswerEl) {
+                dom.answerSection.classList.remove('empty');
+                dom.answerSection.innerHTML = '';
+                const pre = document.createElement('pre');
+                pre.style.cssText = 'margin:0; white-space:pre-wrap; word-break:break-word; font-family:inherit; font-size:14px; line-height:1.7; color:#e0e0e0;';
+                state.rawAnswerEl = pre;
+                dom.answerSection.appendChild(pre);
+            }
+            state.rawAnswerEl.textContent = state.textBuf;
+            appendCursor(state.rawAnswerEl);
+        }
+
+        function appendCursor(host) {
+            const old = host.nextElementSibling;
+            if (old && old.classList && old.classList.contains('stream-cursor')) old.remove();
+            const cursor = document.createElement('span');
+            cursor.className = 'stream-cursor';
+            host.parentNode.insertBefore(cursor, host.nextSibling);
+        }
+
+        function removeCursor() {
+            const c = dom.answerSection.querySelector('.stream-cursor');
+            if (c) c.remove();
+        }
+
+        function renderFinalAnswer() {
+            if (state.textBuf && state.textBuf.trim()) {
+                dom.answerSection.classList.remove('empty');
+                let html;
+                try {
+                    html = marked.parse(state.textBuf);
+                } catch (err) {
+                    console.error('marked failed', err);
+                    html = `<pre>${escapeHtml(state.textBuf)}</pre>`;
+                }
+                dom.answerSection.innerHTML = html;
+                appendCodeCopyButtons(dom.answerSection);
+            }
+            removeCursor();
+            if (state.stopReason === 'max_tokens') {
+                const note = document.createElement('p');
+                note.style.cssText = 'color:#888; font-size:12px; margin-top:12px; font-style:italic;';
+                note.textContent = '…(响应被截断,达到 max_tokens 限制)';
+                dom.answerSection.appendChild(note);
+            }
+        }
+
+        function escapeHtml(s) {
+            return String(s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function appendCodeCopyButtons(root) {
+            const pres = root.querySelectorAll('pre');
+            pres.forEach((pre) => {
+                if (pre.dataset.copyAttached === '1') return;
+                pre.dataset.copyAttached = '1';
+                const btn = document.createElement('button');
+                btn.className = 'code-copy';
+                btn.type = 'button';
+                btn.textContent = '复制';
+                btn.addEventListener('click', async () => {
+                    const code = pre.querySelector('code');
+                    const text = code ? code.textContent : pre.textContent;
+                    try {
+                        await navigator.clipboard.writeText(text);
+                    } catch (err) {
+                        const ta = document.createElement('textarea');
+                        ta.value = text;
+                        document.body.appendChild(ta);
+                        ta.select();
+                        try { document.execCommand('copy'); } catch (e) { /* ignore */ }
+                        document.body.removeChild(ta);
+                    }
+                    btn.textContent = '✓ 已复制';
+                    btn.classList.add('copied');
+                    setTimeout(() => {
+                        btn.textContent = '复制';
+                        btn.classList.remove('copied');
+                    }, 1500);
+                });
+                pre.appendChild(btn);
+            });
+        }
+
+function resetAnswer() {
+    state.thinkingBuf = '';
+    state.textBuf = '';
+    state.currentBlockType = null;
+    state.currentBlockIndex = -1;
+    state.stopReason = null;
+    state.rawAnswerEl = null;
+    dom.answerSection.classList.add('empty');
+    dom.answerSection.innerHTML = '答复将显示在这里';
+    dom.thinkingContent.textContent = '';
+}
+
+async function send() {
+    if (state.isStreaming) {
+        if (state.abortController) state.abortController.abort();
+        return;
+    }
+    const question = dom.questionInput.value.trim();
+    if (!question) return;
+    if (!state.apiKey) {
+        showError('请先在顶部设置 API Key。');
+        dom.apiKeyInput.focus();
+        return;
+    }
+    showError(null);
+    resetAnswer();
+    state.question = question;
+    state.abortController = new AbortController();
+    setSendButtonState(true);
+
+    try {
+        await callApi(question);
+        if (!state.textBuf && state.thinkingBuf) {
+            state.textBuf = '（模型仅返回了思考过程,无最终答复。）';
+            renderFinalAnswer();
+        }
+    } catch (err) {
+        if (err.name === 'AbortError') {
+            // user cancelled
+        } else if (err.status) {
+            const map = {
+                401: 'API Key 无效或已过期。',
+                403: '无权访问,请检查账户或区域。',
+                404: '模型或接口路径错误。',
+                429: '请求过于频繁,请稍后重试。',
+            };
+            const known = map[err.status];
+            showError(known || `服务器错误 (${err.status}),请稍后重试。`);
+        } else {
+            showError(`网络错误: ${err.message || err}`);
+        }
+        removeCursor();
+        renderFinalAnswer();
+    } finally {
+        setSendButtonState(false);
+        state.abortController = null;
+        updateSendEnabled();
+    }
+}
+
+function clearAll() {
+    if (state.isStreaming && state.abortController) {
+        state.abortController.abort();
+    }
+    dom.questionInput.value = '';
+    resetAnswer();
+    showError(null);
+    showError(null);
+    updateSendEnabled();
+    dom.questionInput.focus();
+}
+
+dom.sendBtn.addEventListener('click', send);
+
+dom.clearBtn.addEventListener('click', clearAll);
+
+dom.questionInput.addEventListener('input', () => {
+    dom.questionInput.style.height = 'auto';
+    dom.questionInput.style.height = Math.min(dom.questionInput.scrollHeight, 200) + 'px';
+    updateSendEnabled();
+});
+
+dom.questionInput.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey && e.key === 'Enter') {
+        e.preventDefault();
+        send();
+    } else if (e.key === 'Escape') {
+        e.preventDefault();
+        clearAll();
+    }
+});
+
+updateSendEnabled();
+dom.questionInput.focus();
+
+dom.questionInput.addEventListener('input', () => {
+    if (dom.errorBanner.classList.contains('visible')) {
+        showError(null);
+    }
+});
+
+dom.questionInput.addEventListener('keydown', (e) => {
+    if (dom.questionInput.value.length >= dom.questionInput.maxLength) {
+        const allowedKeys = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'Tab'];
+        if (!allowedKeys.includes(e.key) && !e.ctrlKey && !e.metaKey) {
+            dom.questionInput.classList.add('flash-error');
+            setTimeout(() => dom.questionInput.classList.remove('flash-error'), 200);
+        }
+    }
+});
+    </script>
+</body>
+</html>
