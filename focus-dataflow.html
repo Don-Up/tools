@@ -67,6 +67,27 @@
             border-color: #81c784;
         }
 
+        .sibling-step {
+            display: block;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 16px;
+            line-height: 1.5;
+            color: #78909c;
+            white-space: pre-wrap;
+            word-break: break-word;
+            padding: 0;
+            margin: 0;
+        }
+        .sibling-step-wrap {
+            padding-left: 48px;
+        }
+        .sibling-step .marker { color: #4fc3f7; }
+        .sibling-step .arrow { color: #4fc3f7; }
+        .sibling-step-divider {
+            border-top: 1px dashed #333;
+            margin: 14px 0;
+        }
+
         .flow-line {
             font-family: 'Consolas', 'Monaco', monospace;
             font-size: 28px;
@@ -1127,6 +1148,18 @@
             return trimmed + mark;
         }
 
+        function renderSiblingStep(stepObj) {
+            const wrap = document.createElement('div');
+            wrap.className = 'sibling-step';
+            if (!stepObj || !stepObj.line) {
+                wrap.textContent = '—';
+                return wrap;
+            }
+            const inner = renderLine(stepObj.line);
+            while (inner.firstChild) wrap.appendChild(inner.firstChild);
+            return wrap;
+        }
+
         function renderLine(text) {
             const span = document.createElement('span');
             span.className = 'flow-line';
@@ -1556,6 +1589,17 @@
             pane.appendChild(buildControls());
 
             const step = steps[currentIndex];
+
+            if (currentIndex > 0) {
+                const prevWrap = document.createElement('div');
+                prevWrap.className = 'sibling-step-wrap';
+                prevWrap.appendChild(renderSiblingStep(steps[currentIndex - 1]));
+                pane.appendChild(prevWrap);
+                const div = document.createElement('div');
+                div.className = 'sibling-step-divider';
+                pane.appendChild(div);
+            }
+
             const card = document.createElement('div');
             card.className = 'card';
             card.appendChild(renderLine(step.line));
@@ -1591,6 +1635,16 @@
                 }
             });
             pane.appendChild(card);
+
+            if (currentIndex < steps.length - 1) {
+                const div = document.createElement('div');
+                div.className = 'sibling-step-divider';
+                pane.appendChild(div);
+                const nextWrap = document.createElement('div');
+                nextWrap.className = 'sibling-step-wrap';
+                nextWrap.appendChild(renderSiblingStep(steps[currentIndex + 1]));
+                pane.appendChild(nextWrap);
+            }
 
             const status = document.createElement('div');
             status.className = 'status';
