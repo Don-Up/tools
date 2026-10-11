@@ -69,11 +69,12 @@
         }
 
         .en {
-            font-size: 72px;
+            font-size: 50px;
             line-height: 1.4;
             color: #e0e0e0;
             font-weight: 500;
             word-break: break-word;
+            font-family: "DejaVu Math TeX Gyre";
         }
 
         .divider {
@@ -82,10 +83,11 @@
         }
 
         .cn {
-            font-size: 40px;
+            font-size: 25px;
             line-height: 1.5;
             color: #b0bec5;
             word-break: break-word;
+            font-family: 华文细黑;
         }
 
         .status {
@@ -253,8 +255,6 @@
             background-attachment: fixed;
         }
         body.has-bg .stage {
-            backdrop-filter: blur(2px);
-            -webkit-backdrop-filter: blur(2px);
             border-radius: 8px;
             padding: 16px;
         }
@@ -690,6 +690,9 @@
                 currentIndex = (currentIndex - 1 + entries.length) % entries.length;
                 render();
                 if (ttsEnabled) speakCurrentEntry();
+            } else if (e.key === ' ' || e.code === 'Space') {
+                e.preventDefault();
+                stopSpeaking();
             }
         });
 
