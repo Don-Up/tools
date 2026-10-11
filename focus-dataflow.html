@@ -236,6 +236,27 @@
         .step-pane {
             flex: 1 1 0;
             min-width: 0;
+            position: relative;
+        }
+
+        .pane-copy-btn {
+            position: absolute;
+            top: 0;
+            right: 0;
+            padding: 4px 12px;
+            font-size: 12px;
+            color: #b0bec5;
+            background: #2c2c2c;
+            border: 1px solid #444;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .pane-copy-btn:hover { background: #3a3a3a; color: #fff; }
+        .pane-copy-btn.copied {
+            background: #2e7d32;
+            color: #fff;
+            border-color: #2e7d32;
         }
 
         .code-pane {
@@ -472,9 +493,275 @@
             border-color: #00BFFF;
         }
         #closeBtn.visible { display: block; }
+
+        .ai-panel {
+            left: 10px;
+            bottom: 10px;
+            margin: 0;
+            padding: 10px;
+            background: rgba(30, 30, 30, 0.45);
+            border: 1px solid rgba(42, 42, 42, 0.45);
+            border-radius: 8px;
+            width: 18%;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 20;
+        }
+        .ai-panel-title {
+            font-size: 18px;
+            color: #888;
+            width: 100%;
+            text-align: center;
+            cursor: pointer;
+        }
+        .ai-panel-title:hover { color: #cfd8dc; }
+        .ai-answer {
+            position: fixed;
+            bottom: 10px;
+            left: calc(20% + 20px);
+            width: 36vw;
+            min-height: 220px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 12px 14px;
+            background: rgba(37, 37, 37, 0.92);
+            border: 1px solid #2a2a2a;
+            border-radius: 4px;
+            z-index: 10;
+        }
+        .ai-answer[hidden] { display: none; }
+        .ai-answer {
+            scrollbar-width: thin;
+            scrollbar-color: #4a4a4a transparent;
+        }
+        .ai-answer::-webkit-scrollbar { width: 8px; }
+        .ai-answer::-webkit-scrollbar-track { background: transparent; }
+        .ai-answer::-webkit-scrollbar-thumb {
+            background: #4a4a4a;
+            border-radius: 4px;
+        }
+        .ai-answer::-webkit-scrollbar-thumb:hover { background: #5a5a5a; }
+        .ai-input-row {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+        }
+        .ai-button-row {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+        .ai-textarea {
+            flex: 1;
+            width: 100%;
+            box-sizing: border-box;
+            background: rgba(37, 37, 37, 0.92);
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            min-height: 90px;
+            margin-top: 10px;
+            scrollbar-width: thin;
+            scrollbar-color: #4a4a4a transparent;
+        }
+        .ai-textarea::-webkit-scrollbar { width: 8px; }
+        .ai-textarea::-webkit-scrollbar-track { background: transparent; }
+        .ai-textarea::-webkit-scrollbar-thumb {
+            background: #4a4a4a;
+            border-radius: 4px;
+        }
+        .ai-textarea::-webkit-scrollbar-thumb:hover { background: #5a5a5a; }
+        .ai-textarea:disabled { opacity: 0.6; }
+        .ai-send {
+            flex: 1;
+            box-sizing: border-box;
+            padding: 6px 16px;
+            background: #2c2c2c;
+            color: #cfd8dc;
+            border: 1px solid #444;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .ai-toggle {
+            flex: 1;
+            box-sizing: border-box;
+            padding: 6px 16px;
+            background: #2c2c2c;
+            color: #cfd8dc;
+            border: 1px solid #444;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .ai-send:disabled { opacity: 0.5; cursor: not-allowed; }
+        .ai-send.ai-send-stopping {
+            background: #7f1d1d;
+            color: #fff;
+            border-color: #7f1d1d;
+        }
+        .ai-bubble {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin: 6px 0;
+        }
+        .ai-bubble-label {
+            font-size: 11px;
+            color: #888;
+            padding: 0 4px;
+        }
+        .ai-bubble-body {
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .ai-bubble-user .ai-bubble-label { align-self: flex-end; }
+        .ai-bubble-user .ai-bubble-body {
+            background: #2a3a4a;
+            align-self: flex-end;
+            max-width: 80%;
+            color: #e0e0e0;
+        }
+        .ai-bubble-assistant .ai-bubble-body {
+            background: #2a2a2a;
+            color: #e0e0e0;
+        }
+        .ai-cursor {
+            display: inline-block;
+            width: 7px;
+            height: 14px;
+            background: #4fc3f7;
+            margin-left: 2px;
+            vertical-align: -2px;
+            animation: ai-blink 1s step-start infinite;
+        }
+        @keyframes ai-blink { 50% { opacity: 0; } }
+        .ai-bubble-body h1, .ai-bubble-body h2, .ai-bubble-body h3 {
+            margin: 8px 0 4px;
+            color: #e0e0e0;
+        }
+        .ai-bubble-body h1 { font-size: 18px; }
+        .ai-bubble-body h2 { font-size: 16px; }
+        .ai-bubble-body h3 { font-size: 14px; }
+        .ai-bubble-body p { margin: 4px 0; }
+        .ai-bubble-body ul, .ai-bubble-body ol { margin: 4px 0 4px 16px; padding: 0; }
+        .ai-bubble-body code {
+            font-family: Consolas, Monaco, monospace;
+            font-size: 13px;
+            background: #1a1a1a;
+            padding: 1px 4px;
+            border-radius: 3px;
+        }
+        .ai-bubble-body pre {
+            font-family: Consolas, Monaco, monospace;
+            font-size: 13px;
+            background: #1a1a1a;
+            padding: 8px 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 6px 0;
+        }
+        .ai-bubble-body pre code { background: transparent; padding: 0; }
+        .ai-bubble-body blockquote {
+            border-left: 3px solid #4fc3f7;
+            margin: 4px 0;
+            padding: 2px 8px;
+            color: #cfd8dc;
+            background: rgba(79, 195, 247, 0.05);
+        }
+        .fav-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .fav-modal[hidden] { display: none; }
+        .fav-modal-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+        }
+        .fav-modal-panel {
+            position: relative;
+            background: #1e1e1e;
+            padding: 24px;
+            border-radius: 8px;
+            min-width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            border: 1px solid #444;
+            margin: 0 20px;
+        }
+        .fav-modal-title {
+            font-size: 18px;
+            color: #e0e0e0;
+            text-align: center;
+        }
+        .fav-input {
+            background: #2c2c2c;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 8px 10px;
+            font-size: 14px;
+            outline: none;
+        }
+        .fav-input:focus { border-color: #6cf; }
+        .fav-modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        .fav-modal-actions button {
+            padding: 6px 16px;
+            background: #2c2c2c;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .fav-modal-actions button:hover { background: #3a3a3a; }
+        .fav-input.note-textarea {
+            width: 380px;
+            max-width: 100%;
+            box-sizing: border-box;
+            min-height: 220px;
+            max-height: 60vh;
+            resize: vertical;
+            font-family: inherit;
+            line-height: 1.5;
+            padding: 10px 12px;
+            margin: 0 auto;
+            display: block;
+            scrollbar-width: thin;
+            scrollbar-color: #4a4a4a transparent;
+        }
+        .fav-input.note-textarea::-webkit-scrollbar { width: 8px; }
+        .fav-input.note-textarea::-webkit-scrollbar-track { background: transparent; }
+        .fav-input.note-textarea::-webkit-scrollbar-thumb {
+            background: #4a4a4a;
+            border-radius: 4px;
+        }
+        .fav-input.note-textarea::-webkit-scrollbar-thumb:hover { background: #5a5a5a; }
     </style>
 </head>
 <body>
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
     <button id="closeBtn" title="Close">×</button>
     <div id="kwModal" class="kw-modal hidden" role="dialog" aria-modal="true" aria-label="关键字高亮">
         <div class="kw-backdrop" id="kwBackdrop"></div>
@@ -488,6 +775,30 @@
             </div>
         </div>
     </div>
+    <div id="aiPanel" class="ai-panel">
+        <div class="ai-panel-title">AI 问答</div>
+        <div class="ai-input-row">
+            <textarea id="aiQuestion" class="ai-textarea" placeholder="向 AI 提问当前数据流...（Ctrl+Enter 发送,Esc 中止/清空）"></textarea>
+            <div class="ai-button-row">
+                <button id="aiToggle" class="ai-toggle" type="button">▲ 显示</button>
+                <button id="aiSend" class="ai-send" type="button">发送</button>
+            </div>
+        </div>
+    </div>
+    <div id="aiAnswer" class="ai-answer" hidden></div>
+    <div id="systemPromptModal" class="fav-modal" hidden>
+        <div id="systemPromptBackdrop" class="fav-modal-backdrop"></div>
+        <div class="fav-modal-panel">
+            <div class="fav-modal-title">编辑 AI 角色设定</div>
+            <textarea id="systemPromptInput" class="fav-input note-textarea" placeholder="自定义 system prompt..."></textarea>
+            <div class="fav-modal-actions">
+                <button id="systemPromptReset">恢复默认</button>
+                <button id="systemPromptOk">保存</button>
+                <button id="systemPromptCancel">取消</button>
+            </div>
+        </div>
+    </div>
+
     <div class="stage" id="stage">
         <div class="hint" id="hint">按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴数据流文本<br>可选:用 <kbd>---</kbd> 分隔后追加 JSON 讲解</div>
     </div>
@@ -926,6 +1237,7 @@
             currentIndex = index;
             render();
             if (autoPlay) speakCurrentStep();
+            hideAiAnswer();
         }
 
         function buildSpeed(initialSpeed, storageKey) {
@@ -1232,6 +1544,15 @@
 
             const pane = document.createElement('div');
             pane.className = 'step-pane';
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'pane-copy-btn';
+            copyBtn.type = 'button';
+            copyBtn.textContent = 'copy';
+            copyBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                copyFullStep(copyBtn);
+            });
+            pane.appendChild(copyBtn);
             pane.appendChild(buildControls());
 
             const step = steps[currentIndex];
@@ -1267,9 +1588,7 @@
                 const enEl = e.target.closest('.note-en');
                 if (enEl) {
                     speakText(enEl.textContent, enEl);
-                    return;
                 }
-                copyStepText();
             });
             pane.appendChild(card);
 
@@ -1289,23 +1608,6 @@
             }
         }
 
-        function copyStepText() {
-            const step = steps[currentIndex];
-            if (!step || !step.line) return;
-            const flash = () => {
-                const card = stage.querySelector('.card');
-                if (!card) return;
-                card.classList.add('copied');
-                setTimeout(() => card.classList.remove('copied'), 600);
-            };
-            const text = step.line;
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).then(flash).catch(() => legacyCopy(text, flash));
-            } else {
-                legacyCopy(text, flash);
-            }
-        }
-
         function legacyCopy(text, done) {
             const area = document.createElement('textarea');
             area.value = text;
@@ -1321,6 +1623,33 @@
                 document.body.removeChild(area);
             }
             done();
+        }
+
+        function copyFullStep(btn) {
+            const step = steps[currentIndex];
+            if (!step) return;
+            const flash = () => {
+                if (!btn) return;
+                btn.classList.add('copied');
+                btn.textContent = 'copied';
+                setTimeout(() => {
+                    btn.classList.remove('copied');
+                    btn.textContent = 'copy';
+                }, 600);
+            };
+            const sections = [];
+            if (step.line) sections.push(step.line);
+            if (step.notes && step.notes.length > 0) {
+                sections.push(step.notes.join('\n\n'));
+            }
+            const code = codeSnippets[currentIndex + 1];
+            if (code) sections.push(code);
+            const text = sections.join('\n\n---\n\n');
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(flash).catch(() => legacyCopy(text, flash));
+            } else {
+                legacyCopy(text, flash);
+            }
         }
 
         function showError(msg) {
@@ -1354,7 +1683,319 @@
             render();
         }
 
+        // --- AI 问答 ---
+        const AI_BASE_URL = 'https://next-reader-psi.vercel.app/api/minimax';
+        const AI_MODEL = 'MiniMax-M3';
+        const AI_MAX_TOKENS = 4096;
+        let AI_SYSTEM_PROMPT = `你是一位经验丰富的编程助手,精通前端 / 后端 / 数据流分析,亲切、耐心、简洁。
+针对用户当前页面的数据流内容,你可以:
+1. 解释数据流的执行顺序、关键步骤、模块间的依赖关系
+2. 指出代码片段中的关键 API / Hook / 状态字段,以及它们在数据流里的角色
+3. 解释配置项的含义(如 staleTime / retry / placeholderData),并指出潜在改进点
+4. 结合用户选中的代码片段或步骤,做逐行解读或修复建议
+
+上下文说明:
+- 【步骤行】是带编号的执行序列(如 "01 用户在浏览器地址栏输入 /exports 并回车")
+- 【步骤行解释(JSON)】是同一编号的中英文对照解释,通常用 key=编号,value=中英混排的描述
+- 【代码片段】是对应步骤的实现代码,带 // 来源注释和行号线索
+- 【用户当前正在阅读的锚点步骤行】是用户当前正在看的步骤(1-based 索引,如 "01 用户在浏览器地址栏输入 /exports 并回车"),优先围绕它回答;引用其它步骤时请显式说"对照第 N 步"
+- 【用户当前选中的内容】是用户在页面里高亮的任何文本(代码 / 注释 / 步骤 / 解释),优先级最高
+
+回答要点:
+- 默认用中文回答,除非用户用英文提问
+- 用 Markdown 排版: 标题分点、列表展示要点、代码示例用 \`\`\` 包裹
+- 简洁但有信息密度,不啰嗦,不重复问题本身
+- 引用代码片段时尽量给出文件名 / 行号线索`;
+
+        let aiMessages = [];
+        let aiAbortController = null;
+        let isAiStreaming = false;
+        let lastPastedText = '';
+
+        const aiPanelTitle = document.querySelector('.ai-panel-title');
+        const systemPromptModal = document.getElementById('systemPromptModal');
+        const systemPromptBackdrop = document.getElementById('systemPromptBackdrop');
+        const systemPromptInput = document.getElementById('systemPromptInput');
+        const systemPromptOk = document.getElementById('systemPromptOk');
+        const systemPromptCancel = document.getElementById('systemPromptCancel');
+        const systemPromptReset = document.getElementById('systemPromptReset');
+        const aiPanel = document.getElementById('aiPanel');
+        const aiAnswer = document.getElementById('aiAnswer');
+        const aiQuestion = document.getElementById('aiQuestion');
+        const aiSend = document.getElementById('aiSend');
+        const aiToggle = document.getElementById('aiToggle');
+
+        const STORAGE_KEY_AI_SYSTEM_PROMPT = 'focus-dataflow:aiSystemPrompt';
+        const DEFAULT_AI_SYSTEM_PROMPT = AI_SYSTEM_PROMPT;
+
+        (function loadAiSystemPrompt() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY_AI_SYSTEM_PROMPT);
+                if (saved) AI_SYSTEM_PROMPT = saved;
+            } catch (e) {}
+        })();
+
+        function openSystemPromptModal() {
+            systemPromptInput.value = AI_SYSTEM_PROMPT;
+            systemPromptModal.hidden = false;
+        }
+        function closeSystemPromptModal() {
+            systemPromptModal.hidden = true;
+        }
+        function saveSystemPrompt() {
+            const v = systemPromptInput.value.trim();
+            if (!v) {
+                localStorage.removeItem(STORAGE_KEY_AI_SYSTEM_PROMPT);
+                AI_SYSTEM_PROMPT = DEFAULT_AI_SYSTEM_PROMPT;
+            } else {
+                localStorage.setItem(STORAGE_KEY_AI_SYSTEM_PROMPT, v);
+                AI_SYSTEM_PROMPT = v;
+            }
+            closeSystemPromptModal();
+        }
+        function resetSystemPrompt() {
+            systemPromptInput.value = DEFAULT_AI_SYSTEM_PROMPT;
+        }
+
+        aiPanelTitle.addEventListener('click', openSystemPromptModal);
+        systemPromptOk.addEventListener('click', saveSystemPrompt);
+        systemPromptCancel.addEventListener('click', closeSystemPromptModal);
+        systemPromptReset.addEventListener('click', resetSystemPrompt);
+        systemPromptBackdrop.addEventListener('click', closeSystemPromptModal);
+        systemPromptInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                systemPromptOk.click();
+            }
+        });
+
+        function getCurrentSelectionText() {
+            try {
+                const sel = window.getSelection && window.getSelection();
+                if (!sel) return '';
+                return sel.toString().trim();
+            } catch (e) {
+                return '';
+            }
+        }
+
+        function buildAiMessages(userQuestion) {
+            const ctxParts = [];
+            if (lastPastedText) {
+                const parts = lastPastedText.split(/^\s*---\s*$/m);
+                ctxParts.push(`【当前页面粘贴的全文(完整未裁剪)】\n${lastPastedText}`);
+                if (parts.length === 1) {
+                    // 无 --- 分隔,仅整段
+                } else if (parts.length === 2) {
+                    ctxParts.push(`【步骤行】\n${parts[0].trim()}`);
+                    ctxParts.push(`【步骤行解释(JSON)】\n${parts[1].trim()}`);
+                } else {
+                    ctxParts.push(`【步骤行】\n${parts[0].trim()}`);
+                    ctxParts.push(`【步骤行解释(JSON)】\n${parts[1].trim()}`);
+                    const code = parts.slice(2).join('\n---\n').trim();
+                    if (code) ctxParts.push(`【代码片段】\n${code}`);
+                }
+            }
+            const step = steps[currentIndex] || {};
+            if (step && step.line) {
+                ctxParts.push(`【用户当前正在阅读的锚点步骤行(第 ${currentIndex + 1} / 共 ${steps.length} 步,索引从 1 开始)】\n${step.line}`);
+            }
+            const selection = getCurrentSelectionText();
+            if (selection) {
+                ctxParts.push(`【用户当前选中的内容】\n${selection}`);
+            }
+            const ctxUser = ctxParts.length > 0
+                ? ctxParts.join('\n\n---\n\n')
+                : '(页面暂无内容)';
+            const msgs = [
+                { role: 'user', content: ctxUser },
+                { role: 'assistant', content: '好的,我已了解当前页面。请提问。' },
+                ...aiMessages,
+                { role: 'user', content: userQuestion }
+            ];
+            return [{ role: 'system', content: AI_SYSTEM_PROMPT }, ...msgs];
+        }
+
+        function appendAiBubble(role) {
+            const wrap = document.createElement('div');
+            wrap.className = `ai-bubble ai-bubble-${role}`;
+            const label = document.createElement('div');
+            label.className = 'ai-bubble-label';
+            label.textContent = role === 'user' ? '我' : '助手';
+            const body = document.createElement('div');
+            body.className = 'ai-bubble-body';
+            wrap.appendChild(label);
+            wrap.appendChild(body);
+            aiAnswer.appendChild(wrap);
+            aiAnswer.scrollTop = aiAnswer.scrollHeight;
+            return body;
+        }
+
+        function renderAiHistory() {
+            aiAnswer.innerHTML = '';
+            aiMessages.forEach(m => {
+                const body = appendAiBubble(m.role === 'user' ? 'user' : 'assistant');
+                body.innerHTML = marked.parse(m.content);
+            });
+            aiAnswer.scrollTop = aiAnswer.scrollHeight;
+        }
+
+        function clearAiHistory() {
+            if (isAiStreaming && aiAbortController) aiAbortController.abort();
+            aiMessages = [];
+            aiAnswer.innerHTML = '';
+        }
+
+        function setAiStreaming(enabled) {
+            isAiStreaming = enabled;
+            aiSend.textContent = enabled ? '停止' : '发送';
+            aiSend.classList.toggle('ai-send-stopping', enabled);
+            aiQuestion.disabled = enabled;
+        }
+
+        async function sendAiQuestion() {
+            const q = aiQuestion.value.trim();
+            if (!q) return;
+            if (isAiStreaming) {
+                if (aiAbortController) aiAbortController.abort();
+                return;
+            }
+            const userBody = appendAiBubble('user');
+            userBody.textContent = q;
+            aiMessages.push({ role: 'user', content: q });
+            aiQuestion.value = '';
+            showAiAnswer();
+            const asstBody = appendAiBubble('assistant');
+            asstBody.classList.add('ai-bubble-streaming');
+            const asstCursor = document.createElement('span');
+            asstCursor.className = 'ai-cursor';
+            asstBody.appendChild(asstCursor);
+            let buffer = '';
+            aiAbortController = new AbortController();
+            setAiStreaming(true);
+            try {
+                const res = await fetch(AI_BASE_URL, {
+                    method: 'POST',
+                    headers: { 'content-type': 'application/json', 'anthropic-version': '2023-06-01' },
+                    body: JSON.stringify({
+                        model: AI_MODEL,
+                        max_tokens: AI_MAX_TOKENS,
+                        stream: true,
+                        messages: buildAiMessages(q)
+                    }),
+                    signal: aiAbortController.signal
+                });
+                if (!res.ok || !res.body) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder('utf-8', { stream: true });
+                let leftover = '';
+                let pending = [];
+                const flushBubble = () => {
+                    pending.forEach(delta => { buffer += delta; });
+                    pending = [];
+                    asstBody.textContent = buffer;
+                    asstBody.appendChild(asstCursor);
+                    aiAnswer.scrollTop = aiAnswer.scrollHeight;
+                };
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    leftover += decoder.decode(value, { stream: true });
+                    let idx;
+                    while ((idx = leftover.indexOf('\n\n')) !== -1) {
+                        const raw = leftover.slice(0, idx);
+                        leftover = leftover.slice(idx + 2);
+                        const lines = raw.split('\n');
+                        let ev = 'message', data = '';
+                        for (const line of lines) {
+                            if (line.startsWith('event:')) ev = line.slice(6).trim();
+                            else if (line.startsWith('data:')) data += line.slice(5).trim();
+                        }
+                        if (!data) continue;
+                        if (data === '[DONE]') continue;
+                        let payload;
+                        try { payload = JSON.parse(data); } catch { continue; }
+                        if (ev === 'content_block_delta' && payload.delta?.type === 'text_delta') {
+                            pending.push(payload.delta.text || '');
+                        } else if (ev === 'content_block_stop') {
+                            flushBubble();
+                        }
+                    }
+                    flushBubble();
+                }
+                flushBubble();
+                asstBody.classList.remove('ai-bubble-streaming');
+                asstBody.innerHTML = marked.parse(buffer || '(空响应)');
+                aiMessages.push({ role: 'assistant', content: buffer });
+            } catch (err) {
+                asstBody.classList.remove('ai-bubble-streaming');
+                asstBody.textContent = buffer + (buffer ? '\n\n' : '') + `[错误: ${err.message}]`;
+            } finally {
+                aiAbortController = null;
+                setAiStreaming(false);
+            }
+        }
+
+        aiSend.addEventListener('click', sendAiQuestion);
+        function insertSelectionIntoAi() {
+            const text = getCurrentSelectionText();
+            if (!text) return;
+            const ta = aiQuestion;
+            const start = ta.selectionStart;
+            const end = ta.selectionEnd;
+            const before = ta.value.slice(0, start);
+            const after = ta.value.slice(end);
+            ta.value = before + text + after;
+            const caret = start + text.length;
+            ta.selectionStart = ta.selectionEnd = caret;
+            ta.focus();
+        }
+
+        aiQuestion.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                sendAiQuestion();
+                return;
+            }
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                if (isAiStreaming && aiAbortController) aiAbortController.abort();
+                else aiQuestion.value = '';
+                return;
+            }
+            if (e.key === 's' || e.key === 'S') {
+                e.stopPropagation();
+                return;
+            }
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) {
+                e.stopPropagation();
+                return;
+            }
+        });
+
+        function showAiAnswer() {
+            aiAnswer.hidden = false;
+            aiToggle.textContent = '▼ 隐藏';
+        }
+        function hideAiAnswer() {
+            aiAnswer.hidden = true;
+            aiToggle.textContent = '▲ 显示';
+        }
+        function toggleAiAnswer() {
+            if (aiAnswer.hidden) showAiAnswer();
+            else hideAiAnswer();
+        }
+        aiToggle.addEventListener('click', toggleAiAnswer);
+
+        // --- /AI 问答 ---
+
         document.addEventListener('paste', (e) => {
+            if (e.target === aiQuestion) {
+                e.stopPropagation();
+                return;
+            }
             const text = (e.clipboardData || window.clipboardData).getData('text');
             if (!text) return;
             if (!document.getElementById('kwModal').classList.contains('hidden')) {
@@ -1365,6 +2006,7 @@
                 loadCode(text);
                 return;
             }
+            lastPastedText = text;
             loadText(text);
         });
 
@@ -1384,6 +2026,7 @@
             if (!data || typeof data !== 'object') return;
             if (data.type !== 'focus-dataflow-load') return;
             if (typeof data.content !== 'string' || !data.content) return;
+            lastPastedText = data.content;
             loadText(data.content);
             closeBtn.classList.add('visible');
         });
@@ -1486,9 +2129,16 @@
                 openKwModal();
                 return;
             }
-            if (steps.length === 0) return;
             const tag = (e.target && e.target.tagName) || '';
-            if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+            const isAiTextarea = document.activeElement === aiQuestion;
+            const isOtherInput = tag === 'INPUT' || tag === 'TEXTAREA';
+            if (!isAiTextarea && !e.altKey && !e.ctrlKey && !e.shiftKey && !e.metaKey && (e.key === 's' || e.key === 'S')) {
+                e.preventDefault();
+                insertSelectionIntoAi();
+                return;
+            }
+            if (steps.length === 0) return;
+            if (!isAiTextarea && isOtherInput) return;
 
             if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
                 e.preventDefault();

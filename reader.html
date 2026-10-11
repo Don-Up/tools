@@ -675,13 +675,22 @@
 <iframe id="focusJsonFrame" src="about:blank"></iframe>
 
 <script>
-
-    console.log(window.location.origin+" "+window.location.origin)
-    const FOCUS_TABLE_URL = "http://localhost:63342/html-tools/focus-table.html?_ijt=nef83c3obbgm28hunkhqd2ein3&_ij_reload=RELOAD_ON_SAVE"; // temporary JetBrains-served URL
-    const FOCUS_DATAFLOW_URL = "http://localhost:63342/html-tools/focus-dataflow.html?_ijt=a9b8bnbhlng3cb44ckssbrjrta&_ij_reload=RELOAD_ON_SAVE"; // temporary JetBrains-served URL
-    const FOCUS_MERMAID_URL = "http://localhost:63342/html-tools/focus-mermaid.html?_ijt=av6prn444svnt2ts4i6hb2ed27&_ij_reload=RELOAD_ON_SAVE"; // temporary JetBrains-served URL
-    const FOCUS_CLASS_URL = "http://localhost:63342/html-tools/focus-class.html?_ijt=k15mru4hpoaekqksr42peamdok&_ij_reload=RELOAD_ON_SAVE"; // temporary JetBrains-served URL
-    const FOCUS_JSON_URL = "http://localhost:63342/html-tools/focus-json.html?_ijt=aom9p0ej4n5vi8mvbqdmlpn9d8&_ij_reload=RELOAD_ON_SAVE"; // temporary JetBrains-served URL
+    const isProd = window.location.origin === "https://don-up.github.io"
+    const FOCUS_TABLE_URL = isProd?
+        "http://localhost:63342/html-tools/focus-table.html?_ijt=nef83c3obbgm28hunkhqd2ein3&_ij_reload=RELOAD_ON_SAVE":
+        "https://don-up.github.io/tools/focus-table";
+    const FOCUS_DATAFLOW_URL = isProd?
+        "http://localhost:63342/html-tools/focus-dataflow.html?_ijt=a9b8bnbhlng3cb44ckssbrjrta&_ij_reload=RELOAD_ON_SAVE":
+        "https://don-up.github.io/tools/focus-dataflow";
+    const FOCUS_MERMAID_URL = isProd?
+        "http://localhost:63342/html-tools/focus-mermaid.html?_ijt=av6prn444svnt2ts4i6hb2ed27&_ij_reload=RELOAD_ON_SAVE":
+        "https://don-up.github.io/tools/focus-mermaid";
+    const FOCUS_CLASS_URL = isProd?
+        "http://localhost:63342/html-tools/focus-class.html?_ijt=k15mru4hpoaekqksr42peamdok&_ij_reload=RELOAD_ON_SAVE":
+        "https://don-up.github.io/tools/focus-class";
+    const FOCUS_JSON_URL = isProd?
+        "http://localhost:63342/html-tools/focus-json.html?_ijt=aom9p0ej4n5vi8mvbqdmlpn9d8&_ij_reload=RELOAD_ON_SAVE":
+        "https://don-up.github.io/tools/focus-json";
     let isPlaying = false;
     let voices = [];
     let currentSpeaker = localStorage.getItem("currentSpeaker") || "Microsoft Andrew Online (Natural) - English (United States)";
