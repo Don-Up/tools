@@ -224,6 +224,18 @@
             display: none;
         }
         #focusClassFrame.shown { display: block; }
+        #focusJsonFrame {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            border: none;
+            background: #121212;
+            z-index: 2000;  /* above .controls (1000) so the iframe fully overlays the reader's top bar */
+            display: none;
+        }
+        #focusJsonFrame.shown { display: block; }
 
         .controls {
             /* 设置controls为fixed以使其固定在页面顶部 */
@@ -660,12 +672,16 @@
 <iframe id="focusDataflowFrame" src="about:blank"></iframe>
 <iframe id="focusMermaidFrame" src="about:blank"></iframe>
 <iframe id="focusClassFrame" src="about:blank"></iframe>
+<iframe id="focusJsonFrame" src="about:blank"></iframe>
 
 <script>
+
+    console.log(window.location.origin+" "+window.location.origin)
     const FOCUS_TABLE_URL = "http://localhost:63342/html-tools/focus-table.html?_ijt=nef83c3obbgm28hunkhqd2ein3&_ij_reload=RELOAD_ON_SAVE"; // temporary JetBrains-served URL
     const FOCUS_DATAFLOW_URL = "http://localhost:63342/html-tools/focus-dataflow.html?_ijt=a9b8bnbhlng3cb44ckssbrjrta&_ij_reload=RELOAD_ON_SAVE"; // temporary JetBrains-served URL
     const FOCUS_MERMAID_URL = "http://localhost:63342/html-tools/focus-mermaid.html?_ijt=av6prn444svnt2ts4i6hb2ed27&_ij_reload=RELOAD_ON_SAVE"; // temporary JetBrains-served URL
     const FOCUS_CLASS_URL = "http://localhost:63342/html-tools/focus-class.html?_ijt=k15mru4hpoaekqksr42peamdok&_ij_reload=RELOAD_ON_SAVE"; // temporary JetBrains-served URL
+    const FOCUS_JSON_URL = "http://localhost:63342/html-tools/focus-json.html?_ijt=aom9p0ej4n5vi8mvbqdmlpn9d8&_ij_reload=RELOAD_ON_SAVE"; // temporary JetBrains-served URL
     let isPlaying = false;
     let voices = [];
     let currentSpeaker = localStorage.getItem("currentSpeaker") || "Microsoft Andrew Online (Natural) - English (United States)";
@@ -1386,7 +1402,7 @@
                 return;
             }
 
-            const codeBlockStart = line.toString().trim().match(/^```(\w*)/);
+            const codeBlockStart = line.toString().trim().match(/^```([\w-]*)/);
             if (codeBlockStart) {
 
                 if (isInCodeBlock) {
@@ -1509,6 +1525,24 @@
                     focusBtn.addEventListener('click', function (e) {
                         e.stopPropagation();
                         openDataflowFocus(text);
+                    });
+                    pre.appendChild(focusBtn);
+                }
+
+                // Add Focus button for bilingual-json code blocks (to the left of Copy)
+                if (code.className.includes('language-bilingual-json')) {
+                    const focusBtn = document.createElement('button');
+                    focusBtn.className = 'focus-json-btn';
+                    focusBtn.style.position = 'absolute';
+                    focusBtn.style.top = '10px';
+                    focusBtn.style.right = '60px';
+                    focusBtn.style.padding = '5px';
+                    focusBtn.style.zIndex = '100';
+                    focusBtn.style.backgroundColor = '#666666';
+                    focusBtn.innerText = 'focus';
+                    focusBtn.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        openJsonFocus(text);
                     });
                     pre.appendChild(focusBtn);
                 }
@@ -2046,6 +2080,7 @@
     const focusDataflowFrame = document.getElementById('focusDataflowFrame');
     const focusMermaidFrame = document.getElementById('focusMermaidFrame');
     const focusClassFrame = document.getElementById('focusClassFrame');
+    const focusJsonFrame = document.getElementById('focusJsonFrame');
 
     const codeBlocks = document.querySelectorAll('pre code');
     codeBlocks.forEach((block, index) => {
@@ -2149,6 +2184,13 @@
         );
     }
 
+    function sendJsonToFocusFrame(content) {
+        focusJsonFrame.contentWindow?.postMessage(
+            { type: 'focus-json-load', content: content },
+            '*'
+        );
+    }
+
     function openDataflowFocus(text) {
         if (focusDataflowFrame.dataset.loaded !== 'true') {
             focusDataflowFrame.addEventListener('load', () => {
@@ -2191,6 +2233,19 @@
         focusClassFrame.classList.add('shown');
     }
 
+    function openJsonFocus(content) {
+        if (focusJsonFrame.dataset.loaded !== 'true') {
+            focusJsonFrame.addEventListener('load', () => {
+                focusJsonFrame.dataset.loaded = 'true';
+                sendJsonToFocusFrame(content);
+            }, { once: true });
+            focusJsonFrame.src = FOCUS_JSON_URL;
+        } else {
+            sendJsonToFocusFrame(content);
+        }
+        focusJsonFrame.classList.add('shown');
+    }
+
     document.getElementById('content').addEventListener('click', (e) => {
         const btn = e.target.closest('.focus-table-btn');
         if (!btn) return;
@@ -2221,6 +2276,8 @@
             focusMermaidFrame.classList.remove('shown');
         } else if (data.type === 'focus-class-close') {
             focusClassFrame.classList.remove('shown');
+        } else if (data.type === 'focus-json-close') {
+            focusJsonFrame.classList.remove('shown');
         }
     });
 
