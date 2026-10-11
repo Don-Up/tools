@@ -1559,47 +1559,7 @@
                     pre.appendChild(focusBtn);
                 }
 
-                // Add Fullscreen button for mermaid code blocks (sibling above the pre)
-                if (code.className.includes('language-mermaid') || code.className.includes('language-classDiagram')) {
-                    const fsBtn = document.createElement('button');
-                    fsBtn.className = 'focus-mermaid-btn';
-                    fsBtn.style.display = 'inline-block';
-                    fsBtn.style.marginBottom = '4px';
-                    fsBtn.style.padding = '4px 12px';
-                    fsBtn.style.backgroundColor = '#666666';
-                    fsBtn.style.color = '#fff';
-                    fsBtn.style.border = 'none';
-                    fsBtn.style.marginLeft = '10px'
-                    fsBtn.style.borderRadius = '2px';
-                    fsBtn.style.cursor = 'pointer';
-                    fsBtn.style.fontSize = '12px';
-                    fsBtn.textContent = 'fullscreen';
-                    fsBtn.addEventListener('click', function (e) {
-                        e.stopPropagation();
-                        openMermaidFocus(text);
-                    });
-                    pre.parentNode.insertBefore(fsBtn, pre);
-
-                    const focusBtn = document.createElement('button');
-                    focusBtn.className = 'focus-class-btn';
-                    focusBtn.style.display = 'inline-block';
-                    focusBtn.style.marginBottom = '4px';
-                    focusBtn.style.padding = '4px 12px';
-                    focusBtn.style.backgroundColor = '#eeeeee';
-                    focusBtn.style.color = '#fff';
-                    focusBtn.style.border = 'none';
-                    focusBtn.style.borderRadius = '2px';
-                    focusBtn.style.cursor = 'pointer';
-                    focusBtn.style.fontSize = '12px';
-                    focusBtn.textContent = 'focus';
-
-                    focusBtn.addEventListener('click', function (e) {
-                        e.stopPropagation();
-                        openClassFocus(text);
-                    });
-
-                    pre.parentNode.insertBefore(focusBtn, pre);
-                }
+                // mermaid / classDiagram 的按钮由上方 mermaid.init 渲染循环统一处理(样式正确,且会真正渲染 SVG)
             })
         }, 100)
         contentDiv.style.padding = "70px 20px 20px";
