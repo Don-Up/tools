@@ -866,6 +866,7 @@
         // --- iframe integration (parent = reader.html) ---
         const closeBtn = document.getElementById('closeBtn');
         closeBtn.addEventListener('click', () => {
+            stopSpeaking();
             if (window.parent && window.parent !== window) {
                 window.parent.postMessage({ type: 'focus-json-close' }, '*');
             }

@@ -801,7 +801,10 @@
 
     // 监听 iframe 发送的消息
     window.addEventListener("message", function (event) {
-        if (event.origin === "https://don-up.github.io" && !event.data.source) {  // 确保来源正确
+        // book name 来自 tools/md 选择器,是字符串;focus-* close 消息是对象
+        // ({ type: 'focus-xxx-close' }),不能按"无 source 字段"判断,否则关闭 iframe
+        // 会触发此分支,把被 openClassFocus 污染过的剪贴板误当成正文渲染。
+        if (event.origin === "https://don-up.github.io" && typeof event.data === "string") {
             bookName = event.data;
             // 关闭弹窗
             closeModal();
@@ -2227,12 +2230,11 @@
     }
 
     async function openClassFocus(code) {
-        try { await navigator.clipboard.writeText(code); } catch (_) {}
+        // 不再写剪贴板:postMessage 是唯一的传递通道,写剪贴板会污染父页面
+        // 的剪贴板,触发 reader.html 顶层 message 监听器把整页替换成类图源码。
         if (focusClassFrame.dataset.loaded !== 'true') {
             focusClassFrame.addEventListener('load', () => {
                 focusClassFrame.dataset.loaded = 'true';
-                // small delay so child's clipboard-read attempt runs first; postMessage
-                // is also what surfaces the close button (only shown after parent signals)
                 setTimeout(() => sendClassToFocusFrame(code), 100);
             }, { once: true });
             focusClassFrame.src = FOCUS_CLASS_URL;
