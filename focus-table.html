@@ -98,6 +98,16 @@
             color: #e0e0e0;
         }
 
+        td .cell-cn {
+            display: block;
+            margin-top: 10px;
+            font-size: 16px;
+            line-height: 1.6;
+            color: #9aa5b1;
+            font-family: "华文细黑", "PingFang SC", "Microsoft YaHei", sans-serif;
+            word-break: break-word;
+        }
+
         code {
             font-family: 'Consolas', 'Monaco', monospace;
             background: #2c2c2c;
@@ -251,14 +261,49 @@
         }
 
         function renderCell(text, td) {
-            const parts = text.split('`');
-            parts.forEach((part, i) => {
-                if (i % 2 === 0) {
-                    if (part.length > 0) td.appendChild(document.createTextNode(part));
+            // 先按【】切分,中文注释作为独立小字 div,其余 text 再按 ` 渲染 code span
+            // CN 末尾若带句末标点(。？！.?!),直接删掉,避免换行后单独成行
+            // 如果最后一个 fragment 是 text(出现在 CN 之后),其末尾标点也会换行孤悬,一并删
+            const cnRegex = /【([^】]*)】/g;
+            const TRAILING_PUNCT = /[\s。？！.?!]+$/;
+            const fragments = [];
+            let lastIdx = 0;
+            let m;
+            while ((m = cnRegex.exec(text)) !== null) {
+                if (m.index > lastIdx) fragments.push({ type: 'text', value: text.slice(lastIdx, m.index) });
+                const cnText = m[1].replace(TRAILING_PUNCT, '').trim();
+                if (cnText.length > 0) fragments.push({ type: 'cn', value: cnText });
+                lastIdx = m.index + m[0].length;
+            }
+            if (lastIdx < text.length) fragments.push({ type: 'text', value: text.slice(lastIdx) });
+            if (fragments.length > 0 && fragments[fragments.length - 1].type === 'text') {
+                const last = fragments[fragments.length - 1];
+                const before = last.value;
+                const stripped = last.value.replace(TRAILING_PUNCT, '');
+                // 只在前面出现过 CN 时才剥,避免误删普通结尾标点
+                const hadCn = fragments.slice(0, -1).some(f => f.type === 'cn');
+                if (hadCn && stripped !== before) {
+                    last.value = stripped;
+                }
+            }
+
+            fragments.forEach(frag => {
+                if (frag.type === 'cn') {
+                    const cnDiv = document.createElement('div');
+                    cnDiv.className = 'cell-cn';
+                    cnDiv.textContent = frag.value;
+                    td.appendChild(cnDiv);
                 } else {
-                    const code = document.createElement('code');
-                    code.textContent = part;
-                    td.appendChild(code);
+                    const parts = frag.value.split('`');
+                    parts.forEach((part, i) => {
+                        if (i % 2 === 0) {
+                            if (part.length > 0) td.appendChild(document.createTextNode(part));
+                        } else {
+                            const code = document.createElement('code');
+                            code.textContent = part;
+                            td.appendChild(code);
+                        }
+                    });
                 }
             });
         }
@@ -379,7 +424,7 @@
             headers = parsed.headers;
             rows = parsed.rows;
             currentIndex = 0;
-            columnsConfig = '1';
+            columnsConfig = '1,2';
             localStorage.setItem('focusTableColumns', columnsConfig);
             render();
         }
@@ -455,14 +500,14 @@
                 return;
             }
             if (rows.length === 0) return;
-            if (e.key === 'ArrowDown') {
+            if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
                 e.preventDefault();
                 if (currentIndex < rows.length - 1) {
                     currentIndex++;
                     render();
                     speakCurrentRow();
                 }
-            } else if (e.key === 'ArrowUp') {
+            } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
                 e.preventDefault();
                 if (currentIndex > 0) {
                     currentIndex--;

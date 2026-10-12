@@ -61,6 +61,7 @@
             border-radius: 10px;
             padding: 44px 48px;
             cursor: pointer;
+            position: relative;
         }
 
         .card.copied {
@@ -83,6 +84,17 @@
         }
         .sibling-step .marker { color: #4fc3f7; }
         .sibling-step .arrow { color: #4fc3f7; }
+        body.has-bg .sibling-step-wrap {
+            padding-top: 8px;
+            padding-bottom: 8px;
+            padding-right: 12px;
+            margin-left: 36px;
+            border-radius: 6px;
+            background: rgba(20, 20, 20, 0.35);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        body.has-bg .sibling-step { color: #cfd8dc; }
         .sibling-step-divider {
             border-top: 1px dashed #333;
             margin: 14px 0;
@@ -247,6 +259,12 @@
             align-items: flex-start;
             justify-content: space-between;
             max-width: none;
+        }
+
+        .stage:not(.with-code) .step-pane {
+            width: 60vw;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         body.with-code {
@@ -638,6 +656,28 @@
             font-size: 11px;
             color: #888;
             padding: 0 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .ai-bubble-read-btn {
+            padding: 1px 8px;
+            font-size: 11px;
+            color: #b0bec5;
+            background: transparent;
+            border: 1px solid #444;
+            border-radius: 3px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .ai-bubble-read-btn:hover {
+            background: #2c2c2c;
+            color: #fff;
+        }
+        .ai-bubble-read-btn.speaking {
+            background: #ff5252;
+            color: #fff;
+            border-color: #ff5252;
         }
         .ai-bubble-body {
             padding: 6px 10px;
@@ -779,6 +819,107 @@
             border-radius: 4px;
         }
         .fav-input.note-textarea::-webkit-scrollbar-thumb:hover { background: #5a5a5a; }
+
+        .bg-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .bg-modal[hidden] { display: none; }
+        .bg-modal-backdrop {
+            position: absolute;
+            inset: 0;
+            background: transparent;
+        }
+        .bg-modal-panel {
+            position: relative;
+            background: #1e1e1e;
+            padding: 30px;
+            border-radius: 8px;
+            min-width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .bg-modal-title {
+            font-size: 20px;
+            color: #e0e0e0;
+            text-align: center;
+        }
+        .bg-modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        .bg-modal-actions button {
+            padding: 6px 16px;
+            background: #2c2c2c;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .bg-modal-actions button:hover { background: #3a3a3a; }
+        body.has-bg {
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+        body.has-bg .stage {
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .bg-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            max-height: 200px;
+            overflow-y: auto;
+            min-width: 260px;
+        }
+        .bg-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 8px;
+            color: #e0e0e0;
+            font-size: 14px;
+            border-radius: 4px;
+        }
+        .bg-list-item:hover { background: #2c2c2c; }
+        .bg-preview-btn {
+            background: transparent;
+            color: #6cf;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0 8px;
+            line-height: 1;
+        }
+        .bg-preview-btn:hover { color: #9df; }
+        .bg-delete-btn {
+            background: transparent;
+            color: #c66;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 0 8px;
+            line-height: 1;
+        }
+        .bg-delete-btn:hover { color: #f88; }
+        .bg-list:empty::before {
+            content: '暂无背景图片';
+            color: #666;
+            font-size: 13px;
+            display: block;
+            text-align: center;
+            padding: 8px;
+        }
     </style>
 </head>
 <body>
@@ -796,6 +937,19 @@
             </div>
         </div>
     </div>
+    <div id="bgModal" class="bg-modal" hidden>
+        <div id="bgModalBackdrop" class="bg-modal-backdrop"></div>
+        <div id="bgModalPanel" class="bg-modal-panel">
+            <div class="bg-modal-title">背景图片</div>
+            <ul id="bgList" class="bg-list"></ul>
+            <div class="bg-modal-actions">
+                <button id="bgAddBtn" type="button">选择图片</button>
+                <button id="bgCloseBtn" type="button">关闭</button>
+            </div>
+        </div>
+        <input type="file" id="bgFileInput" accept="image/png,image/jpeg,image/gif,image/webp,image/bmp" hidden>
+    </div>
+
     <div id="aiPanel" class="ai-panel">
         <div class="ai-panel-title">AI 问答</div>
         <div class="ai-input-row">
@@ -1167,25 +1321,29 @@
                 span.textContent = '—';
                 return span;
             }
-            const m = text.match(/^(\s*)((?:\d+\s*)?)((?:→|↳)?)([\s\S]*)$/);
+            // 去掉行首空白,压缩内部连续空白为单个空格,避免 "04            ↳" 这类多空格
+            text = text.replace(/^\s+/, '').replace(/\s+/g, ' ');
+            // 顺序: 可选 step number, 可选箭头, 剩余内容
+            const m = text.match(/^(\d+)?\s*(?:(→|↳))?\s*([\s\S]*)$/);
             if (!m) {
                 span.textContent = text;
                 return span;
             }
-            if (m[1]) span.appendChild(document.createTextNode(m[1]));
-            if (m[2]) {
+            if (m[1]) {
                 const num = document.createElement('span');
                 num.className = 'marker';
-                num.textContent = m[2];
+                num.textContent = m[1];
                 span.appendChild(num);
+                span.appendChild(document.createTextNode(' '));
             }
-            if (m[3]) {
+            if (m[2]) {
                 const arrow = document.createElement('span');
                 arrow.className = 'arrow';
-                arrow.textContent = m[3];
+                arrow.textContent = m[2];
                 span.appendChild(arrow);
+                span.appendChild(document.createTextNode(' '));
             }
-            appendMethods(span, m[4]);
+            appendMethods(span, m[3]);
             return span;
         }
 
@@ -1570,22 +1728,14 @@
             const codePane = stage.querySelector('.code-pane');
             const codeScroll = codePane ? codePane.scrollTop : 0;
             stage.innerHTML = '';
-            const hasCode = Object.keys(codeSnippets).length > 0;
+            // 当前步骤是否带代码片段(按 currentIndex 决定,而不是整个文档是否含 code)
+            const hasCode = !!codeSnippets[currentIndex + 1];
             stage.classList.toggle('with-code', hasCode);
             document.body.classList.toggle('with-code', hasCode);
             if (steps.length === 0) return;
 
             const pane = document.createElement('div');
             pane.className = 'step-pane';
-            const copyBtn = document.createElement('button');
-            copyBtn.className = 'pane-copy-btn';
-            copyBtn.type = 'button';
-            copyBtn.textContent = 'copy';
-            copyBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                copyFullStep(copyBtn);
-            });
-            pane.appendChild(copyBtn);
             pane.appendChild(buildControls());
 
             const step = steps[currentIndex];
@@ -1602,6 +1752,15 @@
 
             const card = document.createElement('div');
             card.className = 'card';
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'pane-copy-btn';
+            copyBtn.type = 'button';
+            copyBtn.textContent = 'copy';
+            copyBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                copyFullStep(copyBtn);
+            });
+            card.appendChild(copyBtn);
             card.appendChild(renderLine(step.line));
 
             if (step.notes.length > 0) {
@@ -1655,7 +1814,7 @@
             pane.appendChild(status);
             stage.appendChild(pane);
 
-            if (Object.keys(codeSnippets).length > 0) {
+            if (codeSnippets[currentIndex + 1]) {
                 const codePaneEl = buildCodePane();
                 stage.appendChild(codePaneEl);
                 if (codeScroll) codePaneEl.scrollTop = codeScroll;
@@ -1870,7 +2029,7 @@
             return [{ role: 'system', content: AI_SYSTEM_PROMPT }, ...msgs];
         }
 
-        function appendAiBubble(role) {
+        function appendAiBubble(role, markdown = '') {
             const wrap = document.createElement('div');
             wrap.className = `ai-bubble ai-bubble-${role}`;
             const label = document.createElement('div');
@@ -1878,6 +2037,24 @@
             label.textContent = role === 'user' ? '我' : '助手';
             const body = document.createElement('div');
             body.className = 'ai-bubble-body';
+            if (role !== 'user') {
+                body.dataset.markdown = markdown;
+                const readBtn = document.createElement('button');
+                readBtn.className = 'ai-bubble-read-btn';
+                readBtn.type = 'button';
+                readBtn.textContent = '朗读';
+                readBtn.title = '朗读本条回复(过滤代码块)';
+                readBtn.addEventListener('click', () => toggleAiRead(body, readBtn));
+                label.appendChild(readBtn);
+
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'ai-bubble-read-btn';
+                copyBtn.type = 'button';
+                copyBtn.textContent = '复制';
+                copyBtn.title = '复制 markdown 原文';
+                copyBtn.addEventListener('click', () => copyAiMarkdown(body, copyBtn));
+                label.appendChild(copyBtn);
+            }
             wrap.appendChild(label);
             wrap.appendChild(body);
             aiAnswer.appendChild(wrap);
@@ -1885,10 +2062,71 @@
             return body;
         }
 
+        function copyAiMarkdown(body, btn) {
+            const md = body.dataset.markdown || '';
+            if (!md) return;
+            const onCopied = () => {
+                const original = btn.textContent;
+                btn.textContent = '已复制';
+                setTimeout(() => { btn.textContent = original; }, 1000);
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(md).then(onCopied).catch(() => {
+                    legacyCopy(md);
+                    onCopied();
+                });
+            } else {
+                legacyCopy(md);
+                onCopied();
+            }
+        }
+
+        function legacyCopy(text) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); } catch (_) {}
+            document.body.removeChild(ta);
+        }
+
+        function toggleAiRead(body, btn) {
+            if (!('speechSynthesis' in window)) return;
+            if (body.dataset.reading === 'true') {
+                stopSpeaking();
+                finishAiRead(body, btn);
+                return;
+            }
+            // 过滤掉 ``` ... ``` 包裹的代码块,以及多余的空白
+            let text = body.textContent.replace(/```[\s\S]*?```/g, ' ');
+            text = text.replace(/\s+/g, ' ').trim();
+            if (!text) return;
+            stopSpeaking();
+            const utterance = new SpeechSynthesisUtterance(text);
+            const { lang, rate, voice } = pickTTSVoice(text);
+            utterance.lang = lang;
+            utterance.rate = rate;
+            if (voice) utterance.voice = voice;
+            utterance.onend = () => finishAiRead(body, btn);
+            utterance.onerror = () => finishAiRead(body, btn);
+            body.dataset.reading = 'true';
+            btn.textContent = '停止';
+            btn.classList.add('speaking');
+            speechSynthesis.speak(utterance);
+        }
+
+        function finishAiRead(body, btn) {
+            body.dataset.reading = '';
+            btn.textContent = '朗读';
+            btn.classList.remove('speaking');
+        }
+
         function renderAiHistory() {
             aiAnswer.innerHTML = '';
             aiMessages.forEach(m => {
-                const body = appendAiBubble(m.role === 'user' ? 'user' : 'assistant');
+                const body = appendAiBubble(m.role === 'user' ? 'user' : 'assistant', m.content);
                 body.innerHTML = marked.parse(m.content);
             });
             aiAnswer.scrollTop = aiAnswer.scrollHeight;
@@ -1982,6 +2220,7 @@
                 flushBubble();
                 asstBody.classList.remove('ai-bubble-streaming');
                 asstBody.innerHTML = marked.parse(buffer || '(空响应)');
+                asstBody.dataset.markdown = buffer;
                 aiMessages.push({ role: 'assistant', content: buffer });
             } catch (err) {
                 asstBody.classList.remove('ai-bubble-streaming');
@@ -2209,6 +2448,157 @@
             loadVoices();
             speechSynthesis.onvoiceschanged = loadVoices;
         }
+
+        // --- Background image (Ctrl+I) ---
+        const bgModal = document.getElementById('bgModal');
+        const bgModalBackdrop = document.getElementById('bgModalBackdrop');
+        const bgList = document.getElementById('bgList');
+        const bgAddBtn = document.getElementById('bgAddBtn');
+        const bgCloseBtn = document.getElementById('bgCloseBtn');
+        const bgFileInput = document.getElementById('bgFileInput');
+
+        let bgImages = [];
+        let currentBgId = -1;
+
+        const DB_NAME = 'focus-dataflow-bg';
+        const DB_VERSION = 1;
+        const BG_STORE = 'images';
+
+        function openBgDb() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, DB_VERSION);
+                req.onupgradeneeded = () => {
+                    const db = req.result;
+                    if (!db.objectStoreNames.contains(BG_STORE)) {
+                        db.createObjectStore(BG_STORE, { keyPath: 'id', autoIncrement: true });
+                    }
+                };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        async function loadAllBg() {
+            const db = await openBgDb();
+            return new Promise((resolve) => {
+                const tx = db.transaction(BG_STORE, 'readonly');
+                const req = tx.objectStore(BG_STORE).getAll();
+                req.onsuccess = () => resolve((req.result || []).sort((a, b) => a.id - b.id));
+                req.onerror = () => resolve([]);
+            });
+        }
+
+        async function addBg(dataUrl) {
+            const db = await openBgDb();
+            const all = await loadAllBg();
+            const name = `image${all.length + 1}`;
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(BG_STORE, 'readwrite');
+                const store = tx.objectStore(BG_STORE);
+                const req = store.add({ name, dataUrl });
+                req.onsuccess = () => resolve({ id: req.result, name, dataUrl });
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        async function deleteBg(id) {
+            const db = await openBgDb();
+            return new Promise((resolve) => {
+                const tx = db.transaction(BG_STORE, 'readwrite');
+                tx.objectStore(BG_STORE).delete(id);
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => resolve();
+            });
+        }
+
+        function applyBg(dataUrl, id) {
+            if (dataUrl) {
+                document.body.style.backgroundImage = `url(${dataUrl})`;
+                document.body.classList.add('has-bg');
+                currentBgId = id;
+                localStorage.setItem('focusDataflowCurrentBgId', String(id));
+            } else {
+                document.body.style.backgroundImage = '';
+                document.body.classList.remove('has-bg');
+                currentBgId = -1;
+                localStorage.removeItem('focusDataflowCurrentBgId');
+            }
+        }
+
+        function renderBgList() {
+            bgList.innerHTML = '';
+            bgImages.forEach(img => {
+                const li = document.createElement('li');
+                li.className = 'bg-list-item';
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'bg-name';
+                nameSpan.textContent = img.name;
+                const previewBtn = document.createElement('button');
+                previewBtn.className = 'bg-preview-btn';
+                previewBtn.textContent = '👁';
+                previewBtn.title = '预览';
+                previewBtn.addEventListener('click', () => {
+                    applyBg(img.dataUrl, img.id);
+                });
+                const delBtn = document.createElement('button');
+                delBtn.className = 'bg-delete-btn';
+                delBtn.textContent = '×';
+                delBtn.title = '删除';
+                delBtn.addEventListener('click', async () => {
+                    await deleteBg(img.id);
+                    bgImages = bgImages.filter(b => b.id !== img.id);
+                    if (currentBgId === img.id) applyBg(null);
+                    renderBgList();
+                });
+                li.appendChild(nameSpan);
+                li.appendChild(previewBtn);
+                li.appendChild(delBtn);
+                bgList.appendChild(li);
+            });
+        }
+
+        bgAddBtn.addEventListener('click', () => bgFileInput.click());
+
+        bgFileInput.addEventListener('change', () => {
+            const file = bgFileInput.files[0];
+            if (!file) return;
+            if (!file.type.startsWith('image/')) {
+                bgFileInput.value = '';
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = async () => {
+                try {
+                    const rec = await addBg(reader.result);
+                    bgImages.push(rec);
+                    renderBgList();
+                    bgFileInput.value = '';
+                } catch (err) {
+                    console.error('[bg] addBg error:', err);
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+
+        bgCloseBtn.addEventListener('click', () => { bgModal.hidden = true; });
+        bgModalBackdrop.addEventListener('click', () => { bgModal.hidden = true; });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyI') {
+                e.preventDefault();
+                renderBgList();
+                bgModal.hidden = false;
+            }
+        });
+
+        loadAllBg().then(list => {
+            bgImages = list;
+            const savedId = parseInt(localStorage.getItem('focusDataflowCurrentBgId'), 10);
+            if (!isNaN(savedId) && bgImages.some(b => b.id === savedId)) {
+                const img = bgImages.find(b => b.id === savedId);
+                applyBg(img.dataUrl, savedId);
+            }
+        });
     </script>
 </body>
 </html>
