@@ -1245,16 +1245,29 @@
             const entries = [];
             const fenced = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/);
             const body = fenced ? fenced[1] : jsonText;
-            const re = /"(\d+)"\s*:\s*"((?:[^"\\]|\\.)*)"/g;
+            // 先扫一遍数字 key,确定最大步骤号,以便把 "Summary" 重写为最后一步
+            let maxStep = 0;
+            const numRe = /"(\d+)"\s*:\s*"/g;
+            let scan;
+            while ((scan = numRe.exec(body)) !== null) {
+                const n = parseInt(scan[1], 10);
+                if (n > maxStep) maxStep = n;
+            }
+            const re = /"(\d+|Summary)"\s*:\s*"((?:[^"\\]|\\.)*)"/g;
             let m;
             while ((m = re.exec(body)) !== null) {
+                let key = m[1];
+                if (key === 'Summary') {
+                    if (maxStep === 0) continue;
+                    key = String(maxStep);
+                }
                 let value;
                 try {
                     value = JSON.parse('"' + m[2] + '"');
                 } catch (err) {
                     value = m[2];
                 }
-                entries.push({ index: parseInt(m[1], 10) - 1, value: value });
+                entries.push({ index: parseInt(key, 10) - 1, value: value });
             }
             return entries;
         }

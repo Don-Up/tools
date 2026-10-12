@@ -858,6 +858,22 @@
             text-align: center;
             white-space: pre-wrap;
         }
+        .ruby-add-selected {
+            font-size: 14px;
+            color: #9aa5b1;
+            line-height: 1.6;
+            max-height: 120px;
+            overflow: auto;
+            padding: 8px 10px;
+            background: #252525;
+            border: 1px solid #333;
+            border-radius: 4px;
+        }
+        .ruby-add-selected span {
+            color: #ffd54f;
+            margin-left: 4px;
+        }
+        #rubyAddInput { font-size: 15px; padding: 10px 12px; }
         .cards-modal-textarea {
             width: 600px;
             max-width: calc(100vw - 80px);
@@ -1056,6 +1072,7 @@
                     <li><kbd>Alt+R</kbd></li><li>读全文</li>
                     <li><kbd>Alt+J</kbd></li><li>编辑 JSON</li>
                     <li><kbd>Ctrl+I</kbd></li><li>设置背景</li>
+                    <li><kbd>Alt+Q</kbd></li><li>为选中中文添加注释</li>
                     <li><kbd>Alt+1</kbd></li><li>显示 / 隐藏此帮助</li>
                 </ul>
                 <button id="helpModalClose" class="help-modal-close" type="button">关闭 (Esc)</button>
@@ -1139,6 +1156,19 @@
                 <div class="fav-modal-actions">
                     <button id="jsonEditOk">确定</button>
                     <button id="jsonEditCancel">取消</button>
+                </div>
+            </div>
+        </div>
+        <div id="rubyAddModal" class="fav-modal" hidden>
+            <div id="rubyAddBackdrop" class="fav-modal-backdrop"></div>
+            <div class="fav-modal-panel">
+                <div class="fav-modal-title">添加注释</div>
+                <div class="ruby-add-selected">选中文本:<span id="rubyAddSelection"></span></div>
+                <input id="rubyAddInput" class="fav-input" placeholder="输入英文翻译..." />
+                <div id="rubyAddError" class="json-edit-error"></div>
+                <div class="fav-modal-actions">
+                    <button id="rubyAddOk" class="fav-btn-primary">确定</button>
+                    <button id="rubyAddCancel" class="fav-btn-secondary">取消</button>
                 </div>
             </div>
         </div>
@@ -1280,6 +1310,13 @@
     const jsonEditError = document.getElementById('jsonEditError');
     const jsonEditOk = document.getElementById('jsonEditOk');
     const jsonEditCancel = document.getElementById('jsonEditCancel');
+    const rubyAddModal = document.getElementById('rubyAddModal');
+    const rubyAddBackdrop = document.getElementById('rubyAddBackdrop');
+    const rubyAddSelection = document.getElementById('rubyAddSelection');
+    const rubyAddInput = document.getElementById('rubyAddInput');
+    const rubyAddError = document.getElementById('rubyAddError');
+    const rubyAddOk = document.getElementById('rubyAddOk');
+    const rubyAddCancel = document.getElementById('rubyAddCancel');
     const cardsModal = document.getElementById('cardsModal');
     const cardsModalBackdrop = document.getElementById('cardsModalBackdrop');
     const cardsModalTitle = document.getElementById('cardsModalTitle');
@@ -2128,6 +2165,77 @@
         closeJsonEditModal();
     }
 
+    function openRubyAddModal() {
+        if (!currentFavId) {
+            showError('请先加载收藏');
+            return;
+        }
+        if (entries.length === 0) return;
+        const sel = window.getSelection();
+        if (!sel || sel.rangeCount === 0) {
+            showError('请先选中中文');
+            return;
+        }
+        const range = sel.getRangeAt(0);
+        if (!cnText.contains(range.commonAncestorContainer)) {
+            showError('请在中文区域内选择');
+            return;
+        }
+        const text = sel.toString().trim();
+        if (!text) {
+            showError('请先选中中文');
+            return;
+        }
+        if (!/[一-鿿]/.test(text)) {
+            showError('选中文本需包含中文字符');
+            return;
+        }
+        const cn = entries[currentIndex][0];
+        if (cn.indexOf(text) === -1) {
+            showError('未在当前条目中找到选中文本(可能跨注释边界)');
+            return;
+        }
+        rubyAddSelection.textContent = text;
+        rubyAddInput.value = '';
+        rubyAddError.textContent = '';
+        rubyAddModal.hidden = false;
+        setTimeout(() => rubyAddInput.focus(), 0);
+    }
+
+    function closeRubyAddModal() {
+        rubyAddModal.hidden = true;
+    }
+
+    function saveRubyAdd() {
+        const translation = rubyAddInput.value.trim();
+        if (!translation) {
+            rubyAddError.textContent = '请输入英文翻译';
+            return;
+        }
+        const text = rubyAddSelection.textContent;
+        const cn = entries[currentIndex][0];
+        const idx = cn.indexOf(text);
+        if (idx === -1) {
+            rubyAddError.textContent = '当前条目已变更,请重新选中';
+            return;
+        }
+        const replacement = `{{${text}}}${translation}]]`;
+        const newCn = cn.slice(0, idx) + replacement + cn.slice(idx + text.length);
+        entries[currentIndex][0] = newCn;
+
+        if (currentFavId) {
+            const fav = favorites.find(f => f.id === currentFavId);
+            if (fav) {
+                fav.payload = entries;
+                fav.hash = hashEntries(entries);
+                updateFavorite(currentFavId, { payload: fav.payload, hash: fav.hash });
+            }
+        }
+        saveState();
+        render();
+        closeRubyAddModal();
+    }
+
     async function persistNotesForCurrent(notes) {
         if (!currentFavId) return;
         const fav = favorites.find(f => f.id === currentFavId);
@@ -2290,6 +2398,21 @@
         if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
             e.preventDefault();
             jsonEditOk.click();
+        }
+    });
+    rubyAddOk.addEventListener('click', saveRubyAdd);
+    rubyAddCancel.addEventListener('click', closeRubyAddModal);
+    rubyAddBackdrop.addEventListener('click', closeRubyAddModal);
+    rubyAddInput.addEventListener('input', () => {
+        rubyAddError.textContent = '';
+    });
+    rubyAddInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            rubyAddOk.click();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            closeRubyAddModal();
         }
     });
     cardsModalCancel.addEventListener('click', closeCardsModal);
@@ -2703,7 +2826,7 @@
             else closeHelpModal();
             return;
         }
-        if (!favSaveModal.hidden || !noteModal.hidden || !jsonEditModal.hidden || !cardsModal.hidden || !rubyNotesModal.hidden || !systemPromptModal.hidden || !helpModal.hidden || !cnModal.hidden || !bgModal.hidden) {
+        if (!favSaveModal.hidden || !noteModal.hidden || !jsonEditModal.hidden || !cardsModal.hidden || !rubyNotesModal.hidden || !rubyAddModal.hidden || !systemPromptModal.hidden || !helpModal.hidden || !cnModal.hidden || !bgModal.hidden) {
             return;
         }
         if (e.key === 'f' && e.altKey && !e.ctrlKey && !e.metaKey) {
@@ -3119,6 +3242,13 @@
 
     document.addEventListener('keydown', async function (e) {
         if (document.activeElement === aiQuestion) return;
+        if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'KeyQ' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
+            const tag = e.target.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+            e.preventDefault();
+            openRubyAddModal();
+            return;
+        }
         if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyI') {
             e.preventDefault();
             renderBgList();
@@ -3130,7 +3260,7 @@
             document.body.classList.toggle('side-panel-open', shown);
             if (shown) postCnEnToChild();
         }
-        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyV' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden) {
+        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyV' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden) {
             e.preventDefault();
             try {
                 const text = await navigator.clipboard.readText();
@@ -3139,7 +3269,7 @@
                 showError(`剪贴板读取失败: ${err.message || err}`);
             }
         }
-        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyX' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden) {
+        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyX' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden) {
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
             e.preventDefault();
@@ -3169,7 +3299,7 @@
             enShown = !enShown;
             enText.style.visibility = enShown ? "visible" : "hidden"
         }
-        if (!e.ctrlKey && !e.altKey && !e.shiftKey && e.code === 'KeyZ' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden) {
+        if (!e.ctrlKey && !e.altKey && !e.shiftKey && e.code === 'KeyZ' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden) {
             if (entries.length === 0) return;
             if (cnModal.hidden) {
                 showAllCn();
@@ -3177,7 +3307,7 @@
                 hideAllCn();
             }
         }
-        if (!e.ctrlKey && !e.altKey && !e.shiftKey && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
+        if (!e.ctrlKey && !e.altKey && !e.shiftKey && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
             const tag = e.target.tagName;
             if (e.code === 'KeyN' && noteModal.hidden && tag !== 'INPUT' && tag !== 'TEXTAREA') {
                 if (entries.length === 0) return;
@@ -3215,7 +3345,7 @@
             openRubyNotesModal();
             return;
         }
-        if (entries.length > 0 && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden) {
+        if (entries.length > 0 && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden) {
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
             if (e.code === 'ArrowLeft') {

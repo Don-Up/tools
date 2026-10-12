@@ -54,51 +54,55 @@
             text-align: center;
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            table-layout: fixed;
+        .vtable {
+            display: flex;
+            flex-direction: column;
         }
 
-        th {
-            text-align: left;
+        .vrow {
+            padding: 24px 0;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        .vrow:last-child {
+            border-bottom: none;
+        }
+
+        .vheader {
             font-size: 18px;
             font-weight: 600;
             color: #4fc3f7;
-            padding: 18px 24px;
+            margin-bottom: 18px;
+            padding-bottom: 8px;
             border-bottom: 2px solid #4fc3f7;
-            vertical-align: bottom;
         }
 
-        td {
-            padding: 36px 24px;
-            border-bottom: 1px solid #2a2a2a;
-            vertical-align: top;
+        .vcell {
+            padding: 12px 0;
             font-size: 32px;
             line-height: 1.5;
             word-break: break-word;
+            cursor: pointer;
         }
 
-        td.cell-name {
+        .vcell.cell-name {
             font-family: 'Consolas', 'Monaco', monospace;
             color: #ffd54f;
             font-size: 30px;
-            width: 24%;
         }
 
-        td.cell-value {
+        .vcell.cell-value {
             font-family: 'Consolas', 'Monaco', monospace;
             color: #e0e0e0;
             font-size: 30px;
-            width: 30%;
         }
 
-        td.cell-text {
+        .vcell.cell-text {
             font-size: 32px;
             color: #e0e0e0;
         }
 
-        td .cell-cn {
+        .vcell .cell-cn {
             display: block;
             margin-top: 10px;
             font-size: 16px;
@@ -227,7 +231,7 @@
         let headers = [];
         let rows = [];
         let currentIndex = 0;
-        let ttsEnabled = localStorage.getItem('focusTableTtsEnabled') === 'true';
+        let autoEnabled = localStorage.getItem('focusTableAutoEnabled') === 'true';
         let columnsConfig = localStorage.getItem('focusTableColumns') || '';
         let selectedVoiceName = localStorage.getItem('focusTableVoiceName') || '';
         let controlsVisible = localStorage.getItem('focusTableControlsVisible') === 'true';
@@ -347,18 +351,18 @@
                 voiceLabel.appendChild(voiceSelect);
                 controls.appendChild(voiceLabel);
 
-                const ttsLabel = document.createElement('label');
-                const ttsCheckbox = document.createElement('input');
-                ttsCheckbox.type = 'checkbox';
-                ttsCheckbox.checked = ttsEnabled;
-                ttsCheckbox.addEventListener('change', () => {
-                    ttsEnabled = ttsCheckbox.checked;
-                    localStorage.setItem('focusTableTtsEnabled', String(ttsEnabled));
-                    if (!ttsEnabled) stopSpeaking();
+                const autoLabel = document.createElement('label');
+                const autoCheckbox = document.createElement('input');
+                autoCheckbox.type = 'checkbox';
+                autoCheckbox.checked = autoEnabled;
+                autoCheckbox.addEventListener('change', () => {
+                    autoEnabled = autoCheckbox.checked;
+                    localStorage.setItem('focusTableAutoEnabled', String(autoEnabled));
+                    if (!autoEnabled) stopSpeaking();
                 });
-                ttsLabel.appendChild(ttsCheckbox);
-                ttsLabel.appendChild(document.createTextNode(' TTS'));
-                controls.appendChild(ttsLabel);
+                autoLabel.appendChild(autoCheckbox);
+                autoLabel.appendChild(document.createTextNode(' Auto'));
+                controls.appendChild(autoLabel);
 
                 const colsLabel = document.createElement('label');
                 const colsText = document.createElement('span');
@@ -377,29 +381,27 @@
 
                 stage.appendChild(controls);
             }
-            const table = document.createElement('table');
-            const thead = document.createElement('thead');
-            const headerTr = document.createElement('tr');
-            headers.forEach((h) => {
-                const th = document.createElement('th');
-                th.textContent = h;
-                headerTr.appendChild(th);
-            });
-            thead.appendChild(headerTr);
-            table.appendChild(thead);
-
-            const tbody = document.createElement('tbody');
-            const tr = document.createElement('tr');
+            const vtable = document.createElement('div');
+            vtable.className = 'vtable';
             const row = rows[currentIndex] || [];
             for (let i = 0; i < headers.length; i++) {
-                const td = document.createElement('td');
-                td.className = columnClass(i, headers.length);
-                renderCell(row[i] || '', td);
-                tr.appendChild(td);
+                const vrow = document.createElement('div');
+                vrow.className = 'vrow';
+
+                const h = document.createElement('div');
+                h.className = 'vheader';
+                h.textContent = headers[i];
+                vrow.appendChild(h);
+
+                const cell = document.createElement('div');
+                cell.className = 'vcell ' + columnClass(i, headers.length);
+                renderCell(row[i] || '', cell);
+                cell.addEventListener('click', () => speakCellByIndex(i));
+                vrow.appendChild(cell);
+
+                vtable.appendChild(vrow);
             }
-            tbody.appendChild(tr);
-            table.appendChild(tbody);
-            stage.appendChild(table);
+            stage.appendChild(vtable);
 
             const status = document.createElement('div');
             status.className = 'status';
@@ -436,7 +438,7 @@
         }
 
         function speakCurrentRow() {
-            if (!ttsEnabled || rows.length === 0) return;
+            if (!autoEnabled || rows.length === 0) return;
             const row = rows[currentIndex] || [];
             const wanted = columnsConfig.split(',')
                 .map(s => parseInt(s.trim(), 10))
@@ -455,6 +457,28 @@
             });
             if (parts.length === 0) return;
             const text = parts.join(', ');
+            stopSpeaking();
+            const utterance = new SpeechSynthesisUtterance(text);
+            if (selectedVoiceName) {
+                const voice = availableVoices.find(v => v.name === selectedVoiceName);
+                if (voice) utterance.voice = voice;
+            }
+            speechSynthesis.speak(utterance);
+        }
+
+        function getCellSpeakable(cellText) {
+            return (cellText || '')
+                .replace(/【[^】]*】/g, '')
+                .replace(/_/g, ' ')
+                .replace(/`([^`]+)`/g, '$1')
+                .trim();
+        }
+
+        function speakCellByIndex(idx) {
+            if (idx < 0 || idx >= headers.length) return;
+            const row = rows[currentIndex] || [];
+            const text = getCellSpeakable(row[idx]);
+            if (!text) return;
             stopSpeaking();
             const utterance = new SpeechSynthesisUtterance(text);
             if (selectedVoiceName) {
@@ -497,6 +521,13 @@
                 controlsVisible = !controlsVisible;
                 localStorage.setItem('focusTableControlsVisible', String(controlsVisible));
                 if (headers.length > 0) render();
+                return;
+            }
+            if (e.key === ' ' || e.code === 'Space') {
+                const tag = e.target && e.target.tagName;
+                if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+                e.preventDefault();
+                stopSpeaking();
                 return;
             }
             if (rows.length === 0) return;
