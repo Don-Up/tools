@@ -343,7 +343,12 @@ html, body {
         const BASE_URL = 'https://next-reader-psi.vercel.app/api/minimax';
         const MODEL = 'MiniMax-M3';
         const MAX_TOKENS = 8192;
-        const SYSTEM_PROMPT = '你是一个简洁、准确的助手。优先用中文回答,除非用户用其他语言提问。';
+        const DEFAULT_SYSTEM_PROMPT = '你是一个简洁、准确的助手。优先用中文回答,除非用户用其他语言提问。';
+
+        const IDB_NAME = 'aiChatDb';
+        const IDB_VERSION = 1;
+        const STORE_CONV = 'conversations';
+        const STORE_SETTINGS = 'settings';
 
         const state = {
             apiKey: localStorage.getItem('aiApiKey') || '',
@@ -351,6 +356,7 @@ html, body {
                 const v = localStorage.getItem('aiShowThinking');
                 return v === null ? true : v === 'true';
             })(),
+            defaultSystemPrompt: localStorage.getItem('aiDefaultSystemPrompt') || DEFAULT_SYSTEM_PROMPT,
             question: '',
             thinkingBuf: '',
             textBuf: '',
@@ -360,7 +366,103 @@ html, body {
             isStreaming: false,
             abortController: null,
             rawAnswerEl: null,
+            db: null,
+            idbAvailable: true,
+            conversations: [],
+            currentConvId: null,
+            currentMessages: [],
+            searchQuery: '',
         };
+
+        function openDb() {
+            return new Promise((resolve, reject) => {
+                if (!('indexedDB' in window)) {
+                    reject(new Error('IndexedDB not supported'));
+                    return;
+                }
+                const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+                req.onupgradeneeded = () => {
+                    const db = req.result;
+                    if (!db.objectStoreNames.contains(STORE_CONV)) {
+                        const s = db.createObjectStore(STORE_CONV, { keyPath: 'id' });
+                        s.createIndex('byUpdated', 'updatedAt', { unique: false });
+                    }
+                    if (!db.objectStoreNames.contains(STORE_SETTINGS)) {
+                        db.createObjectStore(STORE_SETTINGS, { keyPath: 'key' });
+                    }
+                };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        function settingsPutMany(pairs) {
+            if (!state.db) return Promise.resolve();
+            return new Promise((resolve, reject) => {
+                const tx = state.db.transaction(STORE_SETTINGS, 'readwrite');
+                const s = tx.objectStore(STORE_SETTINGS);
+                pairs.forEach(p => s.put(p));
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            });
+        }
+
+        function migrateFromLocalStorage() {
+            const lsApiKey = localStorage.getItem('aiApiKey');
+            const lsThinking = localStorage.getItem('aiShowThinking');
+            const lsPrompt = localStorage.getItem('aiDefaultSystemPrompt');
+            const writes = [];
+            if (lsApiKey) writes.push({ key: 'apiKey', value: lsApiKey });
+            if (lsThinking !== null) writes.push({ key: 'showThinking', value: lsThinking });
+            if (lsPrompt) writes.push({ key: 'defaultSystemPrompt', value: lsPrompt });
+            if (writes.length === 0) {
+                localStorage.setItem('ai.html:migrated', 'v1');
+                return Promise.resolve();
+            }
+            return settingsPutMany(writes).then(() => {
+                localStorage.removeItem('aiApiKey');
+                localStorage.removeItem('aiShowThinking');
+                localStorage.removeItem('aiDefaultSystemPrompt');
+                localStorage.setItem('ai.html:migrated', 'v1');
+            });
+        }
+
+        function txStore(storeName, mode) {
+            return state.db.transaction(storeName, mode).objectStore(storeName);
+        }
+
+        function reqToPromise(req) {
+            return new Promise((resolve, reject) => {
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        function settingsGet(key) {
+            if (!state.db) return Promise.resolve(null);
+            return reqToPromise(txStore(STORE_SETTINGS, 'readonly').get(key))
+                .then(r => (r ? r.value : null));
+        }
+        function settingsPut(key, value) {
+            if (!state.db) return Promise.resolve();
+            return reqToPromise(txStore(STORE_SETTINGS, 'readwrite').put({ key, value }));
+        }
+        function convGetAll() {
+            if (!state.db) return Promise.resolve([]);
+            return reqToPromise(txStore(STORE_CONV, 'readonly').getAll());
+        }
+        function convGet(id) {
+            if (!state.db) return Promise.resolve(null);
+            return reqToPromise(txStore(STORE_CONV, 'readonly').get(id));
+        }
+        function convPut(conv) {
+            if (!state.db) return Promise.resolve();
+            return reqToPromise(txStore(STORE_CONV, 'readwrite').put(conv));
+        }
+        function convDelete(id) {
+            if (!state.db) return Promise.resolve();
+            return reqToPromise(txStore(STORE_CONV, 'readwrite').delete(id));
+        }
 
         const dom = {
             apiKeyInput: document.getElementById('apiKeyInput'),
@@ -460,20 +562,49 @@ html, body {
             }
         });
 
-        renderApiKey();
-        dom.showThinkingToggle.checked = state.showThinking;
-        dom.showThinkingToggle.addEventListener('change', () => {
-            state.showThinking = dom.showThinkingToggle.checked;
-            localStorage.setItem('aiShowThinking', String(state.showThinking));
+        (async function init() {
+            try {
+                state.db = await openDb();
+                if (!localStorage.getItem('ai.html:migrated')) {
+                    await migrateFromLocalStorage();
+                }
+            } catch (err) {
+                console.error('IDB init failed:', err);
+                state.idbAvailable = false;
+                showError('本地存储不可用,会话将无法保存(刷新后丢失)。请检查浏览器隐私模式。');
+            }
+
+            if (state.idbAvailable) {
+                try {
+                    const apiKey = await settingsGet('apiKey');
+                    if (apiKey) state.apiKey = apiKey;
+                    const thinking = await settingsGet('showThinking');
+                    if (thinking !== null) state.showThinking = String(thinking) === 'true';
+                    const prompt = await settingsGet('defaultSystemPrompt');
+                    if (prompt) state.defaultSystemPrompt = prompt;
+                } catch (err) {
+                    console.error('settings load failed:', err);
+                }
+            }
+
+            renderApiKey();
+            dom.showThinkingToggle.checked = state.showThinking;
+            dom.showThinkingToggle.addEventListener('change', () => {
+                state.showThinking = dom.showThinkingToggle.checked;
+                if (state.idbAvailable) settingsPut('showThinking', String(state.showThinking)).catch(() => {});
+                dom.thinkingSection.style.display = state.showThinking ? '' : 'none';
+            });
             dom.thinkingSection.style.display = state.showThinking ? '' : 'none';
-        });
-        dom.thinkingSection.style.display = state.showThinking ? '' : 'none';
+
+            updateSendEnabled();
+            dom.questionInput.focus();
+        })();
 
         function buildRequestBody(question) {
             const body = {
                 model: MODEL,
                 max_tokens: MAX_TOKENS,
-                system: SYSTEM_PROMPT,
+                system: state.defaultSystemPrompt,
                 messages: [{ role: 'user', content: question }],
                 stream: true,
             };
