@@ -5,6 +5,8 @@
     const STYLE_ID = 'yt-subtitle-panel-styles';
     const PANEL_WIDTH = 360;
 
+    let video = null;
+
     const CSS = `
 #yt-subtitle-panel {
     position: fixed;
@@ -71,8 +73,47 @@ body.ysp-open { padding-right: ${PANEL_WIDTH}px; }
         }
     });
 
+    function findVideo() {
+        return document.querySelector('.html5-main-video')
+            || document.querySelector('#movie_player video')
+            || document.querySelector('video');
+    }
+
+    function readTracklist() {
+        const resp = window.ytInitialPlayerResponse;
+        if (!resp) return null;
+        const tl = resp?.captions?.playerCaptionsTracklistRenderer;
+        if (!tl) return { tracks: [], translations: [] };
+        const tracks = (tl.captionTracks || []).map((t) => ({
+            vssId: t.vssId,
+            languageCode: t.languageCode,
+            name: t.name?.simpleText || t.languageCode,
+            baseUrl: t.baseUrl,
+        }));
+        const translations = (tl.translationLanguages || []).map((t) => ({
+            languageCode: t.languageCode,
+            name: t.languageName?.simpleText || t.languageCode,
+        }));
+        return { tracks, translations };
+    }
+
+    function bootstrap() {
+        video = findVideo();
+        if (!video) {
+            console.warn('[ysp] video element not found');
+            return;
+        }
+        const tracklist = readTracklist();
+        if (!tracklist) {
+            console.warn('[ysp] ytInitialPlayerResponse not available');
+            return;
+        }
+        console.log('[ysp] tracklist:', tracklist);
+    }
+
     injectStyles();
     injectPanel();
+    bootstrap();
     restorePanelState();
     console.log('[ysp] panel DOM injected; Alt+S wired');
 })();
