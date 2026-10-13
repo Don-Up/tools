@@ -1105,7 +1105,7 @@
                     <li><kbd>Alt+F</kbd></li><li>打开收藏夹</li>
                     <li><kbd>Alt+R</kbd></li><li>读全文 / 循环读选中文本</li>
                     <li><kbd>Alt+A</kbd></li><li>分句跟读 (按 ,  —  . 分句)</li>
-                    <li><kbd>Alt+S</kbd></li><li>再次朗读当前分句</li>
+                    <li><kbd>A</kbd></li><li>再次朗读当前分句 (需有选中文本)</li>
                     <li><kbd>Alt+J</kbd></li><li>编辑 JSON</li>
                     <li><kbd>Ctrl+I</kbd></li><li>设置背景</li>
                     <li><kbd>Alt+Q</kbd></li><li>为选中中文添加注释</li>
@@ -3066,8 +3066,10 @@
             followAlongNext();
             return;
         }
-        if (e.key === 's' && e.altKey && !e.ctrlKey && !e.metaKey) {
+        if (e.key === 'a' && !e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
             if (entries.length === 0) return;
+            const sel = window.getSelection() ? window.getSelection().toString().trim() : '';
+            if (!sel) return;
             e.preventDefault();
             followAlongRepeat();
             return;
