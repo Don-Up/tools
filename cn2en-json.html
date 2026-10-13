@@ -1106,7 +1106,7 @@
                     <li><kbd>F</kbd></li><li>收藏当前条</li>
                     <li><kbd>Alt+F</kbd></li><li>打开收藏夹</li>
                     <li><kbd>Alt+R</kbd></li><li>读全文 / 循环读选中文本</li>
-                    <li><kbd>Alt+A</kbd></li><li>分句跟读 (按 ,  —  :  ;  .  ?  " 分句)</li>
+                    <li><kbd>Alt+A</kbd></li><li>分句跟读 (按 ,  —  :  ;  .  ?  ". 分句)</li>
                     <li><kbd>A</kbd></li><li>再次朗读当前分句 (基于上次 Alt+A)</li>
                     <li><kbd>Alt+S</kbd></li><li>分句跟读模式下循环朗读选中分句</li>
                     <li>连续</li><li>开启时读完最后分句后再按一次 Alt+A 进入下一句首分句,末句读完后回第一句 (Mode 3 旁)</li>
@@ -3134,6 +3134,10 @@
             if (entries.length === 0) return;
             if (!lastFollowAlongChunk || lastFollowAlongEntryIndex !== currentIndex) return;
             e.preventDefault();
+            const sel = window.getSelection();
+            if (!sel || sel.toString().length === 0) {
+                trySelectInEnText(lastFollowAlongChunk.start, lastFollowAlongChunk.end, lastFollowAlongText);
+            }
             loopReadText(lastFollowAlongChunk.text);
             return;
         }
@@ -3454,7 +3458,7 @@
 
     function splitChunksWithPositions(text) {
         const chunks = [];
-        const re = /, |—|: |; |\. |\? |" /g;
+        const re = /, |—|: |; |\. |\? |"\. /g;
         let lastEnd = 0;
         let m;
         while ((m = re.exec(text)) !== null) {
