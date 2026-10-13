@@ -345,8 +345,10 @@ Insert after the `readTracklist()` function:
 ```js
     async function fetchCues(track, { signal } = {}) {
         if (!track || !track.baseUrl) return [];
-        const url = track.baseUrl + (track.baseUrl.includes('fmt=') ? '&' : '?') + 'fmt=json3';
-        const res = await fetch(url, { signal, credentials: 'omit' });
+        const u = new URL(track.baseUrl);
+        u.searchParams.delete('fmt');
+        u.searchParams.set('fmt', 'json3');
+        const res = await fetch(u.toString(), { signal, credentials: 'omit' });
         if (!res.ok) throw new Error(`fetch failed: ${res.status}`);
         const data = await res.json();
         // JSON3 format: { events: [ { tStartMs, dDurationMs, segs: [ { utf8: "..." } ] } ] }
@@ -357,7 +359,7 @@ Insert after the `readTracklist()` function:
                 endMs: e.tStartMs + (e.dDurationMs || 0),
                 text: e.segs.map((s) => s.utf8 || '').join('').trim(),
             }))
-            .filter((c) => c.text.length > 0);
+            .filter((c) => c.text.length > 0 && c.endMs > c.startMs);
         return cues;
     }
 ```

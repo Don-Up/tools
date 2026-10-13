@@ -97,7 +97,26 @@ body.ysp-open { padding-right: ${PANEL_WIDTH}px; }
         return { tracks, translations };
     }
 
-    function bootstrap() {
+    async function fetchCues(track, { signal } = {}) {
+        if (!track || !track.baseUrl) return [];
+        const u = new URL(track.baseUrl);
+        u.searchParams.delete('fmt');
+        u.searchParams.set('fmt', 'json3');
+        const res = await fetch(u.toString(), { signal, credentials: 'omit' });
+        if (!res.ok) throw new Error(`fetch failed: ${res.status}`);
+        const data = await res.json();
+        const cues = (data.events || [])
+            .filter((e) => Array.isArray(e.segs) && e.segs.length > 0)
+            .map((e) => ({
+                startMs: e.tStartMs,
+                endMs: e.tStartMs + (e.dDurationMs || 0),
+                text: e.segs.map((s) => s.utf8 || '').join('').trim(),
+            }))
+            .filter((c) => c.text.length > 0 && c.endMs > c.startMs);
+        return cues;
+    }
+
+    async function bootstrap() {
         video = findVideo();
         if (!video) {
             console.warn('[ysp] video element not found');
@@ -108,7 +127,18 @@ body.ysp-open { padding-right: ${PANEL_WIDTH}px; }
             console.warn('[ysp] ytInitialPlayerResponse not available');
             return;
         }
-        console.log('[ysp] tracklist:', tracklist);
+        if (tracklist.tracks.length === 0) {
+            console.log('[ysp] no caption tracks on this video');
+            return;
+        }
+        try {
+            const top = tracklist.tracks[0];
+            const cues = await fetchCues(top);
+            console.log(`[ysp] parsed ${cues.length} cues from "${top.name}" (${top.languageCode})`);
+            console.log('[ysp] first 3 cues:', cues.slice(0, 3));
+        } catch (err) {
+            console.error('[ysp] fetchCues failed:', err);
+        }
     }
 
     injectStyles();
