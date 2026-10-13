@@ -1063,6 +1063,7 @@
                 <label class="mode-radio-label"><input type="radio" name="mode" value="2"> Mode 2</label>
                 <label class="mode-radio-label"><input type="radio" name="mode" value="3"> Mode 3</label>
                 <label class="mode-radio-label"><input type="checkbox" id="continuousFollowToggle"> 连续</label>
+                <label class="mode-radio-label"><input type="checkbox" id="randomVoiceToggle"> 随机</label>
             </div>
             <div id="counter" class="counter" hidden></div>
             <div id="favStatus" class="fav-status" hidden></div>
@@ -1109,6 +1110,7 @@
                     <li><kbd>A</kbd></li><li>再次朗读当前分句 (基于上次 Alt+A)</li>
                     <li><kbd>Alt+S</kbd></li><li>分句跟读模式下循环朗读选中分句</li>
                     <li>连续</li><li>开启时读完最后分句后再按一次 Alt+A 进入下一句首分句,末句读完后回第一句 (Mode 3 旁)</li>
+                    <li>随机</li><li>开启时每次朗读随机挑选一个英文语音 (连续 右侧)</li>
                     <li><kbd>Alt+H</kbd></li><li>隐藏 / 显示中文句子</li>
                     <li><kbd>Alt+J</kbd></li><li>编辑 JSON</li>
                     <li><kbd>Ctrl+I</kbd></li><li>设置背景</li>
@@ -1879,7 +1881,8 @@
             favPlayButton = null;
         }
         const u = new SpeechSynthesisUtterance(text);
-        if (selectedVoiceEn) u.voice = selectedVoiceEn;
+        const enVoice = getCurrentEnVoice();
+        if (enVoice) u.voice = enVoice;
         u.rate = enRate;
         u.onend = () => {
             if (randomPlaying) playRandomFavNext();
@@ -1924,7 +1927,8 @@
             favPlayButton = null;
         }
         const u = new SpeechSynthesisUtterance(text);
-        if (selectedVoiceEn) u.voice = selectedVoiceEn;
+        const enVoice = getCurrentEnVoice();
+        if (enVoice) u.voice = enVoice;
         u.rate = enRate;
         u.onend = () => {
             if (sequentialPlaying) playSequentialFavNext();
@@ -3332,6 +3336,7 @@
     const STORAGE_KEY_AI_SYSTEM_PROMPT = 'cn2en-json:aiSystemPrompt';
     const STORAGE_KEY_EN_REVEALED = 'cn2en-json:enRevealed';
     const STORAGE_KEY_CONTINUOUS_FOLLOW = 'cn2en-json:continuousFollow';
+    const STORAGE_KEY_RANDOM_VOICE = 'cn2en-json:randomVoice';
     const DEFAULT_AI_SYSTEM_PROMPT = AI_SYSTEM_PROMPT;
 
     let voicesCN = [];
@@ -3339,6 +3344,13 @@
     let ttsEnabled = true;
     let voicesEN = [];
     let selectedVoiceEn = null;
+    let randomVoiceEnabled = false;
+    function getCurrentEnVoice() {
+        if (randomVoiceEnabled && voicesEN.length > 0) {
+            return voicesEN[Math.floor(Math.random() * voicesEN.length)];
+        }
+        return selectedVoiceEn;
+    }
     let ttsEnabledEn = false;
     let cnRate = 1.0;
     let enRate = 1.0;
@@ -3377,23 +3389,24 @@
             const utterance = new SpeechSynthesisUtterance(entries[currentIndex][0]);
             utterance.voice = selectedVoice;
             utterance.rate = cnRate;
-            if (!force && ttsEnabledEn && selectedVoiceEn) {
+            if (!force && ttsEnabledEn && getCurrentEnVoice()) {
                 utterance.onend = () => speakEn();
             }
             window.speechSynthesis.speak(utterance);
-        } else if (ttsEnabledEn && selectedVoiceEn) {
+        } else if (ttsEnabledEn && getCurrentEnVoice()) {
             speakEn();
         }
     }
 
     function speakEn(force, text) {
-        if (!selectedVoiceEn) return;
+        const voice = getCurrentEnVoice();
+        if (!voice) return;
         if (!force && !ttsEnabledEn) return;
         const content = text ?? entries[currentIndex][1];
         if (!content) return;
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(content);
-        utterance.voice = selectedVoiceEn;
+        utterance.voice = voice;
         utterance.rate = enRate;
         window.speechSynthesis.speak(utterance);
     }
@@ -3404,7 +3417,8 @@
         if (!text) return;
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
-        if (selectedVoiceEn) utterance.voice = selectedVoiceEn;
+        const enVoice = getCurrentEnVoice();
+        if (enVoice) utterance.voice = enVoice;
         utterance.rate = enRate;
         window.speechSynthesis.speak(utterance);
     }
@@ -3424,7 +3438,8 @@
         const speak = () => {
             if (!loopReadActive) return;
             const u = new SpeechSynthesisUtterance(text);
-            if (selectedVoiceEn) u.voice = selectedVoiceEn;
+            const enVoice = getCurrentEnVoice();
+            if (enVoice) u.voice = enVoice;
             u.rate = enRate;
             u.onend = () => {
                 if (loopReadActive && loopReadTextCurrent === text) speak();
@@ -3499,7 +3514,8 @@
             stopLoopRead();
             window.speechSynthesis.cancel();
             const u = new SpeechSynthesisUtterance(chunk.text);
-            if (selectedVoiceEn) u.voice = selectedVoiceEn;
+            const enVoice = getCurrentEnVoice();
+            if (enVoice) u.voice = enVoice;
             u.rate = enRate;
             window.speechSynthesis.speak(u);
         }
@@ -3521,7 +3537,8 @@
             stopLoopRead();
             window.speechSynthesis.cancel();
             const u = new SpeechSynthesisUtterance(lastFollowAlongChunk.text);
-            if (selectedVoiceEn) u.voice = selectedVoiceEn;
+            const enVoice = getCurrentEnVoice();
+            if (enVoice) u.voice = enVoice;
             u.rate = enRate;
             window.speechSynthesis.speak(u);
         }
@@ -3549,7 +3566,8 @@
         const text = payload.map(e => e[1]).join('. ');
         if (!text) return;
         const u = new SpeechSynthesisUtterance(text);
-        if (selectedVoiceEn) u.voice = selectedVoiceEn;
+        const enVoice = getCurrentEnVoice();
+        if (enVoice) u.voice = enVoice;
         u.rate = enRate;
         u.onend = () => {
             if (favPlayButton === btn) {
@@ -3839,6 +3857,13 @@
         continuousFollowAlong = continuousFollowToggle.checked;
         if (!continuousFollowAlong) pendingContinuousAdvance = false;
         localStorage.setItem(STORAGE_KEY_CONTINUOUS_FOLLOW, String(continuousFollowAlong));
+    });
+    const randomVoiceToggle = document.getElementById('randomVoiceToggle');
+    randomVoiceEnabled = localStorage.getItem(STORAGE_KEY_RANDOM_VOICE) === "true";
+    randomVoiceToggle.checked = randomVoiceEnabled;
+    randomVoiceToggle.addEventListener('change', () => {
+        randomVoiceEnabled = randomVoiceToggle.checked;
+        localStorage.setItem(STORAGE_KEY_RANDOM_VOICE, String(randomVoiceEnabled));
     });
     cnRateInput.addEventListener('input', () => {
         cnRate = parseFloat(cnRateInput.value);
