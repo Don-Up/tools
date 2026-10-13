@@ -549,6 +549,16 @@ html, body {
     min-height: 80px;
 }
 .modal-textarea:focus { outline: none; border-color: #4fc3f7; }
+.modal-input {
+    background: #1e1e1e;
+    color: #e0e0e0;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 13px;
+    font-family: inherit;
+}
+.modal-input:focus { outline: none; border-color: #4fc3f7; }
 .modal-actions {
     display: flex;
     gap: 8px;
@@ -695,6 +705,35 @@ html, body {
                 <button id="convPromptOkBtn" class="btn" type="button">保存</button>
                 <button id="convPromptClearBtn" class="btn secondary" type="button">恢复默认</button>
                 <button id="convPromptCancelBtn" class="btn secondary" type="button">取消</button>
+            </div>
+        </div>
+    </div>
+    <div id="keywordModal" class="modal" hidden>
+        <div id="keywordModalBackdrop" class="modal-backdrop"></div>
+        <div class="modal-panel">
+            <h2 class="modal-title">编辑关键词</h2>
+            <div class="modal-field">
+                <label>名称 1</label>
+                <input id="kw1Name" class="modal-input" type="text" />
+                <label>内容 1</label>
+                <textarea id="kw1Content" class="modal-textarea" rows="3"></textarea>
+            </div>
+            <div class="modal-field">
+                <label>名称 2</label>
+                <input id="kw2Name" class="modal-input" type="text" />
+                <label>内容 2</label>
+                <textarea id="kw2Content" class="modal-textarea" rows="3"></textarea>
+            </div>
+            <div class="modal-field">
+                <label>名称 3</label>
+                <input id="kw3Name" class="modal-input" type="text" />
+                <label>内容 3</label>
+                <textarea id="kw3Content" class="modal-textarea" rows="3"></textarea>
+            </div>
+            <div class="modal-actions">
+                <button id="kwResetBtn" class="btn secondary" type="button">恢复默认</button>
+                <button id="kwOkBtn" class="btn" type="button">保存</button>
+                <button id="kwCancelBtn" class="btn secondary" type="button">取消</button>
             </div>
         </div>
     </div>
@@ -961,6 +1000,17 @@ html, body {
             convPromptOkBtn: document.getElementById('convPromptOkBtn'),
             convPromptClearBtn: document.getElementById('convPromptClearBtn'),
             convPromptCancelBtn: document.getElementById('convPromptCancelBtn'),
+            keywordModal: document.getElementById('keywordModal'),
+            keywordModalBackdrop: document.getElementById('keywordModalBackdrop'),
+            kw1Name: document.getElementById('kw1Name'),
+            kw1Content: document.getElementById('kw1Content'),
+            kw2Name: document.getElementById('kw2Name'),
+            kw2Content: document.getElementById('kw2Content'),
+            kw3Name: document.getElementById('kw3Name'),
+            kw3Content: document.getElementById('kw3Content'),
+            kwResetBtn: document.getElementById('kwResetBtn'),
+            kwOkBtn: document.getElementById('kwOkBtn'),
+            kwCancelBtn: document.getElementById('kwCancelBtn'),
         };
 
         marked.setOptions({ breaks: true, gfm: true });
@@ -1318,11 +1368,54 @@ html, body {
             closeConvPromptModal();
         }
 
+        function openKeywordModal() {
+            const conv = state.conversations.find(c => c.id === state.currentConvId);
+            if (!conv) return;
+            ensureKeywordPresets(conv);
+            const presets = conv.keywordPresets;
+            dom.kw1Name.value = presets[0].name;
+            dom.kw1Content.value = presets[0].content;
+            dom.kw2Name.value = presets[1].name;
+            dom.kw2Content.value = presets[1].content;
+            dom.kw3Name.value = presets[2].name;
+            dom.kw3Content.value = presets[2].content;
+            dom.keywordModal.hidden = false;
+        }
+        function closeKeywordModal() {
+            dom.keywordModal.hidden = true;
+        }
+        async function saveKeywordPresets() {
+            const conv = state.conversations.find(c => c.id === state.currentConvId);
+            if (!conv) return;
+            conv.keywordPresets = [
+                { id: 'k1', name: dom.kw1Name.value, content: dom.kw1Content.value },
+                { id: 'k2', name: dom.kw2Name.value, content: dom.kw2Content.value },
+                { id: 'k3', name: dom.kw3Name.value, content: dom.kw3Content.value },
+            ];
+            await convPut(conv).catch(() => {});
+            renderKeywordBar();
+            closeKeywordModal();
+        }
+        function resetKeywordPresets() {
+            const defaults = DEFAULT_KEYWORD_PRESETS;
+            dom.kw1Name.value = defaults[0].name;
+            dom.kw1Content.value = defaults[0].content;
+            dom.kw2Name.value = defaults[1].name;
+            dom.kw2Content.value = defaults[1].content;
+            dom.kw3Name.value = defaults[2].name;
+            dom.kw3Content.value = defaults[2].content;
+        }
+
         dom.convPromptBtn.addEventListener('click', openConvPromptModal);
         dom.convPromptModalBackdrop.addEventListener('click', closeConvPromptModal);
         dom.convPromptCancelBtn.addEventListener('click', closeConvPromptModal);
         dom.convPromptOkBtn.addEventListener('click', saveConvPrompt);
         dom.convPromptClearBtn.addEventListener('click', clearConvPrompt);
+
+        dom.keywordModalBackdrop.addEventListener('click', closeKeywordModal);
+        dom.kwCancelBtn.addEventListener('click', closeKeywordModal);
+        dom.kwOkBtn.addEventListener('click', saveKeywordPresets);
+        dom.kwResetBtn.addEventListener('click', resetKeywordPresets);
 
         function showError(msg) {
             if (!msg) {
