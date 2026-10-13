@@ -514,6 +514,70 @@ html, body {
     animation: blink 1s steps(2) infinite;
     margin-left: 2px;
 }
+
+.modal {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.modal[hidden] { display: none; }
+.modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+}
+.modal-panel {
+    position: relative;
+    background: #252525;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 20px 24px;
+    min-width: 400px;
+    max-width: 600px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.modal-title {
+    font-size: 16px;
+    color: #cfd8dc;
+    margin: 0;
+    font-weight: 600;
+}
+.modal-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.modal-field label {
+    font-size: 12px;
+    color: #888;
+}
+.modal-textarea {
+    background: #1e1e1e;
+    color: #e0e0e0;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-size: 13px;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 80px;
+}
+.modal-textarea:focus { outline: none; border-color: #4fc3f7; }
+.modal-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+.btn.danger {
+    background: #7f1d1d;
+    color: #fff;
+}
+.btn.danger:hover { background: #991b1b; }
     </style>
 </head>
 <body>
@@ -556,6 +620,24 @@ html, body {
             </div>
         </div>
     </main>
+    <div id="settingsModal" class="modal" hidden>
+        <div id="settingsModalBackdrop" class="modal-backdrop"></div>
+        <div class="modal-panel">
+            <h2 class="modal-title">设置</h2>
+            <div class="modal-field">
+                <label for="defaultPromptInput">默认系统提示词</label>
+                <textarea id="defaultPromptInput" class="modal-textarea" rows="6"></textarea>
+                <button id="resetPromptBtn" class="btn secondary" type="button">恢复默认</button>
+            </div>
+            <div class="modal-field">
+                <button id="clearAllConvsBtn" class="btn danger" type="button">清空所有会话</button>
+            </div>
+            <div class="modal-actions">
+                <button id="settingsOkBtn" class="btn" type="button">保存</button>
+                <button id="settingsCancelBtn" class="btn secondary" type="button">取消</button>
+            </div>
+        </div>
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
     <script>
         'use strict';
@@ -760,6 +842,13 @@ html, body {
             convTitle: document.getElementById('convTitle'),
             convPromptBtn: document.getElementById('convPromptBtn'),
             messages: document.getElementById('messages'),
+            settingsModal: document.getElementById('settingsModal'),
+            settingsModalBackdrop: document.getElementById('settingsModalBackdrop'),
+            defaultPromptInput: document.getElementById('defaultPromptInput'),
+            resetPromptBtn: document.getElementById('resetPromptBtn'),
+            clearAllConvsBtn: document.getElementById('clearAllConvsBtn'),
+            settingsOkBtn: document.getElementById('settingsOkBtn'),
+            settingsCancelBtn: document.getElementById('settingsCancelBtn'),
         };
 
         marked.setOptions({ breaks: true, gfm: true });
@@ -976,6 +1065,45 @@ html, body {
                 dom.convTitle.textContent = conv.title;
                 renderSidebar();
             }
+        });
+
+        function openSettingsModal() {
+            dom.defaultPromptInput.value = state.defaultSystemPrompt;
+            dom.settingsModal.hidden = false;
+        }
+        function closeSettingsModal() {
+            dom.settingsModal.hidden = true;
+        }
+        async function saveSettings() {
+            const v = dom.defaultPromptInput.value.trim();
+            if (!v) {
+                showError('默认系统提示词不能为空');
+                return;
+            }
+            state.defaultSystemPrompt = v;
+            if (state.idbAvailable) await settingsPut('defaultSystemPrompt', v);
+            closeSettingsModal();
+            showError(null);
+        }
+
+        dom.settingsBtn.addEventListener('click', openSettingsModal);
+        dom.settingsModalBackdrop.addEventListener('click', closeSettingsModal);
+        dom.settingsCancelBtn.addEventListener('click', closeSettingsModal);
+        dom.settingsOkBtn.addEventListener('click', saveSettings);
+        dom.resetPromptBtn.addEventListener('click', () => {
+            dom.defaultPromptInput.value = DEFAULT_SYSTEM_PROMPT;
+        });
+        dom.clearAllConvsBtn.addEventListener('click', async () => {
+            if (!confirm('确定清空所有会话?此操作不可恢复。')) return;
+            for (const c of [...state.conversations]) {
+                await deleteConversation(c.id);
+            }
+            const fresh = await createConversation();
+            state.currentConvId = fresh.id;
+            state.currentMessages = fresh.messages;
+            renderSidebar();
+            renderMessages();
+            closeSettingsModal();
         });
 
         function showError(msg) {
