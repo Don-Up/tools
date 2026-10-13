@@ -1104,6 +1104,7 @@
                     <li><kbd>F</kbd></li><li>收藏当前条</li>
                     <li><kbd>Alt+F</kbd></li><li>打开收藏夹</li>
                     <li><kbd>Alt+R</kbd></li><li>读全文 / 循环读选中文本</li>
+                    <li><kbd>Alt+A</kbd></li><li>分句跟读 (按 ,  —  . 分句)</li>
                     <li><kbd>Alt+J</kbd></li><li>编辑 JSON</li>
                     <li><kbd>Ctrl+I</kbd></li><li>设置背景</li>
                     <li><kbd>Alt+Q</kbd></li><li>为选中中文添加注释</li>
@@ -3058,6 +3059,12 @@
             }
             return;
         }
+        if (e.key === 'a' && e.altKey && !e.ctrlKey && !e.metaKey) {
+            if (entries.length === 0) return;
+            e.preventDefault();
+            followAlongNext();
+            return;
+        }
         if (e.key === 'j' && e.altKey && !e.ctrlKey && !e.metaKey) {
             if (!currentFavId) return;
             e.preventDefault();
@@ -3400,6 +3407,57 @@
             window.speechSynthesis.speak(u);
         };
         speak();
+    }
+
+    function splitChunksWithPositions(text) {
+        const chunks = [];
+        const re = /, |—|\. /g;
+        let lastEnd = 0;
+        let m;
+        while ((m = re.exec(text)) !== null) {
+            if (m.index > lastEnd) {
+                chunks.push({ start: lastEnd, end: m.index, text: text.slice(lastEnd, m.index) });
+            }
+            lastEnd = m.index + m[0].length;
+        }
+        if (lastEnd < text.length) {
+            chunks.push({ start: lastEnd, end: text.length, text: text.slice(lastEnd) });
+        }
+        return chunks;
+    }
+
+    let followAlongEntryIndex = -1;
+    let followAlongChunkIndex = 0;
+    function followAlongNext() {
+        if (entries.length === 0) return;
+        if (currentIndex < 0 || currentIndex >= entries.length) return;
+        if (followAlongEntryIndex !== currentIndex) {
+            followAlongEntryIndex = currentIndex;
+            followAlongChunkIndex = 0;
+        }
+        const text = enText.textContent || '';
+        const chunks = splitChunksWithPositions(text);
+        if (chunks.length === 0) return;
+        if (followAlongChunkIndex >= chunks.length) followAlongChunkIndex = 0;
+        const chunk = chunks[followAlongChunkIndex];
+        const node = enText.firstChild;
+        if (node && node.nodeType === Node.TEXT_NODE) {
+            const range = document.createRange();
+            range.setStart(node, chunk.start);
+            range.setEnd(node, chunk.end);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+        }
+        if (chunk.text.trim()) {
+            stopLoopRead();
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(chunk.text);
+            if (selectedVoiceEn) u.voice = selectedVoiceEn;
+            u.rate = enRate;
+            window.speechSynthesis.speak(u);
+        }
+        followAlongChunkIndex = (followAlongChunkIndex + 1) % chunks.length;
     }
 
     let favPlayButton = null;
