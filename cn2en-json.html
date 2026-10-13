@@ -1105,7 +1105,7 @@
                     <li><kbd>Alt+F</kbd></li><li>打开收藏夹</li>
                     <li><kbd>Alt+R</kbd></li><li>读全文 / 循环读选中文本</li>
                     <li><kbd>Alt+A</kbd></li><li>分句跟读 (按 ,  —  . 分句)</li>
-                    <li><kbd>A</kbd></li><li>再次朗读当前分句 (需有选中文本)</li>
+                    <li><kbd>A</kbd></li><li>再次朗读当前分句 (基于上次 Alt+A)</li>
                     <li><kbd>Alt+J</kbd></li><li>编辑 JSON</li>
                     <li><kbd>Ctrl+I</kbd></li><li>设置背景</li>
                     <li><kbd>Alt+Q</kbd></li><li>为选中中文添加注释</li>
@@ -3068,8 +3068,8 @@
         }
         if (e.key === 'a' && !e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
             if (entries.length === 0) return;
-            const sel = window.getSelection() ? window.getSelection().toString().trim() : '';
-            if (!sel) return;
+            const tag = e.target.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) return;
             e.preventDefault();
             followAlongRepeat();
             return;
@@ -3440,6 +3440,18 @@
     let lastFollowAlongChunk = null;
     let lastFollowAlongText = '';
     let lastFollowAlongEntryIndex = -1;
+    function trySelectInEnText(start, end, expectedText) {
+        const node = enText.firstChild;
+        if (!node || node.nodeType !== Node.TEXT_NODE) return;
+        if (start < 0 || end > node.nodeValue.length || start >= end) return;
+        if (expectedText && node.nodeValue.length !== expectedText.length) return;
+        const range = document.createRange();
+        range.setStart(node, start);
+        range.setEnd(node, end);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+    }
     function followAlongNext() {
         if (entries.length === 0) return;
         if (currentIndex < 0 || currentIndex >= entries.length) return;
@@ -3447,20 +3459,12 @@
             followAlongEntryIndex = currentIndex;
             followAlongChunkIndex = 0;
         }
-        const text = enText.textContent || '';
-        const chunks = splitChunksWithPositions(text);
+        const originalText = entries[currentIndex][1] || '';
+        const chunks = splitChunksWithPositions(originalText);
         if (chunks.length === 0) return;
         if (followAlongChunkIndex >= chunks.length) followAlongChunkIndex = 0;
         const chunk = chunks[followAlongChunkIndex];
-        const node = enText.firstChild;
-        if (node && node.nodeType === Node.TEXT_NODE) {
-            const range = document.createRange();
-            range.setStart(node, chunk.start);
-            range.setEnd(node, chunk.end);
-            const sel = window.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(range);
-        }
+        trySelectInEnText(chunk.start, chunk.end, originalText);
         if (chunk.text.trim()) {
             stopLoopRead();
             window.speechSynthesis.cancel();
@@ -3470,7 +3474,7 @@
             window.speechSynthesis.speak(u);
         }
         lastFollowAlongChunk = chunk;
-        lastFollowAlongText = text;
+        lastFollowAlongText = originalText;
         lastFollowAlongEntryIndex = currentIndex;
         followAlongChunkIndex = (followAlongChunkIndex + 1) % chunks.length;
     }
@@ -3478,18 +3482,7 @@
         if (entries.length === 0) return;
         if (!lastFollowAlongChunk) return;
         if (lastFollowAlongEntryIndex !== currentIndex) return;
-        const currentText = enText.textContent || '';
-        if (currentText === lastFollowAlongText) {
-            const node = enText.firstChild;
-            if (node && node.nodeType === Node.TEXT_NODE) {
-                const range = document.createRange();
-                range.setStart(node, lastFollowAlongChunk.start);
-                range.setEnd(node, lastFollowAlongChunk.end);
-                const sel = window.getSelection();
-                sel.removeAllRanges();
-                sel.addRange(range);
-            }
-        }
+        trySelectInEnText(lastFollowAlongChunk.start, lastFollowAlongChunk.end, lastFollowAlongText);
         if (lastFollowAlongChunk.text.trim()) {
             stopLoopRead();
             window.speechSynthesis.cancel();
