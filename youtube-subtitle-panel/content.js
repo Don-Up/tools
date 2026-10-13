@@ -21,6 +21,54 @@
 }
 #yt-subtitle-panel.hidden { display: none; }
 body.ysp-open { padding-right: ${PANEL_WIDTH}px; }
+
+.ysp-header {
+    padding: 12px;
+    border-bottom: 1px solid #333;
+    display: flex; gap: 8px; align-items: center;
+}
+.ysp-title { font-size: 13px; color: #888; }
+.ysp-lang {
+    flex: 1;
+    background: #252525; color: #cfd8dc;
+    border: 1px solid #444; border-radius: 4px;
+    padding: 4px 6px; font-size: 12px;
+}
+.ysp-lang:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.ysp-list {
+    flex: 1; overflow-y: auto;
+    padding: 12px 8px;
+    scrollbar-width: thin;
+    scrollbar-color: #3a3a3a transparent;
+}
+.ysp-list::-webkit-scrollbar { width: 8px; }
+.ysp-list::-webkit-scrollbar-thumb {
+    background: #3a3a3a; border-radius: 4px;
+}
+.ysp-row {
+    padding: 8px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    border-left: 4px solid transparent;
+    transition: background 0.15s;
+}
+.ysp-row:hover { background: rgba(255,255,255,0.04); }
+.ysp-line-top { color: #bbb; font-size: 13px; line-height: 1.5; }
+.ysp-line-bot { color: #777; font-size: 13px; line-height: 1.5; }
+.ysp-row.active {
+    background: rgba(79,195,247,0.12);
+    border-left-color: #4fc3f7;
+}
+.ysp-row.active .ysp-line-top { color: #fff; font-weight: 600; }
+.ysp-row.active .ysp-line-bot { color: #cfd8dc; }
+
+.ysp-empty {
+    padding: 40px 20px;
+    color: #888; font-size: 13px;
+    text-align: center;
+}
+.ysp-empty.hidden { display: none; }
 `;
 
     function injectStyles() {
@@ -39,8 +87,11 @@ body.ysp-open { padding-right: ${PANEL_WIDTH}px; }
         aside.innerHTML = `
             <header class="ysp-header">
                 <span class="ysp-title">字幕</span>
+                <select class="ysp-lang ysp-lang-top" data-slot="top"></select>
+                <select class="ysp-lang ysp-lang-bot" data-slot="bot"></select>
             </header>
             <div class="ysp-list"></div>
+            <div class="ysp-empty hidden"></div>
         `;
         document.body.appendChild(aside);
     }
@@ -147,6 +198,24 @@ body.ysp-open { padding-right: ${PANEL_WIDTH}px; }
         return rows;
     }
 
+    function renderRows(rows) {
+        const list = document.querySelector(`#${PANEL_ID} .ysp-list`);
+        const frag = document.createDocumentFragment();
+        for (const row of rows) {
+            const div = document.createElement('div');
+            div.className = 'ysp-row';
+            div.dataset.startMs = String(row.startMs);
+            div.innerHTML = `
+                <div class="ysp-line ysp-line-top"></div>
+                <div class="ysp-line ysp-line-bot"></div>
+            `;
+            div.querySelector('.ysp-line-top').textContent = row.topText;
+            div.querySelector('.ysp-line-bot').textContent = row.botText;
+            frag.appendChild(div);
+        }
+        list.replaceChildren(frag);
+    }
+
     async function bootstrap() {
         video = findVideo();
         if (!video) {
@@ -170,8 +239,8 @@ body.ysp-open { padding-right: ${PANEL_WIDTH}px; }
                 bot ? fetchCues(bot) : Promise.resolve([]),
             ]);
             const rows = buildCueList(topCues, botCues);
-            console.log(`[ysp] merged ${rows.length} rows (top=${topCues.length}, bot=${botCues.length})`);
-            console.log('[ysp] first 3 rows:', rows.slice(0, 3));
+            renderRows(rows);
+            console.log(`[ysp] rendered ${rows.length} rows`);
         } catch (err) {
             console.error('[ysp] bootstrap failed:', err);
         }
