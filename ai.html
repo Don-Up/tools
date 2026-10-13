@@ -1101,6 +1101,16 @@ html, body {
         }
 
         async function switchConversation(id) {
+            if (state.isStreaming && state.abortController) {
+                state.abortController.abort();
+                await new Promise(resolve => {
+                    const check = () => {
+                        if (!state.isStreaming) resolve();
+                        else setTimeout(check, 50);
+                    };
+                    check();
+                });
+            }
             state.currentConvId = id;
             const conv = state.conversations.find(c => c.id === id);
             if (conv) state.currentMessages = conv.messages;
