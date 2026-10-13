@@ -1107,6 +1107,7 @@
                     <li><kbd>Alt+A</kbd></li><li>分句跟读 (按 ,  —  . 分句)</li>
                     <li><kbd>A</kbd></li><li>再次朗读当前分句 (基于上次 Alt+A)</li>
                     <li><kbd>Alt+S</kbd></li><li>分句跟读模式下循环朗读选中分句</li>
+                    <li><kbd>Alt+H</kbd></li><li>隐藏 / 显示中文句子</li>
                     <li><kbd>Alt+J</kbd></li><li>编辑 JSON</li>
                     <li><kbd>Ctrl+I</kbd></li><li>设置背景</li>
                     <li><kbd>Alt+Q</kbd></li><li>为选中中文添加注释</li>
@@ -3067,6 +3068,12 @@
             followAlongNext();
             return;
         }
+        if (e.key === 'h' && e.altKey && !e.ctrlKey && !e.metaKey) {
+            e.preventDefault();
+            cnHiddenByUser = !cnHiddenByUser;
+            cnText.hidden = cnHiddenByUser || entries.length === 0;
+            return;
+        }
         if (e.key === 'a' && !e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
             if (entries.length === 0) return;
             const tag = e.target.tagName;
@@ -3291,7 +3298,7 @@
         }
         emptyState.hidden = true;
         counter.hidden = false;
-        cnText.hidden = false;
+        cnText.hidden = cnHiddenByUser;
         enText.hidden = false;
         const [cn, en] = entries[currentIndex];
         counter.textContent = `${currentIndex + 1}/${entries.length}`;
@@ -3334,6 +3341,7 @@
     let enRate = 1.0;
     let currentMode = 1;
     let enRevealed = false;
+    let cnHiddenByUser = false;
     let enShown = true;
 
 
