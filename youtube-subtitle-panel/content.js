@@ -116,6 +116,37 @@ body.ysp-open { padding-right: ${PANEL_WIDTH}px; }
         return cues;
     }
 
+    function buildCueList(topCues, botCues) {
+        const rows = [];
+        for (const top of topCues) {
+            let best = null;
+            let bestOverlap = 0;
+            for (const bot of botCues) {
+                const overlap = Math.min(top.endMs, bot.endMs) - Math.max(top.startMs, bot.startMs);
+                if (overlap > bestOverlap) {
+                    bestOverlap = overlap;
+                    best = bot;
+                }
+            }
+            if (!best) {
+                let bestDist = Infinity;
+                for (const bot of botCues) {
+                    const dist = Math.abs(bot.startMs - top.startMs);
+                    if (dist < bestDist) { bestDist = dist; best = bot; }
+                }
+                if (bestDist > 2000) best = null;
+            }
+            rows.push({
+                startMs: top.startMs,
+                endMs: top.endMs,
+                topText: top.text,
+                botText: best ? best.text : '',
+            });
+        }
+        rows.sort((a, b) => a.startMs - b.startMs);
+        return rows;
+    }
+
     async function bootstrap() {
         video = findVideo();
         if (!video) {
@@ -133,11 +164,16 @@ body.ysp-open { padding-right: ${PANEL_WIDTH}px; }
         }
         try {
             const top = tracklist.tracks[0];
-            const cues = await fetchCues(top);
-            console.log(`[ysp] parsed ${cues.length} cues from "${top.name}" (${top.languageCode})`);
-            console.log('[ysp] first 3 cues:', cues.slice(0, 3));
+            const bot = tracklist.tracks[1] || null;
+            const [topCues, botCues] = await Promise.all([
+                fetchCues(top),
+                bot ? fetchCues(bot) : Promise.resolve([]),
+            ]);
+            const rows = buildCueList(topCues, botCues);
+            console.log(`[ysp] merged ${rows.length} rows (top=${topCues.length}, bot=${botCues.length})`);
+            console.log('[ysp] first 3 rows:', rows.slice(0, 3));
         } catch (err) {
-            console.error('[ysp] fetchCues failed:', err);
+            console.error('[ysp] bootstrap failed:', err);
         }
     }
 
