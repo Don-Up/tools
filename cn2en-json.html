@@ -3120,10 +3120,8 @@
         if (e.key === 's' && e.altKey && !e.ctrlKey && !e.metaKey) {
             if (entries.length === 0) return;
             if (!lastFollowAlongChunk || lastFollowAlongEntryIndex !== currentIndex) return;
-            const sel = window.getSelection()?.toString().trim();
-            if (!sel) return;
             e.preventDefault();
-            loopReadText(sel);
+            loopReadText(lastFollowAlongChunk.text);
             return;
         }
         if (e.key === 'e' && !e.ctrlKey && !e.altKey && !e.metaKey) {
