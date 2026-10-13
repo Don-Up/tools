@@ -42,25 +42,6 @@ html, body {
     margin: 0;
 }
 
-#apiKeyLabel {
-    color: #888;
-    font-size: 13px;
-    margin-left: auto;
-}
-
-#apiKeyInput {
-    width: 220px;
-    padding: 5px 8px;
-    font-size: 13px;
-    font-family: 'Consolas', 'Monaco', monospace;
-    background: #1e1e1e;
-    color: #e0e0e0;
-    border: 1px solid #444;
-    border-radius: 4px;
-}
-
-#apiKeyInput:focus { outline: none; border-color: #4fc3f7; }
-
 .btn {
     padding: 5px 12px;
     font-size: 13px;
@@ -654,9 +635,6 @@ html, body {
         <div class="main-area">
             <header id="topBar">
                 <h1>ai</h1>
-                <label for="apiKeyInput" id="apiKeyLabel">API Key:</label>
-                <input id="apiKeyInput" type="password" placeholder="点击此处设置 API Key">
-                <button id="apiKeySaveBtn" class="btn secondary" type="button">保存</button>
                 <span class="model-badge">M3</span>
                 <button id="settingsBtn" class="btn secondary icon-only" type="button" title="设置">⚙</button>
             </header>
@@ -732,7 +710,6 @@ html, body {
         const STORE_SETTINGS = 'settings';
 
         const state = {
-            apiKey: localStorage.getItem('aiApiKey') || '',
             showThinking: (() => {
                 const v = localStorage.getItem('aiShowThinking');
                 return v === null ? true : v === 'true';
@@ -783,11 +760,9 @@ html, body {
         }
 
         function migrateFromLocalStorage() {
-            const lsApiKey = localStorage.getItem('aiApiKey');
             const lsThinking = localStorage.getItem('aiShowThinking');
             const lsPrompt = localStorage.getItem('aiDefaultSystemPrompt');
             const writes = [];
-            if (lsApiKey) writes.push({ key: 'apiKey', value: lsApiKey });
             if (lsThinking !== null) writes.push({ key: 'showThinking', value: lsThinking });
             if (lsPrompt) writes.push({ key: 'defaultSystemPrompt', value: lsPrompt });
             if (writes.length === 0) {
@@ -905,8 +880,6 @@ html, body {
         }
 
         const dom = {
-            apiKeyInput: document.getElementById('apiKeyInput'),
-            apiKeySaveBtn: document.getElementById('apiKeySaveBtn'),
             showThinkingToggle: document.getElementById('showThinkingToggle'),
             errorBanner: document.getElementById('errorBanner'),
             questionInput: document.getElementById('questionInput'),
@@ -1274,67 +1247,6 @@ html, body {
             dom.sendBtn.disabled = !dom.questionInput.value.trim();
         }
 
-        function renderApiKey() {
-            if (state.apiKey) {
-                dom.apiKeyInput.type = 'password';
-                dom.apiKeyInput.value = '•'.repeat(Math.min(state.apiKey.length, 40));
-                dom.apiKeyInput.dataset.masked = '1';
-                dom.apiKeySaveBtn.textContent = '修改';
-            } else {
-                dom.apiKeyInput.type = 'password';
-                dom.apiKeyInput.value = '';
-                dom.apiKeyInput.placeholder = '点击此处设置 API Key';
-                dom.apiKeyInput.dataset.masked = '';
-                dom.apiKeySaveBtn.textContent = '保存';
-            }
-        }
-
-        function unmaskApiKey() {
-            if (!state.apiKey) return;
-            dom.apiKeyInput.type = 'password';
-            dom.apiKeyInput.value = state.apiKey;
-            dom.apiKeyInput.dataset.masked = '';
-            dom.apiKeySaveBtn.textContent = '保存';
-            dom.apiKeyInput.focus();
-            dom.apiKeyInput.select();
-        }
-
-        function saveApiKey() {
-            const v = dom.apiKeyInput.value.trim();
-            if (!v) {
-                showError('API Key 不能为空');
-                return;
-            }
-            state.apiKey = v;
-            if (state.idbAvailable) settingsPut('apiKey', v).catch(() => {});
-            renderApiKey();
-            showError(null);
-        }
-
-        dom.apiKeyInput.addEventListener('focus', () => {
-            if (dom.apiKeyInput.dataset.masked === '1') unmaskApiKey();
-        });
-
-        dom.apiKeyInput.addEventListener('blur', () => {
-            if (state.apiKey && dom.apiKeyInput.value === '•'.repeat(Math.min(state.apiKey.length, 40))) return;
-        });
-
-        dom.apiKeySaveBtn.addEventListener('click', () => {
-            if (dom.apiKeySaveBtn.textContent === '修改') {
-                unmaskApiKey();
-            } else {
-                saveApiKey();
-            }
-        });
-
-        dom.apiKeyInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                saveApiKey();
-                dom.apiKeyInput.blur();
-            }
-        });
-
         (async function init() {
             try {
                 state.db = await openDb();
@@ -1349,8 +1261,6 @@ html, body {
 
             if (state.idbAvailable) {
                 try {
-                    const apiKey = await settingsGet('apiKey');
-                    if (apiKey) state.apiKey = apiKey;
                     const thinking = await settingsGet('showThinking');
                     if (thinking !== null) state.showThinking = String(thinking) === 'true';
                     const prompt = await settingsGet('defaultSystemPrompt');
@@ -1360,7 +1270,6 @@ html, body {
                 }
             }
 
-            renderApiKey();
             dom.showThinkingToggle.checked = state.showThinking;
             dom.showThinkingToggle.addEventListener('change', () => {
                 state.showThinking = dom.showThinkingToggle.checked;
@@ -1642,11 +1551,6 @@ async function send() {
     }
     const question = dom.questionInput.value.trim();
     if (!question) return;
-    if (!state.apiKey) {
-        showError('请先在顶部设置 API Key。');
-        dom.apiKeyInput.focus();
-        return;
-    }
     const conv = state.conversations.find(c => c.id === state.currentConvId);
     if (!conv) {
         showError('没有当前对话。');
