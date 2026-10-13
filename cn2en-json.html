@@ -354,6 +354,19 @@
             cursor: pointer;
         }
         .ai-panel-title:hover { color: #cfd8dc; }
+        .ai-context-label {
+            font-size: 11px;
+            color: #6c757d;
+            text-align: center;
+            margin-top: 2px;
+            margin-bottom: 2px;
+            opacity: 0.85;
+            font-family: ui-monospace, 'Cascadia Mono', Menlo, Consolas, monospace;
+        }
+        .ai-context-label.shifted {
+            color: #4fc3f7;
+            opacity: 1;
+        }
         .ai-answer {
             position: fixed;
             bottom: 10px;
@@ -1228,6 +1241,7 @@
 
     <div id="aiPanel" class="ai-panel">
         <div class="ai-panel-title">AI 问答</div>
+        <div id="aiContextLabel" class="ai-context-label">上下文 → 句子 1/1</div>
         <div class="ai-input-row">
             <textarea id="aiQuestion" class="ai-textarea" placeholder="向 AI 提问当前句子...（Ctrl+Enter 发送，Esc 中止/清空）"></textarea>
             <div class="ai-button-row">
@@ -1366,6 +1380,7 @@
     const aiQuestion = document.getElementById('aiQuestion');
     const aiSend = document.getElementById('aiSend');
     const aiToggle = document.getElementById('aiToggle');
+    const aiContextLabel = document.getElementById('aiContextLabel');
     let bgImages = [];
     let currentBgId = -1;
     let onlyBgId = -1;
@@ -1738,6 +1753,7 @@
             showError('收藏数据无效');
             return;
         }
+        clearAiHistory();
         entries = payload;
         currentIndex = 0;
         saveState();
@@ -3144,11 +3160,30 @@
         }
     }
 
+    function updateAiContextLabel(shifted) {
+        if (entries.length === 0) {
+            aiContextLabel.textContent = '上下文 → 无';
+        } else {
+            aiContextLabel.textContent = `上下文 → 句子 ${currentIndex + 1}/${entries.length}`;
+        }
+        if (shifted) {
+            aiContextLabel.classList.add('shifted');
+            clearTimeout(updateAiContextLabel._timer);
+            updateAiContextLabel._timer = setTimeout(() => {
+                aiContextLabel.classList.remove('shifted');
+            }, 800);
+        } else {
+            aiContextLabel.classList.remove('shifted');
+        }
+    }
+
     function render() {
-        if (lastRenderedIndex !== null && lastRenderedIndex !== currentIndex) {
-            clearAiHistory();
+        const indexChanged = lastRenderedIndex !== null && lastRenderedIndex !== currentIndex;
+        if (indexChanged) {
+            if (isAiStreaming && aiAbortController) aiAbortController.abort();
         }
         lastRenderedIndex = currentIndex;
+        updateAiContextLabel(indexChanged);
         if (entries.length === 0) {
             emptyState.hidden = false;
             counter.hidden = true;
@@ -3329,6 +3364,7 @@
 
     function parseAndLoad(text) {
         clearCardsInIframe();
+        clearAiHistory();
         const stripped = text.replace(/^📕.*$/gm, '');
         const jsonStrings = extractJsonObjects(stripped);
         if (jsonStrings.length === 0) {
