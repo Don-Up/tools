@@ -423,6 +423,97 @@ html, body {
     cursor: pointer;
 }
 .conv-title:hover { color: #4fc3f7; }
+
+.messages {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-height: 200px;
+}
+.messages.empty {
+    color: #666;
+    text-align: center;
+    padding: 60px 0;
+    font-size: 14px;
+}
+.message {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+}
+.message.user { flex-direction: row-reverse; }
+.message-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #333;
+    color: #cfd8dc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+.message.user .message-avatar { background: #2a4a6a; }
+.message.assistant .message-avatar { background: #2a4a3a; }
+.message-body {
+    background: #252525;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 10px 14px;
+    max-width: calc(100% - 50px);
+    flex: 1;
+    min-width: 0;
+}
+.message.user .message-body {
+    background: #1e2a3a;
+    border-color: #2a3a4a;
+}
+.message-thought {
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    background: #1e1e1e;
+    border-left: 2px solid #4fc3f7;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #9aa5b1;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+.message-thought summary {
+    cursor: pointer;
+    color: #888;
+    font-size: 11px;
+    list-style: none;
+    margin-bottom: 6px;
+}
+.message-thought summary::-webkit-details-marker { display: none; }
+.message-thought summary::before { content: '▸ '; }
+.message-thought[open] summary::before { content: '▾ '; }
+.message-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: 11px;
+}
+.message-actions button {
+    background: transparent;
+    border: 1px solid #444;
+    color: #888;
+    padding: 2px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 11px;
+    font-family: inherit;
+}
+.message-actions button:hover { color: #4fc3f7; border-color: #4fc3f7; }
+.message.streaming .message-body::after {
+    content: '▌';
+    color: #4fc3f7;
+    animation: blink 1s steps(2) infinite;
+    margin-left: 2px;
+}
     </style>
 </head>
 <body>
@@ -714,6 +805,63 @@ html, body {
             });
         }
 
+        function renderMessage(msg, opts = {}) {
+            const wrap = document.createElement('div');
+            wrap.className = `message ${msg.role}${opts.streaming ? ' streaming' : ''}`;
+            wrap.dataset.id = opts.id || '';
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = msg.role === 'user' ? '我' : 'AI';
+            const body = document.createElement('div');
+            body.className = 'message-body';
+            if (msg.role === 'assistant' && msg.thinking && state.showThinking) {
+                const details = document.createElement('details');
+                details.className = 'message-thought';
+                const summary = document.createElement('summary');
+                summary.textContent = '思考过程';
+                const pre = document.createElement('pre');
+                pre.style.cssText = 'margin:0; white-space:pre-wrap; word-break:break-word; font-family:inherit; font-size:12px; color:#9aa5b1;';
+                pre.textContent = msg.thinking;
+                details.appendChild(summary);
+                details.appendChild(pre);
+                body.appendChild(details);
+            }
+            const content = document.createElement('div');
+            content.className = 'message-content';
+            if (msg.content) {
+                if (msg.role === 'user') {
+                    content.textContent = msg.content;
+                } else {
+                    try {
+                        content.innerHTML = marked.parse(msg.content);
+                    } catch (err) {
+                        content.textContent = msg.content;
+                    }
+                    appendCodeCopyButtons(content);
+                }
+            }
+            body.appendChild(content);
+            if (msg.role === 'assistant' && !opts.streaming) {
+                const actions = document.createElement('div');
+                actions.className = 'message-actions';
+                const copyBtn = document.createElement('button');
+                copyBtn.type = 'button';
+                copyBtn.textContent = '复制';
+                copyBtn.addEventListener('click', () => copyMessageToClipboard(msg, copyBtn));
+                const regenBtn = document.createElement('button');
+                regenBtn.type = 'button';
+                regenBtn.textContent = '重新生成';
+                regenBtn.disabled = state.isStreaming;
+                regenBtn.addEventListener('click', () => regenerateLast());
+                actions.appendChild(copyBtn);
+                actions.appendChild(regenBtn);
+                body.appendChild(actions);
+            }
+            wrap.appendChild(avatar);
+            wrap.appendChild(body);
+            return wrap;
+        }
+
         function renderMessages() {
             const conv = state.conversations.find(c => c.id === state.currentConvId);
             if (!conv) {
@@ -728,10 +876,35 @@ html, body {
             } else {
                 dom.messages.classList.remove('empty');
                 dom.messages.innerHTML = '';
-                // Task 3 fills in actual rendering
+                conv.messages.forEach((msg, idx) => {
+                    const el = renderMessage(msg, { id: idx });
+                    dom.messages.appendChild(el);
+                });
             }
             dom.convHeader.classList.remove('hidden');
             dom.convTitle.textContent = conv.title;
+            dom.messages.scrollTop = dom.messages.scrollHeight;
+        }
+
+        async function copyMessageToClipboard(msg, btn) {
+            try {
+                await navigator.clipboard.writeText(msg.content || '');
+            } catch (err) {
+                const ta = document.createElement('textarea');
+                ta.value = msg.content || '';
+                document.body.appendChild(ta);
+                ta.select();
+                try { document.execCommand('copy'); } catch (e) { /* ignore */ }
+                document.body.removeChild(ta);
+            }
+            const old = btn.textContent;
+            btn.textContent = '✓';
+            setTimeout(() => { btn.textContent = old; }, 1200);
+        }
+
+        async function regenerateLast() {
+            // Task 4 wires this with streaming; stub here
+            alert('重新生成待实现');
         }
 
         async function switchConversation(id) {
