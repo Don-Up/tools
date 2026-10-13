@@ -704,6 +704,12 @@ html, body {
         const MAX_TOKENS = 8192;
         const DEFAULT_SYSTEM_PROMPT = '你是一个简洁、准确的助手。优先用中文回答,除非用户用其他语言提问。';
 
+        const DEFAULT_KEYWORD_PRESETS = [
+            { id: 'k1', name: '翻译', content: '请将以下内容翻译成英文:\n' },
+            { id: 'k2', name: '总结', content: '请用一段话总结以下内容的要点:\n' },
+            { id: 'k3', name: '解释', content: '请解释以下内容的含义:\n' },
+        ];
+
         const IDB_NAME = 'aiChatDb';
         const IDB_VERSION = 1;
         const STORE_CONV = 'conversations';
@@ -715,6 +721,7 @@ html, body {
                 return v === null ? true : v === 'true';
             })(),
             defaultSystemPrompt: localStorage.getItem('aiDefaultSystemPrompt') || DEFAULT_SYSTEM_PROMPT,
+            defaultKeywordPresets: null,
             question: '',
             isStreaming: false,
             abortController: null,
@@ -824,6 +831,9 @@ html, body {
 
         async function createConversation() {
             const now = Date.now();
+            const seedPresets = (Array.isArray(state.defaultKeywordPresets) && state.defaultKeywordPresets.length === 3)
+                ? state.defaultKeywordPresets.map(p => ({ ...p }))
+                : DEFAULT_KEYWORD_PRESETS.map(p => ({ ...p }));
             const conv = {
                 id: uuidv4(),
                 title: '新对话',
@@ -832,10 +842,29 @@ html, body {
                 systemPromptOverride: null,
                 model: MODEL,
                 messages: [],
+                keywordPresets: seedPresets,
             };
             if (state.idbAvailable) await convPut(conv);
             state.conversations.push(conv);
             return conv;
+        }
+
+        function getEffectiveKeywordPresets(conv) {
+            if (conv && Array.isArray(conv.keywordPresets) && conv.keywordPresets.length === 3) {
+                return conv.keywordPresets;
+            }
+            const settingsDefault = state.defaultKeywordPresets;
+            if (Array.isArray(settingsDefault) && settingsDefault.length === 3) {
+                return settingsDefault;
+            }
+            return DEFAULT_KEYWORD_PRESETS;
+        }
+
+        function ensureKeywordPresets(conv) {
+            if (!conv) return;
+            if (!Array.isArray(conv.keywordPresets) || conv.keywordPresets.length !== 3) {
+                conv.keywordPresets = DEFAULT_KEYWORD_PRESETS.map(p => ({ ...p }));
+            }
         }
 
         async function deleteConversation(id) {
@@ -1265,6 +1294,8 @@ html, body {
                     if (thinking !== null) state.showThinking = String(thinking) === 'true';
                     const prompt = await settingsGet('defaultSystemPrompt');
                     if (prompt) state.defaultSystemPrompt = prompt;
+                    const kp = await settingsGet('defaultKeywordPresets');
+                    if (Array.isArray(kp) && kp.length === 3) state.defaultKeywordPresets = kp;
                 } catch (err) {
                     console.error('settings load failed:', err);
                 }
