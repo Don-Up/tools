@@ -3115,10 +3115,11 @@
     }
 
     cnText.addEventListener('click', (e) => {
-        if (e.altKey) {
-            e.preventDefault();
-            copyEntryToClipboard();
-        } else if (e.ctrlKey) {
+        // if (e.altKey) {
+        //     e.preventDefault();
+        //     copyEntryToClipboard();
+        // } else if (e.ctrlKey) {
+        if (e.ctrlKey) {
             e.preventDefault();
             copyEntryWithTildes();
         }
