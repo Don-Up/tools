@@ -578,14 +578,8 @@ html, body {
             })(),
             defaultSystemPrompt: localStorage.getItem('aiDefaultSystemPrompt') || DEFAULT_SYSTEM_PROMPT,
             question: '',
-            thinkingBuf: '',
-            textBuf: '',
-            currentBlockType: null,
-            currentBlockIndex: -1,
-            stopReason: null,
             isStreaming: false,
             abortController: null,
-            rawAnswerEl: null,
             db: null,
             idbAvailable: true,
             conversations: [],
@@ -754,9 +748,6 @@ html, body {
             apiKeySaveBtn: document.getElementById('apiKeySaveBtn'),
             showThinkingToggle: document.getElementById('showThinkingToggle'),
             errorBanner: document.getElementById('errorBanner'),
-            thinkingSection: document.getElementById('thinkingSection'),
-            thinkingContent: document.getElementById('thinkingContent'),
-            answerSection: document.getElementById('answerSection'),
             questionInput: document.getElementById('questionInput'),
             sendBtn: document.getElementById('sendBtn'),
             clearBtn: document.getElementById('clearBtn'),
@@ -903,8 +894,16 @@ html, body {
         }
 
         async function regenerateLast() {
-            // Task 4 wires this with streaming; stub here
-            alert('重新生成待实现');
+            if (state.isStreaming) return;
+            const conv = state.conversations.find(c => c.id === state.currentConvId);
+            if (!conv || conv.messages.length < 2) return;
+            const last = conv.messages[conv.messages.length - 1];
+            if (last.role !== 'assistant') return;
+            conv.messages.pop();
+            await updateConvMessages(conv.id, conv.messages);
+            const lastUser = conv.messages[conv.messages.length - 1];
+            dom.questionInput.value = lastUser.content;
+            await send();
         }
 
         async function switchConversation(id) {
@@ -974,7 +973,7 @@ html, body {
                 return;
             }
             state.apiKey = v;
-            localStorage.setItem('aiApiKey', v);
+            if (state.idbAvailable) settingsPut('apiKey', v).catch(() => {});
             renderApiKey();
             showError(null);
         }
@@ -1033,9 +1032,8 @@ html, body {
             dom.showThinkingToggle.addEventListener('change', () => {
                 state.showThinking = dom.showThinkingToggle.checked;
                 if (state.idbAvailable) settingsPut('showThinking', String(state.showThinking)).catch(() => {});
-                dom.thinkingSection.style.display = state.showThinking ? '' : 'none';
+                renderMessages();
             });
-            dom.thinkingSection.style.display = state.showThinking ? '' : 'none';
 
             if (state.idbAvailable) {
                 try {
@@ -1077,11 +1075,12 @@ html, body {
             renderSidebar();
         });
 
-        function buildRequestBody(question) {
+        function buildRequestBody(conv, question) {
+            const prompt = conv.systemPromptOverride || state.defaultSystemPrompt;
             const body = {
                 model: MODEL,
                 max_tokens: MAX_TOKENS,
-                system: state.defaultSystemPrompt,
+                system: prompt,
                 messages: [{ role: 'user', content: question }],
                 stream: true,
             };
@@ -1091,8 +1090,61 @@ html, body {
             return body;
         }
 
-        async function callApi(question) {
-            const body = buildRequestBody(question);
+        let streamingMsg = null;
+        let streamingBubble = null;
+
+        function appendStreamBubble(msg) {
+            streamingMsg = msg;
+            const conv = state.conversations.find(c => c.id === state.currentConvId);
+            if (conv) conv.messages.push(msg);
+            streamingBubble = {
+                content: document.createElement('div'),
+                thought: document.createElement('pre'),
+            };
+            streamingBubble.content.className = 'message-content';
+            streamingBubble.thought.style.cssText = 'margin:0; white-space:pre-wrap; word-break:break-word; font-family:inherit; font-size:12px; color:#9aa5b1;';
+
+            const wrap = document.createElement('div');
+            wrap.className = 'message assistant streaming';
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = 'AI';
+            const body = document.createElement('div');
+            body.className = 'message-body';
+            if (state.showThinking) {
+                const details = document.createElement('details');
+                details.className = 'message-thought';
+                details.open = true;
+                const summary = document.createElement('summary');
+                summary.textContent = '思考过程';
+                details.appendChild(summary);
+                details.appendChild(streamingBubble.thought);
+                body.appendChild(details);
+            }
+            body.appendChild(streamingBubble.content);
+            wrap.appendChild(avatar);
+            wrap.appendChild(body);
+            dom.messages.classList.remove('empty');
+            dom.messages.appendChild(wrap);
+            streamingBubble.body = body;
+            streamingBubble.wrap = wrap;
+        }
+
+        function updateStreamDom() {
+            if (!streamingBubble) return;
+            streamingBubble.thought.textContent = streamingMsg.thinking;
+            streamingBubble.content.textContent = streamingMsg.content;
+            dom.messages.scrollTop = dom.messages.scrollHeight;
+        }
+
+        async function persistStreamingMsg() {
+            if (!streamingMsg) return;
+            const conv = state.conversations.find(c => c.id === state.currentConvId);
+            if (conv) await updateConvMessages(conv.id, conv.messages);
+        }
+
+        async function callApi(conv, question) {
+            const body = buildRequestBody(conv, question);
             const res = await fetch(BASE_URL, {
                 method: 'POST',
                 headers: {
@@ -1121,11 +1173,11 @@ html, body {
         async function handleNonStreaming(json) {
             if (Array.isArray(json && json.content)) {
                 for (const block of json.content) {
-                    if (block.type === 'text') state.textBuf += block.text;
-                    else if (block.type === 'thinking') state.thinkingBuf += (block.thinking || '');
+                    if (block.type === 'text' && streamingMsg) streamingMsg.content += (block.text || '');
+                    else if (block.type === 'thinking' && streamingMsg) streamingMsg.thinking += (block.thinking || '');
                 }
             }
-            state.stopReason = json.stop_reason || 'end_turn';
+            if (streamingMsg) streamingMsg.stopReason = json.stop_reason || 'end_turn';
         }
 
         async function parseSseStream(body) {
@@ -1167,98 +1219,38 @@ html, body {
         }
 
         function handleSsePayload(eventName, payload) {
+            if (!streamingMsg) return;
             switch (eventName) {
                 case 'message_start':
                     if (payload.message && payload.message.stop_reason) {
-                        state.stopReason = payload.message.stop_reason;
+                        streamingMsg.stopReason = payload.message.stop_reason;
                     }
                     break;
                 case 'content_block_start':
-                    state.currentBlockIndex = payload.index;
-                    state.currentBlockType = payload.content_block && payload.content_block.type;
                     break;
                 case 'content_block_delta': {
-                    const idx = payload.index;
-                    if (idx !== state.currentBlockIndex) {
-                        state.currentBlockIndex = idx;
-                    }
                     const delta = payload.delta || {};
                     if (delta.type === 'text_delta' || typeof delta.text === 'string') {
-                        state.textBuf += delta.text;
-                        renderStreamingText();
+                        streamingMsg.content += (delta.text || '');
+                        updateStreamDom();
                     } else if (delta.type === 'thinking_delta' || typeof delta.thinking === 'string') {
-                        state.thinkingBuf += delta.thinking;
-                        renderStreamingThinking();
+                        streamingMsg.thinking += (delta.thinking || '');
+                        updateStreamDom();
                     }
                     break;
                 }
                 case 'content_block_stop':
-                    if (state.currentBlockType === 'text') {
-                        renderFinalAnswer();
-                    }
-                    state.currentBlockType = null;
+                    persistStreamingMsg();
                     break;
                 case 'message_delta':
                     if (payload.delta && payload.delta.stop_reason) {
-                        state.stopReason = payload.delta.stop_reason;
+                        streamingMsg.stopReason = payload.delta.stop_reason;
                     }
                     break;
                 case 'message_stop':
                     break;
                 default:
                     break;
-            }
-        }
-
-        function renderStreamingThinking() {
-            dom.thinkingContent.textContent = state.thinkingBuf;
-        }
-
-        function renderStreamingText() {
-            if (!state.rawAnswerEl) {
-                dom.answerSection.classList.remove('empty');
-                dom.answerSection.innerHTML = '';
-                const pre = document.createElement('pre');
-                pre.style.cssText = 'margin:0; white-space:pre-wrap; word-break:break-word; font-family:inherit; font-size:14px; line-height:1.7; color:#e0e0e0;';
-                state.rawAnswerEl = pre;
-                dom.answerSection.appendChild(pre);
-            }
-            state.rawAnswerEl.textContent = state.textBuf;
-            appendCursor(state.rawAnswerEl);
-        }
-
-        function appendCursor(host) {
-            const old = host.nextElementSibling;
-            if (old && old.classList && old.classList.contains('stream-cursor')) old.remove();
-            const cursor = document.createElement('span');
-            cursor.className = 'stream-cursor';
-            host.parentNode.insertBefore(cursor, host.nextSibling);
-        }
-
-        function removeCursor() {
-            const c = dom.answerSection.querySelector('.stream-cursor');
-            if (c) c.remove();
-        }
-
-        function renderFinalAnswer() {
-            if (state.textBuf && state.textBuf.trim()) {
-                dom.answerSection.classList.remove('empty');
-                let html;
-                try {
-                    html = marked.parse(state.textBuf);
-                } catch (err) {
-                    console.error('marked failed', err);
-                    html = `<pre>${escapeHtml(state.textBuf)}</pre>`;
-                }
-                dom.answerSection.innerHTML = html;
-                appendCodeCopyButtons(dom.answerSection);
-            }
-            removeCursor();
-            if (state.stopReason === 'max_tokens') {
-                const note = document.createElement('p');
-                note.style.cssText = 'color:#888; font-size:12px; margin-top:12px; font-style:italic;';
-                note.textContent = '…(响应被截断,达到 max_tokens 限制)';
-                dom.answerSection.appendChild(note);
             }
         }
 
@@ -1304,18 +1296,6 @@ html, body {
             });
         }
 
-function resetAnswer() {
-    state.thinkingBuf = '';
-    state.textBuf = '';
-    state.currentBlockType = null;
-    state.currentBlockIndex = -1;
-    state.stopReason = null;
-    state.rawAnswerEl = null;
-    dom.answerSection.classList.add('empty');
-    dom.answerSection.innerHTML = '答复将显示在这里';
-    dom.thinkingContent.textContent = '';
-}
-
 async function send() {
     if (state.isStreaming) {
         if (state.abortController) state.abortController.abort();
@@ -1328,21 +1308,57 @@ async function send() {
         dom.apiKeyInput.focus();
         return;
     }
+    const conv = state.conversations.find(c => c.id === state.currentConvId);
+    if (!conv) {
+        showError('没有当前对话。');
+        return;
+    }
     showError(null);
-    resetAnswer();
-    state.question = question;
+    dom.questionInput.value = '';
+    dom.questionInput.style.height = 'auto';
+    updateSendEnabled();
+
+    const userMsg = { role: 'user', content: question, ts: Date.now() };
+    conv.messages.push(userMsg);
+    if (conv.title === '新对话') {
+        conv.title = question.slice(0, 20);
+        dom.convTitle.textContent = conv.title;
+    }
+    await updateConvMessages(conv.id, conv.messages);
+    renderSidebar();
+    const userEl = renderMessage(userMsg, { id: conv.messages.length - 1 });
+    dom.messages.classList.remove('empty');
+    dom.messages.appendChild(userEl);
+
+    const asstMsg = { role: 'assistant', content: '', thinking: '', ts: Date.now() };
+    appendStreamBubble(asstMsg);
+    await updateConvMessages(conv.id, conv.messages);
+
     state.abortController = new AbortController();
     setSendButtonState(true);
 
     try {
-        await callApi(question);
-        if (!state.textBuf && state.thinkingBuf) {
-            state.textBuf = '（模型仅返回了思考过程,无最终答复。）';
-            renderFinalAnswer();
+        await callApi(conv, question);
+        if (!streamingMsg.content && streamingMsg.thinking) {
+            streamingMsg.content = '（模型仅返回了思考过程,无最终答复。）';
+            updateStreamDom();
         }
+        streamingBubble.wrap.remove();
+        const final = renderMessage(streamingMsg, { id: conv.messages.length - 1 });
+        dom.messages.appendChild(final);
+        if (streamingMsg.stopReason === 'max_tokens') {
+            const note = document.createElement('p');
+            note.style.cssText = 'color:#888; font-size:12px; margin-top:8px; font-style:italic;';
+            note.textContent = '…(响应被截断,达到 max_tokens 限制)';
+            final.querySelector('.message-body').appendChild(note);
+        }
+        await updateConvMessages(conv.id, conv.messages);
     } catch (err) {
         if (err.name === 'AbortError') {
-            // user cancelled
+            const note = document.createElement('p');
+            note.style.cssText = 'color:#888; font-size:12px; margin-top:8px; font-style:italic;';
+            note.textContent = '(已中止)';
+            streamingBubble.body.appendChild(note);
         } else if (err.status) {
             const map = {
                 401: 'API Key 无效或已过期。',
@@ -1350,14 +1366,17 @@ async function send() {
                 404: '模型或接口路径错误。',
                 429: '请求过于频繁,请稍后重试。',
             };
-            const known = map[err.status];
-            showError(known || `服务器错误 (${err.status}),请稍后重试。`);
+            showError(map[err.status] || `服务器错误 (${err.status}),请稍后重试。`);
         } else {
             showError(`网络错误: ${err.message || err}`);
         }
-        removeCursor();
-        renderFinalAnswer();
+        streamingBubble.wrap.classList.remove('streaming');
+        const final = renderMessage(streamingMsg, { id: conv.messages.length - 1 });
+        streamingBubble.wrap.replaceWith(final);
+        await updateConvMessages(conv.id, conv.messages);
     } finally {
+        streamingMsg = null;
+        streamingBubble = null;
         setSendButtonState(false);
         state.abortController = null;
         updateSendEnabled();
@@ -1369,8 +1388,6 @@ function clearAll() {
         state.abortController.abort();
     }
     dom.questionInput.value = '';
-    resetAnswer();
-    showError(null);
     showError(null);
     updateSendEnabled();
     dom.questionInput.focus();
