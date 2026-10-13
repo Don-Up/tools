@@ -3233,6 +3233,7 @@
         const indexChanged = lastRenderedIndex !== null && lastRenderedIndex !== currentIndex;
         if (indexChanged) {
             if (isAiStreaming && aiAbortController) aiAbortController.abort();
+            enRevealed = false;
         }
         lastRenderedIndex = currentIndex;
         updateAiContextLabel(indexChanged);
@@ -3254,8 +3255,7 @@
         cnText.innerHTML = cn.replaceAll("{{", "<ruby>").replaceAll("}}", "<rt>").replaceAll("]]", "</rt></ruby>");
         cnText.classList.toggle('last-entry', currentIndex === entries.length - 1);
         applyRubyNoteMarkers();
-        enRevealed = false;
-        if (currentMode === 1) {
+        if (currentMode === 1 || enRevealed) {
             enText.textContent = en;
         } else {
             enText.textContent = maskEnText(en, currentMode === 2);
@@ -3277,6 +3277,7 @@
     const STORAGE_KEY_MODE = 'cn2en-json:mode';
     const STORAGE_KEY_ONLY_BG = 'cn2en-json:onlyBg';
     const STORAGE_KEY_AI_SYSTEM_PROMPT = 'cn2en-json:aiSystemPrompt';
+    const STORAGE_KEY_EN_REVEALED = 'cn2en-json:enRevealed';
     const DEFAULT_AI_SYSTEM_PROMPT = AI_SYSTEM_PROMPT;
 
     let voicesCN = [];
@@ -3511,6 +3512,7 @@
             if (entries.length === 0) return;
             e.preventDefault();
             enRevealed = !enRevealed;
+            localStorage.setItem(STORAGE_KEY_EN_REVEALED, String(enRevealed));
             if (currentMode === 1 || enRevealed) {
                 enText.textContent = entries[currentIndex][1];
             } else {
@@ -3607,6 +3609,7 @@
     if (savedMode === "2" || savedMode === "3") {
         currentMode = parseInt(savedMode, 10);
     }
+    enRevealed = localStorage.getItem(STORAGE_KEY_EN_REVEALED) === "true";
     modeRadios.forEach(radio => {
         radio.checked = parseInt(radio.value, 10) === currentMode;
     });
