@@ -296,7 +296,7 @@ Edge will show a one-time notice the first time the shortcut is pressed.
 | User scrolls the panel manually | Pause auto-scroll for 3 s after the last manual scroll event, then resume |
 | Video paused | Active row remains highlighted but `tick()` does not call `scrollIntoView` |
 | Tab in background | `requestAnimationFrame` naturally throttles; no special handling |
-| Fullscreen video | Panel hidden via CSS media query (`@media (display-mode: fullscreen)`); shown again on exit |
+| Fullscreen video | Listen for `fullscreenchange` on `document`; hide panel when `document.fullscreenElement` is truthy, show again when null |
 | Card-timer-sidebar also open | Both coexist: panel has lower z-index; both push page content (combined padding handled by each managing its own `body` class) |
 
 ---
