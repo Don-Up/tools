@@ -1779,10 +1779,10 @@ async function send() {
     const rawQuestion = dom.questionInput.value.trim();
     if (!rawQuestion) return;
     const selectedPreset = getSelectedPreset();
-    const presetSuffix = selectedPreset
-        ? `\n${(selectedPreset.content || '').replace(/\n+$/, '')}`
+    const presetPrefix = selectedPreset
+        ? `${(selectedPreset.content || '').replace(/\n+$/, '')}\n`
         : '';
-    const question = rawQuestion + presetSuffix;
+    const question = presetPrefix + rawQuestion;
     const conv = state.conversations.find(c => c.id === state.currentConvId);
     if (!conv) {
         showError('没有当前对话。');
