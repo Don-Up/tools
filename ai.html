@@ -1064,7 +1064,7 @@ html, body {
             dom.keywordBar.appendChild(editBtn);
         }
 
-        async function onKeywordClick(presetId) {
+        function onKeywordClick(presetId) {
             if (state.isStreaming) return;
             const conv = state.conversations.find(c => c.id === state.currentConvId);
             if (!conv) return;
@@ -1073,9 +1073,10 @@ html, body {
             if (!preset) return;
             const userInput = dom.questionInput.value.trim();
             const content = (preset.content || '').replace(/\n+$/, '');
-            const text = userInput ? `${content}\n${userInput}` : content;
+            const text = userInput ? `${userInput}\n${content}` : content;
             dom.questionInput.value = text;
-            await send();
+            updateSendEnabled();
+            dom.questionInput.focus();
         }
 
         function renderSidebar() {
