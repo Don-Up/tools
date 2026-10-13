@@ -1103,6 +1103,7 @@
                     <li><kbd>Alt+J</kbd></li><li>编辑 JSON</li>
                     <li><kbd>Ctrl+I</kbd></li><li>设置背景</li>
                     <li><kbd>Alt+Q</kbd></li><li>为选中中文添加注释</li>
+                    <li><kbd>Alt+W</kbd></li><li>选中中文标记为删除线(需先收藏)</li>
                     <li><kbd>Alt+1</kbd></li><li>显示 / 隐藏此帮助</li>
                 </ul>
                 <button id="helpModalClose" class="help-modal-close" type="button">关闭 (Esc)</button>
@@ -1564,7 +1565,8 @@
         const normalized = (payload || []).map(([cn, en]) => {
             const filteredCn = cn
                 .replace(/\{\{([^}]*)\}\}[^]*?\]\]/g, '$1')
-                .replace(/<\/?del\b[^>]*>/g, '');
+                .replace(/<\/?del\b[^>]*>/g, '')
+                .replace(/\([^)]*\)/g, '');
             return [filteredCn, en];
         });
         return md5(JSON.stringify(normalized));
@@ -2368,6 +2370,56 @@
         render();
         applyRubyNoteMarkers();
         closeRubyAddModal();
+    }
+
+    function wrapSelectionInDel() {
+        if (!currentFavId) {
+            showError('请先收藏当前 JSON');
+            return;
+        }
+        if (entries.length === 0) return;
+        const sel = window.getSelection();
+        if (!sel || sel.rangeCount === 0) {
+            showError('请先选中要标记的中文');
+            return;
+        }
+        const range = sel.getRangeAt(0);
+        if (!cnText.contains(range.commonAncestorContainer)) {
+            showError('请在中文区域内选择');
+            return;
+        }
+        const text = sel.toString().trim();
+        if (!text) {
+            showError('请先选中要标记的中文');
+            return;
+        }
+        if (!/[一-鿿]/.test(text)) {
+            showError('选中文本需包含中文字符');
+            return;
+        }
+        const cn = entries[currentIndex][0];
+        const wrapped = `<del>${text}</del>`;
+        const idxWrapped = cn.indexOf(wrapped);
+        let newCn;
+        if (idxWrapped >= 0) {
+            newCn = cn.slice(0, idxWrapped) + text + cn.slice(idxWrapped + wrapped.length);
+        } else {
+            const idx = cn.indexOf(text);
+            if (idx === -1) {
+                showError('未在当前条目中找到选中文本(可能跨注释边界)');
+                return;
+            }
+            newCn = cn.slice(0, idx) + wrapped + cn.slice(idx + text.length);
+        }
+        entries[currentIndex][0] = newCn;
+        const fav = favorites.find(f => f.id === currentFavId);
+        if (fav) {
+            fav.payload = entries;
+            fav.hash = hashEntries(entries);
+            updateFavorite(currentFavId, { payload: fav.payload, hash: fav.hash });
+        }
+        saveState();
+        render();
     }
 
     async function persistNotesForCurrent(notes) {
@@ -3413,6 +3465,13 @@
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
             e.preventDefault();
             openRubyAddModal();
+            return;
+        }
+        if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'KeyW' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
+            const tag = e.target.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+            e.preventDefault();
+            wrapSelectionInDel();
             return;
         }
         if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyI') {
