@@ -874,6 +874,22 @@
             margin-left: 4px;
         }
         #rubyAddInput { font-size: 15px; padding: 10px 12px; }
+        .ruby-add-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .ruby-add-field label {
+            font-size: 12px;
+            color: #9aa5b1;
+        }
+        #rubyAddNote {
+            font-size: 14px;
+            padding: 8px 10px;
+            resize: vertical;
+            min-height: 44px;
+            font-family: inherit;
+        }
         .cards-modal-textarea {
             width: 600px;
             max-width: calc(100vw - 80px);
@@ -1162,9 +1178,16 @@
         <div id="rubyAddModal" class="fav-modal" hidden>
             <div id="rubyAddBackdrop" class="fav-modal-backdrop"></div>
             <div class="fav-modal-panel">
-                <div class="fav-modal-title">添加注释</div>
+                <div id="rubyAddTitle" class="fav-modal-title">添加注释</div>
                 <div class="ruby-add-selected">选中文本:<span id="rubyAddSelection"></span></div>
-                <input id="rubyAddInput" class="fav-input" placeholder="输入英文翻译..." />
+                <div class="ruby-add-field">
+                    <label for="rubyAddInput">英文翻译(可空)</label>
+                    <input id="rubyAddInput" class="fav-input" placeholder="输入英文翻译..." />
+                </div>
+                <div class="ruby-add-field">
+                    <label for="rubyAddNote">Ruby Note(可空)</label>
+                    <textarea id="rubyAddNote" class="fav-input" placeholder="添加笔记..." rows="2"></textarea>
+                </div>
                 <div id="rubyAddError" class="json-edit-error"></div>
                 <div class="fav-modal-actions">
                     <button id="rubyAddOk" class="fav-btn-primary">确定</button>
@@ -1312,8 +1335,10 @@
     const jsonEditCancel = document.getElementById('jsonEditCancel');
     const rubyAddModal = document.getElementById('rubyAddModal');
     const rubyAddBackdrop = document.getElementById('rubyAddBackdrop');
+    const rubyAddTitle = document.getElementById('rubyAddTitle');
     const rubyAddSelection = document.getElementById('rubyAddSelection');
     const rubyAddInput = document.getElementById('rubyAddInput');
+    const rubyAddNote = document.getElementById('rubyAddNote');
     const rubyAddError = document.getElementById('rubyAddError');
     const rubyAddOk = document.getElementById('rubyAddOk');
     const rubyAddCancel = document.getElementById('rubyAddCancel');
@@ -1980,6 +2005,26 @@
         return matches;
     }
 
+    function extractRubyBlocks(cn) {
+        const out = [];
+        const re = /\{\{([^}]*)\}\}([\s\S]*?)\]\]/g;
+        let m;
+        while ((m = re.exec(cn)) !== null) {
+            out.push({ cn: m[1], en: m[2], full: m[0], index: m.index });
+        }
+        return out;
+    }
+
+    function nearestRuby(node) {
+        let n = node;
+        if (n && n.nodeType === Node.TEXT_NODE) n = n.parentNode;
+        while (n && n !== cnText) {
+            if (n.tagName === 'RUBY') return n;
+            n = n.parentNode;
+        }
+        return null;
+    }
+
     function openCardsModal() {
         if (!currentFavId) return;
         const fav = favorites.find(f => f.id === currentFavId);
@@ -2181,6 +2226,38 @@
             showError('请在中文区域内选择');
             return;
         }
+        const cn = entries[currentIndex][0];
+
+        // 落在已有 <ruby> 内 → 修改模式
+        const ruby = nearestRuby(range.commonAncestorContainer);
+        if (ruby) {
+            const rubies = Array.from(cnText.querySelectorAll('ruby'));
+            const idx = rubies.indexOf(ruby);
+            const blocks = extractRubyBlocks(cn);
+            if (idx < 0 || idx >= blocks.length) {
+                showError('未能定位到对应注释块');
+                return;
+            }
+            const block = blocks[idx];
+            rubyAddTitle.textContent = '修改注释';
+            rubyAddSelection.textContent = block.cn;
+            rubyAddInput.value = block.en;
+            const fav = favorites.find(f => f.id === currentFavId);
+            const existingNote = (fav && Array.isArray(fav.rubyNotes) && fav.rubyNotes[currentIndex]) && fav.rubyNotes[currentIndex][block.cn];
+            rubyAddNote.value = existingNote || '';
+            rubyAddError.textContent = '';
+            rubyAddModal.dataset.mode = 'edit';
+            rubyAddModal.dataset.blockFull = block.full;
+            rubyAddModal.dataset.blockCn = block.cn;
+            rubyAddModal.hidden = false;
+            setTimeout(() => {
+                rubyAddInput.focus();
+                rubyAddInput.select();
+            }, 0);
+            return;
+        }
+
+        // 否则按新增流程
         const text = sel.toString().trim();
         if (!text) {
             showError('请先选中中文');
@@ -2190,37 +2267,65 @@
             showError('选中文本需包含中文字符');
             return;
         }
-        const cn = entries[currentIndex][0];
         if (cn.indexOf(text) === -1) {
             showError('未在当前条目中找到选中文本(可能跨注释边界)');
             return;
         }
+        rubyAddTitle.textContent = '添加注释';
         rubyAddSelection.textContent = text;
         rubyAddInput.value = '';
+        rubyAddNote.value = '';
         rubyAddError.textContent = '';
+        rubyAddModal.dataset.mode = 'new';
+        delete rubyAddModal.dataset.blockFull;
+        delete rubyAddModal.dataset.blockCn;
         rubyAddModal.hidden = false;
         setTimeout(() => rubyAddInput.focus(), 0);
     }
 
     function closeRubyAddModal() {
         rubyAddModal.hidden = true;
+        rubyAddInput.value = '';
+        rubyAddNote.value = '';
+        rubyAddError.textContent = '';
+        delete rubyAddModal.dataset.mode;
+        delete rubyAddModal.dataset.blockFull;
+        delete rubyAddModal.dataset.blockCn;
+        rubyAddTitle.textContent = '添加注释';
     }
 
     function saveRubyAdd() {
         const translation = rubyAddInput.value.trim();
-        if (!translation) {
-            rubyAddError.textContent = '请输入英文翻译';
+        const note = rubyAddNote.value.trim();
+        if (!translation && !note) {
+            rubyAddError.textContent = '请输入翻译或笔记';
             return;
         }
-        const text = rubyAddSelection.textContent;
         const cn = entries[currentIndex][0];
-        const idx = cn.indexOf(text);
-        if (idx === -1) {
-            rubyAddError.textContent = '当前条目已变更,请重新选中';
-            return;
+        const mode = rubyAddModal.dataset.mode;
+        let newCn = cn;
+        let rubyText;
+
+        if (mode === 'edit') {
+            rubyText = rubyAddModal.dataset.blockCn;
+            const blockFull = rubyAddModal.dataset.blockFull;
+            const idx = cn.indexOf(blockFull);
+            if (idx === -1) {
+                rubyAddError.textContent = '当前条目已变更,请重新选中';
+                return;
+            }
+            // 翻译为空时也保留 {{...]] 包裹(让 <ruby> 元素存在,笔记标记才能生效)
+            newCn = cn.slice(0, idx) + `{{${rubyText}}}${translation}]]` + cn.slice(idx + blockFull.length);
+        } else {
+            rubyText = rubyAddSelection.textContent;
+            const idx = cn.indexOf(rubyText);
+            if (idx === -1) {
+                rubyAddError.textContent = '当前条目已变更,请重新选中';
+                return;
+            }
+            newCn = cn.slice(0, idx) + `{{${rubyText}}}${translation}]]` + cn.slice(idx + rubyText.length);
         }
-        const replacement = `{{${text}}}${translation}]]`;
-        const newCn = cn.slice(0, idx) + replacement + cn.slice(idx + text.length);
+
         entries[currentIndex][0] = newCn;
 
         if (currentFavId) {
@@ -2231,8 +2336,20 @@
                 updateFavorite(currentFavId, { payload: fav.payload, hash: fav.hash });
             }
         }
+
+        if (note && rubyText && currentFavId) {
+            const fav = favorites.find(f => f.id === currentFavId);
+            if (fav) {
+                if (!Array.isArray(fav.rubyNotes)) fav.rubyNotes = [];
+                if (!fav.rubyNotes[currentIndex]) fav.rubyNotes[currentIndex] = {};
+                fav.rubyNotes[currentIndex][rubyText] = note;
+                updateFavorite(currentFavId, { rubyNotes: fav.rubyNotes });
+            }
+        }
+
         saveState();
         render();
+        applyRubyNoteMarkers();
         closeRubyAddModal();
     }
 
@@ -2408,6 +2525,18 @@
     });
     rubyAddInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            rubyAddOk.click();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            closeRubyAddModal();
+        }
+    });
+    rubyAddNote.addEventListener('input', () => {
+        rubyAddError.textContent = '';
+    });
+    rubyAddNote.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
             e.preventDefault();
             rubyAddOk.click();
         } else if (e.key === 'Escape') {
