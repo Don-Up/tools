@@ -1398,6 +1398,12 @@ html, body {
             renderSidebar();
         });
 
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'ai.html:migrated' && e.newValue === 'v1' && !state.idbAvailable) {
+                location.reload();
+            }
+        });
+
         function buildRequestBody(conv, question) {
             const prompt = conv.systemPromptOverride || state.defaultSystemPrompt;
             const body = {
@@ -1692,6 +1698,7 @@ async function send() {
             showError(map[err.status] || `服务器错误 (${err.status}),请稍后重试。`);
         } else {
             showError(`网络错误: ${err.message || err}`);
+            streamingBubble.body.insertAdjacentHTML('beforeend', '<p style="color:#888; font-size:12px; margin-top:8px; font-style:italic;">(连接中断)</p>');
         }
         streamingBubble.wrap.classList.remove('streaming');
         const final = renderMessage(streamingMsg, { id: conv.messages.length - 1 });
