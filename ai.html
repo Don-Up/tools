@@ -714,7 +714,10 @@ html, body {
             </div>
         </div>
     </div>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/common.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked-highlight@2.1.2/lib/index.umd.min.js"></script>
     <script>
         'use strict';
 
@@ -934,6 +937,26 @@ html, body {
         };
 
         marked.setOptions({ breaks: true, gfm: true });
+
+        (function setupHighlight() {
+            const hljs = window.hljs;
+            const MH = window.MarkedHighlight;
+            if (MH && hljs) {
+                const { Marked } = MH;
+                const m = new Marked(MH.markedHighlight || (MH.markedHighlight = {
+                    langPrefix: 'hljs language-',
+                    highlight(code, lang) {
+                        if (lang && hljs.getLanguage(lang)) {
+                            try { return hljs.highlight(code, { language: lang }).value; }
+                            catch (err) { return code; }
+                        }
+                        return code;
+                    },
+                }));
+                m.setOptions({ breaks: true, gfm: true });
+                window.marked = m;
+            }
+        })();
 
         function renderSidebar() {
             const q = state.searchQuery.toLowerCase();
