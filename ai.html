@@ -1736,6 +1736,59 @@ dom.questionInput.addEventListener('keydown', (e) => {
     }
 });
 
+document.addEventListener('keydown', async (e) => {
+    if (dom.settingsModal && !dom.settingsModal.hidden) return;
+    if (dom.convPromptModal && !dom.convPromptModal.hidden) return;
+    if (e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey && e.code === 'KeyN') {
+        e.preventDefault();
+        const c = await createConversation();
+        state.currentConvId = c.id;
+        state.currentMessages = c.messages;
+        renderSidebar();
+        renderMessages();
+        dom.questionInput.focus();
+        return;
+    }
+    if (e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey && e.code === 'KeyK') {
+        e.preventDefault();
+        dom.convSearchInput.focus();
+        dom.convSearchInput.select();
+        return;
+    }
+    if (e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey && e.code === 'KeyR') {
+        if (state.isStreaming) return;
+        e.preventDefault();
+        regenerateLast();
+        return;
+    }
+});
+
+dom.convSearchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const items = Array.from(dom.convList.querySelectorAll('.conv-item'));
+        if (items.length === 0) return;
+        const outlined = dom.convList.querySelector('.conv-item[style*="outline"]');
+        let activeIdx = outlined ? items.indexOf(outlined) : items.findIndex(el => el.classList.contains('active'));
+        let nextIdx;
+        if (e.key === 'ArrowDown') nextIdx = Math.min(items.length - 1, (activeIdx < 0 ? 0 : activeIdx + 1));
+        else nextIdx = Math.max(0, (activeIdx < 0 ? 0 : activeIdx - 1));
+        if (outlined) outlined.style.outline = '';
+        items[nextIdx].classList.add('active');
+        items[nextIdx].style.outline = '2px solid #4fc3f7';
+        items[nextIdx].scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter') {
+        e.preventDefault();
+        const outlined = dom.convList.querySelector('.conv-item[style*="outline"]');
+        if (outlined) outlined.click();
+    } else if (e.key === 'Escape') {
+        dom.convSearchInput.value = '';
+        state.searchQuery = '';
+        renderSidebar();
+        dom.convSearchInput.blur();
+    }
+});
+
 updateSendEnabled();
 dom.questionInput.focus();
 
