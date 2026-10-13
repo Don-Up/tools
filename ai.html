@@ -621,6 +621,29 @@ html, body {
     font-family: 'Consolas', 'Monaco', monospace;
     font-size: 13px;
 }
+
+.keyword-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid #2a2a2a;
+    margin-bottom: 12px;
+}
+.keyword-btn {
+    padding: 5px 14px;
+    font-size: 13px;
+    color: #cfd8dc;
+    background: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+}
+.keyword-btn:hover { background: #333; border-color: #4fc3f7; color: #4fc3f7; }
+.keyword-btn:disabled { opacity: 0.4; cursor: default; }
+.keyword-edit-btn { margin-left: auto; }
+.keyword-bar:empty { display: none; }
     </style>
 </head>
 <body>
@@ -649,6 +672,7 @@ html, body {
                 <h2 id="convTitle" class="conv-title"></h2>
                 <button id="convPromptBtn" class="btn secondary" type="button">本对话提示词</button>
             </div>
+            <div id="keywordBar" class="keyword-bar"></div>
             <section id="messages" class="messages empty"></section>
             <div id="inputBar">
                 <textarea id="questionInput" placeholder="输入你的问题... (Ctrl+Enter 发送, Esc 清空)" maxlength="10000"></textarea>
@@ -922,6 +946,7 @@ html, body {
             convHeader: document.getElementById('convHeader'),
             convTitle: document.getElementById('convTitle'),
             convPromptBtn: document.getElementById('convPromptBtn'),
+            keywordBar: document.getElementById('keywordBar'),
             messages: document.getElementById('messages'),
             settingsModal: document.getElementById('settingsModal'),
             settingsModalBackdrop: document.getElementById('settingsModalBackdrop'),
@@ -959,6 +984,49 @@ html, body {
                 window.marked = m;
             }
         })();
+
+        function renderKeywordBar() {
+            const conv = state.conversations.find(c => c.id === state.currentConvId);
+            if (!conv) {
+                dom.keywordBar.innerHTML = '';
+                return;
+            }
+            const presets = getEffectiveKeywordPresets(conv);
+            dom.keywordBar.innerHTML = '';
+            presets.forEach(preset => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'keyword-btn';
+                btn.dataset.id = preset.id;
+                btn.textContent = preset.name || `关键词 ${preset.id.slice(1)}`;
+                btn.disabled = state.isStreaming;
+                btn.addEventListener('click', () => onKeywordClick(preset.id));
+                dom.keywordBar.appendChild(btn);
+            });
+            const editBtn = document.createElement('button');
+            editBtn.type = 'button';
+            editBtn.id = 'keywordEditBtn';
+            editBtn.className = 'btn secondary icon-only keyword-edit-btn';
+            editBtn.title = '编辑关键词';
+            editBtn.textContent = '⚙ 编辑';
+            editBtn.addEventListener('click', openKeywordModal);
+            editBtn.disabled = state.isStreaming;
+            dom.keywordBar.appendChild(editBtn);
+        }
+
+        async function onKeywordClick(presetId) {
+            if (state.isStreaming) return;
+            const conv = state.conversations.find(c => c.id === state.currentConvId);
+            if (!conv) return;
+            ensureKeywordPresets(conv);
+            const preset = conv.keywordPresets.find(p => p.id === presetId);
+            if (!preset) return;
+            const userInput = dom.questionInput.value.trim();
+            const content = (preset.content || '').replace(/\n+$/, '');
+            const text = userInput ? `${content}\n${userInput}` : content;
+            dom.questionInput.value = text;
+            await send();
+        }
 
         function renderSidebar() {
             const q = state.searchQuery.toLowerCase();
@@ -1118,6 +1186,7 @@ html, body {
             if (conv) state.currentMessages = conv.messages;
             renderSidebar();
             renderMessages();
+            renderKeywordBar();
         }
 
         function showConvMenu(id, anchor) {
@@ -1220,6 +1289,7 @@ html, body {
             state.currentMessages = fresh.messages;
             renderSidebar();
             renderMessages();
+            renderKeywordBar();
             closeSettingsModal();
         });
 
@@ -1269,6 +1339,9 @@ html, body {
             dom.sendBtn.textContent = streaming ? '停止' : '发送';
             dom.sendBtn.classList.toggle('secondary', streaming);
             dom.questionInput.disabled = streaming;
+            document.querySelectorAll('.keyword-btn, .keyword-edit-btn').forEach(b => {
+                b.disabled = streaming;
+            });
         }
 
         function updateSendEnabled() {
@@ -1329,6 +1402,7 @@ html, body {
             }
             renderSidebar();
             renderMessages();
+            renderKeywordBar();
 
             updateSendEnabled();
             dom.questionInput.focus();
@@ -1340,6 +1414,7 @@ html, body {
             state.currentMessages = c.messages;
             renderSidebar();
             renderMessages();
+            renderKeywordBar();
             dom.questionInput.focus();
         });
 
@@ -1698,6 +1773,7 @@ document.addEventListener('keydown', async (e) => {
         state.currentMessages = c.messages;
         renderSidebar();
         renderMessages();
+        renderKeywordBar();
         dom.questionInput.focus();
         return;
     }
