@@ -43,7 +43,36 @@ body.ysp-open { padding-right: ${PANEL_WIDTH}px; }
         document.body.appendChild(aside);
     }
 
+    function togglePanel() {
+        const panel = document.getElementById(PANEL_ID);
+        const willOpen = panel.classList.contains('hidden');
+        panel.classList.toggle('hidden', !willOpen);
+        document.body.classList.toggle('ysp-open', willOpen);
+        chrome.storage.sync.set({ panelOpen: willOpen });
+    }
+
+    function restorePanelState() {
+        chrome.storage.sync.get(['panelOpen'], (data) => {
+            if (data.panelOpen) {
+                const panel = document.getElementById(PANEL_ID);
+                panel.classList.remove('hidden');
+                document.body.classList.add('ysp-open');
+            }
+        });
+    }
+
+    document.addEventListener('keydown', (e) => {
+        const tag = (e.target && e.target.tagName) || '';
+        const editable = tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable;
+        if (editable) return;
+        if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === 'KeyS') {
+            e.preventDefault();
+            togglePanel();
+        }
+    });
+
     injectStyles();
     injectPanel();
-    console.log('[ysp] panel DOM injected (hidden)');
+    restorePanelState();
+    console.log('[ysp] panel DOM injected; Alt+S wired');
 })();
