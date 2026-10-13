@@ -915,9 +915,68 @@ html, body {
         }
 
         function showConvMenu(id, anchor) {
-            // Task 5 implements this; stub for now
-            alert('操作菜单待实现');
+            document.querySelectorAll('.conv-context-menu').forEach(m => m.remove());
+            const menu = document.createElement('div');
+            menu.className = 'conv-context-menu';
+            menu.style.cssText = 'position:absolute; right:12px; top:' + (anchor.offsetTop + 30) + 'px; background:#2a2a2a; border:1px solid #444; border-radius:4px; padding:4px 0; z-index:100; min-width:120px; box-shadow:0 4px 8px rgba(0,0,0,0.4);';
+            menu.innerHTML = `
+                <div class="menu-item" data-act="rename">重命名</div>
+                <div class="menu-item" data-act="delete" style="color:#ef5350;">删除</div>
+            `;
+            anchor.parentNode.appendChild(menu);
+            menu.querySelectorAll('.menu-item').forEach(item => {
+                item.style.cssText = 'padding:6px 12px; cursor:pointer; font-size:13px;';
+                item.addEventListener('mouseenter', () => item.style.background = '#333');
+                item.addEventListener('mouseleave', () => item.style.background = '');
+                item.addEventListener('click', async () => {
+                    menu.remove();
+                    const act = item.dataset.act;
+                    if (act === 'rename') {
+                        const conv = state.conversations.find(c => c.id === id);
+                        if (!conv) return;
+                        const newTitle = prompt('重命名会话:', conv.title);
+                        if (newTitle !== null) {
+                            await renameConversation(id, newTitle);
+                            if (id === state.currentConvId) dom.convTitle.textContent = conv.title;
+                            renderSidebar();
+                        }
+                    } else if (act === 'delete') {
+                        if (!confirm('确定删除此会话?')) return;
+                        await deleteConversation(id);
+                        if (id === state.currentConvId) {
+                            if (state.conversations.length === 0) {
+                                const c = await createConversation();
+                                state.currentConvId = c.id;
+                                state.currentMessages = c.messages;
+                            } else {
+                                state.currentConvId = state.conversations[0].id;
+                                state.currentMessages = state.conversations[0].messages;
+                            }
+                            renderMessages();
+                        }
+                        renderSidebar();
+                    }
+                });
+            });
+            const closeMenu = (e) => {
+                if (!menu.contains(e.target)) {
+                    menu.remove();
+                    document.removeEventListener('click', closeMenu);
+                }
+            };
+            setTimeout(() => document.addEventListener('click', closeMenu), 0);
         }
+
+        dom.convTitle.addEventListener('click', async () => {
+            const conv = state.conversations.find(c => c.id === state.currentConvId);
+            if (!conv) return;
+            const newTitle = prompt('重命名会话:', conv.title);
+            if (newTitle !== null) {
+                await renameConversation(conv.id, newTitle);
+                dom.convTitle.textContent = conv.title;
+                renderSidebar();
+            }
+        });
 
         function showError(msg) {
             if (!msg) {
