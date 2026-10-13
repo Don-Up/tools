@@ -640,18 +640,36 @@ html, body {
     border-bottom: 1px solid #2a2a2a;
     margin-bottom: 12px;
 }
-.keyword-btn {
+.keyword-radio {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+.keyword-radio input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 0;
+    height: 0;
+}
+.keyword-radio span {
     padding: 5px 14px;
     font-size: 13px;
     color: #cfd8dc;
     background: #2a2a2a;
     border: 1px solid #444;
     border-radius: 4px;
-    cursor: pointer;
     font-family: inherit;
+    transition: background 0.1s, border-color 0.1s, color 0.1s;
 }
-.keyword-btn:hover { background: #333; border-color: #4fc3f7; color: #4fc3f7; }
-.keyword-btn:disabled { opacity: 0.4; cursor: default; }
+.keyword-radio:hover span { background: #333; border-color: #4fc3f7; }
+.keyword-radio input:checked + span {
+    background: #4fc3f7;
+    color: #1e1e1e;
+    border-color: #4fc3f7;
+}
+.keyword-radio input:disabled + span { opacity: 0.4; cursor: default; }
 .keyword-edit-btn { margin-left: auto; }
 .keyword-bar:empty { display: none; }
     </style>
@@ -785,6 +803,7 @@ html, body {
             })(),
             defaultSystemPrompt: localStorage.getItem('aiDefaultSystemPrompt') || DEFAULT_SYSTEM_PROMPT,
             defaultKeywordPresets: null,
+            selectedKeywordPresetId: null,
             question: '',
             isStreaming: false,
             abortController: null,
@@ -1044,14 +1063,28 @@ html, body {
             const presets = getEffectiveKeywordPresets(conv);
             dom.keywordBar.innerHTML = '';
             presets.forEach(preset => {
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'keyword-btn';
-                btn.dataset.id = preset.id;
-                btn.textContent = preset.name || `关键词 ${preset.id.slice(1)}`;
-                btn.disabled = state.isStreaming;
-                btn.addEventListener('click', () => onKeywordClick(preset.id));
-                dom.keywordBar.appendChild(btn);
+                const label = document.createElement('label');
+                label.className = 'keyword-radio';
+                label.dataset.id = preset.id;
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.name = 'kwPreset';
+                radio.value = preset.id;
+                radio.checked = state.selectedKeywordPresetId === preset.id;
+                radio.disabled = state.isStreaming;
+                radio.addEventListener('click', () => {
+                    if (state.selectedKeywordPresetId === preset.id) {
+                        radio.checked = false;
+                        state.selectedKeywordPresetId = null;
+                    } else {
+                        state.selectedKeywordPresetId = preset.id;
+                    }
+                });
+                const text = document.createElement('span');
+                text.textContent = preset.name || `关键词 ${preset.id.slice(1)}`;
+                label.appendChild(radio);
+                label.appendChild(text);
+                dom.keywordBar.appendChild(label);
             });
             const editBtn = document.createElement('button');
             editBtn.type = 'button';
@@ -1064,19 +1097,13 @@ html, body {
             dom.keywordBar.appendChild(editBtn);
         }
 
-        function onKeywordClick(presetId) {
-            if (state.isStreaming) return;
+        function getSelectedPreset() {
+            const id = state.selectedKeywordPresetId;
+            if (!id) return null;
             const conv = state.conversations.find(c => c.id === state.currentConvId);
-            if (!conv) return;
+            if (!conv) return null;
             ensureKeywordPresets(conv);
-            const preset = conv.keywordPresets.find(p => p.id === presetId);
-            if (!preset) return;
-            const userInput = dom.questionInput.value.trim();
-            const content = (preset.content || '').replace(/\n+$/, '');
-            const text = userInput ? `${userInput}\n${content}` : content;
-            dom.questionInput.value = text;
-            updateSendEnabled();
-            dom.questionInput.focus();
+            return conv.keywordPresets.find(p => p.id === id) || null;
         }
 
         function renderSidebar() {
@@ -1433,7 +1460,7 @@ html, body {
             dom.sendBtn.textContent = streaming ? '停止' : '发送';
             dom.sendBtn.classList.toggle('secondary', streaming);
             dom.questionInput.disabled = streaming;
-            document.querySelectorAll('.keyword-btn, .keyword-edit-btn').forEach(b => {
+            document.querySelectorAll('.keyword-radio input, #keywordEditBtn').forEach(b => {
                 b.disabled = streaming;
             });
         }
@@ -1749,8 +1776,13 @@ async function send() {
         if (state.abortController) state.abortController.abort();
         return;
     }
-    const question = dom.questionInput.value.trim();
-    if (!question) return;
+    const rawQuestion = dom.questionInput.value.trim();
+    if (!rawQuestion) return;
+    const selectedPreset = getSelectedPreset();
+    const presetSuffix = selectedPreset
+        ? `\n${(selectedPreset.content || '').replace(/\n+$/, '')}`
+        : '';
+    const question = rawQuestion + presetSuffix;
     const conv = state.conversations.find(c => c.id === state.currentConvId);
     if (!conv) {
         showError('没有当前对话。');
