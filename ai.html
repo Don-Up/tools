@@ -620,6 +620,20 @@ html, body {
             </div>
         </div>
     </main>
+    <div id="convPromptModal" class="modal" hidden>
+        <div id="convPromptModalBackdrop" class="modal-backdrop"></div>
+        <div class="modal-panel">
+            <h2 class="modal-title">本对话提示词</h2>
+            <div class="modal-field">
+                <textarea id="convPromptInput" class="modal-textarea" rows="6" placeholder="留空则使用默认系统提示词"></textarea>
+            </div>
+            <div class="modal-actions">
+                <button id="convPromptOkBtn" class="btn" type="button">保存</button>
+                <button id="convPromptClearBtn" class="btn secondary" type="button">恢复默认</button>
+                <button id="convPromptCancelBtn" class="btn secondary" type="button">取消</button>
+            </div>
+        </div>
+    </div>
     <div id="settingsModal" class="modal" hidden>
         <div id="settingsModalBackdrop" class="modal-backdrop"></div>
         <div class="modal-panel">
@@ -849,6 +863,12 @@ html, body {
             clearAllConvsBtn: document.getElementById('clearAllConvsBtn'),
             settingsOkBtn: document.getElementById('settingsOkBtn'),
             settingsCancelBtn: document.getElementById('settingsCancelBtn'),
+            convPromptModal: document.getElementById('convPromptModal'),
+            convPromptModalBackdrop: document.getElementById('convPromptModalBackdrop'),
+            convPromptInput: document.getElementById('convPromptInput'),
+            convPromptOkBtn: document.getElementById('convPromptOkBtn'),
+            convPromptClearBtn: document.getElementById('convPromptClearBtn'),
+            convPromptCancelBtn: document.getElementById('convPromptCancelBtn'),
         };
 
         marked.setOptions({ breaks: true, gfm: true });
@@ -1105,6 +1125,37 @@ html, body {
             renderMessages();
             closeSettingsModal();
         });
+
+        function openConvPromptModal() {
+            const conv = state.conversations.find(c => c.id === state.currentConvId);
+            if (!conv) return;
+            dom.convPromptInput.value = conv.systemPromptOverride || '';
+            dom.convPromptModal.hidden = false;
+        }
+        function closeConvPromptModal() {
+            dom.convPromptModal.hidden = true;
+        }
+        async function saveConvPrompt() {
+            const conv = state.conversations.find(c => c.id === state.currentConvId);
+            if (!conv) return;
+            const v = dom.convPromptInput.value.trim();
+            conv.systemPromptOverride = v || null;
+            await convPut(conv).catch(() => {});
+            closeConvPromptModal();
+        }
+        async function clearConvPrompt() {
+            const conv = state.conversations.find(c => c.id === state.currentConvId);
+            if (!conv) return;
+            conv.systemPromptOverride = null;
+            await convPut(conv).catch(() => {});
+            closeConvPromptModal();
+        }
+
+        dom.convPromptBtn.addEventListener('click', openConvPromptModal);
+        dom.convPromptModalBackdrop.addEventListener('click', closeConvPromptModal);
+        dom.convPromptCancelBtn.addEventListener('click', closeConvPromptModal);
+        dom.convPromptOkBtn.addEventListener('click', saveConvPrompt);
+        dom.convPromptClearBtn.addEventListener('click', clearConvPrompt);
 
         function showError(msg) {
             if (!msg) {
