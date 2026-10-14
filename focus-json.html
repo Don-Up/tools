@@ -75,7 +75,7 @@
             color: #e0e0e0;
             font-weight: 500;
             word-break: break-word;
-            font-family: "DejaVu Math TeX Gyre";
+            font-family: var(--en-font-family, "DejaVu Math TeX Gyre");
         }
 
         .divider {
@@ -431,6 +431,19 @@
             Voice:
             <select id="voiceSelect"></select>
         </label>
+        <label>
+            字体:
+            <select id="enFontSelect">
+                <option value='"DejaVu Math TeX Gyre"'>DejaVu</option>
+                <option value="Arial">Arial</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Helvetica">Helvetica</option>
+                <option value='"Times New Roman"'>Times</option>
+                <option value="Verdana">Verdana</option>
+                <option value='"Courier New"'>Courier</option>
+                <option value="sans-serif">Sans-serif</option>
+            </select>
+        </label>
         <button id="stopBtn" class="hidden">Stop</button>
     </div>
 
@@ -588,8 +601,9 @@
             readingFromIndex = null;
         }
 
-        function speakCurrentEntry() {
-            if (!ttsEnabled || !('speechSynthesis' in window)) return;
+        function speakCurrentEntry({ force = false } = {}) {
+            if (!force && !ttsEnabled) return;
+            if (!('speechSynthesis' in window)) return;
             if (entries.length === 0) return;
             const e = entries[currentIndex];
             if (!e || !e.en) return;
@@ -706,7 +720,7 @@
             readingFromIndex = i;
             currentIndex = i;
             render();
-            speakCombined(i, { force: true });
+            speakCombined(i);
         }
 
         function render() {
@@ -954,6 +968,15 @@
                 localStorage.removeItem('focusJsonVoiceName');
             }
         });
+        const enFontSelect = document.getElementById('enFontSelect');
+        const savedEnFont = localStorage.getItem('focusJsonEnFont') || '"DejaVu Math TeX Gyre"';
+        document.documentElement.style.setProperty('--en-font-family', savedEnFont);
+        enFontSelect.value = savedEnFont;
+        enFontSelect.addEventListener('change', (e) => {
+            const value = e.target.value;
+            document.documentElement.style.setProperty('--en-font-family', value);
+            localStorage.setItem('focusJsonEnFont', value);
+        });
         const aiInput = document.getElementById('aiInput');
         const aiError = document.getElementById('aiError');
         aiInput.addEventListener('keydown', (e) => {
@@ -1014,6 +1037,11 @@
                 currentIndex = (currentIndex - 1 + entries.length) % entries.length;
                 render();
                 if (ttsEnabled) speakCurrentEntry();
+            } else if (e.key === 'PageDown') {
+                e.preventDefault();
+                readingFromIndex = null;
+                stopSpeaking();
+                speakCurrentEntry({ force: true });
             } else if (e.key === ' ' || e.code === 'Space') {
                 e.preventDefault();
                 stopSpeaking();
