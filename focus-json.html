@@ -322,10 +322,103 @@
             text-align: center;
             padding: 8px;
         }
+
+        .ai-box {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            z-index: 100;
+            width: 360px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            pointer-events: none;
+        }
+        .ai-input {
+            pointer-events: auto;
+            background: rgba(37,37,37,0.9);
+            border: 1px solid #444;
+            color: #e0e0e0;
+            padding: 8px 12px;
+            font-size: 14px;
+            font-family: inherit;
+            border-radius: 6px;
+            outline: none;
+        }
+        .ai-input:focus { border-color: #4fc3f7; }
+        .ai-input.ai-busy { opacity: 0.5; cursor: wait; }
+        .ai-error {
+            pointer-events: auto;
+            color: #ef5350;
+            font-size: 12px;
+            background: rgba(37,37,37,0.9);
+            border: 1px solid #ef5350;
+            padding: 6px 8px;
+            border-radius: 4px;
+            max-height: 120px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .ai-toolbar {
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 4px;
+            color: #aaa;
+            font-size: 12px;
+        }
+        .ai-toggle {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .ai-toggle input[type="checkbox"] {
+            cursor: pointer;
+        }
+        .ai-stats {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .ai-clear-btn {
+            background: #333;
+            color: #e0e0e0;
+            border: 1px solid #555;
+            padding: 2px 8px;
+            font-size: 12px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .ai-clear-btn:hover { background: #444; }
+        .ai-clear-btn:disabled { opacity: 0.4; cursor: not-allowed; }
     </style>
 </head>
 <body>
     <button id="closeBtn" class="close-btn" hidden>×</button>
+
+    <div class="ai-box">
+        <div class="ai-toolbar">
+            <label class="ai-toggle">
+                <input type="checkbox" id="multiTurnToggle">
+                <span>多轮</span>
+            </label>
+            <label class="ai-toggle">
+                <input type="checkbox" id="autoFullscreenToggle">
+                <span>auto</span>
+            </label>
+            <span id="aiStats" class="ai-stats" hidden>
+                <span id="aiRoundCount">0</span> 轮
+                <button id="aiClearBtn" type="button" class="ai-clear-btn">清空</button>
+            </span>
+        </div>
+        <input id="aiInput" class="ai-input" type="text" autocomplete="off"
+               placeholder="向 AI 提问… (Enter 发送)">
+        <div id="aiError" class="ai-error" hidden></div>
+    </div>
 
     <div class="controls hidden" id="controls">
         <label>
@@ -363,6 +456,37 @@
         let entries = [];
         let currentIndex = 0;
         let currentWordSpans = [];
+        const AI_BASE_URL = 'https://next-reader-psi.vercel.app/api/minimax';
+        const AI_MODEL = 'MiniMax-M3';
+        const AI_MAX_TOKENS = 4096;
+        const AI_SYSTEM_PROMPT = `回答用户的问题或解释用户提出的概念,按以下要求返回 JSON:
+
+1. 你用英文作答(英文由你生成,不是用户的输入),中文作为对应翻译,两者一一对应。
+2. **最小切分单位**:以分割意群的逗号（,）、破折号（— / ——）、分号（;）等作为最小 entry 单位切分;用于列举名词的逗号（如 \`columns, create, list, detail, retry\`）不切分,保留在同一 entry 内。
+3. **中文必须与英文严格对应**:英文 entry 中的每部分内容,中文翻译都必须完整对应,不得省略、漏译、合并或自行简化。
+4. **JSON 格式**:
+   - key 为你用英文作答的片段。
+   - value 为对应的中文翻译。
+   - 保持你用英文作答的顺序。
+5. **只返回 JSON**,不要额外解释或包裹代码块以外的文字。
+
+**示例输出**:
+{
+    "The export tasks finally have a home in the UI": "导出任务终于在前端有自己的页面了",
+    "Users can now open /exports": "用户现在可以打开 /exports",
+    "see a paginated table of export jobs filtered by status": "看到按状态筛选的导出任务分页表",
+    "switch status from a dropdown": "从下拉框切换状态",
+    "and paginate through results — all read-only": "并翻页浏览结果 —— 全部只读",
+    "no retry / download / create yet": "暂不支持重试 / 下载 / 创建",
+    "Stage 1.10 wired up exportApi.{columns, create, list, detail, retry} and 7 domain types": "Stage 1.10 打通了 exportApi.{columns, create, list, detail, retry} 和 7 个领域类型",
+    "those contracts are now consumed end-to-end inside the browser for the first time": "这些契约现在首次在浏览器内被端到端消费"
+}`;
+        let isAiBusy = false;
+        let aiAbort = null;
+        let aiErrorTimer = null;
+        let multiTurnEnabled = localStorage.getItem('focusJsonAiMultiTurn') === 'true';
+        let aiMessages = [];
+        let autoFullscreenRead = localStorage.getItem('focusJsonAutoFullscreenRead') === 'true';
         let ttsEnabled = localStorage.getItem('focusJsonTtsEnabled') === 'true';
         let highlightEnabled = localStorage.getItem('focusJsonHighlightEnabled') !== 'false';
         let controlsVisible = false;
@@ -492,7 +616,7 @@
             stopBtn.classList.add('speaking');
         }
 
-        function speakCombined(fromIndex, { force = false } = {}) {
+        function speakCombined(fromIndex, { force = false, onEnd = null } = {}) {
             if (!('speechSynthesis' in window)) return;
             if (!force && !ttsEnabled) return;
             if (entries.length === 0) return;
@@ -536,24 +660,42 @@
                 highlightAt(charIdx - targetStart);
             };
 
-            utterance.onend = () => {
+            const finalOnEnd = () => {
                 isSpeaking = false;
                 stopBtn.classList.remove('speaking');
                 clearHighlight();
                 readingFromIndex = null;
+                if (onEnd) onEnd();
             };
-
-            utterance.onerror = () => {
-                isSpeaking = false;
-                stopBtn.classList.remove('speaking');
-                clearHighlight();
-                readingFromIndex = null;
-            };
+            utterance.onend = finalOnEnd;
+            utterance.onerror = finalOnEnd;
 
             speechSynthesis.speak(utterance);
             isSpeaking = true;
             stopBtn.classList.add('speaking');
         }
+
+        async function runAutoFullscreenRead() {
+            if (entries.length === 0) return;
+            let enteredFullscreen = false;
+            if (document.documentElement.requestFullscreen) {
+                try {
+                    await document.documentElement.requestFullscreen();
+                    enteredFullscreen = true;
+                } catch (err) {
+                    enteredFullscreen = false;
+                }
+            }
+            speakCombined(0, {
+                force: true,
+                onEnd: () => {
+                    if (enteredFullscreen && document.fullscreenElement) {
+                        document.exitFullscreen().catch(() => {});
+                    }
+                }
+            });
+        }
+
 
         function speakFromIndex(i) {
             if (!('speechSynthesis' in window)) return;
@@ -652,6 +794,106 @@
             render();
         }
 
+        function extractFirstJsonBlock(text) {
+            const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+            if (fence) return fence[1].trim();
+            const start = text.indexOf('{');
+            if (start < 0) return null;
+            let depth = 0, inStr = false, esc = false;
+            for (let i = start; i < text.length; i++) {
+                const c = text[i];
+                if (inStr) {
+                    if (esc) esc = false;
+                    else if (c === '\\') esc = true;
+                    else if (c === '"') inStr = false;
+                } else {
+                    if (c === '"') inStr = true;
+                    else if (c === '{') depth++;
+                    else if (c === '}') { depth--; if (depth === 0) return text.slice(start, i + 1); }
+                }
+            }
+            return null;
+        }
+
+        function showAiError(msg) {
+            aiError.textContent = msg;
+            aiError.hidden = false;
+            clearTimeout(aiErrorTimer);
+            aiErrorTimer = setTimeout(hideAiError, 5000);
+        }
+        function hideAiError() {
+            aiError.hidden = true;
+            aiError.textContent = '';
+            clearTimeout(aiErrorTimer);
+        }
+
+        async function askAi() {
+            if (isAiBusy) { aiAbort?.abort(); return; }
+            const question = aiInput.value.trim();
+            if (!question) return;
+            aiInput.value = '';
+            const userMsg = { role: 'user', content: question };
+            if (multiTurnEnabled) {
+                aiMessages.push(userMsg);
+                aiRoundCount.textContent = aiMessages.filter(m => m.role === 'user').length;
+            }
+            isAiBusy = true;
+            aiInput.classList.add('ai-busy');
+            aiInput.placeholder = 'AI 思考中…';
+            aiClearBtn.disabled = true;
+            hideAiError();
+            aiAbort = new AbortController();
+            const messagesToSend = multiTurnEnabled ? [...aiMessages] : [userMsg];
+            try {
+                const res = await fetch(AI_BASE_URL, {
+                    method: 'POST',
+                    headers: {
+                        'content-type': 'application/json',
+                        'anthropic-version': '2023-06-01'
+                    },
+                    body: JSON.stringify({
+                        model: AI_MODEL,
+                        max_tokens: AI_MAX_TOKENS,
+                        stream: false,
+                        system: AI_SYSTEM_PROMPT,
+                        messages: messagesToSend
+                    }),
+                    signal: aiAbort.signal
+                });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                const text = data.content?.[0]?.text ?? '';
+                if (!text) throw new Error('AI 返回为空');
+                const json = extractFirstJsonBlock(text);
+                if (!json) throw new Error('响应中找不到 JSON 块');
+                if (multiTurnEnabled) {
+                    aiMessages.push({ role: 'assistant', content: text });
+                }
+                loadJson(json);
+                if (autoFullscreenRead) {
+                    runAutoFullscreenRead();
+                }
+            } catch (err) {
+                if (err.name === 'AbortError') {
+                    if (multiTurnEnabled) {
+                        aiMessages.pop();
+                        aiRoundCount.textContent = aiMessages.filter(m => m.role === 'user').length;
+                    }
+                    return;
+                }
+                if (multiTurnEnabled) {
+                    aiMessages.push({ role: 'assistant', content: `[错误: ${err.message}]` });
+                }
+                showAiError(err.message);
+            } finally {
+                isAiBusy = false;
+                aiInput.classList.remove('ai-busy');
+                aiInput.placeholder = '向 AI 提问… (Enter 发送)';
+                aiClearBtn.disabled = false;
+                aiAbort = null;
+            }
+        }
+
         function updateControlsVisibility() {
             voiceLabel.classList.toggle('hidden', !ttsEnabled);
             stopBtn.classList.toggle('hidden', !ttsEnabled);
@@ -712,12 +954,44 @@
                 localStorage.removeItem('focusJsonVoiceName');
             }
         });
+        const aiInput = document.getElementById('aiInput');
+        const aiError = document.getElementById('aiError');
+        aiInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); askAi(); }
+            else if (e.key === 'Escape') { e.preventDefault(); aiInput.value = ''; }
+        });
+        aiInput.addEventListener('input', hideAiError);
+
+        const multiTurnToggle = document.getElementById('multiTurnToggle');
+        const aiStats = document.getElementById('aiStats');
+        const aiRoundCount = document.getElementById('aiRoundCount');
+        const aiClearBtn = document.getElementById('aiClearBtn');
+        multiTurnToggle.checked = multiTurnEnabled;
+        aiStats.hidden = !multiTurnEnabled;
+        aiRoundCount.textContent = aiMessages.filter(m => m.role === 'user').length;
+        multiTurnToggle.addEventListener('change', () => {
+            multiTurnEnabled = multiTurnToggle.checked;
+            localStorage.setItem('focusJsonAiMultiTurn', multiTurnEnabled ? 'true' : 'false');
+            aiStats.hidden = !multiTurnEnabled;
+        });
+        aiClearBtn.addEventListener('click', () => {
+            if (isAiBusy) return;
+            aiMessages = [];
+            aiRoundCount.textContent = '0';
+        });
+        const autoFullscreenToggle = document.getElementById('autoFullscreenToggle');
+        autoFullscreenToggle.checked = autoFullscreenRead;
+        autoFullscreenToggle.addEventListener('change', () => {
+            autoFullscreenRead = autoFullscreenToggle.checked;
+            localStorage.setItem('focusJsonAutoFullscreenRead', autoFullscreenRead ? 'true' : 'false');
+        });
 
         stopBtn.addEventListener('click', () => {
             stopSpeaking();
         });
 
         document.addEventListener('paste', (e) => {
+            if (e.target === aiInput) return;
             const text = (e.clipboardData || window.clipboardData).getData('text');
             if (!text) return;
             e.preventDefault();

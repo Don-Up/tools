@@ -188,6 +188,24 @@
         small {
             color:#00BFFF;
         }
+        #read-btn {
+            display: none;
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background-color: #1e88e5;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: background-color 0.2s;
+            z-index: 100;
+        }
+        #read-btn:hover {
+            background-color: #1565c0;
+        }
     </style>
 </head>
 <body>
@@ -231,13 +249,14 @@ sequenceDiagram
             <button id="last-btn">Last</button>
             <button id="nav-paste-btn">Paste</button>
         </div>
-        <div id="explanation" style="cursor: pointer;" title="Click to speak"></div>
+        <div id="explanation"></div>
 
     </div>
 
     <div id="diagram-container" style="margin-top: 150px">
         <div id="diagram" class="mermaid"></div>
     </div>
+    <button id="read-btn" title="Read current explanation">Read</button>
 
     <script>
         mermaid.initialize({ startOnLoad: false, theme: 'dark' });
@@ -262,6 +281,7 @@ sequenceDiagram
         const errorEl = document.getElementById('error');
         const pasteAreaEl = document.getElementById('paste-area');
         const autoPlayCheckbox = document.getElementById('auto-play-checkbox');
+        const readBtn = document.getElementById('read-btn');
         const speedSlider = document.getElementById('speed-slider');
         const speedValueEl = document.getElementById('speed-value');
         let speechRate = parseFloat(localStorage.getItem('speechRate')) || 1.0;
@@ -360,6 +380,7 @@ sequenceDiagram
 
             pasteAreaEl.style.display = 'none';
             appEl.style.display = 'flex';
+            readBtn.style.display = 'inline-block';
 
             renderStep();
             autoPlayIfEnabled();
@@ -465,6 +486,7 @@ sequenceDiagram
             if (text) {
                 pasteAreaEl.style.display = 'flex';
                 appEl.style.display = 'none';
+                readBtn.style.display = 'none';
                 errorEl.style.display = 'none';
                 parseInput(text);
             }
@@ -502,7 +524,7 @@ sequenceDiagram
             localStorage.setItem('ttsAutoPlay', autoPlayCheckbox.checked);
         });
 
-        explanationEl.addEventListener('click', () => {
+        readBtn.addEventListener('click', () => {
             const text = explanationEl.textContent.trim();
             if (!text) return;
 
