@@ -66,6 +66,7 @@
             padding: 60px 72px;
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
+            position: relative;
         }
 
         .en {
@@ -128,6 +129,23 @@
         }
 
         .card { cursor: pointer; }
+
+        .copy-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(37, 37, 37, 0.8);
+            border: 1px solid #444;
+            color: #b0bec5;
+            padding: 4px 10px;
+            font-size: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: color 0.15s, border-color 0.15s, background 0.15s;
+        }
+        .copy-btn:hover { color: #fff; border-color: #666; background: rgba(60, 60, 60, 0.8); }
+        .copy-btn.copied { color: #4fc3f7; border-color: #4fc3f7; }
 
         .controls {
             display: flex;
@@ -474,8 +492,9 @@
             stopBtn.classList.add('speaking');
         }
 
-        function speakCombined(fromIndex) {
-            if (!ttsEnabled || !('speechSynthesis' in window)) return;
+        function speakCombined(fromIndex, { force = false } = {}) {
+            if (!('speechSynthesis' in window)) return;
+            if (!force && !ttsEnabled) return;
             if (entries.length === 0) return;
             if (fromIndex < 0 || fromIndex >= entries.length) return;
 
@@ -537,7 +556,7 @@
         }
 
         function speakFromIndex(i) {
-            if (!ttsEnabled || !('speechSynthesis' in window)) return;
+            if (!('speechSynthesis' in window)) return;
             if (entries.length === 0) return;
             if (i < 0 || i >= entries.length) return;
             if (!entries[i] || !entries[i].en) return;
@@ -545,7 +564,7 @@
             readingFromIndex = i;
             currentIndex = i;
             render();
-            speakCombined(i);
+            speakCombined(i, { force: true });
         }
 
         function render() {
@@ -561,6 +580,37 @@
             const card = document.createElement('div');
             card.className = 'card';
             card.dataset.index = String(currentIndex);
+
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'copy-btn';
+            copyBtn.textContent = 'copy';
+            copyBtn.title = 'copied';
+            copyBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const text = entries[currentIndex]?.en || '';
+                if (!text) return;
+                try {
+                    await navigator.clipboard.writeText(text);
+                } catch (err) {
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    try { document.execCommand('copy'); } catch {}
+                    document.body.removeChild(ta);
+                }
+                copyBtn.textContent = 'copied';
+                copyBtn.classList.add('copied');
+                clearTimeout(copyBtn._timer);
+                copyBtn._timer = setTimeout(() => {
+                    copyBtn.textContent = 'copy';
+                    copyBtn.classList.remove('copied');
+                }, 1500);
+            });
+            card.appendChild(copyBtn);
+
             const en = document.createElement('div');
             en.className = 'en';
             const { fragment, wordSpans } = buildEnFragment(entries[currentIndex].en);
