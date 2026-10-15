@@ -487,6 +487,29 @@
         .modal-btn:hover {
             opacity: 0.9;
         }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2d2d2d;
+            color: #e0e0e0;
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid #555;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            max-width: 80vw;
+            max-height: 60vh;
+            overflow-y: auto;
+            text-align: center;
+            font-size: 15px;
+            line-height: 1.5;
+            word-break: break-word;
+            white-space: pre-wrap;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -986,7 +1009,7 @@
         if (e.altKey) {
             getClipboardText().then(text => {
                 if (!text) {
-                    alert('Please enter a card name');
+                    showToast('Please enter a card name');
                     return;
                 }
 
@@ -1001,7 +1024,7 @@
         } else if (e.ctrlKey) {
             getClipboardText().then(text => {
                 if (!text) {
-                    alert('Please enter a card name');
+                    showToast('Please enter a card name');
                     return;
                 }
                 text = convertText(text)
@@ -1053,7 +1076,7 @@
                 answerInput.value = '';
                 customDurationInput.value = '';
             } else {
-                alert('Please enter a card name');
+                showToast('Please enter a card name');
             }
         })
     }
@@ -1163,7 +1186,7 @@
         if (durationSelect.value === 'custom') {
             const durationMin = parseInt(customDurationInput.value, 10);
             if (!durationMin || durationMin <= 0) {
-                alert('Please enter a valid duration');
+                showToast('Please enter a valid duration');
                 return;
             }
             durationSeconds = durationMin * 60;
@@ -1572,7 +1595,7 @@ ${getName(timer)}
         if (e) e.stopPropagation();
         const timer = timers.find(t => t.id === id);
         if (timer && timer.answer) {
-            alert(timer.answer);
+            showToast(timer.answer);
         }
     }
 
@@ -1739,7 +1762,7 @@ ${getName(timer)}
         const input = document.getElementById('modalInput');
         const mins = parseInt(input.value, 10);
         if (!mins || mins <= 0) {
-            alert('Please enter a valid duration');
+            showToast('Please enter a valid duration');
             return;
         }
 
@@ -1842,7 +1865,7 @@ ${getName(timer)}
         let newAnswer = answerInput.value.trim();
 
         if (!newName) {
-            alert('Please enter a card name');
+            showToast('Please enter a card name');
             return;
         }
 
@@ -1958,6 +1981,31 @@ ${getName(timer)}
             e.returnValue = '';
         }
     });
+
+    let _toastDismissHandler = null;
+    function showToast(message) {
+        let toast = document.getElementById('toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'toast';
+            toast.className = 'toast';
+            document.body.appendChild(toast);
+        }
+        toast.textContent = message;
+        toast.style.display = 'block';
+        if (_toastDismissHandler) {
+            document.removeEventListener('click', _toastDismissHandler, true);
+        }
+        _toastDismissHandler = (e) => {
+            if (toast.contains(e.target)) return;
+            toast.style.display = 'none';
+            document.removeEventListener('click', _toastDismissHandler, true);
+            _toastDismissHandler = null;
+        };
+        setTimeout(() => {
+            document.addEventListener('click', _toastDismissHandler, true);
+        }, 0);
+    }
 </script>
 </body>
 </html>
