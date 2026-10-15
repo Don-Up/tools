@@ -250,6 +250,7 @@
             display: flex;
             gap: 8px;
             justify-content: flex-end;
+            padding-right: 4px;
         }
 
         .timer-right button:not(.delete-btn):not(.quick-min-btn):not(.play-btn) {
@@ -262,6 +263,8 @@
             margin-top: 4px;
             gap: 8px;
             flex-wrap: nowrap;
+            justify-content: flex-end;
+            padding-right: 4px;
         }
 
         .quick-min-btn {
@@ -415,7 +418,6 @@
             cursor: pointer;
             padding: 2px 4px;
             font-size: 18px;
-            margin-left: auto;
             border-radius: 3px;
         }
 
@@ -1329,9 +1331,9 @@ ${getName(timer)}
                 <div class="timer-right">
                     <div class="btn-row-top">
                         ${timer.status === 'ended' && !timer.buttonsDelay && !promoted && timer.answer ? `<button class="answer-btn" onclick="showAnswer(${timer.id}, event)">Answer</button>` : ''}
+                        ${timer.status === 'ended' && !timer.buttonsDelay && !promoted ? `<button class="delete-btn" onclick="deleteTimer(${timer.id})">&times;</button>` : ''}
                         ${timer.status === 'ended' && !timer.buttonsDelay && !promoted ? `<button class="new-min-btn" onclick="openNewMinModal(event, ${timer.id})">New M</button>` : ''}
                         ${timer.status === 'ended' && !timer.buttonsDelay && !promoted ? `<button class="restart-btn" onclick="restartTimer(${timer.id})">Restart</button>` : ''}
-                        ${timer.status === 'ended' && !timer.buttonsDelay && !promoted ? `<button class="delete-btn" onclick="deleteTimer(${timer.id})">&times;</button>` : ''}
                     </div>
                     ${timer.status === 'ended' && !timer.buttonsDelay && !promoted ? `
                     <div class="btn-row-bottom">
