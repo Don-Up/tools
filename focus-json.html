@@ -78,6 +78,10 @@
             font-family: var(--en-font-family, "DejaVu Math TeX Gyre");
         }
 
+        .card.is-last .en {
+            color: #9ccc65;
+        }
+
         .divider {
             margin: 36px 0;
             border-top: 1px solid #333;
@@ -842,6 +846,9 @@
         function buildCard() {
             const card = document.createElement('div');
             card.className = 'card';
+            if (entries.length > 0 && currentIndex === entries.length - 1) {
+                card.classList.add('is-last');
+            }
             card.dataset.index = String(currentIndex);
 
             const copyBtn = document.createElement('button');
