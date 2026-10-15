@@ -130,10 +130,14 @@
 
         .card { cursor: pointer; }
 
-        .copy-btn {
+        .card-actions {
             position: absolute;
             top: 12px;
             right: 12px;
+            display: flex;
+            gap: 6px;
+        }
+        .copy-btn {
             background: rgba(37, 37, 37, 0.8);
             border: 1px solid #444;
             color: #b0bec5;
@@ -145,7 +149,7 @@
             transition: color 0.15s, border-color 0.15s, background 0.15s;
         }
         .copy-btn:hover { color: #fff; border-color: #666; background: rgba(60, 60, 60, 0.8); }
-        .copy-btn.copied { color: #4fc3f7; border-color: #4fc3f7; }
+        .copy-btn.copied, .copy-btn.speaking { color: #4fc3f7; border-color: #4fc3f7; }
 
         .controls {
             display: flex;
@@ -395,6 +399,109 @@
         }
         .ai-clear-btn:hover { background: #444; }
         .ai-clear-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        body.has-code {
+            padding: 48px 20px;
+        }
+
+        .stage.split {
+            flex-direction: row;
+            align-items: center;
+            gap: 20px;
+            max-width: none;
+            width: 100%;
+            padding: 0;
+        }
+
+        .left-col {
+            flex: 3;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .code-panel {
+            flex: 2;
+            min-width: 0;
+            background: #252525;
+            border: 1px solid #333;
+            border-radius: 12px;
+            overflow: hidden;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .code-block {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        .code-block:last-child {
+            border-bottom: none;
+        }
+
+        .code-lang {
+            background: #1a1a1a;
+            color: #888;
+            font-size: 11px;
+            padding: 6px 14px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            text-transform: lowercase;
+            letter-spacing: 0.5px;
+            flex-shrink: 0;
+        }
+
+        .code-pre {
+            margin: 0;
+            padding: 14px 18px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            line-height: 1.55;
+            color: #e0e0e0;
+            white-space: pre;
+            overflow: auto;
+            flex: 1;
+            min-height: 0;
+            scrollbar-width: thin;
+            scrollbar-color: #4a4a4a #1a1a1a;
+        }
+        .code-pre::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .code-pre::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+        .code-pre::-webkit-scrollbar-thumb {
+            background: #4a4a4a;
+            border-radius: 4px;
+        }
+        .code-pre::-webkit-scrollbar-thumb:hover {
+            background: #5a5a5a;
+        }
+        .code-pre::-webkit-scrollbar-corner {
+            background: #1a1a1a;
+        }
+
+        .code-pre code {
+            background: transparent;
+        }
+
+        .stage.split .card {
+            padding: 40px 48px;
+        }
+        .stage.split .en {
+            font-size: 34px;
+        }
+        .stage.split .cn {
+            font-size: 19px;
+        }
+        .stage.split .divider {
+            margin: 24px 0;
+        }
     </style>
 </head>
 <body>
@@ -463,6 +570,8 @@
         </div>
         <input type="file" id="bgFileInput" accept="image/png,image/jpeg,image/gif,image/webp,image/bmp" hidden>
     </div>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
     <script>
         'use strict';
 
@@ -509,6 +618,7 @@
         let isSpeaking = false;
         let pendingAutoRead = false;
         let readingFromIndex = null;
+        let currentCode = [];
         const stage = document.getElementById('stage');
         const controls = document.getElementById('controls');
         const ttsToggle = document.getElementById('ttsToggle');
@@ -547,6 +657,9 @@
             currentIndex = 0;
             currentWordSpans = [];
             readingFromIndex = null;
+            currentCode = [];
+            document.body.classList.remove('has-code');
+            stage.classList.remove('split');
         }
 
         function buildEnFragment(enText) {
@@ -597,6 +710,7 @@
             }
             isSpeaking = false;
             stopBtn.classList.remove('speaking');
+            document.querySelectorAll('.copy-btn.speaking').forEach(b => b.classList.remove('speaking'));
             clearHighlight();
             readingFromIndex = null;
         }
@@ -618,11 +732,13 @@
             utterance.onend = () => {
                 isSpeaking = false;
                 stopBtn.classList.remove('speaking');
+                document.querySelectorAll('.copy-btn.speaking').forEach(b => b.classList.remove('speaking'));
                 clearHighlight();
             };
             utterance.onerror = () => {
                 isSpeaking = false;
                 stopBtn.classList.remove('speaking');
+                document.querySelectorAll('.copy-btn.speaking').forEach(b => b.classList.remove('speaking'));
                 clearHighlight();
             };
             speechSynthesis.speak(utterance);
@@ -723,16 +839,7 @@
             speakCombined(i);
         }
 
-        function render() {
-            stage.innerHTML = '';
-            if (entries.length === 0) {
-                const hint = document.createElement('div');
-                hint.className = 'hint';
-                hint.innerHTML = '按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴 JSON';
-                stage.appendChild(hint);
-                currentWordSpans = [];
-                return;
-            }
+        function buildCard() {
             const card = document.createElement('div');
             card.className = 'card';
             card.dataset.index = String(currentIndex);
@@ -765,7 +872,37 @@
                     copyBtn.classList.remove('copied');
                 }, 1500);
             });
-            card.appendChild(copyBtn);
+
+            const readBtn = document.createElement('button');
+            readBtn.className = 'copy-btn';
+            readBtn.textContent = 'read';
+            readBtn.title = '朗读当前句子';
+            readBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                stopSpeaking();
+                speakCurrentEntry({ force: true });
+                if (isSpeaking) readBtn.classList.add('speaking');
+            });
+
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'copy-btn';
+            nextBtn.textContent = `${currentIndex + 1}/${entries.length}`;
+            nextBtn.title = '下一句';
+            nextBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                stopSpeaking();
+                readingFromIndex = null;
+                currentIndex = (currentIndex + 1) % entries.length;
+                render();
+                if (ttsEnabled) speakCurrentEntry();
+            });
+
+            const actions = document.createElement('div');
+            actions.className = 'card-actions';
+            actions.appendChild(copyBtn);
+            actions.appendChild(readBtn);
+            actions.appendChild(nextBtn);
+            card.appendChild(actions);
 
             const en = document.createElement('div');
             en.className = 'en';
@@ -780,19 +917,71 @@
             cn.className = 'cn';
             cn.textContent = entries[currentIndex].cn;
             card.appendChild(cn);
-            stage.appendChild(card);
-
-            const status = document.createElement('div');
-            status.className = 'status';
-            status.textContent = `${currentIndex + 1} / ${entries.length}`;
-            stage.appendChild(status);
 
             card.addEventListener('click', () => {
                 speakFromIndex(parseInt(card.dataset.index, 10));
             });
+            return card;
         }
 
-        function loadJson(text) {
+        function buildStatus() {
+            const status = document.createElement('div');
+            status.className = 'status';
+            status.textContent = `${currentIndex + 1} / ${entries.length}`;
+            return status;
+        }
+
+        function buildCodePanel(blocks) {
+            const panel = document.createElement('div');
+            panel.className = 'code-panel';
+            blocks.forEach(block => {
+                const blockEl = document.createElement('div');
+                blockEl.className = 'code-block';
+                const lang = document.createElement('div');
+                lang.className = 'code-lang';
+                lang.textContent = block.lang || 'code';
+                blockEl.appendChild(lang);
+                const pre = document.createElement('pre');
+                pre.className = 'code-pre';
+                const code = document.createElement('code');
+                const langName = (block.lang || '').toLowerCase();
+                code.className = `language-${langName || 'plaintext'}`;
+                code.textContent = block.code;
+                pre.appendChild(code);
+                blockEl.appendChild(pre);
+                if (window.hljs) {
+                    try { window.hljs.highlightElement(code); }
+                    catch (e) { /* keep textContent */ }
+                }
+                panel.appendChild(blockEl);
+            });
+            return panel;
+        }
+
+        function render() {
+            stage.innerHTML = '';
+            const hasCode = currentCode && currentCode.length > 0;
+            document.body.classList.toggle('has-code', hasCode);
+            stage.classList.toggle('split', hasCode);
+            if (entries.length === 0) {
+                const hint = document.createElement('div');
+                hint.className = 'hint';
+                hint.innerHTML = '按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴 JSON';
+                stage.appendChild(hint);
+                currentWordSpans = [];
+                return;
+            }
+            const left = document.createElement('div');
+            left.className = 'left-col';
+            left.appendChild(buildCard());
+            left.appendChild(buildStatus());
+            stage.appendChild(left);
+            if (hasCode) {
+                stage.appendChild(buildCodePanel(currentCode));
+            }
+        }
+
+        function loadJson(text, code) {
             try {
                 parseJson(text);
             } catch (err) {
@@ -805,12 +994,33 @@
             }
             stopSpeaking();
             currentIndex = 0;
+            currentCode = code || [];
             render();
         }
 
+        function loadInput(text) {
+            const json = extractFirstJsonBlock(text);
+            const code = extractCodeBlock(text);
+            if (!json) {
+                showError('找不到 JSON 块');
+                return;
+            }
+            loadJson(json, code);
+        }
+
         function extractFirstJsonBlock(text) {
-            const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-            if (fence) return fence[1].trim();
+            const explicitFence = text.match(/```(?:bilingual-json|json)\s*([\s\S]*?)```/);
+            if (explicitFence) return explicitFence[1].trim();
+            const fenceRegex = /```(\w+)?\s*\n?([\s\S]*?)```/g;
+            let m;
+            while ((m = fenceRegex.exec(text)) !== null) {
+                const content = m[2].trim();
+                if (!content.startsWith('{')) continue;
+                try {
+                    JSON.parse(content);
+                    return content;
+                } catch (e) { /* try next fence */ }
+            }
             const start = text.indexOf('{');
             if (start < 0) return null;
             let depth = 0, inStr = false, esc = false;
@@ -827,6 +1037,18 @@
                 }
             }
             return null;
+        }
+
+        function extractCodeBlock(text) {
+            const regex = /```(\w+)\s*\n([\s\S]*?)```/g;
+            const blocks = [];
+            let m;
+            while ((m = regex.exec(text)) !== null) {
+                const lang = m[1].toLowerCase();
+                if (lang === 'json' || lang === 'bilingual-json') continue;
+                blocks.push({ lang: m[1], code: m[2] });
+            }
+            return blocks;
         }
 
         function showAiError(msg) {
@@ -883,7 +1105,8 @@
                 if (multiTurnEnabled) {
                     aiMessages.push({ role: 'assistant', content: text });
                 }
-                loadJson(json);
+                const code = extractCodeBlock(text);
+                loadJson(json, code);
                 if (autoFullscreenRead) {
                     runAutoFullscreenRead();
                 }
@@ -1018,7 +1241,7 @@
             const text = (e.clipboardData || window.clipboardData).getData('text');
             if (!text) return;
             e.preventDefault();
-            loadJson(text);
+            loadInput(text);
         });
 
         document.addEventListener('keydown', (e) => {
@@ -1231,7 +1454,7 @@
             if (!data || typeof data !== 'object') return;
             if (data.type !== 'focus-json-load') return;
             if (typeof data.content !== 'string' || !data.content) return;
-            loadJson(data.content);
+            loadInput(data.content);
             closeBtn.hidden = false;
             if (ttsEnabled && entries.length > 0) {
                 if (selectedVoiceName && !selectedVoice) {
