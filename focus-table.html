@@ -189,6 +189,12 @@
             cursor: pointer;
         }
 
+        .controls input[type="range"] {
+            width: 120px;
+            cursor: pointer;
+            accent-color: #4fc3f7;
+        }
+
         .controls.hidden {
             display: none;
         }
@@ -235,6 +241,7 @@
         let columnsConfig = localStorage.getItem('focusTableColumns') || '';
         let selectedVoiceName = localStorage.getItem('focusTableVoiceName') || '';
         let controlsVisible = localStorage.getItem('focusTableControlsVisible') === 'true';
+        let speechSpeed = parseFloat(localStorage.getItem('focusTableSpeechSpeed')) || 1.0;
         let availableVoices = [];
         const stage = document.getElementById('stage');
 
@@ -379,6 +386,24 @@
                 colsLabel.appendChild(colsInput);
                 controls.appendChild(colsLabel);
 
+                const speedLabel = document.createElement('label');
+                const speedText = document.createElement('span');
+                speedText.textContent = `Speed: ${speechSpeed.toFixed(1)}`;
+                speedLabel.appendChild(speedText);
+                const speedSlider = document.createElement('input');
+                speedSlider.type = 'range';
+                speedSlider.min = '0.5';
+                speedSlider.max = '2';
+                speedSlider.step = '0.1';
+                speedSlider.value = String(speechSpeed);
+                speedSlider.addEventListener('input', () => {
+                    speechSpeed = parseFloat(speedSlider.value);
+                    speedText.textContent = `Speed: ${speechSpeed.toFixed(1)}`;
+                    localStorage.setItem('focusTableSpeechSpeed', String(speechSpeed));
+                });
+                speedLabel.appendChild(speedSlider);
+                controls.appendChild(speedLabel);
+
                 stage.appendChild(controls);
             }
             const vtable = document.createElement('div');
@@ -459,6 +484,7 @@
             const text = parts.join(', ');
             stopSpeaking();
             const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = speechSpeed;
             if (selectedVoiceName) {
                 const voice = availableVoices.find(v => v.name === selectedVoiceName);
                 if (voice) utterance.voice = voice;
@@ -481,6 +507,7 @@
             if (!text) return;
             stopSpeaking();
             const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = speechSpeed;
             if (selectedVoiceName) {
                 const voice = availableVoices.find(v => v.name === selectedVoiceName);
                 if (voice) utterance.voice = voice;
