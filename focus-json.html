@@ -205,6 +205,12 @@
             background: #2a6edc;
         }
 
+        .controls input[type="range"] {
+            width: 120px;
+            cursor: pointer;
+            accent-color: #4fc3f7;
+        }
+
         .controls button.speaking {
             background: #ff5252;
         }
@@ -542,6 +548,10 @@
             Voice:
             <select id="voiceSelect"></select>
         </label>
+        <label id="speedLabel" class="hidden">
+            Speed: <span id="speedValue">1.0</span>
+            <input type="range" id="speedSlider" min="0.5" max="2" step="0.1" value="1.0">
+        </label>
         <label>
             字体:
             <select id="enFontSelect">
@@ -614,6 +624,7 @@
         let aiMessages = [];
         let autoFullscreenRead = localStorage.getItem('focusJsonAutoFullscreenRead') === 'true';
         let ttsEnabled = localStorage.getItem('focusJsonTtsEnabled') === 'true';
+        let speechSpeed = parseFloat(localStorage.getItem('focusJsonSpeechSpeed')) || 1.0;
         let highlightEnabled = localStorage.getItem('focusJsonHighlightEnabled') !== 'false';
         let controlsVisible = false;
         let selectedVoice = null;
@@ -629,6 +640,9 @@
         const highlightToggle = document.getElementById('highlightToggle');
         const voiceLabel = document.getElementById('voiceLabel');
         const voiceSelect = document.getElementById('voiceSelect');
+        const speedLabel = document.getElementById('speedLabel');
+        const speedSlider = document.getElementById('speedSlider');
+        const speedValue = document.getElementById('speedValue');
         const stopBtn = document.getElementById('stopBtn');
 
         const WORD_RE = /[A-Za-z][A-Za-z']*|[^A-Za-z]+/g;
@@ -727,6 +741,7 @@
             if (!e || !e.en) return;
             const utterance = new SpeechSynthesisUtterance(e.en);
             utterance.lang = 'en-US';
+            utterance.rate = speechSpeed;
             if (selectedVoice) utterance.voice = selectedVoice;
             utterance.onboundary = (event) => {
                 if (!highlightEnabled) return;
@@ -771,6 +786,7 @@
 
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'en-US';
+            utterance.rate = speechSpeed;
             if (selectedVoice) utterance.voice = selectedVoice;
 
             utterance.onboundary = (event) => {
@@ -1140,6 +1156,7 @@
 
         function updateControlsVisibility() {
             voiceLabel.classList.toggle('hidden', !ttsEnabled);
+            speedLabel.classList.toggle('hidden', !ttsEnabled);
             stopBtn.classList.toggle('hidden', !ttsEnabled);
         }
 
@@ -1197,6 +1214,14 @@
                 selectedVoice = null;
                 localStorage.removeItem('focusJsonVoiceName');
             }
+        });
+
+        speedSlider.value = String(speechSpeed);
+        speedValue.textContent = speechSpeed.toFixed(1);
+        speedSlider.addEventListener('input', (e) => {
+            speechSpeed = parseFloat(e.target.value);
+            speedValue.textContent = speechSpeed.toFixed(1);
+            localStorage.setItem('focusJsonSpeechSpeed', String(speechSpeed));
         });
         const enFontSelect = document.getElementById('enFontSelect');
         const savedEnFont = localStorage.getItem('focusJsonEnFont') || '"DejaVu Math TeX Gyre"';
