@@ -70,7 +70,7 @@
         }
 
         .en {
-            font-size: 40px;
+            font-size: 35px;
             line-height: 1.4;
             color: #e0e0e0;
             font-weight: 500;
@@ -1562,7 +1562,7 @@
             if (!location.hash || location.hash.length < 2) return;
             const rawText = decodeURIComponent(location.hash.slice(1));
             if (!rawText) return;
-            const hashText = rawText.replace(/然后/g, '').replace(/\s+/g, ' ').trim();
+            const hashText = rawText.replace(/"/g, '').replace(/\s+/g, ' ').trim();
             if (!hashText) {
                 showError('过滤后没有可处理的文本');
                 return;
