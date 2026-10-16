@@ -88,7 +88,7 @@
         }
 
         .cn {
-            font-size: 25px;
+            font-size: 20px;
             line-height: 1.5;
             color: #b0bec5;
             word-break: break-word;
@@ -706,7 +706,7 @@
         function parsePlainText(text) {
             const trimmed = text.trim();
             if (!trimmed) return 0;
-            const segments = trimmed.split(/(?<=[.?!])\s+/);
+            const segments = trimmed.split(/(?<=[.?!;])\s+/);
             entries = segments
                 .map(s => s.replace(/\s+/g, ' ').trim())
                 .filter(s => s.length > 0)
@@ -1614,7 +1614,7 @@
             if (autotranslate) {
                 async function runTranslate() {
                     const enSentences = hashText.trim()
-                        .split(/(?<=[.?!])\s+/)
+                        .split(/(?<=[.?!;])\s+/)
                         .map(s => s.replace(/\s+/g, ' ').trim())
                         .filter(s => s.length > 0);
                     if (enSentences.length === 0) {
@@ -1636,7 +1636,7 @@
                         const data = await resp.json();
                         const cnText = (data && typeof data.text === 'string' ? data.text : '').trim();
                         const cnSentences = cnText
-                            .split(/(?<=[。？])\s*/)
+                            .split(/(?<=[。？！；])\s*/)
                             .map(s => s.replace(/[""]/g, '').replace(/\s+/g, ' ').trim())
                             .filter(s => s.length > 0);
                         const pairCount = Math.min(enSentences.length, cnSentences.length);
