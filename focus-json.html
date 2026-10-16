@@ -83,7 +83,8 @@
         }
 
         .divider {
-            display: none;
+            margin: 28px 0;
+            border-top: 1px solid #555;
         }
 
         .cn {
@@ -924,6 +925,9 @@
             card.appendChild(en);
             const currentCn = entries[currentIndex].cn || '';
             if (currentCn) {
+                const divider = document.createElement('div');
+                divider.className = 'divider';
+                card.appendChild(divider);
                 const cn = document.createElement('div');
                 cn.className = 'cn';
                 cn.textContent = currentCn;
