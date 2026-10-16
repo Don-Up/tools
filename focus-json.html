@@ -1558,7 +1558,15 @@
 
             dispatchPaste(hashText);
 
-            const onEnd = autoclose ? () => window.close() : null;
+            if (window.parent && window.parent !== window && closeBtn) {
+                closeBtn.hidden = false;
+            }
+
+            const onEnd = autoclose
+                ? (window.parent && window.parent !== window
+                    ? () => { try { window.parent.postMessage({ type: 'focus-json-close' }, '*'); } catch (e) {} }
+                    : () => window.close())
+                : null;
 
             function playOnce() {
                 if (entries.length === 0) return;
