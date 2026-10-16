@@ -159,6 +159,7 @@
             display: flex;
             gap: 10px;
             align-items: center;
+            flex-wrap: wrap;
         }
         .mode-radio-label {
             font-size: 14px;
@@ -1062,7 +1063,9 @@
                 <label class="mode-radio-label"><input type="radio" name="mode" value="1" checked> Mode 1</label>
                 <label class="mode-radio-label"><input type="radio" name="mode" value="2"> Mode 2</label>
                 <label class="mode-radio-label"><input type="radio" name="mode" value="3"> Mode 3</label>
-                <label class="mode-radio-label"><input type="checkbox" id="continuousFollowToggle"> 连续</label>
+                <label class="mode-radio-label"><input type="radio" name="playMode" value="single" checked> 单句</label>
+                <label class="mode-radio-label"><input type="radio" name="playMode" value="continuous"> 连续</label>
+                <label class="mode-radio-label"><input type="radio" name="playMode" value="loop"> 循环</label>
                 <label class="mode-radio-label"><input type="checkbox" id="randomVoiceToggle"> 随机</label>
             </div>
             <div id="counter" class="counter" hidden></div>
@@ -1109,8 +1112,8 @@
                     <li><kbd>Alt+A</kbd></li><li>分句跟读 (按 ,  —  :  ;  .  ?  ". 分句)</li>
                     <li><kbd>A</kbd></li><li>再次朗读当前分句 (基于上次 Alt+A)</li>
                     <li><kbd>Alt+S</kbd></li><li>分句跟读模式下循环朗读选中分句</li>
-                    <li>连续</li><li>开启时读完最后分句后再按一次 Alt+A 进入下一句首分句,末句读完后回第一句 (Mode 3 旁)</li>
-                    <li>随机</li><li>开启时每次朗读随机挑选一个英文语音 (连续 右侧)</li>
+                    <li>单句 / 连续 / 循环</li><li>单句:R 读一次后停;连续:R 读完一句后自动跳到下一句,末句后回第一句;循环:无限循环当前句 (Mode 3 旁)</li>
+                    <li>随机</li><li>开启时每次朗读随机挑选一个英文语音 (循环 右侧)</li>
                     <li><kbd>Alt+H</kbd></li><li>隐藏 / 显示中文句子</li>
                     <li><kbd>Alt+J</kbd></li><li>编辑 JSON</li>
                     <li><kbd>Ctrl+I</kbd></li><li>设置背景</li>
@@ -3156,9 +3159,9 @@
             e.preventDefault();
             const sel = window.getSelection()?.toString().trim();
             if (sel && !/[一-龥]/.test(sel)) {
-                speakEn(true, sel, false);
+                speakEn(true, sel, null);
             } else {
-                speakEn(true, undefined, continuousFollowAlong);
+                speakEn(true, undefined, playMode);
             }
         }
         if (e.key === 't' && !e.ctrlKey && !e.altKey && !e.metaKey) {
@@ -3402,7 +3405,7 @@
         }
     }
 
-    function speakEn(force, text, autoAdvance) {
+    function speakEn(force, text, mode) {
         const voice = getCurrentEnVoice();
         if (!voice) return;
         if (!force && !ttsEnabledEn) return;
@@ -3412,14 +3415,20 @@
         const utterance = new SpeechSynthesisUtterance(content);
         utterance.voice = voice;
         utterance.rate = enRate;
-        if (autoAdvance) {
+        if (mode === 'continuous') {
             utterance.onend = () => {
-                if (!continuousFollowAlong) return;
+                if (playMode !== 'continuous') return;
                 if (entries.length === 0) return;
                 currentIndex = (currentIndex + 1) % entries.length;
                 saveState();
                 render();
-                speakEn(true, undefined, true);
+                speakEn(true, undefined, 'continuous');
+            };
+        } else if (mode === 'loop') {
+            utterance.onend = () => {
+                if (playMode !== 'loop') return;
+                if (entries.length === 0) return;
+                speakEn(true, undefined, 'loop');
             };
         }
         window.speechSynthesis.speak(utterance);
@@ -3488,7 +3497,7 @@
     let lastFollowAlongChunk = null;
     let lastFollowAlongText = '';
     let lastFollowAlongEntryIndex = -1;
-    let continuousFollowAlong = false;
+    let playMode = 'single';
     let pendingContinuousAdvance = false;
     function trySelectInEnText(start, end, expectedText) {
         const node = enText.firstChild;
@@ -3508,7 +3517,7 @@
         if (followAlongEntryIndex !== currentIndex) {
             pendingContinuousAdvance = false;
         }
-        if (continuousFollowAlong && pendingContinuousAdvance) {
+        if (playMode === 'continuous' && pendingContinuousAdvance) {
             pendingContinuousAdvance = false;
             currentIndex = currentIndex < entries.length - 1 ? currentIndex + 1 : 0;
             saveState();
@@ -3538,7 +3547,7 @@
         lastFollowAlongEntryIndex = currentIndex;
         const wasLastChunk = followAlongChunkIndex === chunks.length - 1;
         followAlongChunkIndex++;
-        if (continuousFollowAlong && wasLastChunk) {
+        if (playMode === 'continuous' && wasLastChunk) {
             pendingContinuousAdvance = true;
         }
     }
@@ -3864,13 +3873,23 @@
         localStorage.setItem(STORAGE_KEY_TTS_EN, String(ttsEnabledEn));
         if (!ttsEnabledEn) window.speechSynthesis.cancel();
     });
-    const continuousFollowToggle = document.getElementById('continuousFollowToggle');
-    continuousFollowToggle.checked = localStorage.getItem(STORAGE_KEY_CONTINUOUS_FOLLOW) === "true";
-    continuousFollowAlong = continuousFollowToggle.checked;
-    continuousFollowToggle.addEventListener('change', () => {
-        continuousFollowAlong = continuousFollowToggle.checked;
-        if (!continuousFollowAlong) pendingContinuousAdvance = false;
-        localStorage.setItem(STORAGE_KEY_CONTINUOUS_FOLLOW, String(continuousFollowAlong));
+    const playModeRadios = document.querySelectorAll('input[name="playMode"]');
+    const savedPlayMode = localStorage.getItem(STORAGE_KEY_CONTINUOUS_FOLLOW);
+    if (savedPlayMode === 'continuous' || savedPlayMode === 'loop' || savedPlayMode === 'single') {
+        playMode = savedPlayMode;
+    } else if (savedPlayMode === 'true') {
+        playMode = 'continuous';
+    } else {
+        playMode = 'single';
+    }
+    playModeRadios.forEach(r => {
+        r.checked = r.value === playMode;
+        r.addEventListener('change', () => {
+            if (!r.checked) return;
+            playMode = r.value;
+            if (playMode !== 'continuous') pendingContinuousAdvance = false;
+            localStorage.setItem(STORAGE_KEY_CONTINUOUS_FOLLOW, playMode);
+        });
     });
     const randomVoiceToggle = document.getElementById('randomVoiceToggle');
     randomVoiceEnabled = localStorage.getItem(STORAGE_KEY_RANDOM_VOICE) === "true";
