@@ -3156,9 +3156,9 @@
             e.preventDefault();
             const sel = window.getSelection()?.toString().trim();
             if (sel && !/[一-龥]/.test(sel)) {
-                speakEn(true, sel);
+                speakEn(true, sel, false);
             } else {
-                speakEn(true);
+                speakEn(true, undefined, continuousFollowAlong);
             }
         }
         if (e.key === 't' && !e.ctrlKey && !e.altKey && !e.metaKey) {
@@ -3259,7 +3259,7 @@
             selectedVoice = voicesCN[0] || null;
             if (selectedVoice) voiceSelect.value = selectedVoice.name;
         }
-        voicesEN = voices.filter(v => v.lang.startsWith("en-"));
+        voicesEN = voices.filter(v => v.lang.startsWith("en-") && !/Mark|Zira|David/.test(v.name));
         voiceSelectEn.innerHTML = voicesEN
             .map(v => `<option value="${v.name}">${v.name}</option>`)
             .join("");
@@ -3402,7 +3402,7 @@
         }
     }
 
-    function speakEn(force, text) {
+    function speakEn(force, text, autoAdvance) {
         const voice = getCurrentEnVoice();
         if (!voice) return;
         if (!force && !ttsEnabledEn) return;
@@ -3412,6 +3412,16 @@
         const utterance = new SpeechSynthesisUtterance(content);
         utterance.voice = voice;
         utterance.rate = enRate;
+        if (autoAdvance) {
+            utterance.onend = () => {
+                if (!continuousFollowAlong) return;
+                if (entries.length === 0) return;
+                currentIndex = (currentIndex + 1) % entries.length;
+                saveState();
+                render();
+                speakEn(true, undefined, true);
+            };
+        }
         window.speechSynthesis.speak(utterance);
     }
 
