@@ -1563,7 +1563,7 @@
             const hashTextRaw = decodeURIComponent(location.hash.slice(1));
             if (!hashTextRaw) return;
             history.replaceState(null, '', location.pathname + location.search);
-            const hashText = hashTextRaw.replace(/"/g, '');
+            const hashText = hashTextRaw.replace(/"/g, '').replace(/查看中文翻译/g, '');
 
             const inIframe = window.parent && window.parent !== window;
             const onEnd = autoclose
@@ -1655,7 +1655,7 @@
                         const cnText = (data && typeof data.text === 'string' ? data.text : '').trim();
                         const cnSentences = cnText
                             .split(/(?<=[。？])\s*/)
-                            .map(s => s.replace(/\s+/g, ' ').trim())
+                            .map(s => s.replace(/[""]/g, '').replace(/\s+/g, ' ').trim())
                             .filter(s => s.length > 0);
                         const pairCount = Math.min(enSentences.length, cnSentences.length);
                         if (pairCount === 0) {
