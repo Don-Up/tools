@@ -70,7 +70,7 @@
         }
 
         .en {
-            font-size: 50px;
+            font-size: 40px;
             line-height: 1.4;
             color: #e0e0e0;
             font-weight: 500;
@@ -1536,40 +1536,25 @@
             if (!hashText) return;
             history.replaceState(null, '', location.pathname + location.search);
 
-            function dispatchPaste(text) {
-                let clipboardData = null;
-                try {
-                    clipboardData = new DataTransfer();
-                } catch (err) {
-                    clipboardData = null;
-                }
-                const evt = clipboardData
-                    ? new ClipboardEvent('paste', { clipboardData, bubbles: true, cancelable: true })
-                    : new Event('paste', { bubbles: true, cancelable: true });
-                Object.defineProperty(evt, 'clipboardData', {
-                    value: {
-                        getData: () => text,
-                        setData: () => {},
-                        types: ['text/plain']
-                    }
-                });
-                document.dispatchEvent(evt);
-            }
-
-            dispatchPaste(hashText);
+            loadInput(hashText);
+            if (entries.length === 0) return;
 
             if (window.parent && window.parent !== window && closeBtn) {
                 closeBtn.hidden = false;
             }
 
+            const inIframe = window.parent && window.parent !== window;
             const onEnd = autoclose
-                ? (window.parent && window.parent !== window
+                ? (inIframe
                     ? () => { try { window.parent.postMessage({ type: 'focus-json-close' }, '*'); } catch (e) {} }
                     : () => window.close())
                 : null;
 
+            let played = false;
             function playOnce() {
+                if (played) return;
                 if (entries.length === 0) return;
+                played = true;
                 speakCombined(0, { force: true, onEnd });
             }
 
