@@ -1527,6 +1527,77 @@
                 }
             }
         });
+
+        (function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            const autoclose = urlParams.get('autoclose') === '1';
+            if (!location.hash || location.hash.length < 2) return;
+            const hashText = decodeURIComponent(location.hash.slice(1));
+            if (!hashText) return;
+            history.replaceState(null, '', location.pathname + location.search);
+
+            function dispatchPaste(text) {
+                let clipboardData = null;
+                try {
+                    clipboardData = new DataTransfer();
+                } catch (err) {
+                    clipboardData = null;
+                }
+                const evt = clipboardData
+                    ? new ClipboardEvent('paste', { clipboardData, bubbles: true, cancelable: true })
+                    : new Event('paste', { bubbles: true, cancelable: true });
+                Object.defineProperty(evt, 'clipboardData', {
+                    value: {
+                        getData: () => text,
+                        setData: () => {},
+                        types: ['text/plain']
+                    }
+                });
+                document.dispatchEvent(evt);
+            }
+
+            dispatchPaste(hashText);
+
+            const onEnd = autoclose ? () => window.close() : null;
+
+            function playOnce() {
+                if (entries.length === 0) return;
+                speakCombined(0, { force: true, onEnd });
+            }
+
+            function prepareVoiceAndPlay() {
+                if (selectedVoice || !selectedVoiceName) {
+                    playOnce();
+                    return;
+                }
+                let done = false;
+                const onVoices = () => {
+                    if (done) return;
+                    done = true;
+                    speechSynthesis.removeEventListener('voiceschanged', onVoices);
+                    const found = availableVoices.find(v => v.name === selectedVoiceName);
+                    if (found) {
+                        selectedVoice = found;
+                        if (voiceSelect) voiceSelect.value = String(availableVoices.indexOf(found));
+                    }
+                    playOnce();
+                };
+                speechSynthesis.addEventListener('voiceschanged', onVoices);
+                loadVoices();
+                setTimeout(() => {
+                    if (done) return;
+                    done = true;
+                    speechSynthesis.removeEventListener('voiceschanged', onVoices);
+                    playOnce();
+                }, 1500);
+            }
+
+            if (document.readyState === 'complete') {
+                prepareVoiceAndPlay();
+            } else {
+                window.addEventListener('load', prepareVoiceAndPlay, { once: true });
+            }
+        })();
     </script>
 </body>
 </html>
