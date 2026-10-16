@@ -1560,8 +1560,13 @@
             const autoclose = urlParams.get('autoclose') === '1';
             const autotranslate = urlParams.get('autotranslate') === '1';
             if (!location.hash || location.hash.length < 2) return;
-            const hashText = decodeURIComponent(location.hash.slice(1));
-            if (!hashText) return;
+            const rawText = decodeURIComponent(location.hash.slice(1));
+            if (!rawText) return;
+            const hashText = rawText.replace(/然后/g, '').replace(/\s+/g, ' ').trim();
+            if (!hashText) {
+                showError('过滤后没有可处理的文本');
+                return;
+            }
             history.replaceState(null, '', location.pathname + location.search);
 
             const inIframe = window.parent && window.parent !== window;
