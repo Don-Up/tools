@@ -1331,7 +1331,7 @@ ${getName(timer)}
                 </div>
                 <div class="timer-right">
                     <div class="btn-row-top">
-                        ${timer.status === 'ended' && !timer.buttonsDelay && !promoted && timer.answer ? `<button class="answer-btn" onclick="showAnswer(${timer.id}, event)">Answer</button>` : ''}
+                        ${timer.status === 'ended' && !timer.buttonsDelay && !promoted && timer.answer ? `<button class="answer-btn" data-timer-id="${timer.id}" onclick="showAnswer(${timer.id}, event)">Answer</button>` : ''}
                         ${timer.status === 'ended' && !timer.buttonsDelay && !promoted ? `<button class="delete-btn" onclick="deleteTimer(${timer.id})">&times;</button>` : ''}
                         ${timer.status === 'ended' && !timer.buttonsDelay && !promoted ? `<button class="new-min-btn" onclick="openNewMinModal(event, ${timer.id})">New M</button>` : ''}
                         ${timer.status === 'ended' && !timer.buttonsDelay && !promoted ? `<button class="restart-btn" onclick="restartTimer(${timer.id})">Restart</button>` : ''}
@@ -1919,6 +1919,31 @@ ${getName(timer)}
         if (e.key === 'Escape') {
             closeModal();
             closeEditModal();
+            return;
+        }
+        if (e.key === 'a' || e.key === 'A') {
+            if (e.ctrlKey || e.metaKey || e.altKey) return;
+            const tag = e.target && e.target.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) return;
+            const answerBtns = document.querySelectorAll('.answer-btn');
+            for (const btn of answerBtns) {
+                const id = parseInt(btn.dataset.timerId, 10);
+                if (!Number.isFinite(id)) continue;
+                const t = timers.find(t => t.id === id);
+                if (!t || t.status === 'running') continue;
+                e.preventDefault();
+                showAnswer(id);
+                return;
+            }
+            return;
+        }
+        if (e.key === 's' || e.key === 'S') {
+            if (e.ctrlKey || e.metaKey || e.altKey) return;
+            const tag = e.target && e.target.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) return;
+            if (currentAnswerTimerId == null) return;
+            e.preventDefault();
+            restartTimer(currentAnswerTimerId);
             return;
         }
         if ((e.key === 'd' || e.key === 'D') && currentAnswerTimerId != null) {
