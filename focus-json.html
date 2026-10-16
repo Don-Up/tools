@@ -544,7 +544,7 @@
 <body>
     <button id="closeBtn" class="close-btn" hidden>×</button>
 
-    <div class="ai-box">
+    <div id="aiBox" class="ai-box hidden">
         <div class="ai-toolbar">
             <label class="ai-toggle">
                 <input type="checkbox" id="multiTurnToggle">
@@ -683,6 +683,7 @@
         const pageActions = document.getElementById('pageActions');
         const pageReadBtn = document.getElementById('pageReadBtn');
         const pageCopyBtn = document.getElementById('pageCopyBtn');
+        const aiBox = document.getElementById('aiBox');
 
         const WORD_RE = /[A-Za-z][A-Za-z']*|[^A-Za-z]+/g;
 
@@ -976,7 +977,6 @@
 
         function render() {
             stage.innerHTML = '';
-            if (pageActions) pageActions.classList.toggle('hidden', entries.length === 0);
             const hasCode = currentCode && currentCode.length > 0;
             document.body.classList.toggle('has-code', hasCode);
             stage.classList.toggle('split', hasCode);
@@ -1502,6 +1502,13 @@
                 renderBgList();
                 bgModal.hidden = false;
             }
+            if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && (e.key === 'j' || e.key === 'J' || e.code === 'KeyJ')) {
+                e.preventDefault();
+                const willShow = closeBtn.hidden;
+                closeBtn.hidden = !willShow;
+                pageActions.classList.toggle('hidden', !willShow);
+                aiBox.classList.toggle('hidden', !willShow);
+            }
         });
 
         loadAllBg().then(list => {
@@ -1595,7 +1602,6 @@
                     hideTranslateOverlay();
                     return;
                 }
-                if (inIframe && closeBtn) closeBtn.hidden = false;
                 if (document.readyState === 'complete') {
                     prepareVoiceAndPlay();
                 } else {
