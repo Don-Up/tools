@@ -63,7 +63,7 @@
             background: rgba(37, 37, 37, 0.6);
             border: 1px solid rgba(51, 51, 51, 0.6);
             border-radius: 12px;
-            padding: 60px 72px 25px 72px;
+            padding: 25px 72px 25px 72px;
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             position: relative;
@@ -76,7 +76,6 @@
             font-weight: 500;
             word-break: break-word;
             font-family: var(--en-font-family, "DejaVu Math TeX Gyre");
-            margin-top: 20px;
         }
 
         .card.is-last .en {
@@ -84,8 +83,7 @@
         }
 
         .divider {
-            margin: 28px 0;
-            border-top: 1px solid #555;
+            display: none;
         }
 
         .cn {
@@ -136,15 +134,18 @@
         .card { cursor: pointer; }
 
         .card-actions {
-            position: absolute;
-            top: 12px;
-            left: 12px;
-            right: 12px;
+            display: none;
+        }
+
+        .page-actions {
+            position: fixed;
+            bottom: 16px;
+            left: 16px;
             display: flex;
             gap: 6px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid #555;
+            z-index: 50;
         }
+        .page-actions.hidden { display: none; }
         .copy-btn {
             background: rgba(37, 37, 37, 0.8);
             border: 1px solid #444;
@@ -610,6 +611,11 @@
         <input type="file" id="bgFileInput" accept="image/png,image/jpeg,image/gif,image/webp,image/bmp" hidden>
     </div>
 
+    <div id="pageActions" class="page-actions hidden">
+        <button id="pageReadBtn" class="copy-btn" title="朗读当前句子">read</button>
+        <button id="pageCopyBtn" class="copy-btn" title="复制当前句子的英文">copy</button>
+    </div>
+
     <div id="translateOverlay" class="translate-overlay hidden">
         <div class="translate-text">translating...</div>
     </div>
@@ -673,6 +679,9 @@
         const speedSlider = document.getElementById('speedSlider');
         const speedValue = document.getElementById('speedValue');
         const stopBtn = document.getElementById('stopBtn');
+        const pageActions = document.getElementById('pageActions');
+        const pageReadBtn = document.getElementById('pageReadBtn');
+        const pageCopyBtn = document.getElementById('pageCopyBtn');
 
         const WORD_RE = /[A-Za-z][A-Za-z']*|[^A-Za-z]+/g;
 
@@ -907,66 +916,6 @@
             }
             card.dataset.index = String(currentIndex);
 
-            const copyBtn = document.createElement('button');
-            copyBtn.className = 'copy-btn';
-            copyBtn.textContent = 'copy';
-            copyBtn.title = 'copied';
-            copyBtn.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                const text = entries[currentIndex]?.en || '';
-                if (!text) return;
-                try {
-                    await navigator.clipboard.writeText(text);
-                } catch (err) {
-                    const ta = document.createElement('textarea');
-                    ta.value = text;
-                    ta.style.position = 'fixed';
-                    ta.style.opacity = '0';
-                    document.body.appendChild(ta);
-                    ta.select();
-                    try { document.execCommand('copy'); } catch {}
-                    document.body.removeChild(ta);
-                }
-                copyBtn.textContent = 'copied';
-                copyBtn.classList.add('copied');
-                clearTimeout(copyBtn._timer);
-                copyBtn._timer = setTimeout(() => {
-                    copyBtn.textContent = 'copy';
-                    copyBtn.classList.remove('copied');
-                }, 1500);
-            });
-
-            const readBtn = document.createElement('button');
-            readBtn.className = 'copy-btn';
-            readBtn.textContent = 'read';
-            readBtn.title = '朗读当前句子';
-            readBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                stopSpeaking();
-                speakCurrentEntry({ force: true });
-                if (isSpeaking) readBtn.classList.add('speaking');
-            });
-
-            const nextBtn = document.createElement('button');
-            nextBtn.className = 'copy-btn';
-            nextBtn.textContent = `${currentIndex + 1}/${entries.length}`;
-            nextBtn.title = '下一句';
-            nextBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                stopSpeaking();
-                readingFromIndex = null;
-                currentIndex = (currentIndex + 1) % entries.length;
-                render();
-                if (ttsEnabled) speakCurrentEntry();
-            });
-
-            const actions = document.createElement('div');
-            actions.className = 'card-actions';
-            actions.appendChild(nextBtn);
-            actions.appendChild(readBtn);
-            actions.appendChild(copyBtn);
-            card.appendChild(actions);
-
             const en = document.createElement('div');
             en.className = 'en';
             const { fragment, wordSpans } = buildEnFragment(entries[currentIndex].en);
@@ -975,9 +924,6 @@
             card.appendChild(en);
             const currentCn = entries[currentIndex].cn || '';
             if (currentCn) {
-                const divider = document.createElement('div');
-                divider.className = 'divider';
-                card.appendChild(divider);
                 const cn = document.createElement('div');
                 cn.className = 'cn';
                 cn.textContent = currentCn;
@@ -1026,6 +972,7 @@
 
         function render() {
             stage.innerHTML = '';
+            if (pageActions) pageActions.classList.toggle('hidden', entries.length === 0);
             const hasCode = currentCode && currentCode.length > 0;
             document.body.classList.toggle('has-code', hasCode);
             stage.classList.toggle('split', hasCode);
@@ -1254,6 +1201,37 @@
             highlightEnabled = e.target.checked;
             localStorage.setItem('focusJsonHighlightEnabled', String(highlightEnabled));
             if (!highlightEnabled) clearHighlight();
+        });
+
+        pageReadBtn.addEventListener('click', () => {
+            if (entries.length === 0) return;
+            stopSpeaking();
+            speakCurrentEntry({ force: true });
+            if (isSpeaking) pageReadBtn.classList.add('speaking');
+        });
+
+        pageCopyBtn.addEventListener('click', async () => {
+            const text = entries[currentIndex] && entries[currentIndex].en || '';
+            if (!text) return;
+            try {
+                await navigator.clipboard.writeText(text);
+            } catch (err) {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                try { document.execCommand('copy'); } catch {}
+                document.body.removeChild(ta);
+            }
+            pageCopyBtn.textContent = 'copied';
+            pageCopyBtn.classList.add('copied');
+            clearTimeout(pageCopyBtn._timer);
+            pageCopyBtn._timer = setTimeout(() => {
+                pageCopyBtn.textContent = 'copy';
+                pageCopyBtn.classList.remove('copied');
+            }, 1500);
         });
 
         voiceSelect.addEventListener('change', (e) => {
