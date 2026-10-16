@@ -20,10 +20,10 @@
             background: #1e1e1e;
             color: #e0e0e0;
             min-height: 100vh;
-            padding: 48px 5vw;
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
         }
 
         .stage {
@@ -33,7 +33,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            flex: 1;
+            padding: 48px 5vw;
         }
 
         .hint {
@@ -433,6 +433,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
         }
 
         .code-panel {
@@ -662,6 +663,17 @@
                 en: String(en),
                 cn: String(cn),
             }));
+            return entries.length;
+        }
+
+        function parsePlainText(text) {
+            const trimmed = text.trim();
+            if (!trimmed) return 0;
+            const segments = trimmed.split(/(?<=[.?!])\s+/);
+            entries = segments
+                .map(s => s.replace(/\s+/g, ' ').trim())
+                .filter(s => s.length > 0)
+                .map(en => ({ en, cn: '' }));
             return entries.length;
         }
 
@@ -934,13 +946,16 @@
             en.appendChild(fragment);
             currentWordSpans = wordSpans;
             card.appendChild(en);
-            const divider = document.createElement('div');
-            divider.className = 'divider';
-            card.appendChild(divider);
-            const cn = document.createElement('div');
-            cn.className = 'cn';
-            cn.textContent = entries[currentIndex].cn;
-            card.appendChild(cn);
+            const currentCn = entries[currentIndex].cn || '';
+            if (currentCn) {
+                const divider = document.createElement('div');
+                divider.className = 'divider';
+                card.appendChild(divider);
+                const cn = document.createElement('div');
+                cn.className = 'cn';
+                cn.textContent = currentCn;
+                card.appendChild(cn);
+            }
 
             card.addEventListener('click', () => {
                 speakFromIndex(parseInt(card.dataset.index, 10));
@@ -1025,11 +1040,19 @@
         function loadInput(text) {
             const json = extractFirstJsonBlock(text);
             const code = extractCodeBlock(text);
-            if (!json) {
-                showError('找不到 JSON 块');
+            if (json) {
+                loadJson(json, code);
                 return;
             }
-            loadJson(json, code);
+            const count = parsePlainText(text);
+            if (count === 0) {
+                showError('没有解析到任何条目');
+                return;
+            }
+            stopSpeaking();
+            currentIndex = 0;
+            currentCode = code || [];
+            render();
         }
 
         function extractFirstJsonBlock(text) {
@@ -1275,6 +1298,13 @@
             if (!text) return;
             e.preventDefault();
             loadInput(text);
+            if (ttsEnabled && entries.length > 0) {
+                if (selectedVoiceName && !selectedVoice) {
+                    pendingAutoRead = true;
+                } else {
+                    speakCombined(0);
+                }
+            }
         });
 
         document.addEventListener('keydown', (e) => {
