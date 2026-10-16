@@ -598,6 +598,7 @@
 
 <script>
     let timers = [];
+    let currentAnswerTimerId = null;
     let timerIntervals = {};
 
     const cardNameInput = document.getElementById('cardNameInput');
@@ -1597,6 +1598,7 @@ ${getName(timer)}
         if (e) e.stopPropagation();
         const timer = timers.find(t => t.id === id);
         if (timer && timer.answer) {
+            currentAnswerTimerId = id;
             showToast(timer.answer);
         }
     }
@@ -1917,6 +1919,21 @@ ${getName(timer)}
         if (e.key === 'Escape') {
             closeModal();
             closeEditModal();
+            return;
+        }
+        if ((e.key === 'd' || e.key === 'D') && currentAnswerTimerId != null) {
+            const tag = e.target && e.target.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) return;
+            e.preventDefault();
+            const id = currentAnswerTimerId;
+            currentAnswerTimerId = null;
+            const toast = document.getElementById('toast');
+            if (toast) toast.style.display = 'none';
+            if (_toastDismissHandler) {
+                document.removeEventListener('click', _toastDismissHandler, true);
+                _toastDismissHandler = null;
+            }
+            deleteTimer(id);
         }
     });
 
@@ -2003,6 +2020,7 @@ ${getName(timer)}
             toast.style.display = 'none';
             document.removeEventListener('click', _toastDismissHandler, true);
             _toastDismissHandler = null;
+            currentAnswerTimerId = null;
         };
         setTimeout(() => {
             document.addEventListener('click', _toastDismissHandler, true);
