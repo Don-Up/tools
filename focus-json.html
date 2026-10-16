@@ -514,6 +514,29 @@
         .stage.split .divider {
             margin: 24px 0;
         }
+
+        .translate-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+        .translate-overlay.hidden { display: none; }
+        .translate-text {
+            color: #fff;
+            font-size: 2rem;
+            font-style: italic;
+            letter-spacing: 0.05em;
+            animation: translate-pulse 1.6s ease-in-out infinite;
+        }
+        @keyframes translate-pulse {
+            0%, 100% { opacity: 0.45; }
+            50% { opacity: 1; }
+        }
     </style>
 </head>
 <body>
@@ -585,6 +608,10 @@
             </div>
         </div>
         <input type="file" id="bgFileInput" accept="image/png,image/jpeg,image/gif,image/webp,image/bmp" hidden>
+    </div>
+
+    <div id="translateOverlay" class="translate-overlay hidden">
+        <div class="translate-text">translating...</div>
     </div>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
@@ -1531,17 +1558,11 @@
         (function () {
             const urlParams = new URLSearchParams(window.location.search);
             const autoclose = urlParams.get('autoclose') === '1';
+            const autotranslate = urlParams.get('autotranslate') === '1';
             if (!location.hash || location.hash.length < 2) return;
             const hashText = decodeURIComponent(location.hash.slice(1));
             if (!hashText) return;
             history.replaceState(null, '', location.pathname + location.search);
-
-            loadInput(hashText);
-            if (entries.length === 0) return;
-
-            if (window.parent && window.parent !== window && closeBtn) {
-                closeBtn.hidden = false;
-            }
 
             const inIframe = window.parent && window.parent !== window;
             const onEnd = autoclose
@@ -1585,11 +1606,79 @@
                 }, 1500);
             }
 
-            if (document.readyState === 'complete') {
-                prepareVoiceAndPlay();
-            } else {
-                window.addEventListener('load', prepareVoiceAndPlay, { once: true });
+            function loadAndPlay(text) {
+                loadInput(text);
+                if (entries.length === 0) {
+                    hideTranslateOverlay();
+                    return;
+                }
+                if (inIframe && closeBtn) closeBtn.hidden = false;
+                if (document.readyState === 'complete') {
+                    prepareVoiceAndPlay();
+                } else {
+                    window.addEventListener('load', prepareVoiceAndPlay, { once: true });
+                }
             }
+
+            const overlay = document.getElementById('translateOverlay');
+            function showTranslateOverlay() {
+                if (overlay) overlay.classList.remove('hidden');
+            }
+            function hideTranslateOverlay() {
+                if (overlay) overlay.classList.add('hidden');
+            }
+
+            if (autotranslate) {
+                async function runTranslate() {
+                    const enSentences = hashText.trim()
+                        .split(/(?<=[.?!])\s+/)
+                        .map(s => s.replace(/\s+/g, ' ').trim())
+                        .filter(s => s.length > 0);
+                    if (enSentences.length === 0) {
+                        hideTranslateOverlay();
+                        showError('没有识别到英文句子');
+                        return;
+                    }
+                    showTranslateOverlay();
+                    try {
+                        const resp = await fetch('https://next-reader-psi.vercel.app/api/translate', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                text: enSentences.join('\n'),
+                                targetLang: 'ZH'
+                            })
+                        });
+                        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                        const data = await resp.json();
+                        const cnText = (data && typeof data.text === 'string' ? data.text : '').trim();
+                        const cnSentences = cnText
+                            .split(/(?<=[。？])\s*/)
+                            .map(s => s.replace(/\s+/g, ' ').trim())
+                            .filter(s => s.length > 0);
+                        const pairCount = Math.min(enSentences.length, cnSentences.length);
+                        if (pairCount === 0) {
+                            hideTranslateOverlay();
+                            showError('翻译结果为空');
+                            return;
+                        }
+                        const result = {};
+                        for (let i = 0; i < pairCount; i++) {
+                            result[enSentences[i]] = cnSentences[i];
+                        }
+                        hideTranslateOverlay();
+                        loadAndPlay(JSON.stringify(result, null, 2));
+                    } catch (err) {
+                        hideTranslateOverlay();
+                        showError('翻译失败: ' + (err && err.message ? err.message : String(err)));
+                    }
+                }
+                runTranslate();
+                return;
+            }
+
+            hideTranslateOverlay();
+            loadAndPlay(hashText);
         })();
     </script>
 </body>
