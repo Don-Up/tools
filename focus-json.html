@@ -77,7 +77,7 @@
             word-break: break-word;
             font-family: var(--en-font-family, "DejaVu Math TeX Gyre");
         }
-
+,
         .card.is-last .en {
             color: #9ccc65;
         }
@@ -241,6 +241,7 @@
             z-index: 200;
         }
         .close-btn:hover { background: #3a3a3a; }
+        .close-btn[hidden] { display: none !important; }
 
         .bg-modal {
             position: fixed;
@@ -684,6 +685,7 @@
         const pageReadBtn = document.getElementById('pageReadBtn');
         const pageCopyBtn = document.getElementById('pageCopyBtn');
         const aiBox = document.getElementById('aiBox');
+        const closeBtn = document.getElementById('closeBtn');
 
         const WORD_RE = /[A-Za-z][A-Za-z']*|[^A-Za-z]+/g;
 
@@ -1521,7 +1523,6 @@
         });
 
         // --- iframe integration (parent = reader.html) ---
-        const closeBtn = document.getElementById('closeBtn');
         closeBtn.addEventListener('click', () => {
             stopSpeaking();
             if (window.parent && window.parent !== window) {
