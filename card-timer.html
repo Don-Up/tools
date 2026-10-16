@@ -468,6 +468,42 @@
             gap: 10px;
         }
 
+        .help-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 8px;
+        }
+        .help-table td {
+            padding: 6px 12px 6px 0;
+            color: #e0e0e0;
+            font-size: 14px;
+            vertical-align: top;
+        }
+        .help-table td:first-child {
+            white-space: nowrap;
+            width: 1%;
+        }
+        .help-table kbd {
+            display: inline-block;
+            background: #2c2c2c;
+            border: 1px solid #444;
+            border-radius: 3px;
+            padding: 2px 6px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 12px;
+            color: #b0bec5;
+            margin: 0 2px;
+        }
+        .help-section-title {
+            color: #4fc3f7;
+            font-size: 13px;
+            font-weight: 600;
+            margin: 12px 0 4px;
+        }
+        .help-section-title:first-child {
+            margin-top: 0;
+        }
+
         .modal-btn {
             padding: 8px 16px;
             font-size: 14px;
@@ -589,6 +625,31 @@
         <div class="modal-buttons">
             <button class="modal-btn cancel" onclick="closeEditModal()">Cancel</button>
             <button class="modal-btn confirm" onclick="confirmEdit()">OK</button>
+        </div>
+    </div>
+</div>
+
+<div id="helpModal" class="modal-overlay">
+    <div class="modal">
+        <h3>键盘快捷键</h3>
+        <div class="help-section-title">键盘</div>
+        <table class="help-table">
+            <tr><td><kbd>A</kbd></td><td>显示最上方列表项的答案(忽略处于倒计时状态的)</td></tr>
+            <tr><td><kbd>S</kbd></td><td>重启当前显示答案的列表项</td></tr>
+            <tr><td><kbd>X</kbd></td><td>永久删除当前显示答案的列表项(不进回收站)</td></tr>
+            <tr><td><kbd>D</kbd></td><td>删除当前显示答案的列表项</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td>关闭弹窗</td></tr>
+            <tr><td><kbd>Alt</kbd>+<kbd>1</kbd></td><td>显示本快捷键列表</td></tr>
+        </table>
+        <div class="help-section-title">鼠标</div>
+        <table class="help-table">
+            <tr><td>单击</td><td>置顶/取消置顶</td></tr>
+            <tr><td><kbd>Alt</kbd>+单击</td><td>移到底部/取消</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+单击</td><td>删除(进回收站)</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+单击</td><td>永久删除</td></tr>
+        </table>
+        <div class="modal-buttons">
+            <button class="modal-btn confirm" onclick="closeHelpModal()">关闭</button>
         </div>
     </div>
 </div>
@@ -1825,6 +1886,15 @@ ${getName(timer)}
         currentEditTimerId = null;
     }
 
+    function openHelpModal() {
+        document.getElementById('helpModal').classList.add('active');
+    }
+
+    function closeHelpModal() {
+        const modal = document.getElementById('helpModal');
+        if (modal) modal.classList.remove('active');
+    }
+
     function match2result(match) {
         const words = match.split(" ");
         const result = words.map((w, i) => {
@@ -1919,6 +1989,14 @@ ${getName(timer)}
         if (e.key === 'Escape') {
             closeModal();
             closeEditModal();
+            closeHelpModal();
+            return;
+        }
+        if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && (e.key === '1' || e.code === 'Digit1')) {
+            const tag = e.target && e.target.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) return;
+            e.preventDefault();
+            openHelpModal();
             return;
         }
         if (e.key === 'a' || e.key === 'A') {
@@ -1946,6 +2024,15 @@ ${getName(timer)}
             restartTimer(currentAnswerTimerId);
             return;
         }
+        if (e.key === 'x' || e.key === 'X') {
+            if (e.ctrlKey || e.metaKey || e.altKey) return;
+            const tag = e.target && e.target.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) return;
+            if (currentAnswerTimerId == null) return;
+            e.preventDefault();
+            deleteTimer(currentAnswerTimerId, true);
+            return;
+        }
         if ((e.key === 'd' || e.key === 'D') && currentAnswerTimerId != null) {
             const tag = e.target && e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) return;
@@ -1966,6 +2053,12 @@ ${getName(timer)}
     document.getElementById('modalOverlay').addEventListener('click', (e) => {
         if (e.target.id === 'modalOverlay') {
             closeModal();
+        }
+    });
+
+    document.getElementById('helpModal').addEventListener('click', (e) => {
+        if (e.target.id === 'helpModal') {
+            closeHelpModal();
         }
     });
 
