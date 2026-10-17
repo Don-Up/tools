@@ -167,7 +167,7 @@
             display: flex;
             align-items: center;
             gap: 4px;
-            cursor: pointer;
+            cursor: pointer;key
         }
         .mode-radio-label input {
             width: 14px;
@@ -3706,6 +3706,7 @@
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
             e.preventDefault();
+            e.stopImmediatePropagation();
             openRubyAddModal();
             return;
         }
