@@ -1972,9 +1972,7 @@
             noteDisplay.hidden = true;
             return;
         }
-        const isMaskedMode = currentMode === 2 || currentMode === 3;
-        const isRevealed = currentMode === 1 || enRevealed;
-        noteDisplay.textContent = isRevealed ? note : '💡';
+        noteDisplay.textContent = note;
         noteDisplay.hidden = false;
     }
 
