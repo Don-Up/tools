@@ -386,6 +386,10 @@
             color: #4fc3f7;
         }
 
+        .code-pane .tag {
+            color: #ffb74d;
+        }
+
         .code-pane .code-empty {
             font-family: inherit;
             font-size: 16px;
@@ -1123,7 +1127,7 @@
         }
 
         function appendCodeLineContent(pre, line) {
-            const re = /(@)([A-Z][A-Za-z0-9_]*)|(\s)([A-Z][A-Za-z0-9_]*)(\s\{)|(\s)([a-z][A-Za-z0-9_]*)(\s*\()|(\.)([A-Za-z_$][A-Za-z0-9_$]*)(\s*\()/g;
+            const re = /(@)([A-Z][A-Za-z0-9_]*)|(\s)([A-Z][A-Za-z0-9_]*)(\s\{)|(\s)([a-z][A-Za-z0-9_]*)(\s*\()|(\.)([A-Za-z_$][A-Za-z0-9_$]*)(\s*\()|(<)([A-Za-z][A-Za-z0-9_-]*)|(<\/)([A-Za-z][A-Za-z0-9_-]*)/g;
             let last = 0;
             let m;
             while ((m = re.exec(line)) !== null) {
@@ -1134,7 +1138,7 @@
                     span.textContent = m[1] + m[2];
                     pre.appendChild(span);
                 } else {
-                    pre.appendChild(document.createTextNode(m[3] || m[6] || m[9]));
+                    pre.appendChild(document.createTextNode(m[3] || m[6] || m[9] || m[12] || m[14]));
                     const span = document.createElement('span');
                     if (m[4]) {
                         span.className = 'cls';
@@ -1146,12 +1150,19 @@
                         span.textContent = m[7];
                         pre.appendChild(span);
                         pre.appendChild(document.createTextNode(m[8]));
-                    } else {
-                        // m[10]: .method( 形式
+                    } else if (m[10]) {
                         span.className = 'mth-call';
                         span.textContent = m[10];
                         pre.appendChild(span);
                         pre.appendChild(document.createTextNode(m[11]));
+                    } else if (m[13]) {
+                        span.className = 'tag';
+                        span.textContent = m[13];
+                        pre.appendChild(span);
+                    } else if (m[15]) {
+                        span.className = 'tag';
+                        span.textContent = m[15];
+                        pre.appendChild(span);
                     }
                 }
                 last = re.lastIndex;
