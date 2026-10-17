@@ -167,7 +167,7 @@
             display: flex;
             align-items: center;
             gap: 4px;
-            cursor: pointer;key
+            cursor: pointer;
         }
         .mode-radio-label input {
             width: 14px;
@@ -1135,8 +1135,8 @@
                     <li><kbd>Alt+H</kbd></li><li>隐藏 / 显示中文句子</li>
                     <li><kbd>Alt+J</kbd></li><li>编辑 JSON</li>
                     <li><kbd>Ctrl+I</kbd></li><li>设置背景</li>
-                    <li><kbd>Alt+Q</kbd></li><li>为选中中文添加注释</li>
-                    <li><kbd>Alt+W</kbd></li><li>选中中文标记为删除线(需先收藏)</li>
+                    <li><kbd>Alt+2</kbd></li><li>为选中中文添加注释</li>
+                    <li><kbd>Alt+3</kbd></li><li>选中中文标记为删除线(需先收藏)</li>
                     <li><kbd>Alt+1</kbd></li><li>显示 / 隐藏此帮助</li>
                 </ul>
                 <button id="helpModalClose" class="help-modal-close" type="button">关闭 (Esc)</button>
@@ -3702,15 +3702,14 @@
 
     document.addEventListener('keydown', async function (e) {
         if (document.activeElement === aiQuestion) return;
-        if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'KeyQ' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
+        if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'Digit2' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
             e.preventDefault();
-            e.stopImmediatePropagation();
             openRubyAddModal();
             return;
         }
-        if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'KeyW' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
+        if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'Digit3' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
             e.preventDefault();
