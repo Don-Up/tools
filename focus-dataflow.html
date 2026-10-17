@@ -1699,7 +1699,6 @@
             const noteIndex = sourceEl
                 ? noteSegments.findIndex(n => n.el === sourceEl)
                 : -1;
-            if (useCn) text = `${currentIndex + 1}，${text}`;
             text = prepareTextForTTS(text);
             const utterance = new SpeechSynthesisUtterance(text);
             const { lang, rate, voice } = pickTTSVoice(text);
@@ -1728,17 +1727,10 @@
             const items = [];
             const key = useCn ? 'cn' : 'en';
             const punct = useCn ? '。' : '.';
-            const stepNum = currentIndex + 1;
-            let prefixed = false;
             step.notes.forEach((note, i) => {
                 const raw = splitNote(note)[key];
                 let text = appendEndingPunctuation(raw, punct);
                 if (!text) return;
-                // 中文朗读:在第一句前加步骤序号 "1，"
-                if (useCn && !prefixed) {
-                    text = `${stepNum}，${text}`;
-                    prefixed = true;
-                }
                 // 中文没有对应的英文 word 段位,传 -1 跳过高亮
                 const noteIndex = useCn
                     ? -1
@@ -2396,6 +2388,13 @@
             else hideAiAnswer();
         }
         aiToggle.addEventListener('click', toggleAiAnswer);
+
+        document.addEventListener('click', (e) => {
+            if (aiAnswer.hidden) return;
+            if (aiAnswer.contains(e.target)) return;
+            if (e.target === aiToggle || aiToggle.contains(e.target)) return;
+            hideAiAnswer();
+        });
 
         // --- /AI 问答 ---
 
