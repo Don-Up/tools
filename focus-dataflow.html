@@ -378,6 +378,10 @@
             color: #81c784;
         }
 
+        .code-pane .mth-call {
+            color: #82b1ff;
+        }
+
         .code-pane .ann {
             color: #4fc3f7;
         }
@@ -1085,13 +1089,23 @@
 
         function parseCodeStepLines(code) {
             const map = new Map();
-            const re = /^\s*\/\/\s*(\d{2,3})(?!\d)/;
-            code.split('\n').forEach((line, i) => {
-                const m = line.match(re);
-                if (!m) return;
-                const step = parseInt(m[1], 10);
-                if (!map.has(step)) map.set(step, []);
-                map.get(step).push(i);
+            const markerRe = /^\s*\/\/\s*(\d{2,3})(?!\d)/;
+            const lines = code.split('\n');
+            let currentStep = null;
+            lines.forEach((line, i) => {
+                const m = line.match(markerRe);
+                if (m) {
+                    currentStep = parseInt(m[1], 10);
+                    if (!map.has(currentStep)) map.set(currentStep, []);
+                    map.get(currentStep).push(i);
+                    return;
+                }
+                // 非 marker 行:若带右侧 // 注释,且属于当前步骤的范围,记入
+                if (currentStep === null) return;
+                if (findTrailingCommentIndex(line) >= 0) {
+                    if (!map.has(currentStep)) map.set(currentStep, []);
+                    map.get(currentStep).push(i);
+                }
             });
             return map;
         }
@@ -1108,8 +1122,8 @@
             openCodePaste();
         }
 
-        function appendCodeLine(pre, line) {
-            const re = /(@)([A-Z][A-Za-z0-9_]*)|(\s)([A-Z][A-Za-z0-9_]*)(\s\{)|(\s)([a-z][A-Za-z0-9_]*)(\s*\()/g;
+        function appendCodeLineContent(pre, line) {
+            const re = /(@)([A-Z][A-Za-z0-9_]*)|(\s)([A-Z][A-Za-z0-9_]*)(\s\{)|(\s)([a-z][A-Za-z0-9_]*)(\s*\()|(\.)([A-Za-z_$][A-Za-z0-9_$]*)(\s*\()/g;
             let last = 0;
             let m;
             while ((m = re.exec(line)) !== null) {
@@ -1120,24 +1134,54 @@
                     span.textContent = m[1] + m[2];
                     pre.appendChild(span);
                 } else {
-                    pre.appendChild(document.createTextNode(m[3] || m[6]));
+                    pre.appendChild(document.createTextNode(m[3] || m[6] || m[9]));
                     const span = document.createElement('span');
                     if (m[4]) {
                         span.className = 'cls';
                         span.textContent = m[4];
                         pre.appendChild(span);
                         pre.appendChild(document.createTextNode(m[5]));
-                    } else {
+                    } else if (m[7]) {
                         span.className = 'mth';
                         span.textContent = m[7];
                         pre.appendChild(span);
                         pre.appendChild(document.createTextNode(m[8]));
+                    } else {
+                        // m[10]: .method( 形式
+                        span.className = 'mth-call';
+                        span.textContent = m[10];
+                        pre.appendChild(span);
+                        pre.appendChild(document.createTextNode(m[11]));
                     }
                 }
                 last = re.lastIndex;
             }
             if (last < line.length) pre.appendChild(document.createTextNode(line.slice(last)));
+        }
+
+        function appendCodeLine(pre, line) {
+            appendCodeLineContent(pre, line);
             pre.appendChild(document.createTextNode('\n'));
+        }
+
+        function findTrailingCommentIndex(line) {
+            let inString = false;
+            let stringChar = null;
+            for (let i = 0; i < line.length - 1; i++) {
+                const ch = line[i];
+                if (inString) {
+                    if (ch === '\\') { i++; continue; }
+                    if (ch === stringChar) inString = false;
+                } else {
+                    if (ch === '"' || ch === "'") {
+                        inString = true;
+                        stringChar = ch;
+                    } else if (ch === '/' && line[i + 1] === '/') {
+                        return i;
+                    }
+                }
+            }
+            return -1;
         }
 
         function isCommentLine(line, inBlock) {
@@ -1239,7 +1283,19 @@
                     pre.appendChild(span);
                     pre.appendChild(document.createTextNode('\n'));
                 } else {
-                    appendCodeLine(pre, line);
+                    // 非注释行:检测是否带右侧 // 注释,若是则拆开渲染,只对注释部分高亮
+                    const commentIdx = findTrailingCommentIndex(line);
+                    if (commentIdx >= 0) {
+                        appendCodeLineContent(pre, line.slice(0, commentIdx));
+                        const span = document.createElement('span');
+                        span.className = 'cmt';
+                        if (currentLineSet.has(i)) span.classList.add('cmt-step');
+                        span.textContent = line.slice(commentIdx);
+                        pre.appendChild(span);
+                        pre.appendChild(document.createTextNode('\n'));
+                    } else {
+                        appendCodeLine(pre, line);
+                    }
                 }
                 if (inBlock && line.includes('*/')) inBlock = false;
                 else if (!inBlock && line.includes('/*') && !line.includes('*/')) inBlock = true;
