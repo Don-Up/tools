@@ -1024,6 +1024,7 @@
         let isSpeaking = false;
         let autoPlay = localStorage.getItem('focusDataflowAutoPlay') === 'true';
         let highlightEnabled = localStorage.getItem('focusDataflowHighlight') === 'true';
+        let useCn = localStorage.getItem('focusDataflowUseCn') === 'true';
         let noteSegments = [];
         let codeSnippets = '';
         let awaitingCodePaste = false;
@@ -1535,6 +1536,12 @@
             });
             ctrlRow.appendChild(cnSpeed.speedLabel);
 
+            ctrlRow.appendChild(buildToggle('Use CN', useCn, (checked) => {
+                useCn = checked;
+                localStorage.setItem('focusDataflowUseCn', String(checked));
+                if (steps.length > 0) render();
+            }));
+
             controls.appendChild(ctrlRow);
 
             return controls;
@@ -1543,8 +1550,10 @@
         function currentEnglishText() {
             const step = steps[currentIndex];
             if (!step) return '';
+            const key = useCn ? 'cn' : 'en';
+            const punct = useCn ? '。' : '.';
             return step.notes
-                .map(note => splitNote(note).en)
+                .map(note => appendEndingPunctuation(splitNote(note)[key], punct))
                 .filter(Boolean)
                 .join(' ');
         }
@@ -1587,6 +1596,7 @@
             const noteIndex = sourceEl
                 ? noteSegments.findIndex(n => n.el === sourceEl)
                 : -1;
+            if (useCn) text = `${currentIndex + 1}，${text}`;
             text = prepareTextForTTS(text);
             const utterance = new SpeechSynthesisUtterance(text);
             const { lang, rate, voice } = pickTTSVoice(text);
@@ -1613,12 +1623,24 @@
             const step = steps[currentIndex];
             if (!step) return;
             const items = [];
+            const key = useCn ? 'cn' : 'en';
+            const punct = useCn ? '。' : '.';
+            const stepNum = currentIndex + 1;
+            let prefixed = false;
             step.notes.forEach((note, i) => {
-                const en = appendEndingPunctuation(splitNote(note).en, '.');
-                if (!en) return;
-                const segNote = noteSegments[i];
-                const noteIndex = segNote && segNote.segments.length > 0 ? i : -1;
-                items.push({ text: en, noteIndex });
+                const raw = splitNote(note)[key];
+                let text = appendEndingPunctuation(raw, punct);
+                if (!text) return;
+                // 中文朗读:在第一句前加步骤序号 "1，"
+                if (useCn && !prefixed) {
+                    text = `${stepNum}，${text}`;
+                    prefixed = true;
+                }
+                // 中文没有对应的英文 word 段位,传 -1 跳过高亮
+                const noteIndex = useCn
+                    ? -1
+                    : (noteSegments[i] && noteSegments[i].segments.length > 0 ? i : -1);
+                items.push({ text, noteIndex });
             });
             if (!items.length) return;
             stopSpeaking();
@@ -1778,9 +1800,10 @@
             }
             noteSegments = attachWordSegments(card);
             card.addEventListener('click', (e) => {
-                const enEl = e.target.closest('.note-en');
-                if (enEl) {
-                    speakText(enEl.textContent, enEl);
+                const selector = useCn ? '.note-cn' : '.note-en';
+                const el = e.target.closest(selector);
+                if (el) {
+                    speakText(el.textContent, el);
                 }
             });
             pane.appendChild(card);
