@@ -148,6 +148,7 @@
             font-size: 17px;
             line-height: 1.6;
             color: #78909c;
+            cursor: pointer;
         }
 
         .status {
@@ -1906,8 +1907,7 @@
             }
             noteSegments = attachWordSegments(card);
             card.addEventListener('click', (e) => {
-                const selector = useCn ? '.note-cn' : '.note-en';
-                const el = e.target.closest(selector);
+                const el = e.target.closest('.note-en, .note-cn');
                 if (el) {
                     speakText(el.textContent, el);
                 }
