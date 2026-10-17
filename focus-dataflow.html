@@ -364,6 +364,12 @@
             color: #ffffff;
         }
 
+        .code-pane .cmt.cmt-step {
+            background: rgba(79, 195, 247, 0.18);
+            color: #e1f5fe;
+            box-shadow: inset 2px 0 0 #4fc3f7;
+        }
+
         .code-pane .cls {
             color: #ffb74d;
         }
@@ -1027,6 +1033,7 @@
         let useCn = localStorage.getItem('focusDataflowUseCn') === 'true';
         let noteSegments = [];
         let codeSnippets = '';
+        let codeStepLines = new Map();
         let awaitingCodePaste = false;
         let commentUtterance = null;
         let speakingCmtEl = null;
@@ -1070,8 +1077,23 @@
             closeCodePaste();
             if (!code) return false;
             codeSnippets = code;
+            codeStepLines = parseCodeStepLines(code);
             render();
+            scrollHighlightIntoView();
             return true;
+        }
+
+        function parseCodeStepLines(code) {
+            const map = new Map();
+            const re = /^\s*\/\/\s*(\d{2,3})(?!\d)/;
+            code.split('\n').forEach((line, i) => {
+                const m = line.match(re);
+                if (!m) return;
+                const step = parseInt(m[1], 10);
+                if (!map.has(step)) map.set(step, []);
+                map.get(step).push(i);
+            });
+            return map;
         }
 
         async function requestCodePaste() {
@@ -1199,12 +1221,20 @@
             }
             const code = codeSnippets;
             const pre = document.createElement('pre');
+            const currentStep = currentIndex + 1;
+            const currentLineSet = new Set(codeStepLines.get(currentStep) || []);
+            const stepMarkerRe = /^\s*\/\/\s*(\d{2,3})(?!\d)/;
             let inBlock = false;
-            code.split('\n').forEach(line => {
+            code.split('\n').forEach((line, i) => {
                 const comment = isCommentLine(line, inBlock);
                 if (comment) {
                     const span = document.createElement('span');
                     span.className = 'cmt';
+                    const m = line.match(stepMarkerRe);
+                    if (m) {
+                        span.dataset.step = m[1];
+                        if (currentLineSet.has(i)) span.classList.add('cmt-step');
+                    }
                     span.textContent = line;
                     pre.appendChild(span);
                     pre.appendChild(document.createTextNode('\n'));
@@ -1217,6 +1247,22 @@
             pane.appendChild(pre);
             applyKeywordHighlights(pre);
             return pane;
+        }
+
+        function scrollHighlightIntoView() {
+            const codePane = stage.querySelector('.code-pane');
+            if (!codePane) return;
+            const targetSpan = codePane.querySelector('.cmt-step');
+            if (!targetSpan) return;
+            const paneRect = codePane.getBoundingClientRect();
+            if (paneRect.height === 0) return;
+            const lineRect = targetSpan.getBoundingClientRect();
+            const lineY = lineRect.top - paneRect.top + codePane.scrollTop;
+            const lineHeight = lineRect.height || targetSpan.offsetHeight;
+            const viewportHeight = paneRect.height;
+            const targetScroll = lineY - (viewportHeight / 2) + (lineHeight / 2);
+            const maxScroll = codePane.scrollHeight - viewportHeight;
+            codePane.scrollTop = Math.max(0, Math.min(maxScroll, targetScroll));
         }
 
         function parseExplanations(jsonText) {
@@ -1418,6 +1464,7 @@
             stopSpeaking();
             currentIndex = index;
             render();
+            scrollHighlightIntoView();
             if (autoPlay) speakCurrentStep();
             hideAiAnswer();
         }
@@ -2445,7 +2492,12 @@
             if (steps.length === 0) return;
             if (!isAiTextarea && isOtherInput) return;
 
-            if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+            if (e.key === 'PageDown') {
+                e.preventDefault();
+                speakCurrentStep();
+                return;
+            }
+            if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === ' ') {
                 e.preventDefault();
                 stopSpeaking();
                 goTo(currentIndex + 1);
