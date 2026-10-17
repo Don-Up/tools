@@ -377,19 +377,22 @@
             cursor: pointer;
         }
         .ai-panel-title:hover { color: #cfd8dc; }
-        .ai-context-label {
-            font-size: 11px;
-            color: #6c757d;
-            text-align: center;
-            margin-top: 2px;
-            margin-bottom: 2px;
-            opacity: 0.85;
-            font-family: ui-monospace, 'Cascadia Mono', Menlo, Consolas, monospace;
+        .ai-panel-toolbar {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 0 4px 1px;
+            font-size: 12px;
+            color: #aaa;
         }
-        .ai-context-label.shifted {
-            color: #4fc3f7;
-            opacity: 1;
+        .ai-full-context-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            user-select: none;
         }
+        .ai-full-context-toggle input { margin: 0; cursor: pointer; }
         .ai-answer {
             position: fixed;
             bottom: 10px;
@@ -1216,6 +1219,17 @@
                 </div>
             </div>
         </div>
+        <div id="viewContextModal" class="fav-modal" hidden>
+            <div id="viewContextBackdrop" class="fav-modal-backdrop"></div>
+            <div class="fav-modal-panel">
+                <div class="fav-modal-title">当前背景上下文</div>
+                <pre id="viewContextBody" class="fav-input note-textarea" style="white-space: pre-wrap; overflow: auto; cursor: text;"></pre>
+                <div class="fav-modal-actions">
+                    <button id="viewContextCopy">复制</button>
+                    <button id="viewContextClose">关闭</button>
+                </div>
+            </div>
+        </div>
         <div id="jsonEditModal" class="fav-modal" hidden>
             <div id="jsonEditBackdrop" class="fav-modal-backdrop"></div>
             <div class="fav-modal-panel">
@@ -1280,7 +1294,12 @@
 
     <div id="aiPanel" class="ai-panel">
         <div class="ai-panel-title">AI 问答</div>
-        <div id="aiContextLabel" class="ai-context-label">上下文 → 句子 1/1</div>
+        <div class="ai-panel-toolbar">
+            <label class="ai-full-context-toggle" title="关闭后只发送当前句子 + 选区，不发送整篇 JSON">
+                <input type="checkbox" id="aiFullContext" checked>
+                Full Context
+            </label>
+        </div>
         <div class="ai-input-row">
             <textarea id="aiQuestion" class="ai-textarea" placeholder="向 AI 提问当前句子...（Ctrl+Enter 发送，Esc 中止/清空）"></textarea>
             <div class="ai-button-row">
@@ -1419,7 +1438,12 @@
     const aiQuestion = document.getElementById('aiQuestion');
     const aiSend = document.getElementById('aiSend');
     const aiToggle = document.getElementById('aiToggle');
-    const aiContextLabel = document.getElementById('aiContextLabel');
+    const aiFullContextToggle = document.getElementById('aiFullContext');
+    const viewContextModal = document.getElementById('viewContextModal');
+    const viewContextBackdrop = document.getElementById('viewContextBackdrop');
+    const viewContextBody = document.getElementById('viewContextBody');
+    const viewContextCopy = document.getElementById('viewContextCopy');
+    const viewContextClose = document.getElementById('viewContextClose');
     let bgImages = [];
     let currentBgId = -1;
     let onlyBgId = -1;
@@ -1449,6 +1473,22 @@
 
     let aiMessages = [];
     let aiAbortController = null;
+    let lastPastedText = '';
+    let aiFullContext = true;
+    const STORAGE_KEY_AI_FULL_CONTEXT = 'cn2en-json:aiFullContext';
+    (function loadAiFullContext() {
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY_AI_FULL_CONTEXT);
+            if (saved !== null) aiFullContext = saved === '1';
+        } catch (e) {}
+        aiFullContextToggle.checked = aiFullContext;
+    })();
+    aiFullContextToggle.addEventListener('change', () => {
+        aiFullContext = aiFullContextToggle.checked;
+        try {
+            localStorage.setItem(STORAGE_KEY_AI_FULL_CONTEXT, aiFullContext ? '1' : '0');
+        } catch (e) {}
+    });
     let isAiStreaming = false;
     let lastRenderedIndex = null;
 
@@ -1795,6 +1835,7 @@
             return;
         }
         clearAiHistory();
+        lastPastedText = '';
         entries = payload;
         currentIndex = 0;
         saveState();
@@ -2248,6 +2289,7 @@
             }
         }
         entries = pairs;
+        lastPastedText = '';
         if (entries.length === 0) {
             currentIndex = 0;
         } else if (currentIndex >= entries.length) {
@@ -2648,11 +2690,43 @@
     function resetSystemPrompt() {
         systemPromptInput.value = DEFAULT_AI_SYSTEM_PROMPT;
     }
-    aiPanelTitle.addEventListener('click', openSystemPromptModal);
+
+    function openViewContextModal() {
+        const parts = buildAiContextParts();
+        viewContextBody.textContent = parts.length > 0
+            ? parts.join('\n\n---\n\n')
+            : '(页面暂无内容)';
+        viewContextModal.hidden = false;
+    }
+    function closeViewContextModal() {
+        viewContextModal.hidden = true;
+    }
+    async function copyViewContext() {
+        const text = viewContextBody.textContent || '';
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(text);
+            } else {
+                viewContextBody.focus();
+                document.execCommand('copy');
+            }
+        } catch (e) {
+            viewContextBody.focus();
+            document.execCommand('copy');
+        }
+    }
+
+    aiPanelTitle.addEventListener('click', (e) => {
+        if (e.altKey) openViewContextModal();
+        else openSystemPromptModal();
+    });
     systemPromptOk.addEventListener('click', saveSystemPrompt);
     systemPromptCancel.addEventListener('click', closeSystemPromptModal);
     systemPromptReset.addEventListener('click', resetSystemPrompt);
     systemPromptBackdrop.addEventListener('click', closeSystemPromptModal);
+    viewContextBackdrop.addEventListener('click', closeViewContextModal);
+    viewContextClose.addEventListener('click', closeViewContextModal);
+    viewContextCopy.addEventListener('click', copyViewContext);
     systemPromptInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
             e.preventDefault();
@@ -2720,11 +2794,55 @@
     helpModalClose.addEventListener('click', closeHelpModal);
     helpModalBackdrop.addEventListener('click', closeHelpModal);
 
-    function buildAiMessages(userQuestion) {
+    function getCurrentSelectionText() {
+        try {
+            const sel = window.getSelection && window.getSelection();
+            if (!sel) return '';
+            return sel.toString().trim();
+        } catch (e) {
+            return '';
+        }
+    }
+
+    function cleanForAi(s) {
+        return String(s || '')
+            .replace(/\{\{([^}]*)\}\}[\s\S]*?\]\]/g, '$1')
+            .replace(/<\/?del\b[^>]*>/g, '')
+            .replace(/<\/?small\b[^>]*>/g, '');
+    }
+
+    function buildAiContextParts() {
+        const ctxParts = [];
+        if (aiFullContext) {
+            const fullText = lastPastedText
+                ? cleanForAi(lastPastedText)
+                : (entries.length > 0
+                    ? JSON.stringify(Object.fromEntries(entries.map(([cn, en]) => [cleanForAi(cn), en])), null, 2)
+                    : '');
+            if (fullText) {
+                ctxParts.push(`【当前 JSON / text 原文(完整未裁剪)】\n${fullText}`);
+            }
+        }
         const [cn, en] = entries[currentIndex] || ['', ''];
-        const ctxUser = en
-                ? `当前学习句子:\n中文: ${cn}\n英文: ${en}`
-                : `当前学习句子:\n中文: ${cn}`;
+        if (cn || en) {
+            const cleanCn = cleanForAi(cn);
+            const line = en
+                ? `中文: ${cleanCn}\n英文: ${en}`
+                : `中文: ${cleanCn}`;
+            ctxParts.push(`【用户当前正在学习的句子(第 ${currentIndex + 1} / 共 ${entries.length} 句)】\n${line}`);
+        }
+        const selection = getCurrentSelectionText();
+        if (selection) {
+            ctxParts.push(`【用户当前选中的内容】\n${selection}`);
+        }
+        return ctxParts;
+    }
+
+    function buildAiMessages(userQuestion) {
+        const ctxParts = buildAiContextParts();
+        const ctxUser = ctxParts.length > 0
+            ? ctxParts.join('\n\n---\n\n')
+            : '(页面暂无内容)';
         const msgs = [
             { role: 'user', content: ctxUser },
             { role: 'assistant', content: '好的,我了解了当前句子。请提问。' },
@@ -3345,23 +3463,6 @@
         }
     }
 
-    function updateAiContextLabel(shifted) {
-        if (entries.length === 0) {
-            aiContextLabel.textContent = '上下文 → 无';
-        } else {
-            aiContextLabel.textContent = `上下文 → 句子 ${currentIndex + 1}/${entries.length}`;
-        }
-        if (shifted) {
-            aiContextLabel.classList.add('shifted');
-            clearTimeout(updateAiContextLabel._timer);
-            updateAiContextLabel._timer = setTimeout(() => {
-                aiContextLabel.classList.remove('shifted');
-            }, 800);
-        } else {
-            aiContextLabel.classList.remove('shifted');
-        }
-    }
-
     function render() {
         const indexChanged = lastRenderedIndex !== null && lastRenderedIndex !== currentIndex;
         if (indexChanged) {
@@ -3369,7 +3470,6 @@
             enRevealed = false;
         }
         lastRenderedIndex = currentIndex;
-        updateAiContextLabel(indexChanged);
         if (entries.length === 0) {
             emptyState.hidden = false;
             counter.hidden = true;
@@ -3711,6 +3811,7 @@
     function parseAndLoad(text) {
         clearCardsInIframe();
         clearAiHistory();
+        lastPastedText = text;
         const stripped = text.replace(/^📕.*$/gm, '');
         const jsonStrings = extractJsonObjects(stripped);
         if (jsonStrings.length === 0) {
