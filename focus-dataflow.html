@@ -1025,7 +1025,7 @@
         let autoPlay = localStorage.getItem('focusDataflowAutoPlay') === 'true';
         let highlightEnabled = localStorage.getItem('focusDataflowHighlight') === 'true';
         let noteSegments = [];
-        let codeSnippets = {};
+        let codeSnippets = '';
         let awaitingCodePaste = false;
         let commentUtterance = null;
         let speakingCmtEl = null;
@@ -1038,33 +1038,10 @@
             return /^\s*```/.test(line) || /^\s*\/\/\s*=+\s*$/.test(line);
         }
 
-        function parseCodeSnippets(text, validSteps) {
+        function parseCodeSnippets(text) {
             const lines = text.replace(/\r\n/g, '\n').split('\n');
-            const snippets = {};
-            let current = null;
-            let lastStep = 0;
-            let buffer = [];
-            const flush = () => {
-                if (current === null) return;
-                snippets[current] = buffer.join('\n').replace(/^(?:\s*\/\/\s*\n|\n)+/, '').replace(/\s+$/, '');
-            };
-            const allowed = validSteps instanceof Set ? validSteps : null;
-            lines.forEach(line => {
-                const m = line.match(/^\s*\/\/\s*(\d{2,3})(?=\s|$)/);
-                const step = m ? parseInt(m[1], 10) : 0;
-                const inRange = allowed ? allowed.has(step) : true;
-                const isMarker = step > lastStep && inRange;
-                if (isMarker) {
-                    flush();
-                    lastStep = step;
-                    current = step;
-                    buffer = [];
-                    return;
-                }
-                if (current !== null && !isDecorationLine(line)) buffer.push(line);
-            });
-            flush();
-            return snippets;
+            const cleaned = lines.filter(line => !isDecorationLine(line));
+            return cleaned.join('\n').replace(/^\s*\n+/, '').replace(/\s+$/, '');
         }
 
         function openCodePaste() {
@@ -1088,10 +1065,10 @@
         }
 
         function loadCode(text) {
-            const snippets = parseCodeSnippets(text, validStepNumbers);
+            const code = parseCodeSnippets(text);
             closeCodePaste();
-            if (Object.keys(snippets).length === 0) return false;
-            codeSnippets = snippets;
+            if (!code) return false;
+            codeSnippets = code;
             render();
             return true;
         }
@@ -1212,14 +1189,14 @@
         function buildCodePane() {
             const pane = document.createElement('div');
             pane.className = 'code-pane';
-            const code = codeSnippets[currentIndex + 1];
-            if (!code) {
+            if (!codeSnippets) {
                 const empty = document.createElement('div');
                 empty.className = 'code-empty';
-                empty.textContent = '本步骤没有对应的代码片段';
+                empty.textContent = '没有代码片段';
                 pane.appendChild(empty);
                 return pane;
             }
+            const code = codeSnippets;
             const pre = document.createElement('pre');
             let inBlock = false;
             code.split('\n').forEach(line => {
@@ -1741,8 +1718,8 @@
             const codePane = stage.querySelector('.code-pane');
             const codeScroll = codePane ? codePane.scrollTop : 0;
             stage.innerHTML = '';
-            // 当前步骤是否带代码片段(按 currentIndex 决定,而不是整个文档是否含 code)
-            const hasCode = !!codeSnippets[currentIndex + 1];
+            // 代码片段整体展示,与当前步骤无关,保持跨步骤一致的显示
+            const hasCode = !!codeSnippets;
             stage.classList.toggle('with-code', hasCode);
             document.body.classList.toggle('with-code', hasCode);
             if (steps.length === 0) return;
@@ -1827,7 +1804,7 @@
             pane.appendChild(status);
             stage.appendChild(pane);
 
-            if (codeSnippets[currentIndex + 1]) {
+            if (codeSnippets) {
                 const codePaneEl = buildCodePane();
                 stage.appendChild(codePaneEl);
                 if (codeScroll) codePaneEl.scrollTop = codeScroll;
@@ -1868,8 +1845,6 @@
             if (step.notes && step.notes.length > 0) {
                 sections.push(step.notes.join('\n\n'));
             }
-            const code = codeSnippets[currentIndex + 1];
-            if (code) sections.push(code);
             const text = sections.join('\n\n---\n\n');
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(text).then(flash).catch(() => legacyCopy(text, flash));
