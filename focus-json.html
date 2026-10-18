@@ -1255,7 +1255,7 @@
             readingFromIndex = i;
             currentIndex = i;
             render();
-            speakCombined(i);
+            speakCombined(i, { force: true });
         }
 
         function buildCard() {
@@ -1265,6 +1265,7 @@
                 card.classList.add('is-last');
             }
             card.dataset.index = String(currentIndex);
+            card.title = 'Alt+点击播放英文';
 
             const en = document.createElement('div');
             en.className = 'en';
@@ -1283,7 +1284,8 @@
                 card.appendChild(cn);
             }
 
-            card.addEventListener('click', () => {
+            card.addEventListener('click', (e) => {
+                if (!e.altKey) return;
                 speakFromIndex(parseInt(card.dataset.index, 10));
             });
             return card;
