@@ -155,6 +155,9 @@
             color: #ff9800;
             font-weight: normal;
         }
+        .note-cn .note-annot {
+            color: #66bb6a;
+        }
         .note-cn .note-arrow {
             color: #4fc3f7;
         }
@@ -1411,13 +1414,39 @@
             const lines = String(text).split('\n');
             return lines.map(line => {
                 const colonIdx = line.indexOf(':');
-                if (colonIdx > 0) {
-                    const left = line.slice(0, colonIdx);
-                    const right = line.slice(colonIdx);
-                    return `<b class="note-var">${escapeHtml(left)}</b>${highlightArrows(escapeHtml(right))}`;
-                }
-                return highlightArrows(escapeHtml(line));
+                const beforeColon = colonIdx > 0 ? line.slice(0, colonIdx) : line;
+                const afterColon = colonIdx > 0 ? line.slice(colonIdx) : '';
+                return colorizeLeft(beforeColon) + highlightArrows(escapeHtml(afterColon));
             }).join('<br>');
+        }
+
+        function colorizeLeft(text) {
+            let result = '';
+            let inBracket = false;
+            let current = '';
+            const flush = () => {
+                if (!current) return;
+                const esc = escapeHtml(current);
+                result += inBracket
+                    ? `<span class="note-annot">${esc}</span>`
+                    : `<span class="note-var">${esc}</span>`;
+                current = '';
+            };
+            for (const ch of text) {
+                if (ch === '[' && !inBracket) {
+                    flush();
+                    inBracket = true;
+                    current = '[';
+                } else if (ch === ']' && inBracket) {
+                    current += ']';
+                    flush();
+                    inBracket = false;
+                } else {
+                    current += ch;
+                }
+            }
+            flush();
+            return result;
         }
 
         function highlightArrows(s) {
