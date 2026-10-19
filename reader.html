@@ -401,6 +401,32 @@
             line-height: 1.5;
         }
 
+        .file-structure {
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            background: #1e1e1e;
+            padding: 8px 12px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+        .file-structure .file-structure-folder {
+            color: #4fc3f7;
+            font-weight: 600;
+        }
+        .file-structure .file-structure-file {
+            color: #cfd8dc;
+            display: block;
+        }
+        .file-structure .file-structure-path {
+            color: #888;
+            display: block;
+        }
+        .file-structure .file-structure-file:hover,
+        .file-structure .file-structure-folder:hover {
+            background: rgba(79, 195, 247, 0.12);
+        }
+
         /* 遮罩层（背景半透明） */
         .modal-overlay {
             position: fixed;
@@ -1403,13 +1429,49 @@
 
             if (line.toString().trim() === "```" && isInCodeBlock) {
                 isInCodeBlock = false;
-                const pre = document.createElement("pre");
-                const code = document.createElement("code");
-                code.className = `language-${codeLang}`;
-                code.textContent = codeLines.join("\n");
-                pre.appendChild(code);
-                contentDiv.appendChild(pre);
-                hljs.highlightElement(code);
+                if (codeLang === 'file-structure') {
+                    const wrapper = document.createElement("div");
+                    wrapper.className = "file-structure";
+                    for (const raw of codeLines) {
+                        if (!raw.trim()) continue;
+                        const folderMatch = raw.match(/^(\s*)(?:.*?)(📂)\s+(.*)$/);
+                        const fileMatch = !folderMatch && raw.match(/^(\s*)(?:.*?)(📃|🖊️)\s+(.*)$/);
+                        const m = folderMatch || fileMatch;
+                        const indent = m ? m[1] : raw.match(/^(\s*)/)[1];
+                        if (m) {
+                            const marker = m[2];
+                            const text = m[3];
+                            const isFolder = folderMatch !== null;
+                            const el = document.createElement(isFolder ? "div" : "span");
+                            el.className = isFolder
+                                ? "file-structure-folder"
+                                : "file-structure-file";
+                            if (indent) el.style.paddingLeft = `${indent.length}ch`;
+                            el.textContent = `${marker} ${text}`;
+                            el.style.cursor = "pointer";
+                            el.title = "点击播放";
+                            el.onclick = function (event) {
+                                playText(event, el.textContent, el, true);
+                            };
+                            wrapper.appendChild(el);
+                        } else {
+                            const el = document.createElement("span");
+                            el.className = "file-structure-path";
+                            if (indent) el.style.paddingLeft = `${indent.length}ch`;
+                            el.textContent = raw.trimEnd();
+                            wrapper.appendChild(el);
+                        }
+                    }
+                    contentDiv.appendChild(wrapper);
+                } else {
+                    const pre = document.createElement("pre");
+                    const code = document.createElement("code");
+                    code.className = `language-${codeLang}`;
+                    code.textContent = codeLines.join("\n");
+                    pre.appendChild(code);
+                    contentDiv.appendChild(pre);
+                    hljs.highlightElement(code);
+                }
 
                 return;
             }
