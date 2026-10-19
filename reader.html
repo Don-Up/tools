@@ -1721,7 +1721,7 @@
         //
         utterance.onend = () => {
             if (playSelection) {
-                playText(event, window.getSelection().toString(), null, false, false, true)
+                isPlaying = false;
             } else {
                 isPlaying = false;
                 if (!autoPlay.checked && hideReadCheckbox.checked && clickedElement) {
