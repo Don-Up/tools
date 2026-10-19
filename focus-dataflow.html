@@ -149,6 +149,14 @@
             line-height: 1.6;
             color: #78909c;
             cursor: pointer;
+            white-space: pre-wrap;
+        }
+        .note-cn .note-var {
+            color: #ff9800;
+            font-weight: 600;
+        }
+        .note-cn .note-arrow {
+            color: #4fc3f7;
         }
 
         .status {
@@ -1399,6 +1407,30 @@
             };
         }
 
+        function renderNoteCnHtml(text) {
+            const lines = String(text).split('\n');
+            return lines.map(line => {
+                const colonIdx = line.indexOf(':');
+                if (colonIdx > 0) {
+                    const left = line.slice(0, colonIdx);
+                    const right = line.slice(colonIdx);
+                    return `<b class="note-var">${escapeHtml(left)}</b>${highlightArrows(escapeHtml(right))}`;
+                }
+                return highlightArrows(escapeHtml(line));
+            }).join('<br>');
+        }
+
+        function highlightArrows(s) {
+            return s.replace(/→/g, '<span class="note-arrow">→</span>');
+        }
+
+        function escapeHtml(s) {
+            return String(s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
         function appendEndingPunctuation(text, mark) {
             const trimmed = (text || '').replace(/\s+$/, '');
             if (!trimmed) return text;
@@ -1898,7 +1930,7 @@
                     if (parts.cn) {
                         const cn = document.createElement('div');
                         cn.className = 'note-cn';
-                        cn.textContent = appendEndingPunctuation(parts.cn, '。');
+                        cn.innerHTML = renderNoteCnHtml(appendEndingPunctuation(parts.cn, '。'));
                         box.appendChild(cn);
                     }
                     notes.appendChild(box);
