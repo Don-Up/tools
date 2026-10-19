@@ -120,6 +120,13 @@
             color: #81c784;
         }
 
+        .flow-line .file-ref {
+            color: #4fc3f7;
+            font-size: 14px;
+            vertical-align: middle;
+            margin-left: 4px;
+        }
+
         .notes {
             margin-top: 32px;
             padding-top: 28px;
@@ -1509,23 +1516,31 @@
                 span.appendChild(arrow);
                 span.appendChild(document.createTextNode(' '));
             }
-            appendMethods(span, m[3]);
+            appendTokens(span, m[3]);
             return span;
         }
 
-        function appendMethods(parent, text) {
-            const re = /\.([A-Za-z_$][A-Za-z0-9_$]*)(?=\s*\()/g;
+        function appendTokens(parent, text) {
+            const re = /\.([A-Za-z_$][A-Za-z0-9_$]*)(?=\s*\()|<\{([^}]+)\}>/g;
             let last = 0;
             let m;
             while ((m = re.exec(text)) !== null) {
-                parent.appendChild(document.createTextNode(text.slice(last, m.index + 1)));
-                const span = document.createElement('span');
-                span.className = 'method';
-                span.textContent = m[1];
-                parent.appendChild(span);
-                last = m.index + 1 + m[1].length;
+                if (m.index > last) parent.appendChild(document.createTextNode(text.slice(last, m.index)));
+                if (m[1] !== undefined) {
+                    parent.appendChild(document.createTextNode('.'));
+                    const span = document.createElement('span');
+                    span.className = 'method';
+                    span.textContent = m[1];
+                    parent.appendChild(span);
+                } else if (m[2] !== undefined) {
+                    const small = document.createElement('small');
+                    small.className = 'file-ref';
+                    small.textContent = m[2];
+                    parent.appendChild(small);
+                }
+                last = m.index + m[0].length;
             }
-            parent.appendChild(document.createTextNode(text.slice(last)));
+            if (last < text.length) parent.appendChild(document.createTextNode(text.slice(last)));
         }
 
         function buildToggle(labelText, checked, onChange) {
