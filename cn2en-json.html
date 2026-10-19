@@ -1207,6 +1207,18 @@
                 </div>
             </div>
         </div>
+        <div id="globalNoteModal" class="fav-modal" hidden>
+            <div id="globalNoteBackdrop" class="fav-modal-backdrop"></div>
+            <div class="fav-modal-panel">
+                <div class="fav-modal-title">全局笔记(所有 JSON 共享)</div>
+                <textarea id="globalNoteInput" class="fav-input note-textarea" placeholder="记录跨 JSON 共用的笔记, 例如学习计划、常见错误等..."></textarea>
+                <div class="fav-modal-actions">
+                    <button id="globalNoteOk">保存</button>
+                    <button id="globalNoteDelete">清空</button>
+                    <button id="globalNoteCancel">关闭</button>
+                </div>
+            </div>
+        </div>
         <div id="systemPromptModal" class="fav-modal" hidden>
             <div id="systemPromptBackdrop" class="fav-modal-backdrop"></div>
             <div class="fav-modal-panel">
@@ -1386,6 +1398,12 @@
     const favListSearchClear = document.getElementById('favListSearchClear');
     const favStatus = document.getElementById('favStatus');
     const noteModal = document.getElementById('noteModal');
+    const globalNoteModal = document.getElementById('globalNoteModal');
+    const globalNoteBackdrop = document.getElementById('globalNoteBackdrop');
+    const globalNoteInput = document.getElementById('globalNoteInput');
+    const globalNoteOk = document.getElementById('globalNoteOk');
+    const globalNoteDelete = document.getElementById('globalNoteDelete');
+    const globalNoteCancel = document.getElementById('globalNoteCancel');
     const noteBackdrop = document.getElementById('noteBackdrop');
     const noteInput = document.getElementById('noteInput');
     const noteOk = document.getElementById('noteOk');
@@ -2607,6 +2625,54 @@
         } catch {}
     }
 
+    const STORAGE_KEY_GLOBAL_NOTE = 'cn2en-json:globalNote';
+    function getGlobalNote() {
+        try { return localStorage.getItem(STORAGE_KEY_GLOBAL_NOTE) || ''; }
+        catch (e) { return ''; }
+    }
+    function openGlobalNoteModal() {
+        globalNoteInput.value = getGlobalNote();
+        globalNoteModal.hidden = false;
+        setTimeout(() => { globalNoteInput.focus(); }, 0);
+    }
+    function closeGlobalNoteModal() {
+        globalNoteModal.hidden = true;
+    }
+    function saveGlobalNote() {
+        const text = globalNoteInput.value;
+        try {
+            if (text.trim()) {
+                localStorage.setItem(STORAGE_KEY_GLOBAL_NOTE, text);
+            } else {
+                localStorage.removeItem(STORAGE_KEY_GLOBAL_NOTE);
+            }
+        } catch (e) {
+            showError(`保存全局笔记失败: ${e.message || e}`);
+            return;
+        }
+        closeGlobalNoteModal();
+    }
+    function clearGlobalNote() {
+        globalNoteInput.value = '';
+        try { localStorage.removeItem(STORAGE_KEY_GLOBAL_NOTE); }
+        catch (e) {}
+        closeGlobalNoteModal();
+    }
+    globalNoteOk.addEventListener('click', saveGlobalNote);
+    globalNoteDelete.addEventListener('click', clearGlobalNote);
+    globalNoteCancel.addEventListener('click', closeGlobalNoteModal);
+    globalNoteBackdrop.addEventListener('click', closeGlobalNoteModal);
+    globalNoteInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            globalNoteOk.click();
+        }
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            closeGlobalNoteModal();
+        }
+    });
+
     favSaveCancel.addEventListener('click', closeFavSaveModal);
     favSaveBackdrop.addEventListener('click', closeFavSaveModal);
     favSaveOk.addEventListener('click', async () => {
@@ -3193,6 +3259,10 @@
                 e.preventDefault();
                 e.stopPropagation();
                 closeNoteModal();
+            } else if (!globalNoteModal.hidden) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeGlobalNoteModal();
             } else if (!jsonEditModal.hidden) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -3230,7 +3300,7 @@
             else closeHelpModal();
             return;
         }
-        if (!favSaveModal.hidden || !noteModal.hidden || !jsonEditModal.hidden || !cardsModal.hidden || !rubyNotesModal.hidden || !rubyAddModal.hidden || !systemPromptModal.hidden || !helpModal.hidden || !cnModal.hidden || !bgModal.hidden) {
+        if (!favSaveModal.hidden || !noteModal.hidden || !globalNoteModal.hidden || !jsonEditModal.hidden || !cardsModal.hidden || !rubyNotesModal.hidden || !rubyAddModal.hidden || !systemPromptModal.hidden || !helpModal.hidden || !cnModal.hidden || !bgModal.hidden) {
             return;
         }
         if (e.key === 'f' && e.altKey && !e.ctrlKey && !e.metaKey) {
@@ -3855,6 +3925,13 @@
 
     document.addEventListener('keydown', async function (e) {
         if (document.activeElement === aiQuestion) return;
+        if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'KeyN' && globalNoteModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
+            const tag = e.target.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+            e.preventDefault();
+            openGlobalNoteModal();
+            return;
+        }
         if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'Digit2' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
@@ -3955,7 +4032,7 @@
             }
         }
         if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'KeyC') {
-            if (!favSaveModal.hidden || !noteModal.hidden || !jsonEditModal.hidden || !cardsModal.hidden || !rubyNotesModal.hidden) return;
+            if (!favSaveModal.hidden || !noteModal.hidden || !globalNoteModal.hidden || !jsonEditModal.hidden || !cardsModal.hidden || !rubyNotesModal.hidden) return;
             if (!currentFavId) return;
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
@@ -3964,7 +4041,7 @@
             return;
         }
         if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'KeyP') {
-            if (!favSaveModal.hidden || !noteModal.hidden || !jsonEditModal.hidden || !cardsModal.hidden || !rubyNotesModal.hidden) return;
+            if (!favSaveModal.hidden || !noteModal.hidden || !globalNoteModal.hidden || !jsonEditModal.hidden || !cardsModal.hidden || !rubyNotesModal.hidden) return;
             if (!currentFavId) return;
             if (cnText.querySelectorAll('ruby').length === 0) return;
             const tag = e.target.tagName;
