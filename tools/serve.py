@@ -14,16 +14,20 @@ origin,使页面可以用相对路径 fetch('dataflow.txt')。
 from __future__ import annotations
 
 import argparse
+import json
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import unquote, urlparse
+from urllib.parse import quote, unquote, urlparse
 
 TOOLS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TOOLS_DIR.parent
 
 # 本机数据目录:存放 dataflow.txt、viewer.html 等
 DATA_ROOT = Path(r"C:\Users\10691\Desktop\PyServer Files")
+
+# 入口页:同时作为根路径的默认页面
+INDEX_FILENAME = "start.html"
 
 # URL 路径 -> 本地文件
 EXTRA_FILES = {
@@ -32,8 +36,60 @@ EXTRA_FILES = {
 }
 
 
+def file_entry(name, path, is_dir, size, mtime):
+    return {
+        "name": name,
+        "path": path,
+        "is_dir": is_dir,
+        "size": size,
+        "mtime": mtime,
+    }
+
+
+def list_files(root, extra_files=None, skip=()):
+    """列出根目录下的文件,忽略点开头的目录和指定的名字。"""
+    entries = []
+    seen = set()
+    try:
+        children = sorted(root.iterdir(), key=lambda p: p.name.lower())
+    except OSError:
+        children = []
+    for p in children:
+        if p.name.startswith(".") or p.name in skip:
+            continue
+        try:
+            st = p.stat()
+        except OSError:
+            continue
+        is_dir = p.is_dir()
+        entries.append(
+            file_entry(
+                p.name,
+                "/" + quote(p.name) + ("/" if is_dir else ""),
+                is_dir,
+                0 if is_dir else st.st_size,
+                st.st_mtime,
+            )
+        )
+        seen.add(p.name.lower())
+
+    # 仓库里映射进来的文件也一并列出(同一文件只出现一次)
+    for url_path, target in (extra_files or {}).items():
+        if target.name.lower() in seen or not target.is_file():
+            continue
+        try:
+            st = target.stat()
+        except OSError:
+            continue
+        seen.add(target.name.lower())
+        entries.append(file_entry(target.name, url_path, False, st.st_size, st.st_mtime))
+
+    entries.sort(key=lambda e: (not e["is_dir"], e["name"].lower()))
+    return {"root": root.name, "entries": entries}
+
+
 class CORSHandler(SimpleHTTPRequestHandler):
-    """静态文件服务 + CORS 头 + 固定路径映射。"""
+    """静态文件服务 + CORS 头 + 固定路径映射 + 文件列表接口。"""
 
     def __init__(self, *args, directory, extra_files=None, **kwargs):
         # 必须在 super().__init__ 之前赋值:BaseHTTPRequestHandler.__init__ 会立刻
@@ -51,8 +107,25 @@ class CORSHandler(SimpleHTTPRequestHandler):
         self.send_response(204)
         self.end_headers()
 
+    def do_GET(self):
+        if urlparse(self.path).path == "/api/files":
+            root = Path(self.directory)
+            payload = list_files(root, self.extra_files, skip={INDEX_FILENAME})
+            body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        super().do_GET()
+
     def translate_path(self, path):
         clean = unquote(urlparse(path).path)
+        if clean == "/":
+            index = Path(self.directory) / INDEX_FILENAME
+            if index.is_file():
+                return str(index)
         target = self.extra_files.get(clean)
         if target is not None:
             return str(target)

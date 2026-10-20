@@ -1,4 +1,5 @@
 import sys
+import json
 import tempfile
 import threading
 import unittest
@@ -68,6 +69,44 @@ class ServeTests(unittest.TestCase):
         with self.assertRaises(urllib.error.HTTPError) as ctx:
             urllib.request.urlopen(self.url("/nope.txt"))
         self.assertEqual(ctx.exception.code, 404)
+
+    def test_api_files_lists_directory(self):
+        with urllib.request.urlopen(self.url("/api/files")) as r:
+            self.assertEqual(r.status, 200)
+            self.assertIn("application/json", r.headers.get("Content-Type", ""))
+            data = json.loads(r.read().decode("utf-8"))
+        names = [e["name"] for e in data["entries"]]
+        self.assertIn("dataflow.txt", names)
+
+    def test_api_files_ignores_dot_entries(self):
+        (self.data_root / ".claude").mkdir()
+        (self.data_root / ".dev").mkdir()
+        (self.data_root / ".hidden").write_text("x", encoding="utf-8")
+        with urllib.request.urlopen(self.url("/api/files")) as r:
+            data = json.loads(r.read().decode("utf-8"))
+        names = [e["name"] for e in data["entries"]]
+        for hidden in (".claude", ".dev", ".hidden"):
+            self.assertNotIn(hidden, names)
+        self.assertIn("dataflow.txt", names)
+
+    def test_api_files_ignores_index_html(self):
+        (self.data_root / "start.html").write_text("<html></html>", encoding="utf-8")
+        with urllib.request.urlopen(self.url("/api/files")) as r:
+            data = json.loads(r.read().decode("utf-8"))
+        names = [e["name"] for e in data["entries"]]
+        self.assertNotIn("start.html", names)
+
+    def test_api_files_includes_mapped_files(self):
+        with urllib.request.urlopen(self.url("/api/files")) as r:
+            data = json.loads(r.read().decode("utf-8"))
+        paths = [e["path"] for e in data["entries"]]
+        self.assertIn("/focus-dataflow.html", paths)
+
+    def test_root_serves_index_html(self):
+        (self.data_root / "start.html").write_text("ENTRY-PAGE", encoding="utf-8")
+        with urllib.request.urlopen(self.url("/")) as r:
+            self.assertEqual(r.status, 200)
+            self.assertEqual(r.read().decode("utf-8"), "ENTRY-PAGE")
 
 
 @unittest.skipUnless(serve.DATA_ROOT.is_dir(), "本机数据目录不存在")
