@@ -1013,6 +1013,62 @@
     <textarea id="codePaste" class="code-paste"></textarea>
     <div id="codeHint" class="code-hint hidden">按 <b>Ctrl</b> + <b>V</b> 粘贴代码片段,按 <b>Esc</b> 取消</div>
 
+    <script id="readCore">
+        (function () {
+            'use strict';
+            const IPV4 = /^\d{1,3}(\.\d{1,3}){3}$/;
+            const DEFAULT_SOURCE_URL = 'http://192.168.2.101:8000/dataflow.txt';
+            const RELATIVE_SOURCE = 'dataflow.txt';
+            const STORAGE_KEY = 'focusDataflowSource';
+
+            function resolveSourceUrl(saved, loc) {
+                const raw = typeof saved === 'string' ? saved.trim() : '';
+                if (raw) return raw;
+                const protocol = (loc && loc.protocol) || '';
+                const hostname = (loc && loc.hostname) || '';
+                if (protocol === 'http:' && IPV4.test(hostname)) return RELATIVE_SOURCE;
+                return DEFAULT_SOURCE_URL;
+            }
+
+            async function fetchText(url, fetchImpl) {
+                const f = fetchImpl || (typeof fetch === 'function' ? fetch : null);
+                if (!f) return { ok: false, error: '当前环境不支持 fetch' };
+                let res;
+                try {
+                    res = await f(url, { cache: 'no-store' });
+                } catch (err) {
+                    return { ok: false, error: (err && err.message) || String(err) };
+                }
+                if (!res.ok) return { ok: false, error: 'HTTP ' + res.status };
+                let text;
+                try {
+                    text = await res.text();
+                } catch (err) {
+                    return { ok: false, error: (err && err.message) || String(err) };
+                }
+                if (!text || !text.trim()) return { ok: false, error: '内容为空' };
+                return { ok: true, text: text };
+            }
+
+            function applyText(text, deps) {
+                if (!text || !text.trim()) return { ok: false, error: '内容为空' };
+                deps.setLastPasted(text);
+                deps.loadText(text);
+                deps.showClose();
+                return { ok: true };
+            }
+
+            globalThis.ReadCore = {
+                DEFAULT_SOURCE_URL: DEFAULT_SOURCE_URL,
+                RELATIVE_SOURCE: RELATIVE_SOURCE,
+                STORAGE_KEY: STORAGE_KEY,
+                resolveSourceUrl: resolveSourceUrl,
+                fetchText: fetchText,
+                applyText: applyText,
+            };
+        })();
+    </script>
+
     <script>
         'use strict';
 

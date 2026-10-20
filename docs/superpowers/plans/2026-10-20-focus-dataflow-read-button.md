@@ -362,7 +362,7 @@ test('applyText 依次写入 lastPastedText、调用 loadText 并显示关闭按
 - [ ] **Step 2: 运行测试，确认失败**
 
 Run: `node --test tests/focus-dataflow-read.test.js`
-Expected: FAIL —— `HTML 中必须存在 <script id="readCore"> 块`（7 个测试中前 7 个全部失败）
+Expected: FAIL —— `HTML 中必须存在 <script id="readCore"> 块`（9 个测试全部失败）
 
 - [ ] **Step 3: 在 `focus-dataflow.html` 插入 readCore 块**
 
@@ -429,7 +429,7 @@ Expected: FAIL —— `HTML 中必须存在 <script id="readCore"> 块`（7 个�
 - [ ] **Step 4: 运行测试，确认通过**
 
 Run: `node --test tests/focus-dataflow-read.test.js`
-Expected: PASS —— 7 tests passed
+Expected: PASS —— 9 tests passed
 
 - [ ] **Step 5: 提交**
 
@@ -671,7 +671,7 @@ Expected: FAIL —— 4 个新测试失败（`id="readBtn"` 匹配不到）
 - [ ] **Step 7: 运行测试，确认通过**
 
 Run: `node --test tests/focus-dataflow-read.test.js`
-Expected: PASS —— 11 tests passed
+Expected: PASS —— 13 tests passed
 
 - [ ] **Step 8: 提交**
 
