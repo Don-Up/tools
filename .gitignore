@@ -1,3 +1,4 @@
 .idea
 tools/ai-translator/ai-translator.ini
 __pycache__/
+tools/launcher.log
