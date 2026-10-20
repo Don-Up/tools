@@ -65,7 +65,6 @@ def run():
 
     ip = local_ip()
     base = f'http://{ip}:{PORT}'
-    mobile_url = f'{base}/focus-dataflow-mobile.html'
     state = {'httpd': None}
 
     root = tk.Tk()
@@ -76,14 +75,12 @@ def run():
     status = tk.Label(root, text='', bg='#252525', fg='#8bc34a', font=('Microsoft YaHei UI', 11))
     status.pack(pady=(14, 6))
 
-    addr_row = tk.Frame(root, bg='#252525')
-    addr_row.pack(pady=(0, 4))
-    tk.Label(addr_row, text='手机访问', bg='#252525', fg='#888').pack(side='left', padx=(0, 6))
-    entry = tk.Entry(addr_row, width=44, justify='center', readonlybackground='#1e1e1e',
+    # 只显示目录根地址:数据目录下的文件都能直接访问,路径自己补
+    entry = tk.Entry(root, width=46, justify='center', readonlybackground='#1e1e1e',
                      fg='#cfd8dc', bg='#1e1e1e', insertbackground='#cfd8dc',
                      relief='flat', bd=0)
-    entry.pack(side='left')
-    entry.insert(0, mobile_url)
+    entry.pack(pady=(0, 4))
+    entry.insert(0, base + '/')
 
     def set_status(text, color):
         status.config(text=text, fg=color)
