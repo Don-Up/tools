@@ -131,5 +131,86 @@ class DefaultConfigTests(unittest.TestCase):
         self.assertTrue((serve.DATA_ROOT / "h-dataflow.txt").is_file())
 
 
+
+class AzureTtsEndpointTests(ServeTests):
+    """TTS 代理端点。"""
+
+    def test_tts_status_reports_availability(self):
+        with urllib.request.urlopen(self.url("/api/tts")) as r:
+            data = json.loads(r.read().decode("utf-8"))
+        self.assertIn("available", data)
+        self.assertIn("voices", data)
+        self.assertTrue(data["voices"], "音色列表不该为空")
+
+    def test_tts_post_without_key_returns_error(self):
+        import azure_tts
+
+        original = azure_tts.KEY_FILE
+        azure_tts.KEY_FILE = Path(self.tmp.name) / "no-such.key"
+        try:
+            req = urllib.request.Request(
+                self.url("/api/tts"),
+                data=json.dumps({"text": "你好", "voice": "zh-CN-XiaoxiaoNeural"}).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with self.assertRaises(urllib.error.HTTPError) as ctx:
+                urllib.request.urlopen(req)
+            self.assertEqual(ctx.exception.code, 502)
+            body = json.loads(ctx.exception.read().decode("utf-8"))
+            self.assertIn("error", body)
+        finally:
+            azure_tts.KEY_FILE = original
+
+    def test_tts_post_rejects_bad_json(self):
+        req = urllib.request.Request(
+            self.url("/api/tts"), data=b"not json",
+            headers={"Content-Type": "application/json"}, method="POST",
+        )
+        with self.assertRaises(urllib.error.HTTPError) as ctx:
+            urllib.request.urlopen(req)
+        self.assertEqual(ctx.exception.code, 400)
+
+
+class AzureTtsUnitTests(unittest.TestCase):
+    """azure_tts 模块的纯逻辑部分。"""
+
+    def test_split_text_keeps_short_text_whole(self):
+        import azure_tts
+        self.assertEqual(azure_tts.split_text("短句"), ["短句"])
+
+    def test_split_text_splits_long_text(self):
+        import azure_tts
+        long_text = "句子。" * 1000
+        chunks = azure_tts.split_text(long_text, limit=600)
+        self.assertGreater(len(chunks), 1)
+        for chunk in chunks:
+            self.assertLessEqual(len(chunk), 600)
+        self.assertEqual("".join(chunks), long_text)
+
+    def test_build_ssml_always_sets_rate(self):
+        # Azure 会拒绝没有 rate 属性的 <prosody>(直接 400)
+        import azure_tts
+        ssml = azure_tts.build_ssml("你好", "zh-CN-XiaoxiaoNeural", 1.0)
+        self.assertIn("rate='100%'", ssml)
+        self.assertIn("xml:lang='zh-CN'", ssml)
+
+    def test_build_ssml_escapes_markup(self):
+        import azure_tts
+        ssml = azure_tts.build_ssml("a < b & c", "zh-CN-XiaoxiaoNeural", 1.0)
+        self.assertIn("&lt;", ssml)
+        self.assertIn("&amp;", ssml)
+
+    def test_build_ssml_language_follows_text(self):
+        import azure_tts
+        # 多语言音色念中文,语言也要跟着中文走
+        ssml = azure_tts.build_ssml("你好", "en-US-AvaMultilingualNeural", 1.0)
+        self.assertIn("xml:lang='zh-CN'", ssml)
+
+    def test_rate_is_clamped(self):
+        import azure_tts
+        self.assertIn("rate='50%'", azure_tts.build_ssml("x", "zh-CN-XiaoxiaoNeural", 0.1))
+        self.assertIn("rate='200%'", azure_tts.build_ssml("x", "zh-CN-XiaoxiaoNeural", 9))
+
 if __name__ == "__main__":
     unittest.main()

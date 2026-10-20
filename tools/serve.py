@@ -20,6 +20,8 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import quote, unquote, urlparse
 
+import azure_tts
+
 TOOLS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TOOLS_DIR.parent
 
@@ -112,18 +114,56 @@ class CORSHandler(SimpleHTTPRequestHandler):
         self.send_response(204)
         self.end_headers()
 
+    def send_json(self, payload, status=200):
+        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_GET(self):
-        if urlparse(self.path).path == "/api/files":
+        path = urlparse(self.path).path
+        if path == "/api/files":
             root = Path(self.directory)
-            payload = list_files(root, self.extra_files, skip={INDEX_FILENAME})
-            body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
+            self.send_json(list_files(root, self.extra_files, skip={INDEX_FILENAME}))
+            return
+        if path == "/api/tts":
+            # 告诉页面 Azure TTS 能不能用,以及有哪些音色
+            self.send_json({
+                "available": azure_tts.is_available(),
+                "region": azure_tts.REGION,
+                "voices": azure_tts.VOICES,
+            })
             return
         super().do_GET()
+
+    def do_POST(self):
+        if urlparse(self.path).path != "/api/tts":
+            self.send_error(404, "Not Found")
+            return
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+            payload = json.loads(self.rfile.read(length).decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            self.send_json({"error": "请求体不是合法 JSON"}, 400)
+            return
+        text = str(payload.get("text") or "")
+        voice = str(payload.get("voice") or "zh-CN-XiaoxiaoNeural")
+        try:
+            rate = float(payload.get("rate") or 1.0)
+        except (TypeError, ValueError):
+            rate = 1.0
+        try:
+            audio = azure_tts.synthesize(text, voice=voice, rate=rate)
+        except azure_tts.AzureTtsUnavailable as exc:
+            self.send_json({"error": str(exc)}, 502)
+            return
+        self.send_response(200)
+        self.send_header("Content-Type", "audio/mpeg")
+        self.send_header("Content-Length", str(len(audio)))
+        self.end_headers()
+        self.wfile.write(audio)
 
     def translate_path(self, path):
         clean = unquote(urlparse(path).path)

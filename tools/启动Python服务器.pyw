@@ -23,7 +23,8 @@ LOG_PATH = Path(__file__).resolve().parent / 'launcher.log'
 if sys.stdout is None:
     sys.stdout = open(os.devnull, 'w', encoding='utf-8')
 if sys.stderr is None:
-    sys.stderr = open(LOG_PATH, 'a', encoding='utf-8')
+    # buffering=1 = 行缓冲:否则访问日志会卡在缓冲区里,看不到实时的请求记录
+    sys.stderr = open(LOG_PATH, 'a', encoding='utf-8', buffering=1)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
