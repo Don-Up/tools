@@ -12,7 +12,6 @@ import os
 import socket
 import sys
 import threading
-import webbrowser
 from pathlib import Path
 
 LOG_PATH = Path(__file__).resolve().parent / 'launcher.log'
@@ -32,10 +31,6 @@ import serve  # noqa: E402
 
 HOST = '0.0.0.0'
 PORT = 8000
-PAGES = [
-    ('打开移动版', '/focus-dataflow-mobile.html'),
-    ('打开桌面版', '/focus-dataflow.html'),
-]
 
 
 def log(msg):
@@ -70,6 +65,7 @@ def run():
 
     ip = local_ip()
     base = f'http://{ip}:{PORT}'
+    mobile_url = f'{base}/focus-dataflow-mobile.html'
     state = {'httpd': None}
 
     root = tk.Tk()
@@ -77,20 +73,17 @@ def run():
     root.resizable(False, False)
     root.configure(bg='#252525')
 
-    def label(text, **kw):
-        tk.Label(root, text=text, bg='#252525', fg='#cfd8dc', **kw).pack()
-
     status = tk.Label(root, text='', bg='#252525', fg='#8bc34a', font=('Microsoft YaHei UI', 11))
     status.pack(pady=(14, 6))
 
     addr_row = tk.Frame(root, bg='#252525')
     addr_row.pack(pady=(0, 4))
-    tk.Label(addr_row, text='地址', bg='#252525', fg='#888').pack(side='left', padx=(0, 6))
-    entry = tk.Entry(addr_row, width=34, justify='center', readonlybackground='#1e1e1e',
+    tk.Label(addr_row, text='手机访问', bg='#252525', fg='#888').pack(side='left', padx=(0, 6))
+    entry = tk.Entry(addr_row, width=44, justify='center', readonlybackground='#1e1e1e',
                      fg='#cfd8dc', bg='#1e1e1e', insertbackground='#cfd8dc',
                      relief='flat', bd=0)
     entry.pack(side='left')
-    entry.insert(0, base)
+    entry.insert(0, mobile_url)
 
     def set_status(text, color):
         status.config(text=text, fg=color)
@@ -135,29 +128,12 @@ def run():
         else:
             stop()
 
-    def copy_addr():
-        root.clipboard_clear()
-        root.clipboard_append(base)
-        set_status('地址已复制: ' + base, '#4fc3f7')
-
-    btn_row = tk.Frame(root, bg='#252525')
-    btn_row.pack(pady=(12, 6))
-    for text, path in PAGES:
-        b = tk.Button(btn_row, text=text, width=13, bg='#3a3a3a', fg='#e0e0e0',
-                      activebackground='#4a4a4a', activeforeground='#fff',
-                      relief='flat', bd=0, pady=6,
-                      command=lambda p=path: webbrowser.open(base + p))
-        b.pack(side='left', padx=3)
-
     bottom = tk.Frame(root, bg='#252525')
-    bottom.pack(pady=(0, 14))
-    tk.Button(bottom, text='复制地址', width=13, bg='#3a3a3a', fg='#e0e0e0',
-              activebackground='#4a4a4a', activeforeground='#fff',
-              relief='flat', bd=0, pady=6, command=copy_addr).pack(side='left', padx=3)
-    toggle_btn = tk.Button(bottom, text='停止服务', width=13, bg='#2a6edc', fg='#fff',
+    bottom.pack(pady=(14, 16))
+    toggle_btn = tk.Button(bottom, text='停止服务', width=16, bg='#2a6edc', fg='#fff',
                            activebackground='#3a86ff', activeforeground='#fff',
-                           relief='flat', bd=0, pady=6, command=toggle)
-    toggle_btn.pack(side='left', padx=3)
+                           relief='flat', bd=0, pady=8, command=toggle)
+    toggle_btn.pack()
 
     def on_close():
         stop()
