@@ -101,6 +101,32 @@ test('applyText 依次写入 lastPastedText、调用 loadText 并显示关闭按
     ]);
 });
 
+test('fetchText 默认使用全局 fetch 时以 globalThis 为 this 调用', async () => {
+    const html = readHtml();
+    const m = html.match(/<script id="readCore">([\s\S]*?)<\/script>/);
+    assert.ok(m, 'HTML 中必须存在 <script id="readCore"> 块');
+    const seen = [];
+    // 必须用严格模式:浏览器里的 fetch 是 WebIDL 严格操作,this 为 undefined 时会抛
+    // Illegal invocation;宽松模式的函数会把 this 兜底成全局对象,测不出问题。
+    const fakeFetch = function () {
+        'use strict';
+        seen.push(this);
+        return Promise.resolve({ ok: true, status: 200, text: async () => 'x' });
+    };
+    const sandbox = { console, fetch: fakeFetch };
+    sandbox.globalThis = sandbox;
+    vm.createContext(sandbox);
+    vm.runInContext(m[1], sandbox);
+    const r = await sandbox.ReadCore.fetchText('dataflow.txt');
+    assert.equal(r.ok, true);
+    assert.equal(seen.length, 1);
+    assert.equal(
+        typeof seen[0],
+        'object',
+        'fetch 必须以 globalThis 为 this 调用，否则浏览器会抛 Illegal invocation'
+    );
+});
+
 test('页面包含读取按钮、toast 与移动端媒体查询', () => {
     const html = readHtml();
     assert.match(html, /id="readBtn"/);

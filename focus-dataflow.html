@@ -1084,7 +1084,9 @@
             }
 
             async function fetchText(url, fetchImpl) {
-                const f = fetchImpl || (typeof fetch === 'function' ? fetch : null);
+                // 必须 bind(globalThis):浏览器里的 fetch 是 WebIDL 严格操作,
+                // 解绑后裸调用会抛 TypeError: Illegal invocation。
+                const f = fetchImpl || (typeof fetch === 'function' ? fetch.bind(globalThis) : null);
                 if (!f) return { ok: false, error: '当前环境不支持 fetch' };
                 let res;
                 try {

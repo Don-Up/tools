@@ -387,7 +387,7 @@ Expected: FAIL —— `HTML 中必须存在 <script id="readCore"> 块`（9 个�
             }
 
             async function fetchText(url, fetchImpl) {
-                const f = fetchImpl || (typeof fetch === 'function' ? fetch : null);
+                const f = fetchImpl || (typeof fetch === 'function' ? fetch.bind(globalThis) : null);
                 if (!f) return { ok: false, error: '当前环境不支持 fetch' };
                 let res;
                 try {
