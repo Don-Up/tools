@@ -566,6 +566,57 @@
         }
         #closeBtn.visible { display: block; }
 
+        #readBtn {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            height: 36px;
+            padding: 0 14px;
+            background: rgba(40, 40, 40, 0.85);
+            color: #e0e0e0;
+            border: 1px solid #555;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 15px;
+            line-height: 1;
+            z-index: 100;
+            font-family: inherit;
+        }
+        #readBtn:hover {
+            background: rgba(60, 60, 60, 0.95);
+            color: #fff;
+            border-color: #00BFFF;
+        }
+        #readBtn:disabled {
+            opacity: 0.6;
+            cursor: default;
+        }
+
+        .read-toast {
+            position: fixed;
+            left: 50%;
+            bottom: 28px;
+            transform: translateX(-50%);
+            max-width: 80vw;
+            padding: 10px 16px;
+            background: rgba(60, 30, 30, 0.92);
+            color: #ffcdd2;
+            border: 1px solid #7a3b3b;
+            border-radius: 6px;
+            font-size: 14px;
+            z-index: 200;
+            display: none;
+        }
+        .read-toast.show { display: block; }
+
+        @media (max-width: 600px) {
+            #readBtn {
+                height: 44px;
+                font-size: 16px;
+                padding: 0 18px;
+            }
+        }
+
         .ai-panel {
             left: 10px;
             bottom: 10px;
@@ -958,6 +1009,8 @@
 <body>
     <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
     <button id="closeBtn" title="Close">×</button>
+    <button id="readBtn" type="button" title="读取本地数据流文件（长按可修改地址）">读取</button>
+    <div id="readToast" class="read-toast"></div>
     <div id="kwModal" class="kw-modal hidden" role="dialog" aria-modal="true" aria-label="关键字高亮">
         <div class="kw-backdrop" id="kwBackdrop"></div>
         <div class="kw-panel">
@@ -1008,7 +1061,7 @@
     </div>
 
     <div class="stage" id="stage">
-        <div class="hint" id="hint">按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴数据流文本<br>可选:用 <kbd>---</kbd> 分隔后追加 JSON 讲解</div>
+        <div class="hint" id="hint">按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴数据流文本<br>手机上点左上角<b>读取</b>按钮从本地服务加载<br>可选:用 <kbd>---</kbd> 分隔后追加 JSON 讲解</div>
     </div>
     <textarea id="codePaste" class="code-paste"></textarea>
     <div id="codeHint" class="code-hint hidden">按 <b>Ctrl</b> + <b>V</b> 粘贴代码片段,按 <b>Esc</b> 取消</div>
@@ -1726,19 +1779,19 @@
             });
             controls.appendChild(enSpeed.speedLabel);
 
-            const readBtn = document.createElement('button');
+            const speakBtn = document.createElement('button');
             const english = currentEnglishText();
-            readBtn.textContent = isSpeaking ? 'Stop' : 'Read';
-            readBtn.disabled = !english;
-            if (isSpeaking) readBtn.classList.add('speaking');
-            readBtn.addEventListener('click', () => {
+            speakBtn.textContent = isSpeaking ? 'Stop' : 'Read';
+            speakBtn.disabled = !english;
+            if (isSpeaking) speakBtn.classList.add('speaking');
+            speakBtn.addEventListener('click', () => {
                 if (isSpeaking) {
                     stopSpeaking();
                 } else {
                     speakCurrentStep();
                 }
             });
-            controls.appendChild(readBtn);
+            controls.appendChild(speakBtn);
 
             controls.appendChild(buildToggle('Auto Play', autoPlay, (checked) => {
                 autoPlay = checked;
@@ -2289,13 +2342,13 @@
             body.className = 'ai-bubble-body';
             if (role !== 'user') {
                 body.dataset.markdown = markdown;
-                const readBtn = document.createElement('button');
-                readBtn.className = 'ai-bubble-read-btn';
-                readBtn.type = 'button';
-                readBtn.textContent = '朗读';
-                readBtn.title = '朗读本条回复(过滤代码块)';
-                readBtn.addEventListener('click', () => toggleAiRead(body, readBtn));
-                label.appendChild(readBtn);
+                const aiReadBtn = document.createElement('button');
+                aiReadBtn.className = 'ai-bubble-read-btn';
+                aiReadBtn.type = 'button';
+                aiReadBtn.textContent = '朗读';
+                aiReadBtn.title = '朗读本条回复(过滤代码块)';
+                aiReadBtn.addEventListener('click', () => toggleAiRead(body, aiReadBtn));
+                label.appendChild(aiReadBtn);
 
                 const copyBtn = document.createElement('button');
                 copyBtn.className = 'ai-bubble-read-btn';
@@ -2570,6 +2623,89 @@
         closeBtn.addEventListener('click', () => {
             stopSpeaking();
             window.parent.postMessage({ type: 'focus-dataflow-close' }, '*');
+        });
+
+        // --- 读取按钮 ---
+        const readBtn = document.getElementById('readBtn');
+        const readToast = document.getElementById('readToast');
+        const readCore = globalThis.ReadCore;
+        let readToastTimer = null;
+        let readLongPressTimer = null;
+        let readLongPressFired = false;
+
+        function readSavedSource() {
+            try {
+                return localStorage.getItem(readCore.STORAGE_KEY) || '';
+            } catch (err) {
+                return '';
+            }
+        }
+
+        function currentSourceUrl() {
+            return readCore.resolveSourceUrl(readSavedSource(), window.location);
+        }
+
+        function showReadToast(msg) {
+            readToast.textContent = msg;
+            readToast.classList.add('show');
+            clearTimeout(readToastTimer);
+            readToastTimer = setTimeout(() => readToast.classList.remove('show'), 3000);
+        }
+
+        function applyRemoteText(text) {
+            return readCore.applyText(text, {
+                setLastPasted: (v) => { lastPastedText = v; },
+                loadText: (v) => loadText(v),
+                showClose: () => closeBtn.classList.add('visible'),
+            });
+        }
+
+        async function handleRead() {
+            const url = currentSourceUrl();
+            readBtn.disabled = true;
+            readBtn.textContent = '读取中';
+            const result = await readCore.fetchText(url);
+            readBtn.disabled = false;
+            readBtn.textContent = '读取';
+            if (!result.ok) {
+                showReadToast('读取失败：' + result.error);
+                return;
+            }
+            const applied = applyRemoteText(result.text);
+            if (!applied.ok) {
+                showReadToast('读取失败：' + applied.error);
+            }
+        }
+
+        function editSourceUrl() {
+            const current = readSavedSource() || currentSourceUrl();
+            const next = window.prompt('读取地址（留空则使用默认）', current);
+            if (next === null) return;
+            try {
+                localStorage.setItem(readCore.STORAGE_KEY, next.trim());
+            } catch (err) {}
+            showReadToast(next.trim() ? '已保存读取地址' : '已恢复默认地址');
+        }
+
+        readBtn.addEventListener('click', () => {
+            if (readLongPressFired) {
+                readLongPressFired = false;
+                return;
+            }
+            handleRead();
+        });
+
+        readBtn.addEventListener('pointerdown', () => {
+            readLongPressFired = false;
+            clearTimeout(readLongPressTimer);
+            readLongPressTimer = setTimeout(() => {
+                readLongPressFired = true;
+                editSourceUrl();
+            }, 600);
+        });
+
+        ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) => {
+            readBtn.addEventListener(ev, () => clearTimeout(readLongPressTimer));
         });
 
         window.addEventListener('message', (e) => {

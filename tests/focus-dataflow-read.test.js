@@ -100,3 +100,34 @@ test('applyText 依次写入 lastPastedText、调用 loadText 并显示关闭按
         ['showClose'],
     ]);
 });
+
+test('页面包含读取按钮、toast 与移动端媒体查询', () => {
+    const html = readHtml();
+    assert.match(html, /id="readBtn"/);
+    assert.match(html, /id="readToast"/);
+    assert.match(html, /@media \(max-width: 600px\)/);
+    assert.match(html, /#readBtn\s*\{/);
+    assert.match(html, /\.read-toast\s*\{/);
+});
+
+test('读取按钮绑定点击与长按事件', () => {
+    const html = readHtml();
+    assert.match(html, /readBtn\.addEventListener\('click'/);
+    assert.match(html, /readBtn\.addEventListener\('pointerdown'/);
+});
+
+test('读取按钮走的是与粘贴相同的 loadText 逻辑', () => {
+    const html = readHtml();
+    const m = html.match(/function applyRemoteText\(text\)\s*\{([\s\S]*?)\n        \}/);
+    assert.ok(m, '缺少 applyRemoteText 函数');
+    assert.match(m[1], /setLastPasted/);
+    assert.match(m[1], /loadText/);
+    assert.match(m[1], /showClose/);
+});
+
+test('空状态提示提到读取按钮', () => {
+    const html = readHtml();
+    const m = html.match(/<div class="hint" id="hint">([\s\S]*?)<\/div>/);
+    assert.ok(m, '缺少 hint 元素');
+    assert.match(m[1], /读取/);
+});
