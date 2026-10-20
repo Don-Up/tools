@@ -151,11 +151,7 @@ class CORSHandler(SimpleHTTPRequestHandler):
         text = str(payload.get("text") or "")
         voice = str(payload.get("voice") or "zh-CN-XiaoxiaoNeural")
         try:
-            rate = float(payload.get("rate") or 1.0)
-        except (TypeError, ValueError):
-            rate = 1.0
-        try:
-            audio = azure_tts.synthesize(text, voice=voice, rate=rate)
+            audio = azure_tts.synthesize(text, voice=voice)
         except azure_tts.AzureTtsUnavailable as exc:
             self.send_json({"error": str(exc)}, 502)
             return

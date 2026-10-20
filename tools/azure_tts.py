@@ -85,22 +85,27 @@ def split_text(text, limit=MAX_CHARS):
     return chunks
 
 
-def build_ssml(text, voice, rate=1.0):
+def build_ssml(text, voice):
+    """生成 SSML。
+
+    语速不在这里调:实测这个 endpoint 不认 <prosody rate> —— 50% 和 200% 合成出来的
+    音频长度一模一样,rate 的值被直接忽略了。播放速度改由客户端的
+    audio.playbackRate 控制(配合 preservesPitch 保持音调)。
+    """
     escaped = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
     # 语言按文本实际内容判定:多语言音色念中文时也要用 zh-CN,否则发音不对
     has_cn = any("一" <= ch <= "鿿" for ch in text)
     lang = "zh-CN" if (has_cn or voice.startswith("zh")) else "en-US"
-    pct = int(round(min(max(rate, 0.5), 2.0) * 100))
     # rate 属性必须给:Azure 会拒绝没有属性的 <prosody>(直接返回 400)
     return (
         "<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' "
         f"xml:lang='{lang}'><voice name='{voice}'>"
-        f"<prosody rate='{pct}%'>{escaped}</prosody></voice></speak>"
+        f"<prosody rate='100%'>{escaped}</prosody></voice></speak>"
     )
 
 
-def _synthesize_chunk(chunk, voice, rate, key):
-    ssml = build_ssml(chunk, voice, rate).encode("utf-8")
+def _synthesize_chunk(chunk, voice, key):
+    ssml = build_ssml(chunk, voice).encode("utf-8")
     req = urllib.request.Request(
         TTS_URL,
         data=ssml,
@@ -122,19 +127,19 @@ def _synthesize_chunk(chunk, voice, rate, key):
         raise AzureTtsUnavailable(f"调用 Azure 失败:{exc}") from exc
 
 
-def _synthesize_with_retry(chunk, voice, rate, key, depth=0):
+def _synthesize_with_retry(chunk, voice, key, depth=0):
     """合成一段;失败就对半再切一次 —— 响应被掐断通常说明这段太长了。"""
     try:
-        return _synthesize_chunk(chunk, voice, rate, key)
+        return _synthesize_chunk(chunk, voice, key)
     except AzureTtsUnavailable:
         if len(chunk) <= 120 or depth >= 4:
             raise
         half = len(chunk) // 2
-        return _synthesize_with_retry(chunk[:half], voice, rate, key, depth + 1) + \
-            _synthesize_with_retry(chunk[half:], voice, rate, key, depth + 1)
+        return _synthesize_with_retry(chunk[:half], voice, key, depth + 1) + \
+            _synthesize_with_retry(chunk[half:], voice, key, depth + 1)
 
 
-def synthesize(text, voice="zh-CN-XiaoxiaoNeural", rate=1.0, key=None):
+def synthesize(text, voice="zh-CN-XiaoxiaoNeural", key=None):
     """合成音频,返回 mp3 字节。"""
     key = key or read_key()
     if not key:
@@ -147,10 +152,10 @@ def synthesize(text, voice="zh-CN-XiaoxiaoNeural", rate=1.0, key=None):
     parts = []
     chunks = split_text(text)
     if len(chunks) == 1:
-        return _synthesize_with_retry(chunks[0], voice, rate, key)
+        return _synthesize_with_retry(chunks[0], voice, key)
     # 各段并行合成(顺序仍按原样拼接),否则长文要等 N 倍时间
     with ThreadPoolExecutor(max_workers=min(4, len(chunks))) as pool:
-        futures = [pool.submit(_synthesize_with_retry, c, voice, rate, key) for c in chunks]
+        futures = [pool.submit(_synthesize_with_retry, c, voice, key) for c in chunks]
         for future in futures:
             parts.append(future.result())
     return b"".join(parts)

@@ -191,26 +191,28 @@ class AzureTtsUnitTests(unittest.TestCase):
     def test_build_ssml_always_sets_rate(self):
         # Azure 会拒绝没有 rate 属性的 <prosody>(直接 400)
         import azure_tts
-        ssml = azure_tts.build_ssml("你好", "zh-CN-XiaoxiaoNeural", 1.0)
+        ssml = azure_tts.build_ssml("你好", "zh-CN-XiaoxiaoNeural")
         self.assertIn("rate='100%'", ssml)
         self.assertIn("xml:lang='zh-CN'", ssml)
 
     def test_build_ssml_escapes_markup(self):
         import azure_tts
-        ssml = azure_tts.build_ssml("a < b & c", "zh-CN-XiaoxiaoNeural", 1.0)
+        ssml = azure_tts.build_ssml("a < b & c", "zh-CN-XiaoxiaoNeural")
         self.assertIn("&lt;", ssml)
         self.assertIn("&amp;", ssml)
 
     def test_build_ssml_language_follows_text(self):
         import azure_tts
         # 多语言音色念中文,语言也要跟着中文走
-        ssml = azure_tts.build_ssml("你好", "en-US-AvaMultilingualNeural", 1.0)
+        ssml = azure_tts.build_ssml("你好", "en-US-AvaMultilingualNeural")
         self.assertIn("xml:lang='zh-CN'", ssml)
 
-    def test_rate_is_clamped(self):
+    def test_synthesize_has_no_rate_parameter(self):
+        # 语速由播放器的 playbackRate 控制,服务端只按原速合成
+        import inspect
         import azure_tts
-        self.assertIn("rate='50%'", azure_tts.build_ssml("x", "zh-CN-XiaoxiaoNeural", 0.1))
-        self.assertIn("rate='200%'", azure_tts.build_ssml("x", "zh-CN-XiaoxiaoNeural", 9))
+        self.assertNotIn("rate", inspect.signature(azure_tts.synthesize).parameters)
+        self.assertNotIn("rate", inspect.signature(azure_tts.build_ssml).parameters)
 
 if __name__ == "__main__":
     unittest.main()
