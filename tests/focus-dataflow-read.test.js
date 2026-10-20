@@ -4,9 +4,9 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-// 移动版是本地文件,不在仓库里:优先用环境变量,否则回落到用户目录下的 Desktop/html
+// 移动版是本地文件,不在仓库里:优先用环境变量,否则回落到用户目录下的 Desktop/PyServer Files
 const MOBILE_PATH = process.env.FOCUS_DATAFLOW_MOBILE_HTML
-    || path.join(process.env.USERPROFILE || '', 'Desktop', 'html', 'focus-dataflow-mobile.html');
+    || path.join(process.env.USERPROFILE || '', 'Desktop', 'PyServer Files', 'focus-dataflow-mobile.html');
 const SKIP = fs.existsSync(MOBILE_PATH) ? false : '本地移动版文件不存在: ' + MOBILE_PATH;
 
 const DESKTOP_PATH = path.join(__dirname, '..', 'focus-dataflow.html');

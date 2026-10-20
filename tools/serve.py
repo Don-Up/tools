@@ -23,7 +23,7 @@ TOOLS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TOOLS_DIR.parent
 
 # 本机数据目录:存放 dataflow.txt、viewer.html 等
-DATA_ROOT = Path(r"C:\Users\10691\Desktop\html")
+DATA_ROOT = Path(r"C:\Users\10691\Desktop\PyServer Files")
 
 # URL 路径 -> 本地文件
 EXTRA_FILES = {
