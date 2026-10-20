@@ -46,7 +46,7 @@ test('resolveSourceUrl 优先使用已保存的地址', { skip: SKIP }, () => {
 test('resolveSourceUrl 在 http 局域网地址下返回相对路径', { skip: SKIP }, () => {
     const core = loadReadCore();
     const loc = { protocol: 'http:', hostname: '192.168.2.101' };
-    assert.equal(core.resolveSourceUrl('', loc), 'dataflow.txt');
+    assert.equal(core.resolveSourceUrl('', loc), 'h-dataflow.txt');
 });
 
 test('resolveSourceUrl 在非局域网来源下返回默认绝对地址', { skip: SKIP }, () => {
@@ -54,7 +54,7 @@ test('resolveSourceUrl 在非局域网来源下返回默认绝对地址', { skip
     const loc = { protocol: 'https:', hostname: 'don-up.github.io' };
     assert.equal(
         core.resolveSourceUrl('', loc),
-        'http://192.168.2.101:8000/dataflow.txt'
+        'http://192.168.2.101:8000/h-dataflow.txt'
     );
 });
 

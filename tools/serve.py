@@ -1,7 +1,7 @@
 """同源静态服务器。
 
-把「本地数据目录」(dataflow.txt、viewer.html 等) 与 focus-dataflow 页面挂到同一个
-origin,使页面可以用相对路径 fetch('dataflow.txt')。
+把「本地数据目录」(h-dataflow.txt、viewer.html 等) 与 focus-dataflow 页面挂到同一个
+origin,使页面可以用相对路径 fetch('h-dataflow.txt')。
 
 动机:focus-dataflow 部署在 GitHub Pages(HTTPS),HTTPS 页面 fetch 内网 http 资源会被
 浏览器的混合内容策略拦截,加 CORS 头也无效。同源提供服务可以同时绕开混合内容与
@@ -23,11 +23,16 @@ from urllib.parse import quote, unquote, urlparse
 TOOLS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TOOLS_DIR.parent
 
-# 本机数据目录:存放 dataflow.txt、viewer.html 等
+# 本机数据目录:存放 h-dataflow.txt、viewer.html 等
 DATA_ROOT = Path(r"C:\Users\10691\Desktop\PyServer Files")
 
 # 入口页:同时作为根路径的默认页面
 INDEX_FILENAME = "start.html"
+
+# 隐藏前缀:以此开头的条目不出现在文件列表里。
+# 这类文件是给别的页面读取用的(比如数据流文本),直接打开没有意义,
+# 但仍然可以通过 URL 正常访问。
+HIDDEN_PREFIX = "h-"
 
 # URL 路径 -> 本地文件
 EXTRA_FILES = {
@@ -47,7 +52,7 @@ def file_entry(name, path, is_dir, size, mtime):
 
 
 def list_files(root, extra_files=None, skip=()):
-    """列出根目录下的文件,忽略点开头的目录和指定的名字。"""
+    """列出根目录下的文件,忽略点开头的目录、隐藏前缀的条目和指定的名字。"""
     entries = []
     seen = set()
     try:
@@ -55,7 +60,7 @@ def list_files(root, extra_files=None, skip=()):
     except OSError:
         children = []
     for p in children:
-        if p.name.startswith(".") or p.name in skip:
+        if p.name.startswith(".") or p.name.startswith(HIDDEN_PREFIX) or p.name in skip:
             continue
         try:
             st = p.stat()

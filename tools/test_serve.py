@@ -102,6 +102,22 @@ class ServeTests(unittest.TestCase):
         paths = [e["path"] for e in data["entries"]]
         self.assertIn("/focus-dataflow.html", paths)
 
+    def test_api_files_hides_prefixed_entries(self):
+        (self.data_root / "h-dataflow.txt").write_text("01 hidden", encoding="utf-8")
+        (self.data_root / "h-notes").mkdir()
+        with urllib.request.urlopen(self.url("/api/files")) as r:
+            data = json.loads(r.read().decode("utf-8"))
+        names = [e["name"] for e in data["entries"]]
+        self.assertNotIn("h-dataflow.txt", names)
+        self.assertNotIn("h-notes", names)
+        self.assertIn("dataflow.txt", names)
+
+    def test_prefixed_files_are_still_servable(self):
+        (self.data_root / "h-dataflow.txt").write_text("01 hidden", encoding="utf-8")
+        with urllib.request.urlopen(self.url("/h-dataflow.txt")) as r:
+            self.assertEqual(r.status, 200)
+            self.assertEqual(r.read().decode("utf-8"), "01 hidden")
+
     def test_root_serves_index_html(self):
         (self.data_root / "start.html").write_text("ENTRY-PAGE", encoding="utf-8")
         with urllib.request.urlopen(self.url("/")) as r:
@@ -112,7 +128,7 @@ class ServeTests(unittest.TestCase):
 @unittest.skipUnless(serve.DATA_ROOT.is_dir(), "本机数据目录不存在")
 class DefaultConfigTests(unittest.TestCase):
     def test_default_data_root_contains_dataflow(self):
-        self.assertTrue((serve.DATA_ROOT / "dataflow.txt").is_file())
+        self.assertTrue((serve.DATA_ROOT / "h-dataflow.txt").is_file())
 
 
 if __name__ == "__main__":
