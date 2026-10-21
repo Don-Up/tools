@@ -15,6 +15,10 @@
             height: 100%;
         }
 
+        rt {
+            font-size: 0.6em;   /* 相对父元素字号，常用 0.5em ~ 0.7em */
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #1e1e1e;
@@ -118,6 +122,19 @@
 
         .flow-line .method {
             color: #81c784;
+        }
+
+        /* [[基词]]注音}} → <ruby>基词<rt>注音</rt></ruby>:注音浮在基词上方 */
+        .flow-line ruby {
+            ruby-position: over;
+            ruby-align: center;
+            line-height: 2.4;
+        }
+
+        .flow-line rt {
+            color: #888;
+            font-size: 0.5em;
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
         }
 
         .file-ref {
@@ -1087,6 +1104,26 @@
             return parts;
         }
 
+        // 步骤正文拆成 token:方法名(绿) / [[基词]]注音}}(注音) / <{...}>(文件引用)
+        // 注音写成 <ruby>基词<rt>注音</rt></ruby>,由渲染层决定颜色
+        function parseTokens(text) {
+            const source = String(text === null || text === undefined ? '' : text);
+            const tokens = [];
+            const re = /\.([A-Za-z_$][A-Za-z0-9_$]*)(?=\s*\()|<\{([^}]+)\}>|\[\[([^\[\]]+)\]\]([\s\S]*?)\}\}|\[\[([^\[\]]+)\]\]/g;
+            let last = 0;
+            let m;
+            while ((m = re.exec(source)) !== null) {
+                if (m.index > last) tokens.push({ type: 'text', text: source.slice(last, m.index) });
+                if (m[1] !== undefined) tokens.push({ type: 'method', text: m[1] });
+                else if (m[2] !== undefined) tokens.push({ type: 'ref', parts: splitFileRefParts(m[2]) });
+                else if (m[3] !== undefined) tokens.push({ type: 'ruby', base: m[3], annot: m[4] });
+                else tokens.push({ type: 'ruby', base: m[5], annot: '' });
+                last = m.index + m[0].length;
+            }
+            if (last < source.length) tokens.push({ type: 'text', text: source.slice(last) });
+            return tokens;
+        }
+
         // 代码里的分节注释行:"// ===== 文件路径(说明) ====="
         function isSeparatorLine(line) {
             return /^\s*\/\/\s*={3,}/.test(String(line === null || line === undefined ? '' : line));
@@ -1197,6 +1234,7 @@
             splitStepLine: splitStepLine,
             parseCodeMarker: parseCodeMarker,
             splitFileRefParts: splitFileRefParts,
+            parseTokens: parseTokens,
             isSeparatorLine: isSeparatorLine,
             parseInput: parseInput
         };
@@ -1646,22 +1684,34 @@
             return span;
         }
 
+        // [[基词]]注音}} → <ruby>基词<rt>注音</rt></ruby>
+        function buildRuby(base, annot) {
+            const ruby = document.createElement('ruby');
+            ruby.appendChild(document.createTextNode(base));
+            const rt = document.createElement('rt');
+            rt.textContent = annot;
+            ruby.appendChild(rt);
+            return ruby;
+        }
+
         function appendTokens(parent, text) {
-            const re = /\.([A-Za-z_$][A-Za-z0-9_$]*)(?=\s*\()|<\{([^}]+)\}>/g;
-            let last = 0;
-            let m;
-            while ((m = re.exec(text)) !== null) {
-                if (m.index > last) parent.appendChild(document.createTextNode(text.slice(last, m.index)));
-                if (m[1] !== undefined) {
+            ParseCore.parseTokens(text).forEach(token => {
+                if (token.type === 'text') {
+                    parent.appendChild(document.createTextNode(token.text));
+                    return;
+                }
+                if (token.type === 'method') {
                     parent.appendChild(document.createTextNode('.'));
                     const span = document.createElement('span');
                     span.className = 'method';
-                    span.textContent = m[1];
+                    span.textContent = token.text;
                     parent.appendChild(span);
-                } else if (m[2] !== undefined) {
+                    return;
+                }
+                if (token.type === 'ref') {
                     const small = document.createElement('small');
                     small.className = 'file-ref';
-                    ParseCore.splitFileRefParts(m[2]).forEach(part => {
+                    token.parts.forEach(part => {
                         if (part.kind === 'text') {
                             small.appendChild(document.createTextNode(part.text));
                             return;
@@ -1672,10 +1722,10 @@
                         small.appendChild(span);
                     });
                     parent.appendChild(small);
+                    return;
                 }
-                last = m.index + m[0].length;
-            }
-            if (last < text.length) parent.appendChild(document.createTextNode(text.slice(last)));
+                parent.appendChild(buildRuby(token.base, token.annot));
+            });
         }
 
         function buildToggle(labelText, checked, onChange) {
