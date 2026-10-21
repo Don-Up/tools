@@ -120,11 +120,22 @@
             color: #81c784;
         }
 
-        .flow-line .file-ref {
+        .file-ref {
             color: #4fc3f7;
+        }
+
+        .flow-line .file-ref {
             font-size: 14px;
             vertical-align: middle;
             margin-left: 4px;
+        }
+
+        .file-ref .ref-name {
+            color: #ff9800;
+        }
+
+        .file-ref .ref-annot {
+            color: #888;
         }
 
         .notes {
@@ -387,6 +398,10 @@
             background: rgba(79, 195, 247, 0.18);
             color: #e1f5fe;
             box-shadow: inset 2px 0 0 #4fc3f7;
+        }
+
+        .code-pane .cmt.cmt-sep {
+            color: #888;
         }
 
         .code-pane .cls {
@@ -1013,12 +1028,185 @@
     <textarea id="codePaste" class="code-paste"></textarea>
     <div id="codeHint" class="code-hint hidden">按 <b>Ctrl</b> + <b>V</b> 粘贴代码片段,按 <b>Esc</b> 取消</div>
 
+    <script id="parseCore">
+        'use strict';
+
+        // 步骤编号:单段("1" / "01")或两级("1-1" / "1-12");每段限 1-3 位,免得把 2024-01-01 当成编号
+        const STEP_LINE_RE = /^(\d{1,3}-\d{1,3}|\d+)?\s*(?:(→|↳))?\s*([\s\S]*)$/;
+        const CODE_MARKER_RE = /^\s*\/\/\s*(?:(\d{1,3})-(\d{1,3})(?!\d)|(\d{2,3})(?!\d))/;
+
+        function normalizeStepLabel(raw) {
+            if (raw === null || raw === undefined) return null;
+            const m = String(raw).trim().match(/^(\d+)(?:-(\d+))?$/);
+            if (!m) return null;
+            const head = String(parseInt(m[1], 10));
+            if (m[2] === undefined) return head;
+            return head + '-' + parseInt(m[2], 10);
+        }
+
+        function splitStepLine(raw) {
+            const text = String(raw === null || raw === undefined ? '' : raw)
+                .replace(/^\s+/, '')
+                .replace(/\s+/g, ' ');
+            const m = text.match(STEP_LINE_RE);
+            if (!m) return { label: null, arrow: '', content: text };
+            return { label: m[1] || null, arrow: m[2] || '', content: m[3] };
+        }
+
+        function parseCodeMarker(line) {
+            const m = String(line === null || line === undefined ? '' : line).match(CODE_MARKER_RE);
+            if (!m) return null;
+            if (m[1] !== undefined) return normalizeStepLabel(m[1] + '-' + m[2]);
+            return normalizeStepLabel(m[3]);
+        }
+
+        // <{...}> 内部:冒号前是文件名(橙),冒号后是字段名(蓝),方括号及其内容是注释(灰)
+        function splitFileRefParts(text) {
+            const source = String(text === null || text === undefined ? '' : text);
+            const parts = [];
+            let colon = -1;
+            let depth = 0;
+            for (let i = 0; i < source.length; i++) {
+                const ch = source[i];
+                if (ch === '[') depth++;
+                else if (ch === ']') depth = Math.max(0, depth - 1);
+                else if (ch === ':' && depth === 0) { colon = i; break; }
+            }
+            const head = colon >= 0 ? source.slice(0, colon + 1) : '';
+            const rest = colon >= 0 ? source.slice(colon + 1) : source;
+            if (head) parts.push({ text: head, kind: 'name' });
+            const re = /\[[^\[\]]*\]/g;
+            let last = 0;
+            let m;
+            while ((m = re.exec(rest)) !== null) {
+                if (m.index > last) parts.push({ text: rest.slice(last, m.index), kind: 'text' });
+                parts.push({ text: m[0], kind: 'annot' });
+                last = m.index + m[0].length;
+            }
+            if (last < rest.length) parts.push({ text: rest.slice(last), kind: 'text' });
+            return parts;
+        }
+
+        // 代码里的分节注释行:"// ===== 文件路径(说明) ====="
+        function isSeparatorLine(line) {
+            return /^\s*\/\/\s*={3,}/.test(String(line === null || line === undefined ? '' : line));
+        }
+
+        function compareStepKeys(a, b) {
+            const pa = String(a).split('-').map(Number);
+            const pb = String(b).split('-').map(Number);
+            const len = Math.max(pa.length, pb.length);
+            for (let i = 0; i < len; i++) {
+                const va = pa[i] === undefined ? -1 : pa[i];
+                const vb = pb[i] === undefined ? -1 : pb[i];
+                if (va !== vb) return va - vb;
+            }
+            return 0;
+        }
+
+        // 复合编号按编号精确匹配,对不上就丢弃;纯数字先按编号,没编号才退回按位置(第 N 行)
+        function resolveExplanationIndex(key, labelIndex, count) {
+            const normalized = normalizeStepLabel(key);
+            if (normalized === null) return -1;
+            if (String(key).includes('-')) {
+                return labelIndex.has(normalized) ? labelIndex.get(normalized) : -1;
+            }
+            if (labelIndex.has(normalized)) return labelIndex.get(normalized);
+            const position = parseInt(key, 10);
+            if (!Number.isFinite(position) || position < 1 || position > count) return -1;
+            return position - 1;
+        }
+
+        function parseExplanations(jsonText) {
+            const entries = [];
+            const fenced = String(jsonText).match(/```(?:json)?\s*([\s\S]*?)```/);
+            const body = fenced ? fenced[1] : jsonText;
+            const re = /"((\d{1,3}-\d{1,3})|\d+|Summary)"\s*:\s*"((?:[^"\\]|\\.)*)"/g;
+            let m;
+            while ((m = re.exec(body)) !== null) {
+                let value;
+                try {
+                    value = JSON.parse('"' + m[3] + '"');
+                } catch (err) {
+                    value = m[3];
+                }
+                entries.push({ key: m[1], value: value });
+            }
+            return entries;
+        }
+
+        function parseInput(text) {
+            const source = String(text === null || text === undefined ? '' : text);
+            const parts = source.split(/^\s*---\s*$/m);
+            const jsonOnly = parts.length === 1 && source.trim().startsWith('{');
+            const traceLines = jsonOnly ? [] : parts[0]
+                .split('\n')
+                .map(l => l.replace(/\s+$/, ''))
+                .filter(l => l.trim().length > 0);
+            const entries = parseExplanations(jsonOnly ? source : parts.slice(1).join('\n'));
+
+            const items = traceLines.map(line => {
+                const split = splitStepLine(line);
+                return { line: line, label: normalizeStepLabel(split.label), notes: [] };
+            });
+
+            if (items.length === 0) {
+                const summary = entries.find(e => e.key === 'Summary');
+                entries.forEach(entry => {
+                    if (entry.key === 'Summary') return;
+                    items.push({
+                        line: '',
+                        label: normalizeStepLabel(entry.key),
+                        notes: [entry.value]
+                    });
+                });
+                if (summary) {
+                    if (items.length === 0) items.push({ line: '', label: null, notes: [summary.value] });
+                    else items[items.length - 1].notes.push(summary.value);
+                }
+                return items;
+            }
+
+            const labelIndex = new Map();
+            items.forEach((item, i) => {
+                if (item.label && !labelIndex.has(item.label)) labelIndex.set(item.label, i);
+            });
+
+            let summaryValue = null;
+            let summaryIndex = -1;
+            let maxKey = null;
+            entries.forEach(entry => {
+                if (entry.key === 'Summary') {
+                    summaryValue = entry.value;
+                    return;
+                }
+                const index = resolveExplanationIndex(entry.key, labelIndex, items.length);
+                if (index < 0) return;
+                items[index].notes.push(entry.value);
+                if (maxKey === null || compareStepKeys(entry.key, maxKey) > 0) {
+                    maxKey = entry.key;
+                    summaryIndex = index;
+                }
+            });
+            if (summaryValue && summaryIndex >= 0) items[summaryIndex].notes.push(summaryValue);
+            return items;
+        }
+
+        globalThis.ParseCore = {
+            normalizeStepLabel: normalizeStepLabel,
+            splitStepLine: splitStepLine,
+            parseCodeMarker: parseCodeMarker,
+            splitFileRefParts: splitFileRefParts,
+            isSeparatorLine: isSeparatorLine,
+            parseInput: parseInput
+        };
+    </script>
+
     <script>
         'use strict';
 
         let steps = [];
         let currentIndex = 0;
-        let validStepNumbers = new Set();
         let controlsVisible = false;
         let selectedVoiceName = localStorage.getItem('focusDataflowVoiceName') || '';
         let selectedCnVoiceName = localStorage.getItem('focusDataflowCnVoiceName') || '';
@@ -1112,13 +1300,12 @@
 
         function parseCodeStepLines(code) {
             const map = new Map();
-            const markerRe = /^\s*\/\/\s*(\d{2,3})(?!\d)/;
             const lines = code.split('\n');
             let currentStep = null;
             lines.forEach((line, i) => {
-                const m = line.match(markerRe);
-                if (m) {
-                    currentStep = parseInt(m[1], 10);
+                const marker = ParseCore.parseCodeMarker(line);
+                if (marker) {
+                    currentStep = marker;
                     if (!map.has(currentStep)) map.set(currentStep, []);
                     map.get(currentStep).push(i);
                     return;
@@ -1295,18 +1482,20 @@
             }
             const code = codeSnippets;
             const pre = document.createElement('pre');
-            const currentStep = currentIndex + 1;
+            const currentStep = steps[currentIndex] && steps[currentIndex].label
+                ? steps[currentIndex].label
+                : String(currentIndex + 1);
             const currentLineSet = new Set(codeStepLines.get(currentStep) || []);
-            const stepMarkerRe = /^\s*\/\/\s*(\d{2,3})(?!\d)/;
             let inBlock = false;
             code.split('\n').forEach((line, i) => {
                 const comment = isCommentLine(line, inBlock);
                 if (comment) {
                     const span = document.createElement('span');
                     span.className = 'cmt';
-                    const m = line.match(stepMarkerRe);
-                    if (m) {
-                        span.dataset.step = m[1];
+                    if (ParseCore.isSeparatorLine(line)) span.classList.add('cmt-sep');
+                    const marker = ParseCore.parseCodeMarker(line);
+                    if (marker) {
+                        span.dataset.step = marker;
                         if (currentLineSet.has(i)) span.classList.add('cmt-step');
                     }
                     span.textContent = line;
@@ -1349,63 +1538,6 @@
             const targetScroll = lineY - (viewportHeight / 2) + (lineHeight / 2);
             const maxScroll = codePane.scrollHeight - viewportHeight;
             codePane.scrollTop = Math.max(0, Math.min(maxScroll, targetScroll));
-        }
-
-        function parseExplanations(jsonText) {
-            const entries = [];
-            const fenced = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/);
-            const body = fenced ? fenced[1] : jsonText;
-            // 先扫一遍数字 key,确定最大步骤号,以便把 "Summary" 重写为最后一步
-            let maxStep = 0;
-            const numRe = /"(\d+)"\s*:\s*"/g;
-            let scan;
-            while ((scan = numRe.exec(body)) !== null) {
-                const n = parseInt(scan[1], 10);
-                if (n > maxStep) maxStep = n;
-            }
-            const re = /"(\d+|Summary)"\s*:\s*"((?:[^"\\]|\\.)*)"/g;
-            let m;
-            while ((m = re.exec(body)) !== null) {
-                let key = m[1];
-                if (key === 'Summary') {
-                    if (maxStep === 0) continue;
-                    key = String(maxStep);
-                }
-                let value;
-                try {
-                    value = JSON.parse('"' + m[2] + '"');
-                } catch (err) {
-                    value = m[2];
-                }
-                entries.push({ index: parseInt(key, 10) - 1, value: value });
-            }
-            return entries;
-        }
-
-        function parseInput(text) {
-            const parts = text.split(/^\s*---\s*$/m);
-            const jsonOnly = parts.length === 1 && text.trim().startsWith('{');
-            const traceLines = jsonOnly ? [] : parts[0]
-                .split('\n')
-                .map(l => l.replace(/\s+$/, ''))
-                .filter(l => l.trim().length > 0);
-
-            const entries = parseExplanations(jsonOnly ? text : parts.slice(1).join('\n'));
-            validStepNumbers = new Set(entries.map(e => e.index + 1));
-            const items = traceLines.map(line => ({ line: line, notes: [] }));
-
-            if (items.length === 0) {
-                entries.forEach(entry => {
-                    items.push({ line: '', notes: [entry.value] });
-                });
-                return items;
-            }
-
-            entries.forEach(entry => {
-                const target = items[entry.index];
-                if (target) target.notes.push(entry.value);
-            });
-            return items;
         }
 
         function splitNote(note) {
@@ -1495,28 +1627,22 @@
                 return span;
             }
             // 去掉行首空白,压缩内部连续空白为单个空格,避免 "04            ↳" 这类多空格
-            text = text.replace(/^\s+/, '').replace(/\s+/g, ' ');
-            // 顺序: 可选 step number, 可选箭头, 剩余内容
-            const m = text.match(/^(\d+)?\s*(?:(→|↳))?\s*([\s\S]*)$/);
-            if (!m) {
-                span.textContent = text;
-                return span;
-            }
-            if (m[1]) {
+            const parts = ParseCore.splitStepLine(text);
+            if (parts.label) {
                 const num = document.createElement('span');
                 num.className = 'marker';
-                num.textContent = m[1];
+                num.textContent = parts.label;
                 span.appendChild(num);
                 span.appendChild(document.createTextNode(' '));
             }
-            if (m[2]) {
+            if (parts.arrow) {
                 const arrow = document.createElement('span');
                 arrow.className = 'arrow';
-                arrow.textContent = m[2];
+                arrow.textContent = parts.arrow;
                 span.appendChild(arrow);
                 span.appendChild(document.createTextNode(' '));
             }
-            appendTokens(span, m[3]);
+            appendTokens(span, parts.content);
             return span;
         }
 
@@ -1535,7 +1661,16 @@
                 } else if (m[2] !== undefined) {
                     const small = document.createElement('small');
                     small.className = 'file-ref';
-                    small.textContent = m[2];
+                    ParseCore.splitFileRefParts(m[2]).forEach(part => {
+                        if (part.kind === 'text') {
+                            small.appendChild(document.createTextNode(part.text));
+                            return;
+                        }
+                        const span = document.createElement('span');
+                        span.className = part.kind === 'name' ? 'ref-name' : 'ref-annot';
+                        span.textContent = part.text;
+                        small.appendChild(span);
+                    });
                     parent.appendChild(small);
                 }
                 last = m.index + m[0].length;
@@ -2078,7 +2213,7 @@
             } else {
                 inputForParse = text;
             }
-            const parsed = parseInput(inputForParse);
+            const parsed = ParseCore.parseInput(inputForParse);
             if (parsed.length === 0) {
                 showError('没有解析到数据流步骤');
                 return;
