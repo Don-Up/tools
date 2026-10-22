@@ -83,67 +83,6 @@
             height: auto !important;
         }
 
-        /* 时序图:宽度铺满,高度超出就上下滚动(不缩图) */
-        .sequence-layout {
-            width: 100%;
-            height: 100%;
-            padding: 4px 16px;
-            overflow-y: auto;
-            overflow-x: hidden;
-            scrollbar-width: thin;
-            scrollbar-color: #4a4a4a #262626;
-        }
-
-        .sequence-layout > svg {
-            display: block;
-            width: 100% !important;
-            height: auto !important;
-            max-width: none !important;
-        }
-
-        /* 顶部角色名:不复制 SVG,直接用 HTML 排一行粘住,按 x 坐标落到各自的线上 */
-        .actor-bar {
-            position: sticky;
-            top: 0;
-            z-index: 2;
-            width: 100%;
-            height: 44px;
-            background: #1e1e1e;
-            border-bottom: 1px solid #333;
-            box-shadow: 0 8px 12px -8px rgba(0, 0, 0, 0.9);
-        }
-
-        .actor-bar > span {
-            position: absolute;
-            top: 0;
-            transform: translateX(-50%);
-            max-width: 22vw;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            color: #e0e0e0;
-            font-size: 20px;
-            line-height: 44px;
-        }
-
-        .sequence-layout::-webkit-scrollbar {
-            width: 12px;
-        }
-
-        .sequence-layout::-webkit-scrollbar-track {
-            background: #262626;
-            border-radius: 6px;
-        }
-
-        .sequence-layout::-webkit-scrollbar-thumb {
-            background: #4a4a4a;
-            border-radius: 6px;
-        }
-
-        .sequence-layout::-webkit-scrollbar-thumb:hover {
-            background: #5c5c5c;
-        }
-
         .full-layout {
             width: 100%;
             height: 100%;
@@ -352,7 +291,7 @@
         </div>
     </div>
     <div class="stage" id="stage">
-        <div class="hint">按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴(单 class / 时序图)<br>按 <kbd>Alt</kbd> + <kbd>V</kbd> 粘贴(带邻居)<br>按 <kbd>V</kbd> 切换模式</div>
+        <div class="hint">按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴(单 class)<br>按 <kbd>Alt</kbd> + <kbd>V</kbd> 粘贴(带邻居)<br>按 <kbd>V</kbd> 切换模式</div>
     </div>
     <div class="status" id="status"></div>
 
@@ -448,15 +387,6 @@
                 ttsRateValue.textContent = `${rate.toFixed(1)}x`;
                 saveTtsSettings();
             });
-        }
-
-        // 第一行是 sequenceDiagram 就整段当时序图渲染,不做 class 解析
-        function isSequenceDiagram(text) {
-            const first = String(text === null || text === undefined ? '' : text)
-                .trim()
-                .split('\n')[0]
-                .trim();
-            return first === 'sequenceDiagram';
         }
 
         function parseClassDiagram(text) {
@@ -696,7 +626,7 @@
             stage.innerHTML = '';
             const hint = document.createElement('div');
             hint.className = 'hint';
-            hint.innerHTML = '按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴(单 class / 时序图)<br>按 <kbd>Alt</kbd> + <kbd>V</kbd> 粘贴(带邻居)<br>按 <kbd>V</kbd> 切换模式';
+            hint.innerHTML = '按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴(单 class)<br>按 <kbd>Alt</kbd> + <kbd>V</kbd> 粘贴(带邻居)<br>按 <kbd>V</kbd> 切换模式';
             stage.appendChild(hint);
             status.textContent = '';
             model = null;
@@ -713,51 +643,8 @@
             status.textContent = '';
         }
 
-        // 时序图很高,滚到中间就看不见最上面那排角色名了。
-        // 不复制 SVG(复制来的方框会把样式带跑),直接读 mermaid 画好的 <text class="actor">
-        // 的文字和 x 坐标,用普通 HTML 排一行粘在顶部;x 按 viewBox 换算成百分比,
-        // 横向正好落在各自的生命线上。取不到就当没这回事,不影响主图。
-        function buildActorBar(container, svgEl) {
-            const vb = String(svgEl.getAttribute('viewBox') || '').trim().split(/[\s,]+/).map(Number);
-            if (vb.length !== 4 || !(vb[2] > 0)) return;
-
-            // 角色方框(actor-top)量出顶部那一排的下边界 —— 参与者多的时候 mermaid 会折行,
-            // 光看 y 会只捞到第一行,所以拿方框当基准。上下边界都用属性算,不碰 getBBox。
-            const boxes = Array.from(svgEl.querySelectorAll('rect.actor-top'));
-            let boxBottom = -Infinity;
-            boxes.forEach(r => {
-                const y = parseFloat(r.getAttribute('y'));
-                const h = parseFloat(r.getAttribute('height'));
-                if (isFinite(y) && isFinite(h)) boxBottom = Math.max(boxBottom, y + h);
-            });
-            if (!isFinite(boxBottom)) return;
-
-            // 角色名的 class 也是 actor,靠 y 落在方框那一排来区分顶部/底部
-            const names = Array.from(svgEl.querySelectorAll('text.actor'))
-                .map(t => ({
-                    x: parseFloat(t.getAttribute('x')),
-                    y: parseFloat(t.getAttribute('y')),
-                    text: (t.textContent || '').trim(),
-                }))
-                .filter(n => isFinite(n.x) && isFinite(n.y) && n.text && n.y < boxBottom);
-            if (names.length === 0) return;
-            names.sort((a, b) => a.x - b.x);
-
-            const bar = document.createElement('div');
-            bar.className = 'actor-bar';
-            names.forEach(n => {
-                const el = document.createElement('span');
-                el.textContent = n.text;
-                el.title = n.text;
-                el.style.left = (((n.x - vb[0]) / vb[2]) * 100).toFixed(3) + '%';
-                bar.appendChild(el);
-            });
-            container.insertBefore(bar, svgEl);
-        }
-
-        // 渲染一段 mermaid 源码(classDiagram 的带邻居模式 / 时序图共用)
-        // containerClass 决定容器怎么摆:classDiagram 缩到屏幕内,时序图铺满宽度 + 滚动
-        async function renderMermaidSource(source, statusText, containerClass) {
+        // 渲染带邻居的 classDiagram(classDiagram 专用)
+        async function renderMermaidSource(source, statusText) {
             const myId = 'mermaid-' + (++renderCounter);
             latestRenderId = myId;
             try {
@@ -768,26 +655,16 @@
                 const layout = document.createElement('div');
                 layout.className = 'full-layout';
                 const container = document.createElement('div');
-                container.className = containerClass || 'mermaid-container';
+                container.className = 'mermaid-container';
                 container.innerHTML = svg;
                 layout.appendChild(container);
                 stage.appendChild(layout);
-                if (containerClass === 'sequence-layout') {
-                    const svgEl = container.querySelector('svg');
-                    if (svgEl) buildActorBar(container, svgEl);
-                }
                 status.textContent = statusText;
             } catch (err) {
                 if (myId !== latestRenderId) return;
                 const message = (err && (err.message || err.str || err.toString())) || '未知错误';
                 showError('mermaid 语法错误:\n\n' + message);
             }
-        }
-
-        function renderSequence(source) {
-            // 时序图没有"当前 class"可翻页,也没有单/邻居两种模式,整段一次画完
-            model = null;
-            return renderMermaidSource(source, '时序图', 'sequence-layout');
         }
 
         async function renderCurrent() {
@@ -819,10 +696,6 @@
             if (!text) return;
             if (!window.mermaid) {
                 showError('mermaid.js 未加载,请检查网络');
-                return;
-            }
-            if (isSequenceDiagram(text)) {
-                renderSequence(text);
                 return;
             }
             const parsed = parseClassDiagram(text);
