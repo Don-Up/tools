@@ -787,7 +787,7 @@
 
             const keys = document.createElement('div');
             keys.className = 'status';
-            keys.innerHTML = 'Answer: <kbd>PgDn</kbd> 整段 <kbd>PgUp</kbd> 分句 <kbd>Del</kbd> 重读';
+            keys.innerHTML = '<kbd>C</kbd> 设置栏 &nbsp;·&nbsp; Answer: <kbd>PgDn</kbd> 整段 <kbd>PgUp</kbd> 分句 <kbd>Del</kbd> 重读';
             stage.appendChild(keys);
         }
 
@@ -1037,14 +1037,18 @@
         });
 
         document.addEventListener('keydown', (e) => {
-            if (document.activeElement === aiQuestion) return;
-            if (e.altKey && !e.ctrlKey && !e.shiftKey && !e.metaKey && (e.key === 'h' || e.key === 'H')) {
+            // 设置栏:不带修饰键的 C。原来绑的是 Alt+H,那个键是 Chrome 的"历史记录"菜单,
+            // 浏览器在页面之外处理,preventDefault 拦不住。放最前面,焦点在 AI 输入框里也能切
+            if (e.code === 'KeyC' && !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
                 e.preventDefault();
                 controlsVisible = !controlsVisible;
                 localStorage.setItem('focusTableControlsVisible', String(controlsVisible));
-                if (headers.length > 0) render();
+                if (headers.length > 0) {
+                    render();
+                }
                 return;
             }
+            if (document.activeElement === aiQuestion) return;
             if (e.key === ' ' || e.code === 'Space') {
                 const tag = e.target && e.target.tagName;
                 if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
