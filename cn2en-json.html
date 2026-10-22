@@ -1135,8 +1135,8 @@
                     <li><kbd>Alt+F</kbd></li><li>打开收藏夹</li>
                     <li><kbd>Alt+R</kbd></li><li>读全文 / 循环读选中文本</li>
                     <li><kbd>Alt+A</kbd> <kbd>PgUp</kbd></li><li>分句跟读 (按 ,  —  :  ;  .  ?  ". 分句)</li>
-                    <li><kbd>A</kbd></li><li>再次朗读当前分句 (基于上次 Alt+A)</li>
-                    <li><kbd>Alt+S</kbd> <kbd>Del</kbd></li><li>分句跟读模式下循环朗读选中分句</li>
+                    <li><kbd>A</kbd> <kbd>Del</kbd></li><li>再次朗读当前分句 (基于上次 Alt+A)</li>
+                    <li><kbd>Alt+S</kbd></li><li>分句跟读模式下循环朗读选中分句</li>
                     <li>单句 / 连续 / 循环</li><li>单句:R 读一次后停;连续:R 读完一句后自动跳到下一句,末句后回第一句;循环:无限循环当前句 (Mode 3 旁)</li>
                     <li>随机</li><li>开启时每次朗读随机挑选一个英文语音 (循环 右侧)</li>
                     <li><kbd>Alt+H</kbd></li><li>隐藏 / 显示中文句子</li>
@@ -3345,7 +3345,8 @@
             cnText.hidden = cnHiddenByUser || entries.length === 0;
             return;
         }
-        if (e.key === 'a' && !e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+        // A 和 Del 都"再次朗读当前分句"(基于上次 Alt+A)
+        if ((e.key === 'a' || e.key === 'Delete') && !e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey) {
             if (entries.length === 0) return;
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) return;
@@ -3395,13 +3396,8 @@
             aiQuestion.focus();
             aiQuestion.setSelectionRange(aiQuestion.value.length, aiQuestion.value.length);
         }
-        // Alt+S 和 Del 都循环朗读选中的分句;Del 额外排掉带修饰键和输入框的情况
-        if ((e.key === 's' && e.altKey && !e.ctrlKey && !e.metaKey)
-            || (e.key === 'Delete' && !e.altKey && !e.ctrlKey && !e.metaKey)) {
-            if (e.key === 'Delete') {
-                const tag = e.target.tagName;
-                if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) return;
-            }
+        // Alt+S 单独一个键,Del 不走这里
+        if (e.key === 's' && e.altKey && !e.ctrlKey && !e.metaKey) {
             if (entries.length === 0) return;
             if (!lastFollowAlongChunk || lastFollowAlongEntryIndex !== currentIndex) return;
             e.preventDefault();
