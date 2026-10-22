@@ -718,6 +718,16 @@
             width: 600px;
             max-width: calc(100vw - 40px);
         }
+        /* 全局笔记是跨 JSON 共用的一整块,内容比别的弹窗多,面板和输入框都放大一号 */
+        #globalNoteModal .fav-modal-panel {
+            width: 760px;
+            max-width: calc(100vw - 40px);
+        }
+        #globalNoteModal .fav-input.note-textarea {
+            width: 100%;
+            min-height: 440px;
+            max-height: 68vh;
+        }
         .fav-modal-title {
             font-size: 18px;
             color: #e0e0e0;
