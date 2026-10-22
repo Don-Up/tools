@@ -32,6 +32,11 @@
             overflow: auto;
         }
 
+        /* 子窗口里右上角有关闭按钮,给舞台右侧让出位置,别压在角色名上 */
+        body.embedded .stage {
+            padding-right: 72px;
+        }
+
         .hint {
             color: #888;
             font-size: 24px;
@@ -918,6 +923,7 @@
             loadAndRender(data.content.trim());
             speakCurrentClassName();
             closeBtn.classList.add('visible');
+            document.body.classList.add('embedded');
         });
 
         // When opened via reader.html's focus button, the parent copies the

@@ -31,6 +31,72 @@
             padding: 24px;
         }
 
+        /* 子窗口里右上角有关闭按钮,给舞台右侧让出位置 */
+        body.embedded .stage {
+            padding-right: 72px;
+        }
+
+        /* 时序图:宽度铺满,高度超出就上下滚动(不缩图) */
+        .sequence-layout {
+            width: 100%;
+            height: 100%;
+            padding: 4px 16px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: #4a4a4a #262626;
+        }
+
+        .sequence-layout > svg {
+            display: block;
+            width: 100% !important;
+            height: auto !important;
+            max-width: none !important;
+        }
+
+        .sequence-layout::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        .sequence-layout::-webkit-scrollbar-track {
+            background: #262626;
+            border-radius: 6px;
+        }
+
+        .sequence-layout::-webkit-scrollbar-thumb {
+            background: #4a4a4a;
+            border-radius: 6px;
+        }
+
+        .sequence-layout::-webkit-scrollbar-thumb:hover {
+            background: #5c5c5c;
+        }
+
+        /* 顶部角色名:不复制 SVG,直接用 HTML 排一行粘住,按 x 坐标落到各自的线上 */
+        .actor-bar {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            width: 100%;
+            height: 44px;
+            background: #1e1e1e;
+            border-bottom: 1px solid #333;
+            box-shadow: 0 8px 12px -8px rgba(0, 0, 0, 0.9);
+        }
+
+        .actor-bar > span {
+            position: absolute;
+            top: 0;
+            transform: translateX(-50%);
+            max-width: 22vw;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #e0e0e0;
+            font-size: 20px;
+            line-height: 44px;
+        }
+
         .hint {
             color: #888;
             font-size: 24px;
@@ -164,6 +230,53 @@
             status.textContent = '';
         }
 
+        // 第一行是 sequenceDiagram 就铺满宽度 + 滚动,其它图照旧缩到屏幕内
+        function isSequenceDiagram(code) {
+            return String(code || '').trim().split('\n')[0].trim() === 'sequenceDiagram';
+        }
+
+        // 时序图很高,滚到中间就看不见最上面那排角色名了。
+        // 不复制 SVG(复制来的方框会把样式带跑),直接读 mermaid 画好的 <text class="actor">
+        // 的文字和 x 坐标,用普通 HTML 排一行粘在顶部;x 按 viewBox 换算成百分比,
+        // 横向正好落在各自的生命线上。取不到就当没这回事,不影响主图。
+        function buildActorBar(container, svgEl) {
+            const vb = String(svgEl.getAttribute('viewBox') || '').trim().split(/[\s,]+/).map(Number);
+            if (vb.length !== 4 || !(vb[2] > 0)) return;
+
+            // 角色方框(actor-top)量出顶部那一排的下边界 —— 参与者多的时候 mermaid 会折行,
+            // 光看 y 会只捞到第一行,所以拿方框当基准。边界都用属性算,不碰 getBBox。
+            const boxes = Array.from(svgEl.querySelectorAll('rect.actor-top'));
+            let boxBottom = -Infinity;
+            boxes.forEach(r => {
+                const y = parseFloat(r.getAttribute('y'));
+                const h = parseFloat(r.getAttribute('height'));
+                if (isFinite(y) && isFinite(h)) boxBottom = Math.max(boxBottom, y + h);
+            });
+            if (!isFinite(boxBottom)) return;
+
+            // 角色名的 class 也是 actor,靠 y 落在方框那一排来区分顶部/底部
+            const names = Array.from(svgEl.querySelectorAll('text.actor'))
+                .map(t => ({
+                    x: parseFloat(t.getAttribute('x')),
+                    y: parseFloat(t.getAttribute('y')),
+                    text: (t.textContent || '').trim(),
+                }))
+                .filter(n => isFinite(n.x) && isFinite(n.y) && n.text && n.y < boxBottom);
+            if (names.length === 0) return;
+            names.sort((a, b) => a.x - b.x);
+
+            const bar = document.createElement('div');
+            bar.className = 'actor-bar';
+            names.forEach(n => {
+                const el = document.createElement('span');
+                el.textContent = n.text;
+                el.title = n.text;
+                el.style.left = (((n.x - vb[0]) / vb[2]) * 100).toFixed(3) + '%';
+                bar.appendChild(el);
+            });
+            container.insertBefore(bar, svgEl);
+        }
+
         async function renderMermaid(code) {
             if (!window.mermaid) {
                 showError('mermaid.js 未加载,请检查网络');
@@ -174,10 +287,15 @@
                 const result = await window.mermaid.render(id, code);
                 const svg = typeof result === 'string' ? result : result.svg;
                 stage.innerHTML = '';
+                const sequence = isSequenceDiagram(code);
                 const container = document.createElement('div');
-                container.className = 'mermaid-container';
+                container.className = sequence ? 'sequence-layout' : 'mermaid-container';
                 container.innerHTML = svg;
                 stage.appendChild(container);
+                if (sequence) {
+                    const svgEl = container.querySelector('svg');
+                    if (svgEl) buildActorBar(container, svgEl);
+                }
                 const lines = code.split('\n').length;
                 status.textContent = `${lines} 行 · 按 Ctrl+V 重新粘贴`;
             } catch (err) {
@@ -205,6 +323,7 @@
             if (typeof data.content !== 'string' || !data.content) return;
             renderMermaid(data.content.trim());
             closeBtn.classList.add('visible');
+            document.body.classList.add('embedded');
         });
 
         document.addEventListener('keydown', (e) => {
