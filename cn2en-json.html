@@ -1129,7 +1129,7 @@
                     <li><kbd>Space</kbd></li><li>暂停 / 继续朗读</li>
                     <li><kbd>E</kbd></li><li>读当前英文</li>
                     <li><kbd>Z</kbd></li><li>读全文</li>
-                    <li><kbd>R</kbd></li><li>读 EN</li>
+                    <li><kbd>R</kbd> <kbd>PgDn</kbd></li><li>读 EN</li>
                     <li><kbd>N</kbd></li><li>添加笔记</li>
                     <li><kbd>F</kbd></li><li>收藏当前条</li>
                     <li><kbd>Alt+F</kbd></li><li>打开收藏夹</li>
@@ -3410,7 +3410,7 @@
                 );
             }
         }
-        if (e.key === 'r' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        if ((e.key === 'r' || e.key === 'PageDown') && !e.ctrlKey && !e.altKey && !e.metaKey) {
             if (entries.length === 0) return;
             e.preventDefault();
             const sel = window.getSelection()?.toString().trim();
