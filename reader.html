@@ -1241,9 +1241,9 @@
                             navigator.clipboard.writeText(text);
                         });
 
-                        // Add Fullscreen button as a sibling above the diagram.
+                        // 按钮按图类型分流(classDiagram → focus-class,其余 → focus-mermaid)
                         const fsBtn = document.createElement('button');
-                        fsBtn.className = 'focus-mermaid-btn';
+                        fsBtn.className = 'focus-btn';
                         fsBtn.style.display = 'inline-block';
                         fsBtn.style.marginBottom = '4px';
                         fsBtn.style.marginLeft = '10px';
@@ -1254,38 +1254,15 @@
                         fsBtn.style.borderRadius = '2px';
                         fsBtn.style.cursor = 'pointer';
                         fsBtn.style.fontSize = '12px';
-                        fsBtn.textContent = 'fullscreen';
+                        fsBtn.textContent = 'focus';
                         fsBtn.addEventListener('click', (e) => {
                             e.stopPropagation();
-                            openMermaidFocus(text);
+                            openFocusForMermaid(text);
                         });
-
-                        // Add focus button for classDiagram content (opens focus-class.html)
-                        let focusBtn = null;
-                        if (text.startsWith('classDiagram')) {
-                            focusBtn = document.createElement('button');
-                            focusBtn.className = 'focus-class-btn';
-                            focusBtn.style.display = 'inline-block';
-                            focusBtn.style.marginBottom = '4px';
-                            focusBtn.style.marginLeft = '10px';
-                            focusBtn.style.padding = '4px 12px';
-                            focusBtn.style.backgroundColor = '#666666';
-                            focusBtn.style.color = '#fff';
-                            focusBtn.style.border = 'none';
-                            focusBtn.style.borderRadius = '2px';
-                            focusBtn.style.cursor = 'pointer';
-                            focusBtn.style.fontSize = '12px';
-                            focusBtn.textContent = 'focus';
-                            focusBtn.addEventListener('click', (e) => {
-                                e.stopPropagation();
-                                openClassFocus(text);
-                            });
-                        }
 
                         // Replace the <pre><code> with the new div
                         block.parentElement.replaceWith(diagramDiv);
                         // Insert buttons as siblings above the diagram
-                        if (focusBtn) diagramDiv.parentNode.insertBefore(focusBtn, diagramDiv);
                         diagramDiv.parentNode.insertBefore(fsBtn, diagramDiv);
 
                         // Render the diagram
@@ -2137,7 +2114,7 @@
             // would destroy any child button. Keeping it as a sibling in the
             // document flow means the button survives the replacement.
             const fsBtn = document.createElement('button');
-            fsBtn.className = 'focus-mermaid-btn';
+            fsBtn.className = 'focus-btn';
             fsBtn.style.display = 'inline-block';
             fsBtn.style.marginBottom = '4px';
             fsBtn.style.padding = '4px 12px';
@@ -2147,39 +2124,16 @@
             fsBtn.style.borderRadius = '2px';
             fsBtn.style.cursor = 'pointer';
             fsBtn.style.fontSize = '12px';
-            fsBtn.textContent = 'fullscreen';
+            fsBtn.textContent = 'focus';
             fsBtn.style.marginLeft = '10px'
             fsBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                openMermaidFocus(text);
+                openFocusForMermaid(text);
             });
-
-            // Add focus button for classDiagram content (opens focus-class.html)
-            let focusBtn = null;
-            if (text.startsWith('classDiagram')) {
-                focusBtn = document.createElement('button');
-                focusBtn.className = 'focus-class-btn';
-                focusBtn.style.display = 'inline-block';
-                focusBtn.style.marginBottom = '4px';
-                focusBtn.style.marginLeft = '10px';
-                focusBtn.style.padding = '4px 12px';
-                focusBtn.style.backgroundColor = '#666666';
-                focusBtn.style.color = '#fff';
-                focusBtn.style.border = 'none';
-                focusBtn.style.borderRadius = '2px';
-                focusBtn.style.cursor = 'pointer';
-                focusBtn.style.fontSize = '12px';
-                focusBtn.textContent = 'focus';
-                focusBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    openClassFocus(text);
-                });
-            }
 
             // Replace the <pre><code> with the new div
             block.parentElement.replaceWith(diagramDiv);
             // Insert buttons as siblings above the diagram
-            if (focusBtn) diagramDiv.parentNode.insertBefore(focusBtn, diagramDiv);
             diagramDiv.parentNode.insertBefore(fsBtn, diagramDiv);
 
             // Render the diagram
@@ -2246,6 +2200,17 @@
             sendMermaidToFocusFrame(code);
         }
         focusMermaidFrame.classList.add('shown');
+    }
+
+    // 图上只有一个按钮,点的时候按图类型分流:
+    // classDiagram → focus-class.html(可翻 class、可朗读成员讲解)
+    // 其它(flowchart / graph / sequenceDiagram …)→ focus-mermaid.html
+    function openFocusForMermaid(code) {
+        if (String(code || '').trim().startsWith('classDiagram')) {
+            openClassFocus(code);
+        } else {
+            openMermaidFocus(code);
+        }
     }
 
     async function openClassFocus(code) {
