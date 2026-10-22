@@ -3738,7 +3738,11 @@
         let m;
         while ((m = re.exec(text)) !== null) {
             if (m.index > lastEnd) {
-                chunks.push({ start: lastEnd, end: m.index, text: text.slice(lastEnd, m.index) });
+                // 分句点算进本句末尾(m[0] 形如 ", ",去掉尾随空格就是标点本身),
+                // 标点后面的空格留给下一句开头
+                const punct = m[0].replace(/\s+$/, '');
+                const end = m.index + punct.length;
+                chunks.push({ start: lastEnd, end: end, text: text.slice(lastEnd, end) });
             }
             lastEnd = m.index + m[0].length;
         }
