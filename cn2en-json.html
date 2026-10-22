@@ -373,6 +373,9 @@
             color: #e0e0e0;
             white-space: pre-wrap;
         }
+        /* 注音默认藏起来,按 ↑ 才露;用 visibility 而不是 display,切换时底下的字不会上下跳 */
+        .review-modal-cn rt { visibility: hidden; }
+        .review-modal.show-rt .review-modal-cn rt { visibility: visible; }
         .review-modal-en {
             margin-top: 20px;
             padding-top: 20px;
@@ -1212,7 +1215,7 @@
                 <div class="review-modal-caption">复习上一句</div>
                 <div id="reviewPreCn" class="review-modal-cn"></div>
                 <div id="reviewPreEn" class="review-modal-en" hidden></div>
-                <div class="review-modal-hint"><kbd>↓</kbd> 看英文 &nbsp;·&nbsp; <kbd>→</kbd> 下一句 &nbsp;·&nbsp; <kbd>Esc</kbd> 取消</div>
+                <div class="review-modal-hint"><kbd>↑</kbd> 看注音 &nbsp;·&nbsp; <kbd>↓</kbd> 看英文 &nbsp;·&nbsp; <kbd>→</kbd> 下一句 &nbsp;·&nbsp; <kbd>Esc</kbd> 取消</div>
             </div>
         </div>
         <div id="cnModal" class="cn-modal" hidden>
@@ -3683,6 +3686,7 @@
     let reviewPreEnabled = false;
     let reviewPreOpen = false;
     let reviewPreShowEn = false;
+    let reviewPreShowRt = false;
     function getCurrentEnVoice() {
         if (randomVoiceEnabled && voicesEN.length > 0) {
             return voicesEN[Math.floor(Math.random() * voicesEN.length)];
@@ -4018,7 +4022,7 @@
         });
     }
 
-    // review pre 弹窗:显示再往前一句的中文,↓ 才补英文。开着的时候 → 先弹窗、再按 → 才翻页
+    // review pre 弹窗:显示再往前一句的中文,↑ 补注音、↓ 补英文。开着的时候 → 先弹窗、再按 → 才翻页
     // 弹窗只在 currentIndex >= 1 时开(第一句前面没有句子可复习),所以这里 -1 一定落在数组里
     function renderReviewPre() {
         const i = currentIndex - 1;
@@ -4026,18 +4030,22 @@
         reviewPreCn.innerHTML = cnToHtml(entries[i][0]);
         reviewPreEn.textContent = entries[i][1] || '';
         reviewPreEn.hidden = !reviewPreShowEn;
+        reviewPreModal.classList.toggle('show-rt', reviewPreShowRt);
     }
     function openReviewPre() {
         if (entries.length === 0 || currentIndex < 1) return;
         reviewPreOpen = true;
         reviewPreShowEn = false;
+        reviewPreShowRt = false;
         renderReviewPre();
         reviewPreModal.hidden = false;
     }
     function closeReviewPre() {
         reviewPreOpen = false;
         reviewPreShowEn = false;
+        reviewPreShowRt = false;
         reviewPreEn.hidden = true;
+        reviewPreModal.classList.remove('show-rt');
         reviewPreModal.hidden = true;
     }
     reviewPreModal.addEventListener('keydown', (e) => {
@@ -4128,6 +4136,12 @@
         if (e.code === 'ArrowUp' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
             if (entries.length === 0) return;
             e.preventDefault();
+            // review pre 弹窗开着时 ↑ 只切弹窗里的注音,不去动正文的 enShown
+            if (reviewPreOpen) {
+                reviewPreShowRt = !reviewPreShowRt;
+                renderReviewPre();
+                return;
+            }
             enShown = !enShown;
             enText.style.visibility = enShown ? "visible" : "hidden"
         }
