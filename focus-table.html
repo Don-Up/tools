@@ -290,6 +290,8 @@
             border-radius: 4px;
         }
         .ai-answer::-webkit-scrollbar-thumb:hover { background: #5a5a5a; }
+        /* 分句朗读时高亮当前分句(直接用原生选区做高亮,不用拆 cell 的 DOM 结构) */
+        .vcell::selection { background: #4fc3f7; color: #10202b; }
         .ai-input-row {
             display: flex;
             flex-direction: column;
@@ -755,6 +757,8 @@
             const vtable = document.createElement('div');
             vtable.className = 'vtable';
             const row = rows[currentIndex] || [];
+            const answerCol = getAnswerColumnIndex();
+            answerCellEl = null;
             for (let i = 0; i < headers.length; i++) {
                 const vrow = document.createElement('div');
                 vrow.className = 'vrow';
@@ -769,6 +773,8 @@
                 renderCell(row[i] || '', cell);
                 cell.addEventListener('click', (e) => { if (!e.altKey) return; speakCellByIndex(i); });
                 vrow.appendChild(cell);
+                // 分句朗读只认这一格,renderCell 跑完再存,里面才有文本节点可用
+                if (i === answerCol) answerCellEl = cell;
 
                 vtable.appendChild(vrow);
             }
@@ -778,6 +784,11 @@
             status.className = 'status';
             status.textContent = `${currentIndex + 1} / ${rows.length}`;
             stage.appendChild(status);
+
+            const keys = document.createElement('div');
+            keys.className = 'status';
+            keys.innerHTML = 'Answer: <kbd>PgDn</kbd> 整段 <kbd>PgUp</kbd> 分句 <kbd>Del</kbd> 重读';
+            stage.appendChild(keys);
         }
 
         function showError(msg) {
@@ -797,6 +808,7 @@
             headers = parsed.headers;
             rows = parsed.rows;
             currentIndex = 0;
+            resetFollow();
             columnsConfig = '1,2';
             localStorage.setItem('focusTableColumns', columnsConfig);
             lastPastedText = text;
@@ -850,16 +862,151 @@
         function speakCellByIndex(idx) {
             if (idx < 0 || idx >= headers.length) return;
             const row = rows[currentIndex] || [];
-            const text = getCellSpeakable(row[idx]);
-            if (!text) return;
+            speakText(getCellSpeakable(row[idx]));
+        }
+
+        // 朗读统一走这里,分句朗读和 Alt+点格子共用同一套语速 / 音色
+        function speakText(text) {
+            if (!('speechSynthesis' in window)) return;
+            const t = String(text || '').trim();
+            if (!t) return;
             stopSpeaking();
-            const utterance = new SpeechSynthesisUtterance(text);
+            const utterance = new SpeechSynthesisUtterance(t);
             utterance.rate = speechSpeed;
             if (selectedVoiceName) {
                 const voice = availableVoices.find(v => v.name === selectedVoiceName);
                 if (voice) utterance.voice = voice;
             }
             speechSynthesis.speak(utterance);
+        }
+
+        // --- Answer 分句朗读(跟 cn2en-json 的 Alt+A / A 一个路子) ---
+        let answerCellEl = null;
+        let followRowIndex = -1;
+        let followChunkIndex = 0;
+        let lastFollowChunk = null;
+
+        // 和 cn2en-json 同一套分句点:分句点算进本句末尾,点后面的空格留给下一句开头
+        function splitChunksWithPositions(text) {
+            const chunks = [];
+            const re = /, |—|: |; |\. |\? |"\. /g;
+            let lastEnd = 0;
+            let m;
+            while ((m = re.exec(text)) !== null) {
+                if (m.index > lastEnd) {
+                    const punct = m[0].replace(/\s+$/, '');
+                    const end = m.index + punct.length;
+                    chunks.push({ start: lastEnd, end: end, text: text.slice(lastEnd, end) });
+                }
+                lastEnd = m.index + m[0].length;
+            }
+            if (lastEnd < text.length) {
+                chunks.push({ start: lastEnd, end: text.length, text: text.slice(lastEnd) });
+            }
+            return chunks;
+        }
+
+        // 表头里叫 Answer 的那一列就是"下方那部分";找不到就当最后一列(Q/A 表格的惯例)
+        function getAnswerColumnIndex() {
+            const idx = headers.findIndex(h => /answer/i.test(h || ''));
+            return idx >= 0 ? idx : headers.length - 1;
+        }
+
+        // 朗读和高亮都以 cell 里已经渲染出来的字为准:跳过 .cell-cn(【】里的中文小字),
+        // 其余文本节点按顺序拼起来。分句偏移量直接建在这串文本上,选中时才不会错位
+        function collectCellTextNodes(cellEl) {
+            const nodes = [];
+            let text = '';
+            const walker = document.createTreeWalker(cellEl, NodeFilter.SHOW_TEXT);
+            let n;
+            while ((n = walker.nextNode())) {
+                const parent = n.parentElement;
+                if (parent && parent.closest('.cell-cn')) continue;
+                const len = n.nodeValue.length;
+                if (len === 0) continue;
+                nodes.push({ node: n, start: text.length, end: text.length + len });
+                text += n.nodeValue;
+            }
+            return { text: text, nodes: nodes };
+        }
+
+        function clearFollowHighlight() {
+            const sel = window.getSelection && window.getSelection();
+            if (sel) sel.removeAllRanges();
+        }
+
+        // 拿原生选区当高亮:Range 两端只要落在文本节点上,跨 <code>、跨嵌套标签都能选中,
+        // 不用为了高亮去拆 markdown / code 结构
+        function selectInCell(nodes, start, end) {
+            if (nodes.length === 0 || start >= end) return;
+            const first = nodes.find(s => start >= s.start && start < s.end);
+            const last = nodes.find(s => end > s.start && end <= s.end);
+            if (!first || !last) return;
+            const range = document.createRange();
+            range.setStart(first.node, start - first.start);
+            range.setEnd(last.node, end - last.start);
+            const sel = window.getSelection();
+            if (!sel) return;
+            sel.removeAllRanges();
+            sel.addRange(range);
+            const anchor = first.node.parentElement;
+            if (anchor && anchor.scrollIntoView) anchor.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        }
+
+        function resetFollow() {
+            followRowIndex = -1;
+            followChunkIndex = 0;
+            lastFollowChunk = null;
+            answerCellEl = null;
+            clearFollowHighlight();
+        }
+
+        // 只跟当前这一行:换了行分句游标就从头开始
+        function ensureFollowContext() {
+            if (rows.length === 0 || !answerCellEl) return null;
+            if (followRowIndex !== currentIndex) {
+                followRowIndex = currentIndex;
+                followChunkIndex = 0;
+                lastFollowChunk = null;
+                clearFollowHighlight();
+            }
+            return answerCellEl;
+        }
+
+        // PgDn:完整读一遍回答
+        function followReadWhole() {
+            const cellEl = ensureFollowContext();
+            if (!cellEl) return;
+            const text = collectCellTextNodes(cellEl).text.replace(/\s+/g, ' ').trim();
+            if (!text) return;
+            followChunkIndex = 0;
+            lastFollowChunk = null;
+            clearFollowHighlight();
+            speakText(text);
+        }
+
+        // PgUp:依次选中当前分句并朗读(走到末尾再按就绕回第一句)
+        function followNextChunk() {
+            const cellEl = ensureFollowContext();
+            if (!cellEl) return;
+            const collected = collectCellTextNodes(cellEl);
+            const chunks = splitChunksWithPositions(collected.text);
+            if (chunks.length === 0) return;
+            if (followChunkIndex >= chunks.length) followChunkIndex = 0;
+            const chunk = chunks[followChunkIndex];
+            selectInCell(collected.nodes, chunk.start, chunk.end);
+            speakText(chunk.text);
+            lastFollowChunk = chunk;
+            followChunkIndex++;
+        }
+
+        // Del:当前选中的分句再读一遍
+        function followRepeatChunk() {
+            const cellEl = ensureFollowContext();
+            if (!cellEl || !lastFollowChunk) return;
+            const nodes = collectCellTextNodes(cellEl).nodes;
+            selectInCell(nodes, lastFollowChunk.start, lastFollowChunk.end);
+            speakText(lastFollowChunk.text);
         }
 
         function loadVoices() {
@@ -913,6 +1060,18 @@
                 e.preventDefault();
                 insertSelectionIntoAi(sel);
                 return;
+            }
+            // Answer 分句朗读:PgDn 整段、PgUp 分句、Del 重读当前分句
+            if (e.code === 'PageDown' || e.code === 'PageUp' || e.code === 'Delete') {
+                const tag = e.target && e.target.tagName;
+                if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+                if (!e.ctrlKey && !e.altKey && !e.metaKey) {
+                    e.preventDefault();
+                    if (e.code === 'PageDown') followReadWhole();
+                    else if (e.code === 'PageUp') followNextChunk();
+                    else followRepeatChunk();
+                    return;
+                }
             }
             if (rows.length === 0) return;
             if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
