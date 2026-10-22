@@ -335,6 +335,60 @@
             font-size: 14px;
         }
         .help-modal-close:hover { background: #3a3a3a; }
+
+        /* review pre:跳下一句之前先弹一句出来复习 */
+        .review-modal {
+            position: absolute;
+            inset: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .review-modal[hidden] { display: none; }
+        .review-modal-backdrop {
+            position: absolute;
+            inset: 0;
+            background: #000;
+        }
+        .review-modal-panel {
+            position: relative;
+            background: #1e1e1e;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 28px 36px;
+            min-width: 420px;
+            max-width: 80vw;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .review-modal-caption {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 16px;
+        }
+        .review-modal-cn {
+            font-size: 30px;
+            line-height: 1.6;
+            color: #e0e0e0;
+            white-space: pre-wrap;
+        }
+        .review-modal-en {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px dashed #3a3a3a;
+            font-size: 24px;
+            line-height: 1.5;
+            color: #81c784;
+            white-space: pre-wrap;
+        }
+        .review-modal-en[hidden] { display: none; }
+        .review-modal-hint {
+            margin-top: 24px;
+            font-size: 13px;
+            color: #666;
+            text-align: center;
+        }
         body.has-bg {
             background-size: cover;
             background-position: center;
@@ -1092,6 +1146,7 @@
                 <label class="mode-radio-label"><input type="radio" name="playMode" value="continuous"> 连续</label>
                 <label class="mode-radio-label"><input type="radio" name="playMode" value="loop"> 循环 <input type="number" id="loopCountInput" min="0" value="0" class="loop-count-input" title="循环次数(0=无限)"></label>
                 <label class="mode-radio-label"><input type="checkbox" id="randomVoiceToggle"> 随机</label>
+                <label class="mode-radio-label" title="→ 先弹上一句中文,↓ 看英文,再按 → 才跳下一句"><input type="checkbox" id="reviewPreToggle"> review pre</label>
             </div>
             <div id="counter" class="counter" hidden></div>
             <div id="favStatus" class="fav-status" hidden></div>
@@ -1124,6 +1179,7 @@
                 <ul class="help-modal-list">
                     <li><kbd>Ctrl+V</kbd></li><li>粘贴 JSON 数据</li>
                     <li><kbd>←</kbd> <kbd>→</kbd></li><li>上 / 下一条</li>
+                    <li><kbd>review pre</kbd></li><li>开启后:→ 先看上一句中文,↓ 看英文,再按 → 才跳下一条</li>
                     <li><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></li><li>切换 Mode</li>
                     <li><kbd>↓</kbd></li><li>揭示英文 / 笔记</li>
                     <li><kbd>Space</kbd></li><li>暂停 / 继续朗读</li>
@@ -1148,6 +1204,15 @@
                     <li><kbd>Alt+1</kbd></li><li>显示 / 隐藏此帮助</li>
                 </ul>
                 <button id="helpModalClose" class="help-modal-close" type="button">关闭 (Esc)</button>
+            </div>
+        </div>
+        <div id="reviewPreModal" class="review-modal" hidden>
+            <div id="reviewPreBackdrop" class="review-modal-backdrop"></div>
+            <div id="reviewPrePanel" class="review-modal-panel">
+                <div class="review-modal-caption">复习上一句</div>
+                <div id="reviewPreCn" class="review-modal-cn"></div>
+                <div id="reviewPreEn" class="review-modal-en" hidden></div>
+                <div class="review-modal-hint"><kbd>↓</kbd> 看英文 &nbsp;·&nbsp; <kbd>→</kbd> 下一句 &nbsp;·&nbsp; <kbd>Esc</kbd> 取消</div>
             </div>
         </div>
         <div id="cnModal" class="cn-modal" hidden>
@@ -1451,6 +1516,10 @@
     const helpModal = document.getElementById('helpModal');
     const helpModalBackdrop = document.getElementById('helpModalBackdrop');
     const helpModalClose = document.getElementById('helpModalClose');
+    const reviewPreModal = document.getElementById('reviewPreModal');
+    const reviewPreBackdrop = document.getElementById('reviewPreBackdrop');
+    const reviewPreCn = document.getElementById('reviewPreCn');
+    const reviewPreEn = document.getElementById('reviewPreEn');
     const aiPanel = document.getElementById('aiPanel');
     const aiAnswer = document.getElementById('aiAnswer');
     const aiQuestion = document.getElementById('aiQuestion');
@@ -2120,6 +2189,14 @@
     function extractRubyTexts(cn) {
         const matches = [...cn.matchAll(/\{\{([^}]*)\}\}/g)].map(m => m[1]);
         return matches;
+    }
+
+    // {{书架}}bookshelf]] → <ruby>书架<rt>bookshelf</rt></ruby>
+    function cnToHtml(cn) {
+        return String(cn === null || cn === undefined ? '' : cn)
+            .replaceAll("{{", "<ruby>")
+            .replaceAll("}}", "<rt>")
+            .replaceAll("]]", "</rt></ruby>");
     }
 
     function extractRubyBlocks(cn) {
@@ -2859,6 +2936,7 @@
     }
     helpModalClose.addEventListener('click', closeHelpModal);
     helpModalBackdrop.addEventListener('click', closeHelpModal);
+    reviewPreBackdrop.addEventListener('click', () => { if (reviewPreOpen) closeReviewPre(); });
 
     function getCurrentSelectionText() {
         try {
@@ -3563,7 +3641,7 @@
         const [cn, en] = entries[currentIndex];
         counter.textContent = `${currentIndex + 1}/${entries.length}`;
         // <ruby>staples<rt>ˈsteɪplz</rt></ruby>
-        cnText.innerHTML = cn.replaceAll("{{", "<ruby>").replaceAll("}}", "<rt>").replaceAll("]]", "</rt></ruby>");
+        cnText.innerHTML = cnToHtml(cn);
         cnText.classList.toggle('last-entry', currentIndex === entries.length - 1);
         applyRubyNoteMarkers();
         if (currentMode === 1 || enRevealed) {
@@ -3591,6 +3669,7 @@
     const STORAGE_KEY_EN_REVEALED = 'cn2en-json:enRevealed';
     const STORAGE_KEY_CONTINUOUS_FOLLOW = 'cn2en-json:continuousFollow';
     const STORAGE_KEY_RANDOM_VOICE = 'cn2en-json:randomVoice';
+    const STORAGE_KEY_REVIEW_PRE = 'cn2en-json:reviewPre';
     const STORAGE_KEY_LOOP_COUNT = 'cn2en-json:loopCount';
     const DEFAULT_AI_SYSTEM_PROMPT = AI_SYSTEM_PROMPT;
 
@@ -3600,6 +3679,10 @@
     let voicesEN = [];
     let selectedVoiceEn = null;
     let randomVoiceEnabled = false;
+    // review pre:开着的时候 → 不直接翻页,先弹当前句复习一遍
+    let reviewPreEnabled = false;
+    let reviewPreOpen = false;
+    let reviewPreShowEn = false;
     function getCurrentEnVoice() {
         if (randomVoiceEnabled && voicesEN.length > 0) {
             return voicesEN[Math.floor(Math.random() * voicesEN.length)];
@@ -3935,6 +4018,32 @@
         });
     }
 
+    // review pre 弹窗:显示再往前一句的中文,↓ 才补英文。开着的时候 → 先弹窗、再按 → 才翻页
+    // 弹窗只在 currentIndex >= 1 时开(第一句前面没有句子可复习),所以这里 -1 一定落在数组里
+    function renderReviewPre() {
+        const i = currentIndex - 1;
+        if (i < 0 || i >= entries.length) return;
+        reviewPreCn.innerHTML = cnToHtml(entries[i][0]);
+        reviewPreEn.textContent = entries[i][1] || '';
+        reviewPreEn.hidden = !reviewPreShowEn;
+    }
+    function openReviewPre() {
+        if (entries.length === 0 || currentIndex < 1) return;
+        reviewPreOpen = true;
+        reviewPreShowEn = false;
+        renderReviewPre();
+        reviewPreModal.hidden = false;
+    }
+    function closeReviewPre() {
+        reviewPreOpen = false;
+        reviewPreShowEn = false;
+        reviewPreEn.hidden = true;
+        reviewPreModal.hidden = true;
+    }
+    reviewPreModal.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeReviewPre();
+    });
+
     document.addEventListener('keydown', async function (e) {
         if (document.activeElement === aiQuestion) return;
         if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'KeyN' && globalNoteModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
@@ -4001,6 +4110,12 @@
         if (e.code === 'ArrowDown' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
             if (entries.length === 0) return;
             e.preventDefault();
+            // review pre 弹窗开着时 ↓ 只切弹窗里的英文,不去动正文的 enRevealed
+            if (reviewPreOpen) {
+                reviewPreShowEn = !reviewPreShowEn;
+                renderReviewPre();
+                return;
+            }
             enRevealed = !enRevealed;
             localStorage.setItem(STORAGE_KEY_EN_REVEALED, String(enRevealed));
             if (currentMode === 1 || enRevealed) {
@@ -4067,6 +4182,7 @@
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
             if (e.code === 'ArrowLeft') {
                 e.preventDefault();
+                closeReviewPre();
                 currentIndex = (currentIndex - 1 + entries.length) % entries.length;
                 saveState();
                 render();
@@ -4076,6 +4192,16 @@
                 }
             } else if (e.code === 'ArrowRight') {
                 e.preventDefault();
+                // review pre:第一次 → 只弹窗,再按一次 → 才关窗翻页
+                // 第一句没有"上一句"可复习,直接翻页
+                if (reviewPreEnabled && currentIndex !== 0) {
+                    if (reviewPreOpen) {
+                        closeReviewPre();
+                    } else {
+                        openReviewPre();
+                        return;
+                    }
+                }
                 currentIndex = (currentIndex + 1) % entries.length;
                 saveState();
                 render();
@@ -4180,6 +4306,14 @@
     randomVoiceToggle.addEventListener('change', () => {
         randomVoiceEnabled = randomVoiceToggle.checked;
         localStorage.setItem(STORAGE_KEY_RANDOM_VOICE, String(randomVoiceEnabled));
+    });
+    const reviewPreToggle = document.getElementById('reviewPreToggle');
+    reviewPreEnabled = localStorage.getItem(STORAGE_KEY_REVIEW_PRE) === "true";
+    reviewPreToggle.checked = reviewPreEnabled;
+    reviewPreToggle.addEventListener('change', () => {
+        reviewPreEnabled = reviewPreToggle.checked;
+        localStorage.setItem(STORAGE_KEY_REVIEW_PRE, String(reviewPreEnabled));
+        if (!reviewPreEnabled) closeReviewPre();
     });
     cnRateInput.addEventListener('input', () => {
         cnRate = parseFloat(cnRateInput.value);
