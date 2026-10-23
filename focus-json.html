@@ -15,6 +15,16 @@
             height: 100%;
         }
 
+        /* 窄窗口(扩展的 docked 子窗口)里正文字号统一乘这个系数。
+           扩展会带 compact=1 让 html 拿到 .compact;这条 @media 是没带参数时
+           (自己开、或者手动拖窄)的兜底。 */
+        :root { --fs-scale: 1; }
+        @media (max-width: 900px) { :root { --fs-scale: 0.8; } }
+        html.compact { --fs-scale: 0.8; }
+        html.compact .stage { padding: 32px 3vw; }
+        html.compact .card { padding: 20px 28px; }
+        html.compact .divider { margin: 20px 0; }
+
         body {
             font-family: -apple-system, blinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #1e1e1e;
@@ -38,7 +48,7 @@
 
         .hint {
             color: #888;
-            font-size: 24px;
+            font-size: calc(24px * var(--fs-scale));
             text-align: center;
             line-height: 1.8;
         }
@@ -55,7 +65,7 @@
 
         .error {
             color: #ef5350;
-            font-size: 20px;
+            font-size: calc(20px * var(--fs-scale));
             text-align: center;
         }
 
@@ -70,7 +80,7 @@
         }
 
         .en {
-            font-size: 35px;
+            font-size: calc(35px * var(--fs-scale));
             line-height: 1.4;
             color: #e0e0e0;
             font-weight: 500;
@@ -88,7 +98,7 @@
         }
 
         .cn {
-            font-size: 20px;
+            font-size: calc(20px * var(--fs-scale));
             line-height: 1.5;
             color: #b0bec5;
             word-break: break-word;
@@ -103,7 +113,7 @@
             margin: 0;
             text-align: center;
             color: #888;
-            font-size: 18px;
+            font-size: calc(18px * var(--fs-scale));
             font-family: 'Consolas', 'Monaco', monospace;
             z-index: 5;
             pointer-events: none;
@@ -998,6 +1008,12 @@
         if (window.parent && window.parent !== window) {
             const iframeAiPanel = document.getElementById('aiPanel');
             if (iframeAiPanel) iframeAiPanel.style.display = 'none';
+        }
+
+        // 扩展的 docked 子窗口(约 36vw)会带 compact=1,给 html 挂 .compact 把字号乘 0.8。
+        // 没有这个参数时靠 CSS 里的 @media (max-width: 900px) 自己判断宽度。
+        if (new URLSearchParams(window.location.search).get('compact') === '1') {
+            document.documentElement.classList.add('compact');
         }
 
         let entries = [];
