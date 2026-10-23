@@ -529,6 +529,25 @@
             backdrop-filter: blur(4px);
         }
         .translate-overlay.hidden { display: none; }
+
+        /* 队列计数,钉在左上角。pointer-events:none,不会挡住下面的按钮 */
+        .queue-badge {
+            position: fixed;
+            left: 12px;
+            top: 12px;
+            z-index: 900;
+            padding: 4px 10px;
+            background: rgba(30, 30, 30, 0.92);
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #ffd54f;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            pointer-events: none;
+        }
+        .queue-badge[hidden] { display: none; }
+
         .translate-text {
             color: #fff;
             font-size: 2rem;
@@ -966,6 +985,7 @@
     <div id="translateOverlay" class="translate-overlay hidden">
         <div class="translate-text">translating...</div>
     </div>
+    <div id="queueBadge" class="queue-badge" hidden></div>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
@@ -1923,11 +1943,16 @@
             const hashText = hashTextRaw.replace(/["“”]/g, '').replace(/查看中文翻译/g, '').replace(/…|\.{2,}/g, '. ');
 
             const inIframe = window.parent && window.parent !== window;
-            const onEnd = autoclose
+            const baseOnEnd = autoclose
                 ? (inIframe
                     ? () => { try { window.parent.postMessage({ type: 'focus-json-close' }, '*'); } catch (e) {} }
                     : () => window.close())
                 : null;
+            // 首段读完也要接上队列,所以包一层;baseOnEnd 可能是"读完关窗",先跑它
+            const onEnd = () => {
+                if (baseOnEnd) baseOnEnd();
+                handlePlaybackEnd();
+            };
 
             let played = false;
             function playOnce() {
@@ -2037,6 +2062,105 @@
             hideTranslateOverlay();
             loadAndPlay(hashText);
         })();
+
+        // --- 朗读队列(扩展的 alt+X) ---
+        // 父页面把剪贴板里的文本 postMessage 过来,这里在后台翻好中文、排进队列;
+        // 正在读的那段读完(speakCombined 的 onEnd)自动接下一条,期间不动 speechSynthesis。
+        // 清队列不需要单独的消息:alt+z 走 openPopup,会把整个 iframe 连同队列一起换掉。
+        const queueBadge = document.getElementById('queueBadge');
+        const readQueue = [];        // 已翻好的任务;正在播的那条也留在里面,播完才出队
+        let translatingCount = 0;    // 还在后台翻译中的条数
+        let queueAutoNext = false;   // 收到过 alt+X 才自动接下一条
+        let playingFromQueue = false;
+
+        function updateQueueBadge() {
+            if (!queueBadge) return;
+            const n = readQueue.length + translatingCount;
+            if (n <= 0) {
+                queueBadge.hidden = true;
+                queueBadge.textContent = '';
+                return;
+            }
+            queueBadge.textContent = '队列 ' + n;
+            queueBadge.hidden = false;
+        }
+
+        // 只翻中文并配成 JSON 字符串返回,不碰 DOM 和语音,后台翻译因此不影响当前朗读
+        async function translateInBackground(src) {
+            const enSentences = String(src || '').trim()
+                .split(/(?<=[.?!;])\s+/)
+                .map(s => s.replace(/\s+/g, ' ').trim())
+                .filter(s => s.length > 0);
+            if (enSentences.length === 0) throw new Error('没有识别到英文句子');
+            const resp = await fetch('https://next-reader-psi.vercel.app/api/translate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: enSentences.join('\n'), targetLang: 'ZH' })
+            });
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            const data = await resp.json();
+            const cnSentences = (data && typeof data.text === 'string' ? data.text : '')
+                .split(/(?<=[。？！；])\s*/)
+                .map(s => s.replace(/[""]/g, '').replace(/\s+/g, ' ').trim())
+                .filter(s => s.length > 0);
+            const pairCount = Math.min(enSentences.length, cnSentences.length);
+            if (pairCount === 0) throw new Error('翻译结果为空');
+            const result = {};
+            for (let i = 0; i < pairCount; i++) {
+                result[enSentences[i]] = cnSentences[i];
+            }
+            return JSON.stringify(result, null, 2);
+        }
+
+        // 当前没在说话就直接开下一条,免得队列停在那儿;在说话就等 onEnd
+        function maybePlayNextQueued() {
+            if (!queueAutoNext || isSpeaking || readQueue.length === 0) return;
+            loadInput(readQueue[0]);
+            if (entries.length === 0) {
+                readQueue.shift();
+                updateQueueBadge();
+                return;
+            }
+            playingFromQueue = true;
+            speakCombined(0, { force: true, onEnd: handlePlaybackEnd });
+        }
+
+        // 队列里那条读完 → 出队(计数减 1)→ 接下一条。
+        // 首段(不是从队列来的)走同一个钩子,此时只负责把队列接上,不出队。
+        function handlePlaybackEnd() {
+            if (playingFromQueue) {
+                playingFromQueue = false;
+                readQueue.shift();
+                updateQueueBadge();
+            }
+            maybePlayNextQueued();
+        }
+
+        async function enqueueText(text) {
+            const src = String(text || '').trim();
+            if (!src) return;
+            queueAutoNext = true;
+            translatingCount++;
+            updateQueueBadge();
+            try {
+                readQueue.push(await translateInBackground(src));
+            } catch (err) {
+                // 翻译失败就当没这条。不弹错误框 —— 那会盖住正在读的内容
+                console.warn('[focus-json] 队列翻译失败', err);
+            } finally {
+                translatingCount--;
+                updateQueueBadge();
+                maybePlayNextQueued();
+            }
+        }
+
+        window.addEventListener('message', (e) => {
+            const data = e.data;
+            if (!data || typeof data !== 'object') return;
+            if (data.type === 'focus-json-enqueue' && typeof data.text === 'string') {
+                enqueueText(data.text);
+            }
+        });
 
         // --- AI 问答面板 ---
         const AI_PANEL_BASE_URL = 'https://next-reader-psi.vercel.app/api/minimax';
