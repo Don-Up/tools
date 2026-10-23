@@ -2162,6 +2162,17 @@
             }
         });
 
+        // 焦点在浮层里面时,按键被本窗口吃掉,父页面的监听器收不到。
+        // 这里让父页面把它那边还留着的选区交过来,alt+x 在两种焦点下行为一致。
+        window.addEventListener('keydown', (e) => {
+            if (e.defaultPrevented) return;
+            if (!e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+            if ((e.key || '').toLowerCase() !== 'x') return;
+            if (!window.parent || window.parent === window) return;
+            e.preventDefault();
+            try { window.parent.postMessage({ type: 'focus-json-enqueue-self' }, '*'); } catch (err) {}
+        });
+
         // --- AI 问答面板 ---
         const AI_PANEL_BASE_URL = 'https://next-reader-psi.vercel.app/api/minimax';
         const AI_PANEL_MODEL = 'MiniMax-M3';
