@@ -2068,10 +2068,16 @@
         // 正在读的那段读完(speakCombined 的 onEnd)自动接下一条,期间不动 speechSynthesis。
         // 清队列不需要单独的消息:alt+z 走 openPopup,会把整个 iframe 连同队列一起换掉。
         const queueBadge = document.getElementById('queueBadge');
+        const queueOverlay = document.getElementById('translateOverlay');
         const readQueue = [];        // 已翻好的任务;正在播的那条也留在里面,播完才出队
         let translatingCount = 0;    // 还在后台翻译中的条数
         let queueAutoNext = false;   // 收到过 alt+X 才自动接下一条
         let playingFromQueue = false;
+        let queueGen = 0;            // 空闲分支会作废所有在飞的翻译
+
+        function showQueueOverlay(show) {
+            if (queueOverlay) queueOverlay.classList.toggle('hidden', !show);
+        }
 
         function updateQueueBadge() {
             if (!queueBadge) return;
@@ -2139,16 +2145,44 @@
         async function enqueueText(text) {
             const src = String(text || '').trim();
             if (!src) return;
+
+            // 当前没在播 → 和 alt+Z 一个效果:旧队列整个丢掉,直接把这段翻好播出来。
+            // 不入队,所以左上角不闪计数。
+            if (!isSpeaking) {
+                const gen = ++queueGen;
+                readQueue.length = 0;
+                translatingCount = 0;
+                playingFromQueue = false;
+                queueAutoNext = false;
+                updateQueueBadge();
+                showQueueOverlay(true);
+                try {
+                    const json = await translateInBackground(src);
+                    if (gen !== queueGen) return;
+                    showQueueOverlay(false);
+                    loadInput(json);
+                    if (entries.length > 0) speakCombined(0, { force: true, onEnd: handlePlaybackEnd });
+                } catch (err) {
+                    showQueueOverlay(false);
+                    console.warn('[focus-json] 翻译失败', err);
+                }
+                return;
+            }
+
+            // 正在播 → 入队,等这一段读完自动接上
             queueAutoNext = true;
+            const gen = queueGen;
             translatingCount++;
             updateQueueBadge();
             try {
-                readQueue.push(await translateInBackground(src));
+                const json = await translateInBackground(src);
+                if (gen !== queueGen) return;   // 期间走过空闲分支,这条作废
+                readQueue.push(json);
             } catch (err) {
                 // 翻译失败就当没这条。不弹错误框 —— 那会盖住正在读的内容
                 console.warn('[focus-json] 队列翻译失败', err);
             } finally {
-                translatingCount--;
+                translatingCount = Math.max(0, translatingCount - 1);
                 updateQueueBadge();
                 maybePlayNextQueued();
             }
