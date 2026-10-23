@@ -934,6 +934,67 @@
             border-radius: 4px;
         }
         .fav-input.note-textarea::-webkit-scrollbar-thumb:hover { background: #5a5a5a; }
+
+        /* 难句复习:上面是可滚的句子列表,下面是输入框 */
+        .hard-list {
+            width: 640px;
+            max-width: 100%;
+            max-height: 46vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            scrollbar-width: thin;
+            scrollbar-color: #4a4a4a transparent;
+        }
+        .hard-list::-webkit-scrollbar { width: 8px; }
+        .hard-list::-webkit-scrollbar-track { background: transparent; }
+        .hard-list::-webkit-scrollbar-thumb { background: #4a4a4a; border-radius: 4px; }
+        .hard-list::-webkit-scrollbar-thumb:hover { background: #5a5a5a; }
+        .hard-empty {
+            padding: 24px 12px;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+        .hard-item {
+            position: relative;
+            background: #2c2c2c;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 10px 40px 10px 12px;
+            font-size: 18px;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .hard-item-del {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            padding: 0;
+            background: transparent;
+            color: #888;
+            border: 1px solid #444;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            font-family: inherit;
+        }
+        .hard-item-del:hover { background: #7f1d1d; color: #fff; border-color: #7f1d1d; }
+        /* 注音比全局的默认 ~50% 大一些,复习弹窗里要看得清 */
+        .hard-item rt { font-size: 0.9em; }
+        .hard-input {
+            width: 640px;
+            max-width: 100%;
+            min-height: 90px;
+            resize: vertical;
+            font-family: inherit;
+            line-height: 1.6;
+        }
         .json-edit-textarea {
             width: 720px;
             max-width: calc(100vw - 80px);
@@ -1209,6 +1270,7 @@
                     <li>单句 / 连续 / 循环</li><li>单句:R 读一次后停;连续:R 读完一句后自动跳到下一句,末句后回第一句;循环:无限循环当前句 (Mode 3 旁)</li>
                     <li>随机</li><li>开启时每次朗读随机挑选一个英文语音 (循环 右侧)</li>
                     <li><kbd>Alt+H</kbd></li><li>隐藏 / 显示中文句子</li>
+                    <li><kbd>Alt+L</kbd></li><li>难句复习(列表在上,输入框在下)</li>
                     <li><kbd>Alt+J</kbd></li><li>编辑 JSON</li>
                     <li><kbd>Ctrl+I</kbd></li><li>设置背景</li>
                     <li><kbd>Alt+2</kbd></li><li>为选中中文添加注释</li>
@@ -1294,6 +1356,18 @@
                     <button id="globalNoteOk">保存</button>
                     <button id="globalNoteDelete">清空</button>
                     <button id="globalNoteCancel">关闭</button>
+                </div>
+            </div>
+        </div>
+        <div id="hardModal" class="fav-modal" hidden>
+            <div id="hardBackdrop" class="fav-modal-backdrop"></div>
+            <div class="fav-modal-panel">
+                <div class="fav-modal-title">难句复习</div>
+                <div id="hardList" class="hard-list"></div>
+                <textarea id="hardInput" class="fav-input hard-input" placeholder="粘贴难句,支持 HTML 标签和注音&#10;{{基词}}english]] 或 [[基词]]注音}}&#10;Ctrl+Enter 加入列表"></textarea>
+                <div class="fav-modal-actions">
+                    <button id="hardOk">加入</button>
+                    <button id="hardCancel">关闭</button>
                 </div>
             </div>
         </div>
@@ -1482,6 +1556,12 @@
     const globalNoteOk = document.getElementById('globalNoteOk');
     const globalNoteDelete = document.getElementById('globalNoteDelete');
     const globalNoteCancel = document.getElementById('globalNoteCancel');
+    const hardModal = document.getElementById('hardModal');
+    const hardBackdrop = document.getElementById('hardBackdrop');
+    const hardList = document.getElementById('hardList');
+    const hardInput = document.getElementById('hardInput');
+    const hardOk = document.getElementById('hardOk');
+    const hardCancel = document.getElementById('hardCancel');
     const noteBackdrop = document.getElementById('noteBackdrop');
     const noteInput = document.getElementById('noteInput');
     const noteOk = document.getElementById('noteOk');
@@ -2728,6 +2808,83 @@
     function closeGlobalNoteModal() {
         globalNoteModal.hidden = true;
     }
+
+    // --- 难句复习(Alt+L) ---
+    const STORAGE_KEY_HARD_SENTENCES = 'cn2en-json:hardSentences';
+    let hardSentences = [];
+    try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY_HARD_SENTENCES) || '[]');
+        if (Array.isArray(saved)) hardSentences = saved.filter(s => typeof s === 'string' && s.trim());
+    } catch (e) {}
+
+    // 两种注音写法都认:本页 JSON 里的 {{基词}}english]],以及 dataflow 那套 [[基词]]注音}}
+    const HARD_RUBY_RE = /\{\{([^{}]*)\}\}([\s\S]*?)\]\]|\[\[([^\[\]]+)\]\]([\s\S]*?)\}\}/g;
+    function hardTextToHtml(text) {
+        return String(text === null || text === undefined ? '' : text)
+            .replace(HARD_RUBY_RE, (_all, a1, a2, b1, b2) => {
+                const base = a1 !== undefined ? a1 : b1;
+                const annot = a2 !== undefined ? a2 : b2;
+                return '<ruby>' + base + '<rt>' + annot + '</rt></ruby>';
+            });
+    }
+
+    function saveHardSentences() {
+        try { localStorage.setItem(STORAGE_KEY_HARD_SENTENCES, JSON.stringify(hardSentences)); }
+        catch (e) {}
+    }
+
+    function renderHardList() {
+        hardList.innerHTML = '';
+        if (hardSentences.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'hard-empty';
+            empty.textContent = '还没有难句,在下面贴一句,Ctrl+Enter 加进来';
+            hardList.appendChild(empty);
+            return;
+        }
+        hardSentences.forEach((text, i) => {
+            const item = document.createElement('div');
+            item.className = 'hard-item';
+            // 难句本身按 HTML 渲染(所以 <del>/<small> 这些直接生效),只有注音标记需要转换
+            item.innerHTML = hardTextToHtml(text);
+            const del = document.createElement('button');
+            del.className = 'hard-item-del';
+            del.type = 'button';
+            del.textContent = '×';
+            del.title = '删除这条';
+            del.addEventListener('click', () => {
+                hardSentences.splice(i, 1);
+                saveHardSentences();
+                renderHardList();
+            });
+            item.appendChild(del);
+            hardList.appendChild(item);
+        });
+    }
+
+    function addHardSentence() {
+        const text = hardInput.value.trim();
+        if (!text) {
+            hardInput.focus();
+            return;
+        }
+        hardSentences.push(text);
+        saveHardSentences();
+        hardInput.value = '';
+        renderHardList();
+        // 加完滚到最下面,刚加的那条正好露出来
+        hardList.scrollTop = hardList.scrollHeight;
+        hardInput.focus();
+    }
+
+    function openHardModal() {
+        renderHardList();
+        hardModal.hidden = false;
+        setTimeout(() => { hardInput.focus(); }, 0);
+    }
+    function closeHardModal() {
+        hardModal.hidden = true;
+    }
     function saveGlobalNote() {
         const text = globalNoteInput.value;
         try {
@@ -2760,6 +2917,19 @@
         if (e.key === 'Escape') {
             e.preventDefault();
             closeGlobalNoteModal();
+        }
+    });
+    hardOk.addEventListener('click', addHardSentence);
+    hardCancel.addEventListener('click', closeHardModal);
+    hardBackdrop.addEventListener('click', closeHardModal);
+    hardInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            addHardSentence();
+        }
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            closeHardModal();
         }
     });
 
@@ -3354,6 +3524,10 @@
                 e.preventDefault();
                 e.stopPropagation();
                 closeGlobalNoteModal();
+            } else if (!hardModal.hidden) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeHardModal();
             } else if (!jsonEditModal.hidden) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -3391,7 +3565,15 @@
             else closeHelpModal();
             return;
         }
-        if (!favSaveModal.hidden || !noteModal.hidden || !globalNoteModal.hidden || !jsonEditModal.hidden || !cardsModal.hidden || !rubyNotesModal.hidden || !rubyAddModal.hidden || !systemPromptModal.hidden || !helpModal.hidden || !cnModal.hidden || !bgModal.hidden) {
+        if (!favSaveModal.hidden || !noteModal.hidden || !globalNoteModal.hidden || !hardModal.hidden || !jsonEditModal.hidden || !cardsModal.hidden || !rubyNotesModal.hidden || !rubyAddModal.hidden || !systemPromptModal.hidden || !helpModal.hidden || !cnModal.hidden || !bgModal.hidden) {
+            return;
+        }
+        // Alt+L 开关难句复习弹窗
+        if (e.key === 'l' && e.altKey && !e.ctrlKey && !e.metaKey) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (hardModal.hidden) openHardModal();
+            else closeHardModal();
             return;
         }
         if (e.key === 'f' && e.altKey && !e.ctrlKey && !e.metaKey) {
@@ -4064,28 +4246,28 @@
 
     document.addEventListener('keydown', async function (e) {
         if (document.activeElement === aiQuestion) return;
-        if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'KeyN' && globalNoteModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
+        if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'KeyN' && globalNoteModal.hidden && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
             e.preventDefault();
             openGlobalNoteModal();
             return;
         }
-        if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'Digit2' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
+        if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'Digit2' && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
             e.preventDefault();
             openRubyAddModal();
             return;
         }
-        if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'Digit3' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
+        if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'Digit3' && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
             e.preventDefault();
             wrapSelectionInDel();
             return;
         }
-        if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'Digit4' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
+        if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'Digit4' && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
             e.preventDefault();
@@ -4103,7 +4285,7 @@
             document.body.classList.toggle('side-panel-open', shown);
             if (shown) postCnEnToChild();
         }
-        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyV' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden) {
+        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyV' && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden) {
             e.preventDefault();
             try {
                 const text = await navigator.clipboard.readText();
@@ -4112,7 +4294,7 @@
                 showError(`剪贴板读取失败: ${err.message || err}`);
             }
         }
-        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyX' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden) {
+        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyX' && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden) {
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
             e.preventDefault();
@@ -4155,7 +4337,7 @@
             enShown = !enShown;
             enText.style.visibility = enShown ? "visible" : "hidden"
         }
-        if (!e.ctrlKey && !e.altKey && !e.shiftKey && e.code === 'KeyZ' && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden) {
+        if (!e.ctrlKey && !e.altKey && !e.shiftKey && e.code === 'KeyZ' && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden) {
             if (entries.length === 0) return;
             if (cnModal.hidden) {
                 showAllCn();
@@ -4163,7 +4345,7 @@
                 hideAllCn();
             }
         }
-        if (!e.ctrlKey && !e.altKey && !e.shiftKey && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
+        if (!e.ctrlKey && !e.altKey && !e.shiftKey && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
             const tag = e.target.tagName;
             if (e.code === 'KeyN' && noteModal.hidden && tag !== 'INPUT' && tag !== 'TEXTAREA') {
                 if (entries.length === 0) return;
@@ -4201,7 +4383,7 @@
             openRubyNotesModal();
             return;
         }
-        if (entries.length > 0 && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden) {
+        if (entries.length > 0 && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden) {
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
             if (e.code === 'ArrowLeft') {
