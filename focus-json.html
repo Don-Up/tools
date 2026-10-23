@@ -1016,6 +1016,30 @@
             document.documentElement.classList.add('compact');
         }
 
+        // === prepCore 开始 ===
+        // 选区/粘贴的文本常是推文卡片,前面挂着账号名、@handle、时间戳和一行
+        // "Translated from Chinese" 来源标注,只留标注下面的正文。
+        // 插件的 content.js 里也有一份同样的逻辑(那边要先决定翻不翻译),
+        // 两边各管各的入口 —— focus-json 这份只用在粘贴时,不去碰插件已经清过的
+        // hash/队列文本,免得同一段文本被切两次。
+        const TRANSLATED_FROM_LINE_RE = /Translated\s+from[^\n]*\n?/i;
+        const TRANSLATED_FROM_PHRASE_RE = /Translated\s+from\s+[A-Za-z]+/i;
+        function dropTranslatedFromHeader(text) {
+            // 先按"整行"切:标注独占一行时最准,不会误吃下面的正文
+            let m = TRANSLATED_FROM_LINE_RE.exec(text);
+            if (m) {
+                const rest = text.slice(m.index + m[0].length);
+                if (rest.trim()) return rest;
+            }
+            // 页面上没换行(几个 span 拼一行)时退回只切 "Translated from + 语言名"
+            m = TRANSLATED_FROM_PHRASE_RE.exec(text);
+            if (m) {
+                const rest = text.slice(m.index + m[0].length);
+                if (rest.trim()) return rest;
+            }
+            return text;
+        }
+
         // 网页抓来的文本里常混着 Markdown 的 * 和连续的感叹号,
         // 它们会让翻译 API 输出错乱、也会把分句边界带偏。翻译和分句之前统一洗一遍:
         // 星号去掉,连续的 !! / !!! 收成一个 !。
@@ -1026,6 +1050,24 @@
                 .replace(/!{2,}/g, '!')
                 .replace(/\*/g, ' ');
         }
+
+        // 行尾已经有标点就原样保留,没有的补一个句号 —— 不然这一行跟下一行会粘成一句,
+        // 既送不进翻译 API,也切不出句子。
+        const TAIL_PUNCT_RE = /[.,!?;:'"()\[\]{}、。，！？；：「」『』【】《》〉…]/;
+        function ensureSentenceEnd(text) {
+            return text.split(/\r?\n/).map(line => {
+                const trimmed = line.replace(/\s+$/, '');
+                if (!trimmed.trim()) return line;      // 空行 / 纯空白行原样返回
+                if (TAIL_PUNCT_RE.test(trimmed)) return line;
+                return trimmed + '.';
+            }).join('\n');
+        }
+
+        // 翻译和分句之前的统一预处理
+        function prepareForTranslate(text) {
+            return ensureSentenceEnd(stripTranslateNoise(text));
+        }
+        // === prepCore 结束 ===
 
         let entries = [];
         let currentIndex = 0;
@@ -1709,9 +1751,11 @@
 
         document.addEventListener('paste', (e) => {
             if (e.target === aiInput) return;
-            const text = (e.clipboardData || window.clipboardData).getData('text');
-            if (!text) return;
+            const raw = (e.clipboardData || window.clipboardData).getData('text');
+            if (!raw) return;
             e.preventDefault();
+            // 粘贴推文卡片时先切掉 "Translated from …" 上方的头部
+            const text = dropTranslatedFromHeader(raw);
             loadInput(text);
             if (ttsEnabled && entries.length > 0) {
                 if (selectedVoiceName && !selectedVoice) {
@@ -2039,7 +2083,7 @@
 
             if (autotranslate) {
                 async function runTranslate() {
-                    const enSentences = stripTranslateNoise(hashText).trim()
+                    const enSentences = prepareForTranslate(hashText).trim()
                         .split(/(?<=[.?!;])\s+/)
                         .map(s => s.replace(/\s+/g, ' ').trim())
                         .filter(s => s.length > 0);
@@ -2121,7 +2165,7 @@
 
         // 只翻中文并配成 JSON 字符串返回,不碰 DOM 和语音,后台翻译因此不影响当前朗读
         async function translateInBackground(src) {
-            const enSentences = stripTranslateNoise(src).trim()
+            const enSentences = prepareForTranslate(src).trim()
                 .split(/(?<=[.?!;])\s+/)
                 .map(s => s.replace(/\s+/g, ' ').trim())
                 .filter(s => s.length > 0);
