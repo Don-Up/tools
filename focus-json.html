@@ -1067,6 +1067,15 @@
         function prepareForTranslate(text) {
             return ensureSentenceEnd(stripTranslateNoise(text));
         }
+
+        // 分句规则。破折号也算断点:英文单横线、中文双横线。
+        // 破折号那条用 \s* 而不是 \s+ —— "distributed—such as" 横线后面没有空格,
+        // 用 \s+ 一条都切不开。
+        // 中文写成 (?<=——) 而不是把 — 塞进字符类:直接塞的话,
+        // "分发——比如" 的第一个横线后面紧跟第二个横线,\s* 匹配空串会在中间多切一刀,
+        // 切成 "分发—" + "—比如"。
+        const EN_SENTENCE_SPLIT_RE = /(?<=[.?!;])\s+|(?<=[—])\s*/;
+        const CN_SENTENCE_SPLIT_RE = /(?<=[。？！；])\s*|(?<=——)\s*/;
         // === prepCore 结束 ===
 
         let entries = [];
@@ -1152,7 +1161,7 @@
         function parsePlainText(text) {
             const trimmed = text.trim();
             if (!trimmed) return 0;
-            const segments = trimmed.split(/(?<=[.?!;])\s+/);
+            const segments = trimmed.split(EN_SENTENCE_SPLIT_RE);
             entries = segments
                 .map(s => s.replace(/\s+/g, ' ').trim())
                 .filter(s => s.length > 0)
@@ -2084,7 +2093,7 @@
             if (autotranslate) {
                 async function runTranslate() {
                     const enSentences = prepareForTranslate(hashText).trim()
-                        .split(/(?<=[.?!;])\s+/)
+                        .split(EN_SENTENCE_SPLIT_RE)
                         .map(s => s.replace(/\s+/g, ' ').trim())
                         .filter(s => s.length > 0);
                     if (enSentences.length === 0) {
@@ -2106,7 +2115,7 @@
                         const data = await resp.json();
                         const cnText = (data && typeof data.text === 'string' ? data.text : '').trim();
                         const cnSentences = cnText
-                            .split(/(?<=[。？！；])\s*/)
+                            .split(CN_SENTENCE_SPLIT_RE)
                             .map(s => s.replace(/[""]/g, '').replace(/\s+/g, ' ').trim())
                             .filter(s => s.length > 0);
                         const pairCount = Math.min(enSentences.length, cnSentences.length);
@@ -2166,7 +2175,7 @@
         // 只翻中文并配成 JSON 字符串返回,不碰 DOM 和语音,后台翻译因此不影响当前朗读
         async function translateInBackground(src) {
             const enSentences = prepareForTranslate(src).trim()
-                .split(/(?<=[.?!;])\s+/)
+                .split(EN_SENTENCE_SPLIT_RE)
                 .map(s => s.replace(/\s+/g, ' ').trim())
                 .filter(s => s.length > 0);
             if (enSentences.length === 0) throw new Error('没有识别到英文句子');
@@ -2178,7 +2187,7 @@
             if (!resp.ok) throw new Error('HTTP ' + resp.status);
             const data = await resp.json();
             const cnSentences = (data && typeof data.text === 'string' ? data.text : '')
-                .split(/(?<=[。？！；])\s*/)
+                .split(CN_SENTENCE_SPLIT_RE)
                 .map(s => s.replace(/[""]/g, '').replace(/\s+/g, ' ').trim())
                 .filter(s => s.length > 0);
             const pairCount = Math.min(enSentences.length, cnSentences.length);
