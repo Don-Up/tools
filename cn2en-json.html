@@ -1485,6 +1485,33 @@
     let currentIndex = 0;
     let errorTimer = null;
 
+    // === reviewCore 开始 ===
+    // 上一次加载(粘贴 / 收藏)的最后一句。第一句 → 第二句时用它来复习,
+    // 因为当前这份的第一句前面没有句子可复习。没有上一篇就是 null。
+    let prevLoadLastEntry = null;
+
+    // 换一批内容时调用:先把旧内容的最后一句记下来,再替换。
+    // 只在"加载一份新内容"时调用 —— 就地编辑 JSON(saveJsonEdit)和
+    // 从 localStorage 恢复(loadState)不算新的一份,不然上一篇会被自己顶掉。
+    function replaceEntries(next) {
+        if (Array.isArray(entries) && entries.length > 0) {
+            const last = entries[entries.length - 1];
+            if (last && last[0]) prevLoadLastEntry = [last[0], last[1] || ''];
+        }
+        entries = next;
+    }
+
+    // 复习哪一句:当前这句的前一句;当前是第一句时改用"上一次加载的最后一句"
+    // (当前这份的第一句前面没有句子可复习,但上一篇的收尾正好接得上)
+    function reviewPreTarget() {
+        if (currentIndex > 0) {
+            const i = currentIndex - 1;
+            return i < entries.length ? entries[i] : null;
+        }
+        return prevLoadLastEntry;   // 第一句:上一篇的收尾,没有就是 null
+    }
+    // === reviewCore 结束 ===
+
     const errorBar = document.getElementById('errorBar');
     const counter = document.getElementById('counter');
     const cnText = document.getElementById('cnText');
@@ -2018,7 +2045,7 @@
         }
         clearAiHistory();
         lastPastedText = '';
-        entries = payload;
+        replaceEntries(payload);
         currentIndex = 0;
         saveState();
         render();
@@ -4204,9 +4231,9 @@
         const pastedHash = hashEntries(allEntries);
         findFavoriteByHash(pastedHash).then(match => {
             if (match && Array.isArray(match.payload)) {
-                entries = match.payload;
+                replaceEntries(match.payload);
             } else {
-                entries = allEntries;
+                replaceEntries(allEntries);
             }
             currentIndex = 0;
             clearError();
@@ -4217,17 +4244,18 @@
     }
 
     // review pre 弹窗:显示再往前一句的中文,↑ 补注音、↓ 补英文。开着的时候 → 先弹窗、再按 → 才翻页
-    // 弹窗只在 currentIndex >= 1 时开(第一句前面没有句子可复习),所以这里 -1 一定落在数组里
+    // 复习哪一句由 reviewPreTarget() 决定(见 reviewCore)
     function renderReviewPre() {
-        const i = currentIndex - 1;
-        if (i < 0 || i >= entries.length) return;
-        reviewPreCn.innerHTML = cnToHtml(entries[i][0]);
-        reviewPreEn.textContent = entries[i][1] || '';
+        const target = reviewPreTarget();
+        if (!target) return;
+        reviewPreCn.innerHTML = cnToHtml(target[0]);
+        reviewPreEn.textContent = target[1] || '';
         reviewPreEn.hidden = !reviewPreShowEn;
         reviewPreModal.classList.toggle('show-rt', reviewPreShowRt);
     }
     function openReviewPre() {
-        if (entries.length === 0 || currentIndex < 1) return;
+        if (entries.length === 0) return;
+        if (!reviewPreTarget()) return;   // 没有可复习的(第一次加载且当前在第一句)
         reviewPreOpen = true;
         reviewPreShowEn = false;
         reviewPreShowRt = false;
@@ -4401,8 +4429,8 @@
             } else if (e.code === 'ArrowRight') {
                 e.preventDefault();
                 // review pre:第一次 → 只弹窗,再按一次 → 才关窗翻页
-                // 第一句没有"上一句"可复习,直接翻页
-                if (reviewPreEnabled && currentIndex !== 0) {
+                // 当前是第一句时,复习上一篇加载的最后一句;连上一篇都没有就直接翻页
+                if (reviewPreEnabled && reviewPreTarget()) {
                     if (reviewPreOpen) {
                         closeReviewPre();
                     } else {
