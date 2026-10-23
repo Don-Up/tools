@@ -972,6 +972,14 @@
     <script>
         'use strict';
 
+        // 嵌在 iframe 里(扩展浮层 / reader 子窗口)就不显示 AI 问答面板:
+        // 它是 fixed 定位、浮在正文右下角的,窄面板里会盖住内容。
+        // 只用 display:none 而不是删元素 —— 下面还要给 aiPanelTitle 挂事件。
+        if (window.parent && window.parent !== window) {
+            const iframeAiPanel = document.getElementById('aiPanel');
+            if (iframeAiPanel) iframeAiPanel.style.display = 'none';
+        }
+
         let entries = [];
         let currentIndex = 0;
         let currentWordSpans = [];
