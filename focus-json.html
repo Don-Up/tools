@@ -1016,6 +1016,17 @@
             document.documentElement.classList.add('compact');
         }
 
+        // 网页抓来的文本里常混着 Markdown 的 * 和连续的感叹号,
+        // 它们会让翻译 API 输出错乱、也会把分句边界带偏。翻译和分句之前统一洗一遍:
+        // 星号去掉,连续的 !! / !!! 收成一个 !。
+        // 星号换成空格而不是直接删:删掉的话 "**bold**" 会和上一个词粘在一起,
+        // 后面 \s+ → ' ' 的归一化会顺手把多出来的空格收掉。
+        function stripTranslateNoise(text) {
+            return String(text === null || text === undefined ? '' : text)
+                .replace(/!{2,}/g, '!')
+                .replace(/\*/g, ' ');
+        }
+
         let entries = [];
         let currentIndex = 0;
         let currentWordSpans = [];
@@ -2028,7 +2039,7 @@
 
             if (autotranslate) {
                 async function runTranslate() {
-                    const enSentences = hashText.trim()
+                    const enSentences = stripTranslateNoise(hashText).trim()
                         .split(/(?<=[.?!;])\s+/)
                         .map(s => s.replace(/\s+/g, ' ').trim())
                         .filter(s => s.length > 0);
@@ -2110,7 +2121,7 @@
 
         // 只翻中文并配成 JSON 字符串返回,不碰 DOM 和语音,后台翻译因此不影响当前朗读
         async function translateInBackground(src) {
-            const enSentences = String(src || '').trim()
+            const enSentences = stripTranslateNoise(src).trim()
                 .split(/(?<=[.?!;])\s+/)
                 .map(s => s.replace(/\s+/g, ' ').trim())
                 .filter(s => s.length > 0);
