@@ -2947,7 +2947,7 @@
                 closeCodePaste();
                 return;
             }
-            if (e.altKey && !e.ctrlKey && !e.shiftKey && !e.metaKey && (e.key === 'h' || e.key === 'H')) {
+            if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && (e.key === 'h' || e.key === 'H')) {
                 e.preventDefault();
                 controlsVisible = !controlsVisible;
                 if (steps.length > 0) render();
