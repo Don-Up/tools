@@ -147,6 +147,30 @@
             font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
         }
 
+        /* 讲解里的 [[基词]]注音}} 也走步骤行那套 parseTokens,注音浮在基词上方 */
+        .note-en ruby,
+        .note-cn ruby {
+            ruby-position: over;
+            ruby-align: center;
+            line-height: 2.2;
+        }
+
+        .note-en rt,
+        .note-cn rt {
+            color: #888;
+            font-size: 0.55em;
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+        }
+
+        .note-en .method {
+            color: #81c784;
+        }
+
+        .note-en strong.emph {
+            font-weight: normal;
+            color: #ffd54f;
+        }
+
         .file-ref {
             color: #4fc3f7;
         }
@@ -1246,12 +1270,28 @@
             return items;
         }
 
+        // 讲解文字去掉标记后的样子:[[基词]]注音}} → "基词 注音"(朗读用)
+        function notesPlainText(text) {
+            return parseTokens(text).map(token => {
+                if (token.type === 'text') return token.text;
+                if (token.type === 'method') return '.' + token.text;
+                if (token.type === 'strong') return token.text;
+                if (token.type === 'ref') return token.parts.map(p => p.text).join('');
+                if (token.type === 'ruby') {
+                    const annot = String(token.annot || '').trim();
+                    return annot ? token.base + ' ' + annot : token.base;
+                }
+                return '';
+            }).join('');
+        }
+
         globalThis.ParseCore = {
             normalizeStepLabel: normalizeStepLabel,
             splitStepLine: splitStepLine,
             parseCodeMarker: parseCodeMarker,
             splitFileRefParts: splitFileRefParts,
             parseTokens: parseTokens,
+            notesPlainText: notesPlainText,
             isSeparatorLine: isSeparatorLine,
             parseInput: parseInput
         };
@@ -1637,8 +1677,43 @@
                 const colonIdx = line.indexOf(':');
                 const beforeColon = colonIdx > 0 ? line.slice(0, colonIdx) : line;
                 const afterColon = colonIdx > 0 ? line.slice(colonIdx) : '';
-                return colorizeLeft(beforeColon) + highlightArrows(escapeHtml(afterColon));
+                return renderNoteTokensHtml(beforeColon, colorizeLeft)
+                    + renderNoteTokensHtml(afterColon, s => highlightArrows(escapeHtml(s)));
             }).join('<br>');
+        }
+
+        // 讲解里的 [[基词]]注音}} → <ruby>基词<rt>注音</rt></ruby>(和步骤行同一套 parseTokens)
+        function buildNoteRuby(base, annot) {
+            const text = String(annot || '').trim();
+            if (!text) return document.createTextNode(base);
+            return buildRuby(base, text);
+        }
+
+        function rubyHtml(base, annot) {
+            const text = String(annot || '').trim();
+            if (!text) return escapeHtml(base);
+            return `<ruby>${escapeHtml(base)}<rt>${escapeHtml(text)}</rt></ruby>`;
+        }
+
+        // 一段文字按 parseTokens 切开:普通文字交给 plain,注音块自己出 ruby
+        function renderNoteTokensHtml(text, plain) {
+            return ParseCore.parseTokens(text).map(token => {
+                if (token.type === 'text') return plain(token.text);
+                if (token.type === 'ruby') return rubyHtml(token.base, token.annot);
+                if (token.type === 'method') return '.' + escapeHtml(token.text);
+                if (token.type === 'strong') return '<strong class="emph">' + escapeHtml(token.text) + '</strong>';
+                if (token.type === 'ref') return '<small class="file-ref">' + escapeHtml(token.parts.map(p => p.text).join('')) + '</small>';
+                return '';
+            }).join('');
+        }
+
+        // 朗读用:注音块算成 "基词 注音"(和 notesPlainText 一致)
+        function noteSpeechText(el) {
+            const clone = el.cloneNode(true);
+            clone.querySelectorAll('rt').forEach(rt => {
+                rt.replaceWith(document.createTextNode(' ' + rt.textContent.trim()));
+            });
+            return clone.textContent;
         }
 
         function colorizeLeft(text) {
@@ -1738,7 +1813,8 @@
             return ruby;
         }
 
-        function appendTokens(parent, text) {
+        function appendTokens(parent, text, rubyBuilder) {
+            const build = rubyBuilder || buildRuby;
             ParseCore.parseTokens(text).forEach(token => {
                 if (token.type === 'text') {
                     parent.appendChild(document.createTextNode(token.text));
@@ -1775,7 +1851,7 @@
                     parent.appendChild(el);
                     return;
                 }
-                parent.appendChild(buildRuby(token.base, token.annot));
+                parent.appendChild(build(token.base, token.annot));
             });
         }
 
@@ -1800,25 +1876,47 @@
                     notes.push({ el: box, segments });
                     return;
                 }
-                box.textContent = '';
-                let i = 0;
-                while (i < text.length) {
-                    const rest = text.slice(i);
-                    const m = rest.match(/^[A-Za-z0-9_'-]+/);
-                    if (m) {
-                        const span = document.createElement('span');
-                        span.textContent = m[0];
-                        box.appendChild(span);
-                        segments.push({ el: span, start: i, end: i + m[0].length });
-                        i += m[0].length;
-                    } else {
-                        box.appendChild(document.createTextNode(text[i]));
-                        i += 1;
-                    }
-                }
+                // 就地拆:文字节点换成 word span,ruby 结构留着(只拆基词,注音不拆)
+                wrapWordNodes(box, segments, { pos: 0 });
                 notes.push({ el: box, segments });
             });
             return notes;
+        }
+
+        function wrapWordNodes(node, segments, counter) {
+            Array.from(node.childNodes).forEach(child => {
+                if (child.nodeType === Node.TEXT_NODE) {
+                    const text = child.nodeValue;
+                    if (!text) return;
+                    const frag = document.createDocumentFragment();
+                    let i = 0;
+                    while (i < text.length) {
+                        const rest = text.slice(i);
+                        const m = rest.match(/^[A-Za-z0-9_'-]+/);
+                        if (m) {
+                            const span = document.createElement('span');
+                            span.textContent = m[0];
+                            frag.appendChild(span);
+                            segments.push({ el: span, start: counter.pos, end: counter.pos + m[0].length });
+                            counter.pos += m[0].length;
+                            i += m[0].length;
+                        } else {
+                            frag.appendChild(document.createTextNode(text[i]));
+                            counter.pos += 1;
+                            i += 1;
+                        }
+                    }
+                    node.replaceChild(frag, child);
+                    return;
+                }
+                if (child.nodeType !== Node.ELEMENT_NODE) return;
+                if (child.tagName === 'RT') {
+                    // 注音不拆成 word,但字符要算进去 —— 朗读时这里是 " 注音"(多一个空格)
+                    counter.pos += child.textContent.trim().length + 1;
+                    return;
+                }
+                wrapWordNodes(child, segments, counter);
+            });
         }
 
         function clearHighlights() {
@@ -1980,7 +2078,7 @@
             const key = useCn ? 'cn' : 'en';
             const punct = useCn ? '。' : '.';
             return step.notes
-                .map(note => appendEndingPunctuation(splitNote(note)[key], punct))
+                .map(note => appendEndingPunctuation(ParseCore.notesPlainText(splitNote(note)[key]), punct))
                 .filter(Boolean)
                 .join(' ');
         }
@@ -2052,7 +2150,7 @@
             const key = useCn ? 'cn' : 'en';
             const punct = useCn ? '。' : '.';
             step.notes.forEach((note, i) => {
-                const raw = splitNote(note)[key];
+                const raw = ParseCore.notesPlainText(splitNote(note)[key]);
                 let text = appendEndingPunctuation(raw, punct);
                 if (!text) return;
                 // 中文没有对应的英文 word 段位,传 -1 跳过高亮
@@ -2204,7 +2302,7 @@
                     if (parts.en) {
                         const en = document.createElement('div');
                         en.className = 'note-en';
-                        en.textContent = appendEndingPunctuation(parts.en, '.');
+                        appendTokens(en, appendEndingPunctuation(parts.en, '.'), buildNoteRuby);
                         box.appendChild(en);
                     }
                     if (parts.cn) {
@@ -2221,7 +2319,7 @@
             card.addEventListener('click', (e) => {
                 const el = e.target.closest('.note-en, .note-cn');
                 if (el) {
-                    speakText(el.textContent, el);
+                    speakText(noteSpeechText(el), el);
                 }
             });
             pane.appendChild(card);
