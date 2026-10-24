@@ -93,6 +93,15 @@
         .mini-en-text b,
         .mini-en-text strong,
         .mini-en-text span[style*="bold"] { color: orange; }
+        /* 小字英文里的注音:[[基词]]注音}} → <ruby>基词<rt>注音</rt></ruby> */
+        .mini-en-text rt {
+            font-size: 0.65em;
+            color: #ffd54f;
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            user-select: text;   /* 全局 rt 是 none,这里得能选中改注音 */
+        }
+        /* 有注音的行要留出行距,不然注音会压到上一行 */
+        .mini-en-text:has(ruby) { line-height: 2; }
         .mini-en-text.blank::before {
             content: '(点此填写英文,清空则不显示)';
             color: #8a9299;
@@ -1296,7 +1305,7 @@
                     <li>随机</li><li>开启时每次朗读随机挑选一个英文语音 (循环 右侧)</li>
                     <li><kbd>Alt+H</kbd></li><li>隐藏 / 显示中文句子</li>
                     <li><kbd>Alt+L</kbd></li><li>难句复习(列表在上,输入框在下)</li>
-                    <li>小字英文</li><li>中文上方的小字英文,点一下能改写(可以带 HTML 标签,<b> 粗体显示成橙色);改的存进每条数据的第三格,不影响 JSON 原文;Mode 1 常显,Mode 2 / 3 跟着下面的英文一起显隐</li>
+                    <li>小字英文</li><li>中文上方的小字英文,点一下能改写(可以带 HTML 标签,<b> 粗体显示成橙色</b>;写 [[基词]]注音}} 可以加注音,注音浮在词上面);改的存进每条数据的第三格,不影响 JSON 原文;Mode 1 常显,Mode 2 / 3 跟着下面的英文一起显隐</li>
                     <li><kbd>Alt+J</kbd></li><li>编辑 JSON</li>
                     <li><kbd>Ctrl+I</kbd></li><li>设置背景</li>
                     <li><kbd>Alt+2</kbd></li><li>为选中中文添加注释</li>
@@ -1553,6 +1562,22 @@
             .replace(/>/g, '&gt;');
     }
 
+    // 注音源码 → ruby:
+    //   {{基词}}english]]  ← 本页 JSON 里的写法
+    //   [[基词]]注音}}      ← dataflow 那套写法
+    // 只转正文里的文本,标签原样(小字英文本来就允许带 HTML 标签)。
+    function rubySourceToHtml(html) {
+        return String(html ?? '').replace(
+            /<[a-zA-Z\/!][^>]*>|\{\{([^{}]*)\}\}([\s\S]*?)\]\]|\[\[([^\[\]]+)\]\]([\s\S]*?)\}\}/g,
+            (all, a1, a2, b1, b2) => {
+                if (a1 === undefined && b1 === undefined) return all;   // 标签,原样
+                const base = a1 !== undefined ? a1 : b1;
+                const annot = a2 !== undefined ? a2 : b2;
+                return '<ruby>' + base + '<rt>' + annot + '</rt></ruby>';
+            }
+        );
+    }
+
     // 读者"打"进去的标签(比如 <b>xx</b>),浏览器会当成普通文字存成 &lt;b&gt;。
     // 这里还原成真标签,显示的时候才认得出粗体。
     function normalizeMiniEnHtml(html) {
@@ -1573,18 +1598,19 @@
 
     // 这句要显示的小字英文:优先读者改过的,没改过就用原句
     // 要塞进 innerHTML 的版本:读者改过的按 HTML 走,原句是纯文本,先转义
+    // 注音源码([[基词]]注音}})在这里换成 <ruby>/<rt>
     function getMiniEnHtml(index) {
         const e = entries[index];
         if (!e) return '';
-        if (typeof e[2] === 'string') return e[2];
-        return escapeHtml(e[1] || '');
+        const html = typeof e[2] === 'string' ? e[2] : escapeHtml(e[1] || '');
+        return rubySourceToHtml(html);
     }
 
     // 写回第三格。只碰 e[2],e[0] / e[1] 原样不动。
     function setMiniEn(index, text) {
         const e = entries[index];
         if (!e) return;
-        e[2] = sanitizeMiniEnHtml(normalizeMiniEnHtml(text));
+        e[2] = sanitizeMiniEnHtml(rubySourceToHtml(normalizeMiniEnHtml(text)));
     }
 
     // 换一批内容时(重新粘贴 / 改完 JSON / 加载收藏),把读者写过的小字英文
