@@ -112,6 +112,17 @@
             word-break: break-word;
         }
 
+        /* [[基词]]注音}} → <ruby>基词<rt>注音</rt></ruby>:注音浮在基词上方,后面的
+           后置修饰整个变成注音,所以 rt 给小一号、灰一点,免得跟正文抢视线 */
+        .vcell ruby {
+            ruby-position: over;
+            ruby-align: center;
+        }
+        .vcell rt {
+            font-size: 0.6em;
+            color: #b0bec5;
+        }
+
         code {
             font-family: 'Consolas', 'Monaco', monospace;
             background: #2c2c2c;
@@ -619,6 +630,58 @@
             return { headers: headerCells, rows: dataRows };
         }
 
+        // === rubyCore 开始 ===
+        // 一段单元格文本拆成 token:[[基词]]注音}} → ruby,`code` → code,其余原样。
+        // 纯函数,不碰 DOM,tests/focus-table-ruby.test.js 直接测这段。
+        const CELL_RUBY_RE = /\[\[([^\[\]]+)\]\]([\s\S]*?)\}\}/g;
+
+        function pushPlainTokens(tokens, text) {
+            text.split('`').forEach((part, i) => {
+                if (i % 2 === 0) {
+                    if (part.length > 0) tokens.push({ type: 'text', text: part });
+                } else {
+                    tokens.push({ type: 'code', text: part });
+                }
+            });
+        }
+
+        function tokenizeCellText(text) {
+            const tokens = [];
+            let last = 0;
+            let m;
+            CELL_RUBY_RE.lastIndex = 0;   // 带 g 的正则复用前归零
+            while ((m = CELL_RUBY_RE.exec(text)) !== null) {
+                if (m.index > last) pushPlainTokens(tokens, text.slice(last, m.index));
+                tokens.push({ type: 'ruby', base: m[1], annot: m[2] });
+                last = m.index + m[0].length;
+            }
+            if (last < text.length) pushPlainTokens(tokens, text.slice(last));
+            return tokens;
+        }
+        // === rubyCore 结束 ===
+
+        function renderCellTokens(tokens, parent) {
+            tokens.forEach(tok => {
+                if (tok.type === 'text') {
+                    parent.appendChild(document.createTextNode(tok.text));
+                } else if (tok.type === 'code') {
+                    const code = document.createElement('code');
+                    code.textContent = tok.text;
+                    parent.appendChild(code);
+                } else if (tok.annot) {
+                    const ruby = document.createElement('ruby');
+                    ruby.appendChild(document.createTextNode(tok.base));
+                    const rt = document.createElement('rt');
+                    rt.textContent = tok.annot;
+                    ruby.appendChild(rt);
+                    parent.appendChild(ruby);
+                } else {
+                    // 没写注音(只有 [[基词]]}})就当普通文字,别塞一个空 rt
+                    parent.appendChild(document.createTextNode(tok.base));
+                }
+            });
+        }
+
         function renderCell(text, td) {
             // 先按【】切分,中文注释作为独立小字 div,其余 text 再按 ` 渲染 code span
             // CN 末尾若带句末标点(。？！.?!),直接删掉,避免换行后单独成行
@@ -650,19 +713,10 @@
                 if (frag.type === 'cn') {
                     const cnDiv = document.createElement('div');
                     cnDiv.className = 'cell-cn';
-                    cnDiv.textContent = frag.value;
+                    renderCellTokens(tokenizeCellText(frag.value), cnDiv);
                     td.appendChild(cnDiv);
                 } else {
-                    const parts = frag.value.split('`');
-                    parts.forEach((part, i) => {
-                        if (i % 2 === 0) {
-                            if (part.length > 0) td.appendChild(document.createTextNode(part));
-                        } else {
-                            const code = document.createElement('code');
-                            code.textContent = part;
-                            td.appendChild(code);
-                        }
-                    });
+                    renderCellTokens(tokenizeCellText(frag.value), td);
                 }
             });
         }
