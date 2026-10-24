@@ -76,6 +76,28 @@
             cursor: pointer;
         }
         .cn-text.last-entry { color: #4ade80; }
+        /* 小字英文:显示在中文上方,默认是这句的英文原句,点一下能改 */
+        .mini-en-text {
+            font-size: 20px;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 0 20px 10px;
+            max-width: 90vw;
+            line-height: 1.4;
+            cursor: text;
+            outline: none;
+            white-space: pre-wrap;
+        }
+        /* 正文里的 HTML 标签:粗体显示成橙色 */
+        .mini-en-text b,
+        .mini-en-text strong,
+        .mini-en-text span[style*="bold"] { color: orange; }
+        .mini-en-text.blank::before {
+            content: '(点此填写英文,清空则不显示)';
+            color: #8a9299;
+            font-size: 16px;
+        }
         .en-text {
             font-size: 40px;
             color: #e0e0e0;
@@ -1241,6 +1263,7 @@
             <!--        <div id="counter" class="counter" hidden></div>-->
         </div>
         <div id="textStage">
+            <div id="miniEnText" class="mini-en-text" contenteditable="true" spellcheck="false" hidden></div>
             <div id="cnText" class="cn-text" hidden></div>
             <div id="enText" class="en-text" hidden></div>
             <div id="noteDisplay" class="note-display" hidden></div>
@@ -1273,6 +1296,7 @@
                     <li>随机</li><li>开启时每次朗读随机挑选一个英文语音 (循环 右侧)</li>
                     <li><kbd>Alt+H</kbd></li><li>隐藏 / 显示中文句子</li>
                     <li><kbd>Alt+L</kbd></li><li>难句复习(列表在上,输入框在下)</li>
+                    <li>小字英文</li><li>中文上方的小字英文,点一下能改写(可以带 HTML 标签,<b> 粗体显示成橙色);改的存进每条数据的第三格,不影响 JSON 原文;Mode 1 常显,Mode 2 / 3 跟着下面的英文一起显隐</li>
                     <li><kbd>Alt+J</kbd></li><li>编辑 JSON</li>
                     <li><kbd>Ctrl+I</kbd></li><li>设置背景</li>
                     <li><kbd>Alt+2</kbd></li><li>为选中中文添加注释</li>
@@ -1512,10 +1536,77 @@
     }
     // === reviewCore 结束 ===
 
+    // === miniEnCore 开始 ===
+    // 中文上方的小字英文:默认是这一句的英文原句,读者点一下就能改写。
+    // 里面可以带 HTML 标签 —— <b> 粗体显示成橙色,普通文字是白色。
+    // 改写的内容存在每条数据的第三格(entries[i][2]),
+    // 原来的 [中文, 英文] 两格一个都不动 —— JSON 原文不受影响。
+    // 第三格没写过(undefined)→ 显示英文原句;
+    // 写过(哪怕是空串)→ 显示读者写的那句,空串就是这一句不显示英文。
+    let miniEnEditing = false;
+    let miniEnEditIndex = -1;
+
+    function escapeHtml(text) {
+        return String(text ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    // 读者"打"进去的标签(比如 <b>xx</b>),浏览器会当成普通文字存成 &lt;b&gt;。
+    // 这里还原成真标签,显示的时候才认得出粗体。
+    function normalizeMiniEnHtml(html) {
+        return String(html ?? '')
+            .replace(/&lt;(\/?)([a-zA-Z][a-zA-Z0-9-]*)([^&]*)&gt;/g, '<$1$2$3>');
+    }
+
+    // 存之前扫一遍:脚本、on* 事件、javascript: 链接都不要
+    function sanitizeMiniEnHtml(html) {
+        return String(html ?? '')
+            .replace(/<script[\s\S]*?<\/script>/gi, '')
+            .replace(/<\/?script[^>]*>/gi, '')
+            .replace(/\son\w+\s*=\s*"[^"]*"/gi, '')
+            .replace(/\son\w+\s*=\s*'[^']*'/gi, '')
+            .replace(/\son\w+\s*=\s*\S+/gi, '')
+            .replace(/javascript\s*:/gi, '');
+    }
+
+    // 这句要显示的小字英文:优先读者改过的,没改过就用原句
+    // 要塞进 innerHTML 的版本:读者改过的按 HTML 走,原句是纯文本,先转义
+    function getMiniEnHtml(index) {
+        const e = entries[index];
+        if (!e) return '';
+        if (typeof e[2] === 'string') return e[2];
+        return escapeHtml(e[1] || '');
+    }
+
+    // 写回第三格。只碰 e[2],e[0] / e[1] 原样不动。
+    function setMiniEn(index, text) {
+        const e = entries[index];
+        if (!e) return;
+        e[2] = sanitizeMiniEnHtml(normalizeMiniEnHtml(text));
+    }
+
+    // 换一批内容时(重新粘贴 / 改完 JSON / 加载收藏),把读者写过的小字英文
+    // 带过去 —— 按中文原文对上号。新内容自己已经带了就用新内容的。
+    function carryMiniEn(oldEntries, nextEntries) {
+        if (!Array.isArray(oldEntries) || !Array.isArray(nextEntries)) return;
+        const map = new Map();
+        oldEntries.forEach(e => {
+            if (e && typeof e[0] === 'string' && typeof e[2] === 'string') map.set(e[0], e[2]);
+        });
+        if (map.size === 0) return;
+        nextEntries.forEach(e => {
+            if (e && typeof e[2] !== 'string' && map.has(e[0])) e[2] = map.get(e[0]);
+        });
+    }
+    // === miniEnCore 结束 ===
+
     const errorBar = document.getElementById('errorBar');
     const counter = document.getElementById('counter');
     const cnText = document.getElementById('cnText');
     const enText = document.getElementById('enText');
+    const miniEnText = document.getElementById('miniEnText');
     const emptyState = document.getElementById('emptyState');
     const voiceSelect = document.getElementById('voiceSelect');
     const ttsToggle = document.getElementById('ttsToggle');
@@ -2045,6 +2136,7 @@
         }
         clearAiHistory();
         lastPastedText = '';
+        carryMiniEn(entries, payload);
         replaceEntries(payload);
         currentIndex = 0;
         saveState();
@@ -2505,7 +2597,9 @@
                 return;
             }
         }
+        const oldEntries = entries;
         entries = pairs;
+        carryMiniEn(oldEntries, pairs);
         lastPastedText = '';
         if (entries.length === 0) {
             currentIndex = 0;
@@ -3843,11 +3937,84 @@
         }
     }
 
+    // 编辑框里删干净了(浏览器会留个 <br>),标一下"空的",
+    // 好让占位提示冒出来
+    function updateMiniEnBlank() {
+        miniEnText.classList.toggle('blank', !miniEnText.textContent.trim());
+    }
+
+    // 小字英文的显示。
+    // Mode 1:下面那句英文本来就全露着,小字英文一直显示;
+    // Mode 2 / 3:下面那句英文默认是打码的,小字英文跟着它一起 ——
+    //             按 ↓ 把英文露出来时,小字英文才跟着出现。
+    function renderMiniEn() {
+        if (entries.length === 0) {
+            miniEnText.hidden = true;
+            return;
+        }
+        miniEnText.hidden = !(currentMode === 1 || enRevealed);
+        // 正在编辑就别覆盖,否则读者打的字会被冲掉
+        if (!miniEnEditing) miniEnText.innerHTML = getMiniEnHtml(currentIndex);
+        updateMiniEnBlank();
+    }
+
+    // 失焦 = 提交。提交只改第三格 + 存盘,不重画页面
+    // (render() 会重新朗读,不能在这儿调)
+    function commitMiniEn() {
+        if (!miniEnEditing) return;
+        const idx = miniEnEditIndex;
+        const html = miniEnText.innerHTML;
+        const blank = !miniEnText.textContent.trim();
+        miniEnEditing = false;
+        miniEnEditIndex = -1;
+        // 删干净了就当"这句不显示英文"(浏览器会留个 <br>,别存进去)
+        setMiniEn(idx, blank ? '' : html);
+        saveState();
+        if (idx === currentIndex) miniEnText.innerHTML = getMiniEnHtml(currentIndex);
+        updateMiniEnBlank();
+    }
+
+    // Esc = 放弃这次编辑,内容还原
+    function revertMiniEn() {
+        if (!miniEnEditing) return;
+        const idx = miniEnEditIndex;
+        miniEnEditing = false;
+        miniEnEditIndex = -1;
+        miniEnText.innerHTML = getMiniEnHtml(idx);
+        updateMiniEnBlank();
+    }
+
+    // 点一下就开始改这句的小字英文
+    miniEnText.addEventListener('focus', () => {
+        miniEnEditing = true;
+        miniEnEditIndex = currentIndex;
+    });
+    miniEnText.addEventListener('blur', () => {
+        commitMiniEn();
+    });
+    miniEnText.addEventListener('input', () => {
+        updateMiniEnBlank();
+    });
+    miniEnText.addEventListener('keydown', (e) => {
+        // 编辑的时候别让页面级快捷键(方向键翻页那些)抢走按键
+        e.stopPropagation();
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            miniEnText.blur();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            revertMiniEn();
+            miniEnText.blur();
+        }
+    });
+
     function render() {
         const indexChanged = lastRenderedIndex !== null && lastRenderedIndex !== currentIndex;
         if (indexChanged) {
             if (isAiStreaming && aiAbortController) aiAbortController.abort();
             enRevealed = false;
+            // 换句子了,先把这次编辑存掉(存到它原来那一句上)
+            if (miniEnEditing) commitMiniEn();
         }
         lastRenderedIndex = currentIndex;
         if (entries.length === 0) {
@@ -3855,6 +4022,7 @@
             counter.hidden = true;
             cnText.hidden = true;
             enText.hidden = true;
+            miniEnText.hidden = true;
             noteDisplay.hidden = true;
             return;
         }
@@ -3874,6 +4042,7 @@
             enText.textContent = maskEnText(en, currentMode === 2);
         }
         renderNote();
+        renderMiniEn();
         speakCn();
         if (bgImages.length > 0 && !applyOnlyBg()) pickRandomBg();
         postCnEnToChild();
@@ -4231,8 +4400,10 @@
         const pastedHash = hashEntries(allEntries);
         findFavoriteByHash(pastedHash).then(match => {
             if (match && Array.isArray(match.payload)) {
+                carryMiniEn(entries, match.payload);
                 replaceEntries(match.payload);
             } else {
+                carryMiniEn(entries, allEntries);
                 replaceEntries(allEntries);
             }
             currentIndex = 0;
@@ -4353,6 +4524,7 @@
             } else {
                 enText.textContent = maskEnText(entries[currentIndex][1], currentMode === 2);
             }
+            renderMiniEn();   // 小字英文跟着下面的英文一起显 / 隐
             renderNote();
         }
         if (e.code === 'ArrowUp' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
@@ -4573,6 +4745,7 @@
             } else {
                 enText.textContent = maskEnText(entries[currentIndex][1], mode === 2);
             }
+            renderMiniEn();   // 小字英文跟着下面的英文一起显 / 隐
             renderNote();
         }
     }
