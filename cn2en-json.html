@@ -3996,6 +3996,15 @@
         // 删干净了就当"这句不显示英文"(浏览器会留个 <br>,别存进去)
         setMiniEn(idx, blank ? '' : html);
         saveState();
+        // 收藏里那条也得跟着改,不然重新加载这个收藏时,小字英文会被旧值盖掉
+        if (currentFavId) {
+            const fav = favorites.find(f => f.id === currentFavId);
+            if (fav) {
+                fav.payload = entries;
+                fav.hash = hashEntries(entries);
+                updateFavorite(currentFavId, { payload: fav.payload, hash: fav.hash });
+            }
+        }
         if (idx === currentIndex) miniEnText.innerHTML = getMiniEnHtml(currentIndex);
         updateMiniEnBlank();
     }
