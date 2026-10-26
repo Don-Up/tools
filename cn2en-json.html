@@ -1291,6 +1291,7 @@
                     <li><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></li><li>切换 Mode</li>
                     <li><kbd>4</kbd> <kbd>5</kbd> <kbd>6</kbd></li><li>切换 单句 / 连续 / 循环</li>
                     <li><kbd>↓</kbd></li><li>揭示英文 / 笔记</li>
+                    <li><kbd>↑</kbd></li><li>隐藏 / 显示下面的大字英文(上面的小字英文跟着一起)</li>
                     <li><kbd>Space</kbd></li><li>暂停 / 继续朗读</li>
                     <li><kbd>E</kbd></li><li>读当前英文</li>
                     <li><kbd>Z</kbd></li><li>读全文</li>
@@ -1307,7 +1308,7 @@
                     <li>随机</li><li>开启时每次朗读随机挑选一个英文语音 (循环 右侧)</li>
                     <li><kbd>Alt+H</kbd></li><li>隐藏 / 显示中文句子</li>
                     <li><kbd>Alt+L</kbd></li><li>难句复习(列表在上,输入框在下)</li>
-                    <li>小字英文</li><li>中文上方的小字英文,点一下能改写(可以带 HTML 标签,<b> 粗体显示成橙色</b>;写 [[基词]]注音}} 可以加注音,注音浮在词上面);改的存进每条数据的第三格,不影响 JSON 原文;Mode 1 常显,Mode 2 / 3 跟着下面的英文一起显隐</li>
+                    <li>小字英文</li><li>中文上方的小字英文,点一下能改写(可以带 HTML 标签,<b> 粗体显示成橙色</b>;写 [[基词]]注音}} 可以加注音,注音浮在词上面);编辑时看到的是源码(标签原样),点外面才渲染成样子;改的存进每条数据的第三格,不影响 JSON 原文;Mode 1 常显,Mode 2 / 3 跟着下面的英文一起显隐</li>
                     <li><kbd>Alt+J</kbd></li><li>编辑 JSON</li>
                     <li><kbd>Ctrl+I</kbd></li><li>设置背景</li>
                     <li><kbd>Alt+2</kbd></li><li>为选中中文添加注释</li>
@@ -1598,6 +1599,26 @@
             .replace(/javascript\s*:/gi, '');
     }
 
+    // 实体解码:源码视图里 &amp; 要显示成 &
+    function decodeEntities(text) {
+        return String(text ?? '')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/&nbsp;/g, ' ')
+            .replace(/&amp;/g, '&');
+    }
+
+    // 小字英文的源码:编辑时显示的就是它(标签原样,方便看着改)
+    // 读者改过的就是存着的那份,没改过的就是原句
+    function getMiniEnSource(index) {
+        const e = entries[index];
+        if (!e) return '';
+        if (typeof e[2] === 'string') return decodeEntities(e[2]);
+        return e[1] || '';
+    }
+
     // 这句要显示的小字英文:优先读者改过的,没改过就用原句
     // 要塞进 innerHTML 的版本:读者改过的按 HTML 走,原句是纯文本,先转义
     // 注音源码([[基词]]注音}})在这里换成 <ruby>/<rt>
@@ -1609,10 +1630,12 @@
     }
 
     // 写回第三格。只碰 e[2],e[0] / e[1] 原样不动。
+    // 存的是源码(标签原样、注音还是 [[基词]]注音}} 这种写法),
+    // 显示的时候才渲染 —— 编辑时看到的就是它。
     function setMiniEn(index, text) {
         const e = entries[index];
         if (!e) return;
-        e[2] = sanitizeMiniEnHtml(rubySourceToHtml(normalizeMiniEnHtml(text)));
+        e[2] = sanitizeMiniEnHtml(normalizeMiniEnHtml(text));
     }
 
     // 换一批内容时(重新粘贴 / 改完 JSON / 加载收藏),把读者写过的小字英文
@@ -3979,15 +4002,22 @@
     // Mode 1:下面那句英文本来就全露着,小字英文一直显示;
     // Mode 2 / 3:下面那句英文默认是打码的,小字英文跟着它一起 ——
     //             按 ↓ 把英文露出来时,小字英文才跟着出现。
+    // 按 ↑ 把大字英文藏起来时,小字英文也跟着藏(enShown)。
     function renderMiniEn() {
         if (entries.length === 0) {
             miniEnText.hidden = true;
             return;
         }
-        miniEnText.hidden = !(currentMode === 1 || enRevealed);
+        miniEnText.hidden = !enShown || !(currentMode === 1 || enRevealed);
         // 正在编辑就别覆盖,否则读者打的字会被冲掉
         if (!miniEnEditing) miniEnText.innerHTML = getMiniEnHtml(currentIndex);
         updateMiniEnBlank();
+    }
+
+    // 大字英文的显 / 藏(↑ 键),小字英文跟着一起
+    function applyEnVisibility() {
+        enText.style.visibility = enShown ? "visible" : "hidden";
+        renderMiniEn();
     }
 
     // 失焦 = 提交。提交只改第三格 + 存盘,不重画页面
@@ -4025,10 +4055,75 @@
         updateMiniEnBlank();
     }
 
+    // 光标在元素里的第几个可见字符(渲染视图里数)
+    function visibleCaretOffset(el) {
+        const sel = window.getSelection();
+        if (!sel || !sel.rangeCount) return null;
+        const r = sel.getRangeAt(0);
+        if (!el.contains(r.startContainer)) return null;
+        const pre = document.createRange();
+        pre.selectNodeContents(el);
+        try { pre.setEnd(r.startContainer, r.startOffset); } catch (err) { return null; }
+        return pre.toString().length;
+    }
+
+    // 源码里第 k 个可见字符的位置(标签本身在渲染后看不见,不算数)
+    function sourceOffsetForVisible(src, k) {
+        let visible = 0;
+        for (let i = 0; i < src.length; i++) {
+            if (src[i] === '<') {
+                const end = src.indexOf('>', i);
+                if (end === -1) return src.length;
+                i = end;
+                continue;
+            }
+            if (visible === k) return i;
+            visible++;
+        }
+        return src.length;
+    }
+
+    // 光标放到第 n 个字符前面
+    function placeCaret(el, n) {
+        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        let acc = 0, node;
+        while ((node = walker.nextNode())) {
+            const len = node.textContent.length;
+            if (acc + len >= n) {
+                const r = document.createRange();
+                r.setStart(node, Math.max(0, n - acc));
+                r.collapse(true);
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(r);
+                return;
+            }
+            acc += len;
+        }
+        const r = document.createRange();
+        r.selectNodeContents(el);
+        r.collapse(false);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(r);
+    }
+
+    // 编辑时显示源码:HTML 标签原样(比如 <b>),不是渲染后的样子
+    function showMiniEnSource() {
+        const k = visibleCaretOffset(miniEnText);
+        const src = getMiniEnSource(currentIndex);
+        miniEnText.textContent = src;
+        // 光标尽量放回刚才点的地方
+        placeCaret(miniEnText, k === null ? src.length : sourceOffsetForVisible(src, k));
+        updateMiniEnBlank();
+    }
+
     // 点一下就开始改这句的小字英文
     miniEnText.addEventListener('focus', () => {
+        if (miniEnEditing) return;
         miniEnEditing = true;
         miniEnEditIndex = currentIndex;
+        showMiniEnSource();
     });
     miniEnText.addEventListener('blur', () => {
         commitMiniEn();
@@ -4612,7 +4707,7 @@
                 return;
             }
             enShown = !enShown;
-            enText.style.visibility = enShown ? "visible" : "hidden"
+            applyEnVisibility();
         }
         if (!e.ctrlKey && !e.altKey && !e.shiftKey && e.code === 'KeyZ' && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden) {
             if (entries.length === 0) return;
@@ -4685,8 +4780,8 @@
                 saveState();
                 render();
                 if(!enShown){
-                    enText.style.visibility = "visible"
                     enShown = true
+                    applyEnVisibility()
                 }
             } else if (e.code === 'ArrowRight') {
                 e.preventDefault();
@@ -4704,8 +4799,8 @@
                 saveState();
                 render();
                 if(!enShown){
-                    enText.style.visibility = "visible"
                     enShown = true
+                    applyEnVisibility()
                 }
             }
         }
