@@ -1297,6 +1297,7 @@
                     <li><kbd>N</kbd></li><li>添加笔记</li>
                     <li><kbd>F</kbd></li><li>收藏当前条</li>
                     <li><kbd>Alt+F</kbd></li><li>打开收藏夹</li>
+                    <li><kbd>Ctrl+F</kbd></li><li>读剪贴板里的标题,直接加载数据库里对应的那份 JSON(对不上会提示)</li>
                     <li><kbd>Alt+R</kbd></li><li>读全文 / 循环读选中文本</li>
                     <li><kbd>Alt+A</kbd> <kbd>PgUp</kbd></li><li>分句跟读 (按 ,  —  :  ;  .  ?  ". 分句)</li>
                     <li><kbd>A</kbd> <kbd>Del</kbd></li><li>再次朗读当前分句 (基于上次 Alt+A)</li>
@@ -2039,6 +2040,16 @@
         if (!hash) return null;
         const favs = await getAllFavorites();
         return favs.find(f => f.hash === hash) || null;
+    }
+
+    // 按标题找收藏:先原样找,再按去空格、忽略大小写找
+    function findFavoriteByName(name) {
+        const target = String(name ?? '').trim();
+        if (!target) return null;
+        const hit = favorites.find(f => f && f.name === target);
+        if (hit) return hit;
+        const low = target.toLowerCase();
+        return favorites.find(f => f && String(f.name || '').trim().toLowerCase() === low) || null;
     }
 
     async function deleteFavorite(id) {
@@ -4526,6 +4537,27 @@
             try {
                 const text = await navigator.clipboard.readText();
                 parseAndLoad(text);
+            } catch (err) {
+                showError(`剪贴板读取失败: ${err.message || err}`);
+            }
+        }
+        // Ctrl+F:读剪贴板里的标题,直接加载数据库里对应的那份 JSON
+        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyF' && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden) {
+            const tag = e.target.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+            e.preventDefault();
+            try {
+                const title = (await navigator.clipboard.readText() || '').trim();
+                if (!title) {
+                    showError('剪贴板里没有标题');
+                    return;
+                }
+                const fav = findFavoriteByName(title);
+                if (!fav) {
+                    showError(`无对应标题:${title}`);
+                    return;
+                }
+                await loadFavorite(fav);
             } catch (err) {
                 showError(`剪贴板读取失败: ${err.message || err}`);
             }
