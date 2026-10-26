@@ -3855,13 +3855,7 @@
         if ((e.key === 'r' || e.key === 'PageDown') && !e.ctrlKey && !e.altKey && !e.metaKey) {
             if (entries.length === 0) return;
             e.preventDefault();
-            const sel = window.getSelection()?.toString().trim();
-            if (sel && !/[一-龥]/.test(sel)) {
-                speakEn(true, sel, null);
-            } else {
-                loopPlayed = 0;
-                speakEn(true, undefined, playMode);
-            }
+            readCurrentEn();
         }
         if (e.key === 't' && !e.ctrlKey && !e.altKey && !e.metaKey) {
             if (entries.length === 0) return;
@@ -4212,6 +4206,19 @@
             };
         }
         window.speechSynthesis.speak(utterance);
+    }
+
+    // 读当前英文(选中的是英文就只读选中的,否则读整句;按当前播放方式走)
+    // R / PgDn 键和 4/5/6 切换播放方式都调它
+    function readCurrentEn() {
+        if (entries.length === 0) return;
+        const sel = window.getSelection()?.toString().trim();
+        if (sel && !/[一-龥]/.test(sel)) {
+            speakEn(true, sel, null);
+        } else {
+            loopPlayed = 0;
+            speakEn(true, undefined, playMode);
+        }
     }
 
     function readAllEn() {
@@ -4636,14 +4643,17 @@
                 if (tag === 'INPUT' || tag === 'TEXTAREA') return;
                 e.preventDefault();
                 setPlayMode('single');
+                readCurrentEn();
             } else if (e.code === 'Digit5' || e.code === 'Numpad5') {
                 if (tag === 'INPUT' || tag === 'TEXTAREA') return;
                 e.preventDefault();
                 setPlayMode('continuous');
+                readCurrentEn();
             } else if (e.code === 'Digit6' || e.code === 'Numpad6') {
                 if (tag === 'INPUT' || tag === 'TEXTAREA') return;
                 e.preventDefault();
                 setPlayMode('loop');
+                readCurrentEn();
             }
         }
         if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'KeyC') {
