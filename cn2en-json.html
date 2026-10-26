@@ -123,16 +123,28 @@
             text-align: center;
         }
         [hidden] { display: none; }
+        /* 整个控件区:上面一排是所有控件,下面一排只放页码 + 已收藏 */
         .top-left-controls {
             position: fixed;
             top: 20px;
             left: 20px;
             z-index: 5;
             display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+        }
+        .tts-main-row {
+            display: flex;
             gap: 16px;
             align-items: center;
         }
         .tts-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .tts-sub-row {
             display: flex;
             gap: 10px;
             align-items: center;
@@ -1237,26 +1249,31 @@
 
         <div id="errorBar" class="error-bar"></div>
         <div id="topLeftControls" class="top-left-controls">
-            <div id="ttsControls" class="tts-controls">
-                <select id="voiceSelect" class="voice-select"></select>
-                <label class="tts-toggle-label"><input type="checkbox" id="ttsToggle" checked> CN</label>
+            <div class="tts-main-row">
+                <div id="ttsControls" class="tts-controls">
+                    <select id="voiceSelect" class="voice-select"></select>
+                    <label class="tts-toggle-label"><input type="checkbox" id="ttsToggle" checked> CN</label>
+                </div>
+                <div id="ttsControlsEn" class="tts-controls">
+                    <select id="voiceSelectEn" class="voice-select"></select>
+                    <label class="tts-toggle-label"><input type="checkbox" id="ttsToggleEn"> EN</label>
+                </div>
+                <div id="modeControls" class="mode-controls">
+                    <label class="mode-radio-label"><input type="radio" name="mode" value="1" checked> Mode 1</label>
+                    <label class="mode-radio-label"><input type="radio" name="mode" value="2"> Mode 2</label>
+                    <label class="mode-radio-label"><input type="radio" name="mode" value="3"> Mode 3</label>
+                    <label class="mode-radio-label"><input type="radio" name="playMode" value="single" checked> 单句</label>
+                    <label class="mode-radio-label"><input type="radio" name="playMode" value="continuous"> 连续</label>
+                    <label class="mode-radio-label"><input type="radio" name="playMode" value="loop"> 循环 <input type="number" id="loopCountInput" min="0" value="0" class="loop-count-input" title="循环次数(0=无限)"></label>
+                    <label class="mode-radio-label"><input type="radio" name="playMode" value="infinite"> 无限循环</label>
+                    <label class="mode-radio-label"><input type="checkbox" id="randomVoiceToggle"> 随机</label>
+                    <label class="mode-radio-label" title="→ 先弹上一句中文,↓ 看英文,再按 → 才跳下一句"><input type="checkbox" id="reviewPreToggle"> review pre</label>
+                </div>
             </div>
-            <div id="ttsControlsEn" class="tts-controls">
-                <select id="voiceSelectEn" class="voice-select"></select>
-                <label class="tts-toggle-label"><input type="checkbox" id="ttsToggleEn"> EN</label>
+            <div class="tts-sub-row">
+                <div id="counter" class="counter" hidden></div>
+                <div id="favStatus" class="fav-status" hidden></div>
             </div>
-            <div id="modeControls" class="mode-controls">
-                <label class="mode-radio-label"><input type="radio" name="mode" value="1" checked> Mode 1</label>
-                <label class="mode-radio-label"><input type="radio" name="mode" value="2"> Mode 2</label>
-                <label class="mode-radio-label"><input type="radio" name="mode" value="3"> Mode 3</label>
-                <label class="mode-radio-label"><input type="radio" name="playMode" value="single" checked> 单句</label>
-                <label class="mode-radio-label"><input type="radio" name="playMode" value="continuous"> 连续</label>
-                <label class="mode-radio-label"><input type="radio" name="playMode" value="loop"> 循环 <input type="number" id="loopCountInput" min="0" value="0" class="loop-count-input" title="循环次数(0=无限)"></label>
-                <label class="mode-radio-label"><input type="checkbox" id="randomVoiceToggle"> 随机</label>
-                <label class="mode-radio-label" title="→ 先弹上一句中文,↓ 看英文,再按 → 才跳下一句"><input type="checkbox" id="reviewPreToggle"> review pre</label>
-            </div>
-            <div id="counter" class="counter" hidden></div>
-            <div id="favStatus" class="fav-status" hidden></div>
         </div>
         <div id="speedControls" class="speed-controls">
             <div class="speed-row">
@@ -1290,6 +1307,7 @@
                     <li><kbd>review pre</kbd></li><li>开启后:→ 先看上一句中文,↓ 看英文,再按 → 才跳下一条</li>
                     <li><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></li><li>切换 Mode</li>
                     <li><kbd>4</kbd> <kbd>5</kbd> <kbd>6</kbd></li><li>切换 单句 / 连续 / 循环</li>
+                    <li><kbd>7</kbd></li><li>切换 无限循环(一直读当前这句)</li>
                     <li><kbd>↓</kbd></li><li>揭示英文 / 笔记</li>
                     <li><kbd>↑</kbd></li><li>隐藏 / 显示下面的大字英文(上面的小字英文跟着一起)</li>
                     <li><kbd>Space</kbd></li><li>暂停 / 继续朗读</li>
@@ -4285,11 +4303,16 @@
                 render();
                 speakEn(true, undefined, 'continuous');
             };
-        } else if (mode === 'loop') {
+        } else if (mode === 'loop' || mode === 'infinite') {
             utterance.onend = () => {
-                if (playMode !== 'loop') return;
+                if (playMode !== 'loop' && playMode !== 'infinite') return;
                 if (entries.length === 0) return;
                 loopPlayed++;
+                // 无限循环:一直读当前这句,不往下走
+                if (playMode === 'infinite') {
+                    speakEn(true, undefined, 'infinite');
+                    return;
+                }
                 const target = parseInt(loopCountInput.value, 10) || 0;
                 if (target > 0 && loopPlayed >= target) {
                     loopPlayed = 0;
@@ -4749,6 +4772,11 @@
                 e.preventDefault();
                 setPlayMode('loop');
                 readCurrentEn();
+            } else if (e.code === 'Digit7' || e.code === 'Numpad7') {
+                if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+                e.preventDefault();
+                setPlayMode('infinite');
+                readCurrentEn();
             }
         }
         if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'KeyC') {
@@ -4870,7 +4898,7 @@
     });
     const playModeRadios = document.querySelectorAll('input[name="playMode"]');
     const savedPlayMode = localStorage.getItem(STORAGE_KEY_CONTINUOUS_FOLLOW);
-    if (savedPlayMode === 'continuous' || savedPlayMode === 'loop' || savedPlayMode === 'single') {
+    if (savedPlayMode === 'continuous' || savedPlayMode === 'loop' || savedPlayMode === 'single' || savedPlayMode === 'infinite') {
         playMode = savedPlayMode;
     } else if (savedPlayMode === 'true') {
         playMode = 'continuous';
@@ -4886,7 +4914,7 @@
     });
     // 切换播放方式:单句 / 连续 / 循环(点按钮和按 4/5/6 都走这里)
     function setPlayMode(value) {
-        if (value !== 'single' && value !== 'continuous' && value !== 'loop') return;
+        if (value !== 'single' && value !== 'continuous' && value !== 'loop' && value !== 'infinite') return;
         playMode = value;
         if (playMode !== 'continuous') pendingContinuousAdvance = false;
         playModeRadios.forEach(r => { r.checked = r.value === playMode; });
