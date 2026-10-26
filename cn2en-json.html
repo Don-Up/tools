@@ -1289,6 +1289,7 @@
                     <li><kbd>←</kbd> <kbd>→</kbd></li><li>上 / 下一条</li>
                     <li><kbd>review pre</kbd></li><li>开启后:→ 先看上一句中文,↓ 看英文,再按 → 才跳下一条</li>
                     <li><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></li><li>切换 Mode</li>
+                    <li><kbd>4</kbd> <kbd>5</kbd> <kbd>6</kbd></li><li>切换 单句 / 连续 / 循环</li>
                     <li><kbd>↓</kbd></li><li>揭示英文 / 笔记</li>
                     <li><kbd>Space</kbd></li><li>暂停 / 继续朗读</li>
                     <li><kbd>E</kbd></li><li>读当前英文</li>
@@ -4631,6 +4632,18 @@
             } else if (e.code === 'Digit3' || e.code === 'Numpad3') {
                 e.preventDefault();
                 applyMode(3);
+            } else if (e.code === 'Digit4' || e.code === 'Numpad4') {
+                if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+                e.preventDefault();
+                setPlayMode('single');
+            } else if (e.code === 'Digit5' || e.code === 'Numpad5') {
+                if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+                e.preventDefault();
+                setPlayMode('continuous');
+            } else if (e.code === 'Digit6' || e.code === 'Numpad6') {
+                if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+                e.preventDefault();
+                setPlayMode('loop');
             }
         }
         if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'KeyC') {
@@ -4763,11 +4776,17 @@
         r.checked = r.value === playMode;
         r.addEventListener('change', () => {
             if (!r.checked) return;
-            playMode = r.value;
-            if (playMode !== 'continuous') pendingContinuousAdvance = false;
-            localStorage.setItem(STORAGE_KEY_CONTINUOUS_FOLLOW, playMode);
+            setPlayMode(r.value);
         });
     });
+    // 切换播放方式:单句 / 连续 / 循环(点按钮和按 4/5/6 都走这里)
+    function setPlayMode(value) {
+        if (value !== 'single' && value !== 'continuous' && value !== 'loop') return;
+        playMode = value;
+        if (playMode !== 'continuous') pendingContinuousAdvance = false;
+        playModeRadios.forEach(r => { r.checked = r.value === playMode; });
+        localStorage.setItem(STORAGE_KEY_CONTINUOUS_FOLLOW, playMode);
+    }
     const loopCountInput = document.getElementById('loopCountInput');
     const savedLoopCount = parseInt(localStorage.getItem(STORAGE_KEY_LOOP_COUNT), 10);
     loopCountInput.value = (Number.isFinite(savedLoopCount) && savedLoopCount >= 0) ? String(savedLoopCount) : '0';
