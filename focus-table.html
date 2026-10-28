@@ -602,6 +602,7 @@
         let controlsVisible = localStorage.getItem('focusTableControlsVisible') === 'true';
         let speechSpeed = parseFloat(localStorage.getItem('focusTableSpeechSpeed')) || 1.0;
         let availableVoices = [];
+        let columnsInputEl = null;   // 当前那次的 Columns 输入框,给键盘处理用
         const stage = document.getElementById('stage');
 
         function splitRow(line) {
@@ -781,10 +782,23 @@
                 colsInput.type = 'text';
                 colsInput.value = columnsConfig;
                 colsInput.placeholder = 'column numbers, comma-separated';
-                colsInput.addEventListener('blur', () => {
+                // 改一下就存,不能只等失焦:render() 会把整个设置栏重建,输入框被换掉时
+                // blur 根本不会触发(元素从 DOM 移除不发 blur),只在 blur 里存就等于没存
+                const saveColumns = () => {
                     columnsConfig = colsInput.value;
                     localStorage.setItem('focusTableColumns', columnsConfig);
+                };
+                colsInput.addEventListener('input', saveColumns);
+                colsInput.addEventListener('change', saveColumns);
+                colsInput.addEventListener('blur', saveColumns);
+                colsInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        saveColumns();
+                        colsInput.blur();
+                    }
                 });
+                columnsInputEl = colsInput;
                 colsLabel.appendChild(colsInput);
                 controls.appendChild(colsLabel);
 
@@ -863,8 +877,11 @@
             rows = parsed.rows;
             currentIndex = 0;
             resetFollow();
-            columnsConfig = '1,2';
-            localStorage.setItem('focusTableColumns', columnsConfig);
+            // 只在从没设过时给个默认 1,2。已经设过的就保留,别被新粘贴的表格冲掉
+            if (localStorage.getItem('focusTableColumns') === null) {
+                columnsConfig = '1,2';
+                localStorage.setItem('focusTableColumns', columnsConfig);
+            }
             lastPastedText = text;
             render();
         }
@@ -1094,6 +1111,8 @@
             // 设置栏:不带修饰键的 C。原来绑的是 Alt+H,那个键是 Chrome 的"历史记录"菜单,
             // 浏览器在页面之外处理,preventDefault 拦不住。放最前面,焦点在 AI 输入框里也能切
             if (e.code === 'KeyC' && !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
+                // 在 Columns 输入框里打字时别把设置栏关了(AI 输入框不受影响,那里就是要能切)
+                if (columnsInputEl && document.activeElement === columnsInputEl) return;
                 e.preventDefault();
                 controlsVisible = !controlsVisible;
                 localStorage.setItem('focusTableControlsVisible', String(controlsVisible));
@@ -1133,6 +1152,9 @@
             }
             if (rows.length === 0) return;
             if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+                // 焦点在输入框里时方向键挪光标,别翻页(翻页会把输入框重建掉)
+                const tag = e.target && e.target.tagName;
+                if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
                 e.preventDefault();
                 if (currentIndex < rows.length - 1) {
                     currentIndex++;
@@ -1140,6 +1162,8 @@
                     speakCurrentRow();
                 }
             } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                const tag = e.target && e.target.tagName;
+                if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
                 e.preventDefault();
                 if (currentIndex > 0) {
                     currentIndex--;
