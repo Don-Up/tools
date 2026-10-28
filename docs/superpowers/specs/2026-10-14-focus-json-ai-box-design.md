@@ -4,7 +4,7 @@
 
 ## Goal
 
-把"复制英文段落 → 打开页面 → 翻译为双语 JSON → 粘贴"这串手工流程压缩为:把英文段落粘到左上角 input,按 Enter,自动加载并开始读。AI 输出**严格按指定 SKILL 的双语 JSON 格式**,加载路径与现有 `Ctrl+V` 完全相同,无新分支。
+在左上角加一个 AI 输入框,用户问问题,AI 按指定 SKILL 用英文作答并给出中文翻译,响应格式化为双语 JSON,直接走与 `Ctrl+V` 相同的 `loadJson` 路径加载(不复制粘贴、不模拟按键)。 重点: 英文是 AI 回答,不是翻译用户的输入; 中文是 AI 对自己回答的翻译。
 
 ## Visual Layout
 
@@ -83,14 +83,28 @@
 const AI_BASE_URL = 'https://next-reader-psi.vercel.app/api/minimax';
 const AI_MODEL = 'MiniMax-M3';
 const AI_MAX_TOKENS = 4096;
-const AI_SYSTEM_PROMPT = `1. 以英文表达的顺序和内容为准,中文作为对应翻译,两者一一对应。
-2. 最小切分单位:以分割意群的逗号 (,)、破折号 (— / ——)、分号 (;) 等作为最小 entry 单位切分;用于列举名词的逗号 (如 columns, create, list, detail, retry) 不切分,保留在同一 entry 内。
-3. 中文必须与英文严格对应:英文 entry 中的每部分内容,中文翻译都必须完整对应,不得省略、漏译、合并或自行简化。
-4. JSON 格式:
-   - key 为英文原文片段,保留原文标点、大小写、代码标识符、路径、方法名等原样。
+const AI_SYSTEM_PROMPT = `回答用户的问题或解释用户提出的概念,按以下要求返回 JSON:
+
+1. 你用英文作答(英文由你生成,不是用户的输入),中文作为对应翻译,两者一一对应。
+2. **最小切分单位**:以分割意群的逗号（,）、破折号（— / ——）、分号（;）等作为最小 entry 单位切分;用于列举名词的逗号（如 \`columns, create, list, detail, retry\`）不切分,保留在同一 entry 内。
+3. **中文必须与英文严格对应**:英文 entry 中的每部分内容,中文翻译都必须完整对应,不得省略、漏译、合并或自行简化。
+4. **JSON 格式**:
+   - key 为你用英文作答的片段。
    - value 为对应的中文翻译。
-   - 保持英文原文顺序。
-5. 只返回 JSON,不要额外解释或包裹代码块以外的文字。`;
+   - 保持你用英文作答的顺序。
+5. **只返回 JSON**,不要额外解释或包裹代码块以外的文字。
+
+**示例输出**:
+{
+    "The export tasks finally have a home in the UI": "导出任务终于在前端有自己的页面了",
+    "Users can now open /exports": "用户现在可以打开 /exports",
+    "see a paginated table of export jobs filtered by status": "看到按状态筛选的导出任务分页表",
+    "switch status from a dropdown": "从下拉框切换状态",
+    "and paginate through results — all read-only": "并翻页浏览结果 —— 全部只读",
+    "no retry / download / create yet": "暂不支持重试 / 下载 / 创建",
+    "Stage 1.10 wired up exportApi.{columns, create, list, detail, retry} and 7 domain types": "Stage 1.10 打通了 exportApi.{columns, create, list, detail, retry} 和 7 个领域类型",
+    "those contracts are now consumed end-to-end inside the browser for the first time": "这些契约现在首次在浏览器内被端到端消费"
+}`;
 ```
 
 ## JS 状态新增
@@ -226,7 +240,7 @@ parseJson + render     (现有逻辑,不动)
 
 | 按键 (input 聚焦时) | 行为 |
 |---|---|
-| `Enter` | 发送;若已在请求中,触发 `AbortController.abort()` 终止 |
+| `Enter` | 发送(发送后自动清空 input);若已在请求中,触发 `AbortController.abort()` 终止 |
 | `Escape` | 清空 input(不取消进行中的请求) |
 | `Ctrl+V` | 仍走原 paste handler,行为不变 |
 

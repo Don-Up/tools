@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -151,6 +152,11 @@ class CORSHandler(SimpleHTTPRequestHandler):
         text = str(payload.get("text") or "")
         voice = str(payload.get("voice") or "zh-CN-XiaoxiaoNeural")
         try:
+            rate = payload.get("rate")
+            preview = text[:40].replace(chr(10), " ")
+            # 写到 stderr:pythonw 下 stdout 是 devnull,stderr 才指向 launcher.log
+            print("TTS voice=%s rate=%s chars=%d %r" % (voice, rate, len(text), preview),
+                  file=sys.stderr, flush=True)
             audio = azure_tts.synthesize(text, voice=voice)
         except azure_tts.AzureTtsUnavailable as exc:
             self.send_json({"error": str(exc)}, 502)

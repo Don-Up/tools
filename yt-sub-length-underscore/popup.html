@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <h3>YT Sub Length Underscore</h3>
+        <div class="option">
+            <label class="switch">
+                <input type="checkbox" id="enabledCheckbox">
+                <span class="slider"></span>
+            </label>
+            <span class="option-label">Enable caption transformation</span>
+        </div>
+        <div class="option option-select">
+            <label class="option-label" for="maxLengthSelect">Max word length to obscure</label>
+            <select id="maxLengthSelect">
+                <option value="3">3 letters</option>
+                <option value="4">4 letters</option>
+                <option value="5">5 letters (default)</option>
+                <option value="6">6 letters</option>
+                <option value="7">7 letters</option>
+                <option value="8">8 letters</option>
+            </select>
+        </div>
+        <div class="option">
+            <label class="switch">
+                <input type="checkbox" id="applyHideWordsCheckbox">
+                <span class="slider"></span>
+            </label>
+            <span class="option-label">Apply common-word list (about, the, should...)</span>
+        </div>
+        <div class="preview">
+            <div>Example:</div>
+            <code id="examplePreview">I am the four &rarr; _ __ ___ ____</code>
+        </div>
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>

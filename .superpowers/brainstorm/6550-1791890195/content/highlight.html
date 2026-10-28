@@ -1,0 +1,107 @@
+<h2>字幕行的高亮风格选哪个?</h2>
+<p class="subtitle">三种"当前行"高亮方案。顶栏是 YouTube 标题,下面是面板示例——只展示高亮差异,不展示右侧栏布局。</p>
+
+<div class="options">
+
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>淡背景 + 强调色左边框</h3>
+      <p>当前行用低饱和度背景 + 4px 强调色左边条。简洁、低干扰,适合长时间阅读。</p>
+      <div class="mockup" style="margin-top: 12px;">
+        <div class="mockup-header">360px 宽 · 双语上下排</div>
+        <div class="mockup-body" style="padding: 12px; background: #1e1e1e; color: #888; font-size: 13px; line-height: 1.6;">
+          <div style="padding: 6px 10px; border-radius: 4px;">
+            <div style="color:#bbb;">When the bell rang at the end of my first day</div>
+            <div style="color:#777;">在托儿所工作的第一天结束</div>
+          </div>
+          <div style="padding: 6px 10px;">
+            <div style="color:#bbb;">But when the parents lined up to pick up kids</div>
+            <div style="color:#777;">当家长们排队接孩子时</div>
+          </div>
+          <div style="background: rgba(79,195,247,0.12); border-left: 4px solid #4fc3f7; padding: 8px 10px; border-radius: 4px;">
+            <div style="color:#fff; font-weight: 600;">She loudly demanded to know why a grown man</div>
+            <div style="color:#cfd8dc;">她大声地质问,一个成年男人</div>
+          </div>
+          <div style="padding: 6px 10px;">
+            <div style="color:#bbb;">The other parents turned and I felt a hitch</div>
+            <div style="color:#777;">其他家长纷纷侧目</div>
+          </div>
+          <div style="padding: 6px 10px;">
+            <div style="color:#bbb;">My daughter passed away, ma'am</div>
+            <div style="color:#777;">女士,我的女儿已经离世</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>整行实色背景</h3>
+      <p>当前行用纯色背景填充。视觉强、远处也看得清,但长时间阅读可能刺眼。</p>
+      <div class="mockup" style="margin-top: 12px;">
+        <div class="mockup-header">360px 宽 · 双语上下排</div>
+        <div class="mockup-body" style="padding: 12px; background: #1e1e1e; color: #888; font-size: 13px; line-height: 1.6;">
+          <div style="padding: 6px 10px; border-radius: 4px;">
+            <div style="color:#bbb;">When the bell rang at the end of my first day</div>
+            <div style="color:#777;">在托儿所工作的第一天结束</div>
+          </div>
+          <div style="padding: 6px 10px;">
+            <div style="color:#bbb;">But when the parents lined up to pick up kids</div>
+            <div style="color:#777;">当家长们排队接孩子时</div>
+          </div>
+          <div style="background: #4fc3f7; padding: 8px 10px; border-radius: 4px;">
+            <div style="color:#000; font-weight: 700;">She loudly demanded to know why a grown man</div>
+            <div style="color:#1a1a1a;">她大声地质问,一个成年男人</div>
+          </div>
+          <div style="padding: 6px 10px;">
+            <div style="color:#bbb;">The other parents turned and I felt a hitch</div>
+            <div style="color:#777;">其他家长纷纷侧目</div>
+          </div>
+          <div style="padding: 6px 10px;">
+            <div style="color:#bbb;">My daughter passed away, ma'am</div>
+            <div style="color:#777;">女士,我的女儿已经离世</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>仅放大 + 文字色变化</h3>
+      <p>当前行不靠背景,只放大字号 + 改成纯白,其他行变灰。极简、页面干扰最小,但小屏/远处难以察觉。</p>
+      <div class="mockup" style="margin-top: 12px;">
+        <div class="mockup-header">360px 宽 · 双语上下排</div>
+        <div class="mockup-body" style="padding: 12px; background: #1e1e1e; color: #888; font-size: 13px; line-height: 1.6;">
+          <div style="padding: 6px 10px;">
+            <div style="color:#666;">When the bell rang at the end of my first day</div>
+            <div style="color:#555;">在托儿所工作的第一天结束</div>
+          </div>
+          <div style="padding: 6px 10px;">
+            <div style="color:#666;">But when the parents lined up to pick up kids</div>
+            <div style="color:#555;">当家长们排队接孩子时</div>
+          </div>
+          <div style="padding: 10px;">
+            <div style="color:#fff; font-size: 16px; font-weight: 600;">She loudly demanded to know why a grown man</div>
+            <div style="color:#e0e0e0; font-size: 15px; font-weight: 500;">她大声地质问,一个成年男人</div>
+          </div>
+          <div style="padding: 6px 10px;">
+            <div style="color:#666;">The other parents turned and I felt a hitch</div>
+            <div style="color:#555;">其他家长纷纷侧目</div>
+          </div>
+          <div style="padding: 6px 10px;">
+            <div style="color:#666;">My daughter passed away, ma'am</div>
+            <div style="color:#555;">女士,我的女儿已经离世</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top: 16px;">点击候选后,我会再问面板宽度 + 字体大小,再进入架构方案。</p>

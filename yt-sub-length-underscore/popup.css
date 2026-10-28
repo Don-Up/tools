@@ -1,0 +1,126 @@
+body {
+    width: 280px;
+    margin: 0;
+    padding: 12px;
+    font-family: system-ui, 'Segoe UI', Roboto, Arial, sans-serif;
+    background-color: #f9f9f9;
+    color: #0f0f0f;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+h3 {
+    margin: 0 0 4px 0;
+    font-size: 18px;
+    font-weight: 500;
+    text-align: center;
+}
+
+.option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: white;
+    padding: 8px 10px;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.option-label {
+    font-size: 14px;
+    line-height: 1.4;
+    flex: 1;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.2s;
+    border-radius: 20px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    transition: 0.2s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: #065fd4;
+}
+
+input:checked + .slider:before {
+    transform: translateX(20px);
+}
+
+.preview {
+    margin-top: 8px;
+    background: #eef2f5;
+    border-radius: 12px;
+    padding: 8px 12px;
+    font-size: 13px;
+    text-align: center;
+}
+
+.preview code {
+    font-family: monospace;
+    font-size: 14px;
+    background: transparent;
+    font-weight: 500;
+}
+
+.option-select {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+}
+
+.option-select .option-label {
+    flex: none;
+}
+
+#maxLengthSelect {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    background: white;
+    font-family: inherit;
+    font-size: 14px;
+    color: #0f0f0f;
+    cursor: pointer;
+}
+
+#maxLengthSelect:focus {
+    outline: 2px solid #065fd4;
+    outline-offset: 1px;
+}

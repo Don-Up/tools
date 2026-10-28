@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Focus JSON Popup",
+  "version": "0.2.0",
+  "description": "选中网页文本按 Alt+Q,在原页面内以 iframe 弹出 focus-json 全屏朗读,读完后自动关闭",
+  "permissions": ["contextMenus"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [{
+    "matches": ["http://*/*", "https://*/*"],
+    "exclude_matches": ["https://don-up.github.io/tools/focus-json*"],
+    "js": ["content.js"],
+    "run_at": "document_idle"
+  }]
+}

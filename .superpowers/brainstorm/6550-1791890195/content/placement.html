@@ -1,0 +1,74 @@
+<h2>字幕面板放在哪个位置?</h2>
+<p class="subtitle">预览: YouTube /watch?v=* 页面布局(灰底是视频区,右侧是推荐栏)。彩色块是候选字幕面板。</p>
+
+<div class="options">
+
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>右侧固定栏(推开内容)</h3>
+      <p>面板宽度固定(例如 360px),视频区缩小。类似 card-timer-sidebar 的实现。优点:不会盖住视频;缺点:横向挤压视频,Shorts 页不可用。</p>
+      <div class="mockup" style="margin-top: 12px;">
+        <div class="mockup-body" style="display: flex; gap: 4px; height: 180px;">
+          <div style="flex: 3; background: #444; border-radius: 4px; display:flex; align-items:center; justify-content:center; color:#aaa; font-size:12px;">视频区(缩小)</div>
+          <div style="flex: 1.2; background: #4fc3f7; border-radius: 4px; display:flex; align-items:center; justify-content:center; color:#000; font-size:11px; font-weight:600;">字幕面板<br>360px 宽</div>
+          <div style="flex: 1.5; background: #2a2a2a; border-radius: 4px; display:flex; align-items:center; justify-content:center; color:#777; font-size:11px;">推荐栏</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>右侧浮动栏(覆盖推荐栏)</h3>
+      <p>面板覆盖在 YouTube 原生右侧推荐栏上,不挤压视频。优点:视频尺寸不变;缺点:挡住推荐内容,Shorts 页仍然不可用。</p>
+      <div class="mockup" style="margin-top: 12px;">
+        <div class="mockup-body" style="display: flex; gap: 4px; height: 180px;">
+          <div style="flex: 1; background: #444; border-radius: 4px; display:flex; align-items:center; justify-content:center; color:#aaa; font-size:12px;">视频区(完整尺寸)</div>
+          <div style="flex: 1.5; position: relative; background: #2a2a2a; border-radius: 4px;">
+            <div style="position:absolute; top:0; left:0; right:0; bottom:0; display:flex; align-items:center; justify-content:center; color:#555; font-size:11px;">推荐栏</div>
+            <div style="position:absolute; top:0; left:0; right:0; bottom:0; background: rgba(79,195,247,0.85); display:flex; align-items:center; justify-content:center; color:#000; font-size:11px; font-weight:600; border-radius: 4px;">字幕面板<br>(覆盖)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>底部 dock(视频下方横条)</h3>
+      <p>面板贴在视频下方,横跨整个宽度。优点:Shorts 和 Watch 都能用(同一套布局);不挡视频和推荐。缺点:垂直方向多占用空间。</p>
+      <div class="mockup" style="margin-top: 12px;">
+        <div class="mockup-body" style="display: flex; flex-direction: column; gap: 4px; height: 220px;">
+          <div style="flex: 2; display: flex; gap: 4px;">
+            <div style="flex: 2; background: #444; border-radius: 4px; display:flex; align-items:center; justify-content:center; color:#aaa; font-size:12px;">视频区</div>
+            <div style="flex: 1; background: #2a2a2a; border-radius: 4px; display:flex; align-items:center; justify-content:center; color:#555; font-size:11px;">推荐栏</div>
+          </div>
+          <div style="height: 56px; background: #4fc3f7; border-radius: 4px; display:flex; align-items:center; justify-content:center; color:#000; font-size:11px; font-weight:600;">字幕面板(全宽 · 高度受限)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="d" onclick="toggleSelect(this)">
+    <div class="letter">D</div>
+    <div class="content">
+      <h3>视频内底部(覆盖字幕区)</h3>
+      <p>直接在视频播放器底部叠加一条字幕带,类似 YouTube 自带字幕样式。优点:零占用页面空间;缺点:看不到上下文,只看当前行。</p>
+      <div class="mockup" style="margin-top: 12px;">
+        <div class="mockup-body" style="display: flex; gap: 4px; height: 180px;">
+          <div style="flex: 2; position: relative; background: #444; border-radius: 4px;">
+            <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#aaa; font-size:12px;">视频区</div>
+            <div style="position:absolute; bottom:8px; left:50%; transform:translateX(-50%); background: rgba(79,195,247,0.85); padding: 4px 12px; border-radius: 4px; color:#000; font-size:11px; font-weight:600;">当前字幕</div>
+          </div>
+          <div style="flex: 1; background: #2a2a2a; border-radius: 4px; display:flex; align-items:center; justify-content:center; color:#555; font-size:11px;">推荐栏</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top: 20px;">提示:Shorts 是竖屏,A 和 B 在 Shorts 上不可行; C 和 D 两种可兼容。</p>

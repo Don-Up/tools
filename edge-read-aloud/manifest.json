@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "朗读选中文字",
+  "version": "0.1.0",
+  "description": "选中网页文字按 Alt+2 朗读,点工具栏图标可以选择语音和速度。",
+  "permissions": ["storage"],
+  "host_permissions": ["http://*/*", "https://*/*", "file:///*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "朗读选中文字"
+  },
+  "content_scripts": [{
+    "matches": ["http://*/*", "https://*/*", "file:///*"],
+    "js": ["content.js"],
+    "run_at": "document_idle"
+  }]
+}

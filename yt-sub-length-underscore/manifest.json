@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "YT Sub Length Underscore",
+  "version": "1.0",
+  "description": "Replace 1-5 letter YouTube caption words with underscores of the same length.",
+  "permissions": ["storage"],
+  "host_permissions": ["*://*.youtube.com/*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "YT Sub Length Underscore"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ]
+}

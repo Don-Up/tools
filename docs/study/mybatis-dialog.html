@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="night">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyBatis 入门 · 苏格拉底对话课</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css">
+<script>tailwind.config = { darkMode: 'class' };</script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js"></script>
+<style>
+  .dialog-scroll { scroll-behavior: smooth; }
+  .bubble-in { transform: translateY(12px); opacity: 0; }
+  .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+</style>
+</head>
+<body class="h-screen overflow-hidden">
+<div id="app" x-data="app()" x-init="init()" @keydown.window="onKey($event)" class="flex flex-col h-screen">
+
+  <header class="navbar bg-base-100 border-b border-base-300 px-4 gap-3 flex-none">
+    <div class="flex-1 flex items-center gap-3 min-w-0">
+      <span class="text-lg font-bold whitespace-nowrap">MyBatis 入门</span>
+      <span class="badge badge-primary" x-text="`第 ${lessonIndex + 1} / ${LESSONS.length} 课`"></span>
+      <span class="text-sm opacity-70 truncate" x-text="lesson.title"></span>
+    </div>
+    <progress id="progress-bar" class="progress progress-primary w-32 flex-none" :value="lessonIndex + 1" :max="LESSONS.length"></progress>
+    <label class="label cursor-pointer gap-2 flex-none">
+      <span class="label-text text-sm whitespace-nowrap">自动朗读</span>
+      <input type="checkbox" class="toggle toggle-primary" x-model="autoSpeak" @change="saveSettings()">
+    </label>
+  </header>
+
+  <main class="flex-1 grid grid-cols-1 lg:grid-cols-[250px_1.05fr_1fr] gap-3 p-3 min-h-0">
+
+    <aside class="flex flex-col gap-3 overflow-y-auto">
+      <div class="card bg-base-100 border border-base-300">
+        <div class="card-body p-3">
+          <h2 class="card-title text-sm">课时目录</h2>
+          <ul id="lesson-list" class="menu menu-sm p-0 w-full gap-0.5">
+            <template x-for="(l, i) in LESSONS" :key="l.id">
+              <li>
+                <button class="w-full justify-start text-left" :class="i === lessonIndex ? 'active' : ''"
+                        @click="goLesson(i)">
+                  <span class="opacity-60" x-text="l.id + '.'"></span>
+                  <span class="truncate" x-text="l.title"></span>
+                </button>
+              </li>
+            </template>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card bg-base-100 border border-base-300">
+        <div class="card-body p-3 gap-2">
+          <h2 class="card-title text-sm">朗读设置</h2>
+          <label class="form-control">
+            <span class="label-text text-xs mb-1">学生音色</span>
+            <select class="select select-bordered select-sm w-full" x-model="studentVoiceURI" @change="chooseVoice('student', $event.target.value)">
+              <template x-for="v in voices" :key="v.voiceURI">
+                <option :value="v.voiceURI" x-text="v.name"></option>
+              </template>
+            </select>
+          </label>
+          <label class="form-control">
+            <span class="label-text text-xs mb-1">老师音色</span>
+            <select class="select select-bordered select-sm w-full" x-model="teacherVoiceURI" @change="chooseVoice('teacher', $event.target.value)">
+              <template x-for="v in voices" :key="v.voiceURI">
+                <option :value="v.voiceURI" x-text="v.name"></option>
+              </template>
+            </select>
+          </label>
+          <label class="form-control">
+            <span class="label-text text-xs mb-1">语速 <span class="opacity-70" x-text="rate.toFixed(1)"></span></span>
+            <input type="range" min="0.5" max="2" step="0.1" class="range range-primary range-xs" x-model.number="rate" @input="saveSettings()">
+          </label>
+          <p class="text-[11px] opacity-50 leading-relaxed">
+            优先使用微软自然音色：学生 Xiaoxiao，老师 Yunjian。<br>
+            没有则退回任意中文音色。
+          </p>
+        </div>
+      </div>
+
+      <div class="card bg-base-100 border border-base-300">
+        <div class="card-body p-3">
+          <h2 class="card-title text-sm">快捷键</h2>
+          <ul class="text-xs opacity-70 space-y-1">
+            <li><span class="kbd badge badge-sm">↓</span> 展开下一句</li>
+            <li><span class="kbd badge badge-sm">↑</span> 收起上一句</li>
+            <li><span class="kbd badge badge-sm">←</span> <span class="kbd badge badge-sm">→</span> 翻到上/下一课</li>
+            <li><span class="kbd badge badge-sm">🔊</span> 重听这一句</li>
+          </ul>
+        </div>
+      </div>
+    </aside>
+
+    <section id="dialog-stage" class="card bg-base-100 border border-base-300 min-h-0 flex flex-col">
+      <div class="card-body p-4 flex flex-col min-h-0 gap-2">
+        <div class="flex items-baseline gap-2 flex-none">
+          <h2 class="card-title text-base" x-text="lesson.title"></h2>
+          <span class="text-xs opacity-50" x-show="!isQuizLesson" x-text="`${revealed}/${turns.length} 句`"></span>
+        </div>
+        <p class="text-xs opacity-60 flex-none" x-text="lesson.goal"></p>
+
+        <div class="dialog-scroll flex-1 overflow-y-auto space-y-3 pr-1 min-h-0" x-ref="dialogScroll" x-show="!isQuizLesson">
+          <template x-for="(t, i) in turns" :key="i">
+            <div x-show="i < revealed" :data-turn="i"
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-y-3"
+                 x-transition:enter-end="opacity-100 translate-y-0"
+                 x-transition:leave="transition ease-in duration-150"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0"
+                 class="flex gap-2 items-start"
+                 :class="t.role === 'student' ? 'justify-start' : 'justify-end'">
+              <button class="btn btn-ghost btn-xs mt-1 opacity-50 hover:opacity-100 flex-none"
+                      @click="speakTurn(t)" title="重听这一句">🔊</button>
+              <div class="chat" :class="t.role === 'student' ? 'chat-start' : 'chat-end'">
+                <div class="chat-header text-xs opacity-60" x-text="t.role === 'student' ? '学生' : '老师'"></div>
+                <div class="chat-bubble whitespace-pre-wrap leading-relaxed"
+                     :class="t.role === 'student' ? 'chat-bubble-primary' : 'chat-bubble-neutral'"
+                     x-text="t.text"></div>
+              </div>
+            </div>
+          </template>
+          <p class="text-xs opacity-40 text-center pt-2" x-show="revealed === 0">
+            按 <span class="kbd badge badge-sm">↓</span> 或点下面的「下一句」开始
+          </p>
+        </div>
+
+        <div x-show="isQuizLesson" class="flex-1 overflow-y-auto space-y-3 pr-1 min-h-0">
+          <template x-for="(q, i) in QUIZ" :key="i">
+            <div class="card bg-base-200 border border-base-300">
+              <div class="card-body p-3">
+                <h3 class="text-sm font-bold leading-relaxed">
+                  <span x-text="i + 1 + '.'"></span>
+                  <span x-text="q.question"></span>
+                </h3>
+                <div class="space-y-1 mt-1">
+                  <template x-for="(o, j) in q.options" :key="j">
+                    <button class="btn btn-sm w-full justify-start font-normal whitespace-normal text-left h-auto py-1.5"
+                            :class="quizAnswered(i) ? (j === q.answer ? 'btn-success' : (quizChoice[i] === j ? 'btn-error' : 'btn-ghost opacity-40')) : 'btn-ghost border-base-300'"
+                            :disabled="quizAnswered(i)"
+                            @click="answerQuiz(i, j)"
+                            x-text="String.fromCharCode(65 + j) + '. ' + o"></button>
+                  </template>
+                </div>
+                <div class="text-xs mt-1 leading-relaxed" x-show="quizAnswered(i)">
+                  <span class="badge" :class="quizChoice[i] === q.answer ? 'badge-success' : 'badge-error'"
+                        x-text="quizChoice[i] === q.answer ? '答对了' : '答错了'"></span>
+                  <p class="mt-1 opacity-80" x-text="q.explain"></p>
+                </div>
+              </div>
+            </div>
+          </template>
+          <div class="card bg-base-100 border border-base-300" x-show="quizDone">
+            <div class="card-body p-3">
+              <h3 class="card-title text-sm">测验结果</h3>
+              <p class="text-sm" x-text="`答对 ${quizScore} / ${QUIZ.length} 题`"></p>
+              <p class="text-xs opacity-70 leading-relaxed" x-text="quizAdvice"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-2 border-t border-base-300 flex-none">
+          <button class="btn btn-ghost btn-sm" @click="prev()" :disabled="lessonIndex === 0">← 上一课</button>
+          <button class="btn btn-primary btn-sm" @click="next()" x-text="nextLabel"></button>
+        </div>
+      </div>
+    </section>
+
+    <section id="art-stage" class="card bg-base-100 border border-base-300 min-h-0">
+      <div class="card-body p-4 overflow-y-auto">
+        <div class="flex items-center justify-between mb-2 flex-none">
+          <h2 class="card-title text-base">演示</h2>
+          <button class="btn btn-secondary btn-xs" @click="playArt()" x-show="lesson.art && !isQuizLesson">▶ 播放动画</button>
+        </div>
+        <div x-ref="artRoot" class="space-y-3"></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script id="core">
+/* 纯逻辑：符号转文本、音色挑选、课程内容、内容自检 */
+const SPEECH_RULES = [
+    [/<\/?([a-zA-Z]+)(\s[^>]*)?\/?>/g, ' $1 标签 '],
+    [/#\{[^}]*\}/g, ' 占位符 '],
+    [/\$\{[^}]*\}/g, ' 美元占位符 '],
+    [/@(\w+)/g, ' $1 注解 '],
+    [/=>|→/g, ' 映射到 '],
+    [/->/g, ' 指向 '],
+    [/&&/g, ' 并且 '],
+    [/\|\|/g, ' 或者 '],
+    [/!=/g, ' 不等于 '],
+    [/==/g, ' 等于 '],
+    [/>=/g, ' 大于等于 '],
+    [/<=/g, ' 小于等于 '],
+    [/\(\)/g, ' 括号 '],
+    [/\(/g, ' 左括号 '],
+    [/\)/g, ' 右括号 '],
+    [/\*/g, ' 星号 '],
+    [/\//g, ' 斜杠 '],
+    [/"[^"]*"|'[^']*'/g, ' '],
+    [/<</g, ' 左尖括号 '],
+    [/>/g, ' 右尖括号 '],
+];
+
+function toSpeech(text) {
+    let out = String(text == null ? '' : text);
+    for (const [re, rep] of SPEECH_RULES) out = out.replace(re, rep);
+    return out.replace(/\s+/g, ' ').trim();
+}
+
+function speakText(text) { return toSpeech(text); }
+
+function pickVoice(voices, role, avoidURI) {
+    if (!voices || !voices.length) return null;
+    const prefer = role === 'teacher' ? /yunjian/i : /xiaoxiao/i;
+    const zh = voices.filter(v => /^zh/i.test(v.lang || ''));
+    return voices.find(v => prefer.test(v.name || ''))
+        || zh.find(v => v.voiceURI !== avoidURI)
+        || zh[0]
+        || voices[0];
+}
+
+const LESSONS = [
+    {
+        id: 1,
+        title: 'MyBatis 是什么',
+        goal: '一句话说清它到底替你省掉了什么',
+        turns: [
+            { role: 'student', text: '老师，我刚学完 JDBC。查一个用户，我要加载驱动、拿连接、建语句、拼 SQL、搬结果集、关连接……一个查询写满一屏。是我太笨了吗？' },
+            { role: 'teacher', text: '你不笨，是 JDBC 太啰嗦。它的麻烦集中在三处：开连接、传参数、搬结果。MyBatis 干的事，就是把这三处的重复劳动收走。' },
+            { role: 'student', text: '那 MyBatis 是不是一个数据库啊？以后我连 MySQL 直接用 MyBatis 就行了？', play: true },
+            { role: 'teacher', text: '不是。数据库是仓库，MyBatis 是仓库的搬运工。SQL 还是你自己写，它负责把「写样板代码」换成「写声明」。' },
+            { role: 'student', text: '也就是说 SQL 还是我写？那我到底少写了什么？' },
+            { role: 'teacher', text: '少了连接、参数、结果集这三段。你写一句「查 id 是一的用户」，它替你翻译成完整的 JDBC 流程。像自动售货机：你按按钮是写 SQL，出货的是结果对象。' },
+        ],
+        art: {
+            type: 'compare',
+            left: ['加载驱动类', '获取连接', '创建 Statement', '拼 SQL 并设参数', '遍历 ResultSet 取值', '关闭资源'],
+            right: ['写一个 Mapper 方法', '写 SQL（XML 或注解）', '调用方法，直接拿到对象'],
+        },
+    },
+    {
+        id: 2,
+        title: '核心对象：工厂、会话、Mapper',
+        goal: '认清三个核心对象的从属关系和生命周期',
+        turns: [
+            { role: 'student', text: '老师，我照着教程写，在方法里 new 了一个 SqlSessionFactory，然后每次查询都 new 一个 SqlSession。这写法对吗？' },
+            { role: 'teacher', text: '每次 new 是错的方向。工厂全局只有一个，就像餐厅的厨房只建一次；SqlSession 是「一位客人这一餐的服务」，用完就收。' },
+            { role: 'student', text: '那 SqlSession 相当于 JDBC 的 Connection 吗？', play: true },
+            { role: 'teacher', text: '位置上像，但多了一层。Connection 管的是「和数据库的一次连接」，SqlSession 管的是「你这次业务要干的所有事」——它手里握着连接，还管着缓存和事务。' },
+            { role: 'student', text: '我总结一下：工厂造会话，会话里拿 Mapper，对吗？' },
+            { role: 'teacher', text: '对，而且 Mapper 你不用自己 new。它是个接口，实现类由 MyBatis 在运行时悄悄造好塞给会话，你注入的时候只写接口名就行。' },
+        ],
+        art: {
+            type: 'relation',
+            nodes: [
+                { label: 'SqlSessionFactory 工厂', sub: '应用启动时造一个，全局复用', icon: '🏭' },
+                { label: 'SqlSession 会话', sub: '一次业务一个，用完就关', icon: '🧾' },
+                { label: 'Mapper 接口', sub: '会话里发号施令的干活人', icon: '🧑‍🍳' },
+            ],
+            edges: ['造出', '持有并分派'],
+        },
+    },
+    {
+        id: 3,
+        title: 'XML 映射 还是 注解',
+        goal: '知道两种写法各自适合什么场景',
+        turns: [
+            { role: 'student', text: '老师，教程里有人用 XML，有人用注解。我看注解更短，感觉更高级，我该学哪个？' },
+            { role: 'teacher', text: '注解不更高级，只是更短。短不一定是好——SQL 越长越难读、越难复用、越难调试。' },
+            { role: 'student', text: '那 XML 一定更好吗？我看它又是标签又是命名空间，好啰嗦。', play: true },
+            { role: 'teacher', text: '也不一定。拆成两段看就清楚了：SQL 短，用注解省事；SQL 长、要动态拼、想复用片段，XML 更清楚。XML 啰嗦的部分是一次性配置，之后写起来所见即 SQL。' },
+            { role: 'student', text: '所以我可以用注解写增删改查，用 XML 写复杂查询？' },
+            { role: 'teacher', text: '对，这是最常见的搭配。还有一条铁律要记牢：同一个方法两边都写了会打架，这条规则我在最后一课的测验里会考你。' },
+        ],
+        art: {
+            type: 'code',
+            caption: '同一个查询，两种写法',
+            code: '// 注解版：短小，一眼看到\n@Select("SELECT * FROM user WHERE id = #{id}")\nUser selectById(Long id);\n\n<!-- XML 版：长 SQL 里更好读 -->\n<select id="selectById" resultType="User">\n  SELECT * FROM user WHERE id = #{id}\n</select>',
+        },
+    },
+    {
+        id: 4,
+        title: '第一个 Mapper：增删改查',
+        goal: '会写增删改查，并看懂方法返回值的含义',
+        turns: [
+            { role: 'student', text: '我照着写了 insert，跑完表里确实多了一行。控制台打印「影响行数 1」，这个 1 到底是什么意思？' },
+            { role: 'teacher', text: '是这次语句真正改动的行数。insert 成功就是 1，你理解得没错。' },
+            { role: 'student', text: '那 update 一条已存在的记录，返回值也应该是 1 吧？', play: true },
+            { role: 'teacher', text: '是 1，但反过来不成立。返回 0 也是一个信号：这次没改到任何行——可能 id 不存在，也可能你把值改成了一模一样，数据库认为「没变化」也记 0。' },
+            { role: 'student', text: '懂了，0 是信号不是成功。那 delete 呢？' },
+            { role: 'teacher', text: '同样，删到几行就是几。写业务代码别只判断「没抛异常」，要看返回值，0 往往意味着你的条件没匹配上。' },
+        ],
+        art: {
+            type: 'data',
+            headers: ['操作', '影响行数', '含义'],
+            rows: [
+                ['insert', '1', '新增成功'],
+                ['update', '1', '改到一行'],
+                ['update', '0', '没匹配到，或者新值和旧值一样'],
+                ['delete', '1', '删掉一行'],
+                ['delete', '0', '没删到任何行'],
+            ],
+        },
+    },
+    {
+        id: 5,
+        title: '参数怎么传给 SQL',
+        goal: '会用 @Param 给多个参数起名字',
+        turns: [
+            { role: 'student', text: '我写了个方法，参数是 userName 和 age。XML 里写 #{userName}，结果报错了，说找不到 userName 这个属性。' },
+            { role: 'teacher', text: '找到问题了。多参数的时候，MyBatis 不认你的参数名，它只按位置编号：第一个是 param1 或者 arg0，第二个是 param2 或者 arg1。' },
+            { role: 'student', text: '那我改成 #{param1} 就能跑通了。可这样代码好难读，别人接手根本不知道 param1 是谁。', play: true },
+            { role: 'teacher', text: '对，所以要用 @Param 给它起名字。你写上 @Param("userName")，XML 里就能写 #{userName}，读代码的人才一眼看懂。' },
+            { role: 'student', text: '那只有一个参数的时候也要加 @Param 吗？' },
+            { role: 'teacher', text: '不用。单个参数直接用 #{参数名} 就行。不过有些编译器会把参数名丢掉，那种情况下加上 @Param 最稳。' },
+        ],
+        art: {
+            type: 'flow',
+            steps: [
+                { label: '方法参数先按位置编号', note: '第一个 param1，第二个 param2' },
+                { label: 'XML 里用花括号占位符引用名字', note: '多参数时必须用 @Param 起名字' },
+                { label: 'MyBatis 把它换成预编译参数', note: '是问号加参数值，不是字符串拼接' },
+            ],
+        },
+    },
+    {
+        id: 6,
+        title: '查询结果：单个还是列表',
+        goal: '分清单对象与列表两种返回方式',
+        turns: [
+            { role: 'student', text: '查一个用户我用 selectOne，查一批用 selectList，我都写对了。可我朋友用 selectOne 查一条 where 条件不唯一的 SQL，直接报错了。' },
+            { role: 'teacher', text: '对，selectOne 期望最多一行。数据库回了三行，MyBatis 不知道该给你哪一行，索性直接报错，它不会偷偷帮你取第一条。' },
+            { role: 'student', text: '那我想只要第一条怎么办？', play: true },
+            { role: 'teacher', text: '两个办法：一是在 SQL 里加上 limit 1 或者写唯一条件，让数据库保证只回一行；二是改用 selectList 自己拿第一个。我更推荐第一种，从根上让结果是确定的。' },
+            { role: 'student', text: '我 resultType 填了 User，可列名是 user_name，属性叫 userName，这俩对不上会怎样？' },
+            { role: 'teacher', text: '这正好是下一课的坑。先记住：resultType 靠名字自动配对，配不上就悄悄给你 null，连报错都没有。' },
+        ],
+        art: {
+            type: 'data',
+            headers: ['调用方式', '数据库返回', '结果'],
+            rows: [
+                ['selectOne', '1 行', '一个 User 对象'],
+                ['selectOne', '3 行', '抛异常 TooManyResultsException'],
+                ['selectList', '0 行', '空列表，不是 null'],
+                ['selectList', '5 行', '五个 User 组成的列表'],
+            ],
+        },
+    },
+    {
+        id: 7,
+        title: 'resultMap：列名对不上时怎么办',
+        goal: '用 resultMap 显式指定列与属性的对应关系',
+        turns: [
+            { role: 'student', text: '老师！我查出来 userName 是 null，其他字段都正常，我的 SQL 明明写的是 select 全部字段！' },
+            { role: 'teacher', text: '因为 select 全部字段会把列名原样带回来，比如 user_name。resultType 靠「列名等于属性名」配对，user_name 不等于 userName，就配不上，于是悄悄给 null。' },
+            { role: 'student', text: '所以它不报错？我还以为是数据库根本没存上！', play: true },
+            { role: 'teacher', text: '是的，这是 resultType 最坑的地方：不报错，只给 null。要么在 SQL 里把列名改成 userName，要么用 resultMap 明确写清楚怎么对。' },
+            { role: 'student', text: 'resultMap 是不是就像一张对照表？左边数据库列名，右边 Java 属性名？' },
+            { role: 'teacher', text: '正是，一行行配对。它还能顺手做类型转换，比如数据库里存的是字符串，你要接一个数字，也能配得上。' },
+        ],
+        art: {
+            type: 'mapping',
+            rows: [
+                { col: 'id', prop: 'userId', note: '列名和属性名不同，必须显式配' },
+                { col: 'user_name', prop: 'userName', note: '下划线转驼峰靠配置，默认对不上' },
+                { col: 'create_time', prop: 'createTime', note: '时间类型也能在这里指定' },
+            ],
+        },
+    },
+    {
+        id: 8,
+        title: '动态 SQL：where 和 if',
+        goal: '会用 where 与 set 标签拼出灵活条件',
+        turns: [
+            { role: 'student', text: '我要按用户名查用户，名字可能传也可能不传。我现在自己拼字符串，where 1 等于 1 这种写法能用吗？' },
+            { role: 'teacher', text: '能用，但难看。而且这种写法很容易让你忘了外面还有真正的条件。MyBatis 给了 where 标签来收拾这个场面。' },
+            { role: 'student', text: 'where 标签到底怎么用？', play: true },
+            { role: 'teacher', text: '把所有条件都放进 where 标签里，标签自己会判断：如果一个条件都没成立，它就不输出 where；有条件成立时，它自动去掉最前面多余的 and 或 or。' },
+            { role: 'student', text: '那更新的时候呢？update 里条件一多，逗号不好处理。' },
+            { role: 'teacher', text: '那用 set 标签，它跟 where 一个脾气：没有任何字段要改时就不输出 set；有字段时逗号交给它处理，你不用自己纠结最后一个逗号留不留。' },
+        ],
+        art: {
+            type: 'flow',
+            steps: [
+                { label: '所有条件都包进 where 标签' },
+                { label: '条件全都不成立 → 整段不输出', note: '不会出现 WHERE 1=1 这种东西' },
+                { label: '有条件成立 → 自动去掉最前面的 and', note: '第一个条件前面的 and 也会被去掉' },
+            ],
+        },
+    },
+    {
+        id: 9,
+        title: 'foreach：查一批 id',
+        goal: '会用 foreach 把集合展开成 IN 列表',
+        turns: [
+            { role: 'student', text: '我要查 id 是 1、2、3 的用户，SQL 应该写成 in (1,2,3)，可这三个 id 是外面传进来一个列表。' },
+            { role: 'teacher', text: '用 foreach 标签。它像一台复印机：把集合里的每个元素，按 item 这个名字，一个一个印到 IN 的括号里。' },
+            { role: 'student', text: 'XML 怎么写？我看网上写的是 collection 等于 list，可我的参数不叫 list。', play: true },
+            { role: 'teacher', text: 'collection 说的是「集合从哪来」——方法参数名，或者你用 @Param 起的名字；item 是「循环变量叫啥」。这两个必须对上，否则 foreach 找不到东西，会直接报错。' },
+            { role: 'student', text: '要是传进来的是空列表呢？' },
+            { role: 'teacher', text: '那 IN 后面就是空的，SQL 直接语法错误。所以要先挡一下：为空时用一个永远不成立的条件短路掉。养成习惯，foreach 之前先判空。' },
+        ],
+        art: {
+            type: 'data',
+            headers: ['collection', 'item', '生成结果'],
+            rows: [
+                ['list', 'id', 'WHERE id IN (1, 2, 3)'],
+                ['ids', 'id', 'WHERE id IN (1, 2, 3)'],
+                ['list', 'i', 'WHERE id IN (1, 2, 3)'],
+                ['空集合', 'id', 'SQL 报错，必须提前拦截'],
+            ],
+        },
+    },
+    {
+        id: 10,
+        title: '关联映射：一次查出部门和员工',
+        goal: '用嵌套结果映射代替 N+1 次查询',
+        turns: [
+            { role: 'student', text: '我要查一个部门，和它下面所有员工。我写了两个方法，一个查部门一个查员工，然后循环着调。' },
+            { role: 'teacher', text: '那就是 N 加 1 次查询：查 N 个部门就要发 N 条员工 SQL。数据量一大，数据库会被你打爆。' },
+            { role: 'student', text: '那正确做法是什么？', play: true },
+            { role: 'teacher', text: '一次查询，用 join 把两张表连起来，然后在 resultMap 里声明「部门有一个员工集合」，让 MyBatis 帮你把扁平的行重新组装成嵌套对象。' },
+            { role: 'student', text: '这个集合用哪个标签写？又来一个新标签了。' },
+            { role: 'teacher', text: 'collection 标签，指定里面的元素类型是员工。它做的是「把属于同一个部门的行收进同一个部门的 list」，和 resultMap 的配对逻辑一样，只不过是一对多。' },
+        ],
+        art: {
+            type: 'relation',
+            nodes: [
+                { label: '一条联表查询的结果', sub: '部门字段重复出现了五次', icon: '📄' },
+                { label: '按部门 id 分组', sub: '同一个部门的行归到一起', icon: '🗂️' },
+                { label: '部门对象 + 员工列表', sub: '嵌套结构', icon: '🌳' },
+            ],
+            edges: ['得到扁平行', '分组后组装成嵌套'],
+        },
+    },
+    {
+        id: 11,
+        title: '实战串联：分页、事务与缓存',
+        goal: '知道分页插件做了什么、事务归谁管、缓存分两级',
+        turns: [
+            { role: 'student', text: '老师，我们项目里查询前会带一个分页参数，SQL 后面自动多了 limit，这是谁干的？' },
+            { role: 'teacher', text: '那是分页插件。它本质上是个拦截器：在你的 SQL 执行之前，偷偷改写成带 limit 的样子，再加一条 count 语句统计总数。' },
+            { role: 'student', text: '那我不写 limit，插件也会自己加？我还以为得我自己拼。', play: true },
+            { role: 'teacher', text: '对，这就是插件的价值。你把分页参数交给它，它负责改写 SQL、算总数、把结果填回结果对象。前提是你的方法签名和它的约定对得上。' },
+            { role: 'student', text: '事务呢？我在方法上加了 @Transactional，MyBatis 自己会管吗？' },
+            { role: 'teacher', text: '单用 MyBatis 时事务得自己开自己关；用 Spring 集成后事务归 Spring 管，MyBatis 只是跟着走。至于缓存：同一次会话里重复查同一个 id，第二次不会真去查库，这叫一级缓存；跨会话的缓存要你手动打开，默认是关的。' },
+        ],
+        art: {
+            type: 'flow',
+            steps: [
+                { label: '你调用 Mapper 方法' },
+                { label: '拦截器链：分页插件改写 SQL', note: '加上 limit，并额外发一条 count' },
+                { label: '先看一级缓存有没有', note: '同一次会话内同一个 id 直接返回' },
+                { label: '没有缓存，才真的把 SQL 发给数据库' },
+            ],
+        },
+    },
+    {
+        id: 12,
+        title: '测验：检验前 11 课',
+        goal: '六道易混题，看看哪些地方还需要回头看',
+        turns: [],
+        art: null,
+    },
+];
+
+const QUIZ = [
+    {
+        question: '花括号井号和美元符号这两种写法，区别是什么？',
+        options: [
+            '两者完全一样，只是习惯不同',
+            '花括号井号走预编译参数，美元符号直接拼进 SQL 文本',
+            '花括号井号直接拼进 SQL 文本，美元符号走预编译参数',
+            '美元符号更安全，应该优先用它',
+        ],
+        answer: 1,
+        explain: '花括号井号是预编译参数，数据库看到的是问号加参数值，能挡住注入。美元符号是把内容原样拼进 SQL 文本，只有动态排序、动态表名这种没法参数化的地方才用；值要是来自用户，就是一个注入漏洞。',
+        lesson: 8,
+    },
+    {
+        question: '查出来的 userName 是 null，其他字段都正常，最可能的原因是？',
+        options: [
+            '数据库里根本没存这一列',
+            'SQL 写错了字段',
+            'resultType 靠列名和属性名自动配对，而 user_name 和 userName 对不上',
+            '表的结构建得不对',
+        ],
+        answer: 2,
+        explain: 'resultType 靠名字配对，配不上不报错，只悄悄给 null。要么在 SQL 里把列别名成 userName，要么用 resultMap 显式写出对应关系。',
+        lesson: 7,
+    },
+    {
+        question: '关于 MyBatis 的缓存，下面哪句是对的？',
+        options: [
+            '二级缓存默认是打开的',
+            '一级缓存和二级缓存都默认打开',
+            '一级缓存默认生效，二级缓存默认关闭',
+            '两种缓存都会在会话关闭时被清空',
+        ],
+        answer: 2,
+        explain: '一级缓存是 SqlSession 级别的，会话一关就消失，默认生效。二级缓存是 Mapper 级别的，能跨会话，需要你手动打开。',
+        lesson: 11,
+    },
+    {
+        question: 'Mapper 方法有两个参数，XML 里写 #{userName} 却报找不到属性。正确的做法是？',
+        options: [
+            '把 XML 里的 userName 改成 param1',
+            '在方法参数上加 @Param 注解，起名叫 userName',
+            '把方法参数改成 Map 类型',
+            '在 XML 里补一个 resultMap',
+        ],
+        answer: 1,
+        explain: '多参数时 MyBatis 默认只认 param1、param2 这种位置编号。用 @Param 起名字，既能跑通，代码读起来也清楚。',
+        lesson: 5,
+    },
+    {
+        question: '用 selectOne 查询，数据库返回了 3 行，会发生什么？',
+        options: [
+            '返回第一行',
+            '返回最后一行',
+            '抛出 TooManyResultsException 异常',
+            '返回一个空对象',
+        ],
+        answer: 2,
+        explain: 'selectOne 期望最多一行，收到多行时它不知道该给你哪一行，索性报错。想要一行，就在 SQL 里加唯一条件或者 limit 1。',
+        lesson: 6,
+    },
+    {
+        question: '同一个 Mapper 方法，XML 里和注解上都写了 SQL，会怎样？',
+        options: [
+            'XML 优先，注解里的被忽略',
+            '注解优先，XML 里的被忽略',
+            '两段 SQL 都会被执行一遍',
+            '启动时直接报错',
+        ],
+        answer: 3,
+        explain: '同一个方法不能既标注解又写 XML 映射，启动时就会报错。实际项目里定好规矩：短 SQL 用注解，长 SQL 用 XML，别两边都写。',
+        lesson: 3,
+    },
+];
+
+function validateContent(lessons, quiz) {
+    const issues = [];
+    const legalArt = ['compare', 'relation', 'flow', 'data', 'mapping', 'code'];
+    (lessons || []).forEach((l, i) => {
+        if (l.id !== i + 1) issues.push(`第 ${i + 1} 课 id 不连续: ${l.id}`);
+        if (!l.title) issues.push(`第 ${l.id} 课缺标题`);
+        if (!l.goal) issues.push(`第 ${l.id} 课缺目标`);
+        if (!Array.isArray(l.turns)) issues.push(`第 ${l.id} 课缺 turns`);
+        if (l.art && !legalArt.includes(l.art.type)) issues.push(`第 ${l.id} 课 art 类型非法: ${l.art.type}`);
+        (l.turns || []).forEach((t, j) => {
+            if (!['student', 'teacher'].includes(t.role)) issues.push(`第 ${l.id} 课第 ${j + 1} 句 role 非法`);
+            if (!t.text) issues.push(`第 ${l.id} 课第 ${j + 1} 句缺文本`);
+        });
+        if (l.turns && l.turns.length) {
+            const r = l.turns.filter(t => t.role === 'student').length / l.turns.length;
+            if (r < 0.3 || r > 0.55) issues.push(`第 ${l.id} 课学生占比失衡: ${r.toFixed(2)}`);
+        }
+    });
+    (quiz || []).forEach((q, i) => {
+        if (!Array.isArray(q.options) || q.options.length !== 4) issues.push(`第 ${i + 1} 题选项不是 4 个`);
+        if (!(q.answer >= 0 && q.answer < 4)) issues.push(`第 ${i + 1} 题答案越界`);
+        if (!q.explain) issues.push(`第 ${i + 1} 题缺解析`);
+    });
+    return issues;
+}
+
+const MyBatisCore = { toSpeech, speakText, pickVoice, LESSONS, QUIZ, validateContent };
+globalThis.MyBatisCore = MyBatisCore;
+</script>
+
+<script>
+(function () {
+    const { LESSONS, QUIZ, toSpeech, pickVoice } = MyBatisCore;
+
+    function app() {
+        return {
+            LESSONS, QUIZ,
+            lessonIndex: 0,
+            revealed: 0,
+            voices: [],
+            studentVoiceURI: '',
+            teacherVoiceURI: '',
+            rate: 1,
+            autoSpeak: true,
+            quizChoice: {},
+            pinned: { student: false, teacher: false },
+
+            init() {
+                this.loadSettings();
+                this.loadVoices();
+                if (typeof speechSynthesis !== 'undefined') {
+                    speechSynthesis.onvoiceschanged = () => this.loadVoices();
+                }
+                this.$nextTick(() => this.renderArt());
+            },
+
+            get lesson() { return LESSONS[this.lessonIndex]; },
+            get turns() { return this.lesson.turns; },
+            get isQuizLesson() { return this.lesson.turns.length === 0; },
+            get dialogueDone() { return this.revealed >= this.turns.length; },
+            get nextLabel() {
+                if (this.isQuizLesson) return '从头再学一遍 ↺';
+                return this.dialogueDone ? '下一课 →' : '下一句 ↓';
+            },
+            get quizAnsweredCount() { return Object.keys(this.quizChoice).length; },
+            get quizDone() { return this.quizAnsweredCount === QUIZ.length; },
+            get quizScore() {
+                return QUIZ.filter((q, i) => this.quizChoice[i] === q.answer).length;
+            },
+            get quizAdvice() {
+                const wrong = QUIZ.filter((q, i) => this.quizChoice[i] !== q.answer);
+                if (!wrong.length) return '全部答对，可以直接上手写项目了。';
+                const ids = [...new Set(wrong.map(q => q.lesson))].sort((a, b) => a - b);
+                return `建议回头复习第 ${ids.join('、')} 课。`;
+            },
+
+            loadVoices() {
+                if (typeof speechSynthesis === 'undefined') return;
+                this.voices = speechSynthesis.getVoices() || [];
+                if (!this.pinned.student) {
+                    const v = pickVoice(this.voices, 'student');
+                    if (v) this.studentVoiceURI = v.voiceURI;
+                }
+                if (!this.pinned.teacher) {
+                    const v = pickVoice(this.voices, 'teacher', this.studentVoiceURI);
+                    if (v) this.teacherVoiceURI = v.voiceURI;
+                }
+            },
+
+            saveSettings() {
+                try {
+                    localStorage.setItem('mb-tts', JSON.stringify({
+                        studentVoiceURI: this.studentVoiceURI,
+                        teacherVoiceURI: this.teacherVoiceURI,
+                        rate: this.rate,
+                        autoSpeak: this.autoSpeak,
+                    }));
+                } catch (e) { /* 隐私模式下写不进去，忽略 */ }
+            },
+
+            loadSettings() {
+                try {
+                    const raw = localStorage.getItem('mb-tts');
+                    if (!raw) return;
+                    const s = JSON.parse(raw);
+                    this.studentVoiceURI = s.studentVoiceURI || '';
+                    this.teacherVoiceURI = s.teacherVoiceURI || '';
+                    this.pinned.student = !!this.studentVoiceURI;
+                    this.pinned.teacher = !!this.teacherVoiceURI;
+                    this.rate = typeof s.rate === 'number' ? s.rate : 1;
+                    this.autoSpeak = s.autoSpeak !== false;
+                } catch (e) { /* 数据坏了就用默认值 */ }
+            },
+
+            speak(text, role) {
+                if (typeof speechSynthesis === 'undefined' || !text) return;
+                speechSynthesis.cancel();
+                const u = new SpeechSynthesisUtterance(toSpeech(text));
+                const uri = role === 'student' ? this.studentVoiceURI : this.teacherVoiceURI;
+                const v = this.voices.find(x => x.voiceURI === uri);
+                if (v) { u.voice = v; u.lang = v.lang; } else { u.lang = 'zh-CN'; }
+                u.rate = this.rate;
+                speechSynthesis.speak(u);
+            },
+
+            speakTurn(t) { this.speak(t.text, t.role); },
+
+            chooseVoice(role, uri) {
+                this.pinned[role] = true;
+                this[role + 'VoiceURI'] = uri;
+                this.saveSettings();
+            },
+            stopSpeak() { if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel(); },
+
+            reveal() {
+                if (this.revealed >= this.turns.length) return;
+                const t = this.turns[this.revealed];
+                this.revealed += 1;
+                this.$nextTick(() => {
+                    const box = this.$refs.dialogScroll;
+                    if (box) box.scrollTop = box.scrollHeight;
+                    if (t.play) this.playArt();
+                });
+                if (this.autoSpeak) this.speak(t.text, t.role);
+            },
+
+            collapse() {
+                if (this.revealed <= 0) return;
+                this.revealed -= 1;
+                this.stopSpeak();
+            },
+
+            next() {
+                if (this.isQuizLesson) { this.quizChoice = {}; this.goLesson(0); return; }
+                if (!this.dialogueDone) { this.reveal(); return; }
+                this.goLesson(this.lessonIndex + 1);
+            },
+
+            prev() { this.goLesson(this.lessonIndex - 1); },
+
+            goLesson(i) {
+                if (i < 0 || i >= LESSONS.length) return;
+                this.stopSpeak();
+                this.lessonIndex = i;
+                this.revealed = 0;
+                if (LESSONS[i].turns.length === 0) this.quizChoice = {};
+                this.$nextTick(() => { if (this.renderArt) this.renderArt(); });
+            },
+
+            onKey(e) {
+                if (e.target && ['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
+                if (e.key === 'ArrowDown') { e.preventDefault(); this.next(); }
+                else if (e.key === 'ArrowUp') { e.preventDefault(); this.collapse(); }
+                else if (e.key === 'ArrowRight') { e.preventDefault(); this.goLesson(this.lessonIndex + 1); }
+                else if (e.key === 'ArrowLeft') { e.preventDefault(); this.goLesson(this.lessonIndex - 1); }
+            },
+
+            esc(s) {
+                return String(s == null ? '' : s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+            },
+
+            renderArt() {
+                const root = this.$refs.artRoot;
+                if (!root) return;
+                if (this.isQuizLesson) {
+                    root.innerHTML = `
+                      <div class="card bg-base-200 border border-base-300">
+                        <div class="card-body p-3">
+                          <h3 class="text-sm font-bold">答题卡</h3>
+                          <div class="flex flex-wrap gap-1 mt-1">
+                            ${QUIZ.map((q, i) => `
+                              <span class="badge badge-sm ${this.quizChoice[i] === undefined ? 'badge-ghost' : (this.quizChoice[i] === q.answer ? 'badge-success' : 'badge-error')}">
+                                ${i + 1}
+                              </span>`).join('')}
+                          </div>
+                          <p class="text-xs opacity-60 mt-1">已答 <span x-text="quizAnsweredCount"></span> / ${QUIZ.length} 题</p>
+                        </div>
+                      </div>
+                      <p class="text-xs opacity-60 leading-relaxed">
+                        答完每一题会立刻出现解析，解析也会朗读出来。<br>
+                        六题答完给出总分和建议复习的课号。
+                      </p>`;
+                    return;
+                }
+                const art = this.lesson.art;
+                if (!art) { root.innerHTML = '<p class="text-sm opacity-60">这一课先听老师讲。</p>'; return; }
+                if (art.type === 'compare') {
+                    root.innerHTML = `
+                      <div class="grid grid-cols-2 gap-3">
+                        <div class="card bg-base-200 border border-base-300">
+                          <div class="card-body p-3">
+                            <h3 class="text-sm font-bold text-error">写 JDBC</h3>
+                            <ul class="text-xs space-y-1 list-disc pl-4">
+                              ${art.left.map(s => `<li class="art-line">${this.esc(s)}</li>`).join('')}
+                            </ul>
+                          </div>
+                        </div>
+                        <div class="card bg-base-200 border border-base-300">
+                          <div class="card-body p-3">
+                            <h3 class="text-sm font-bold text-success">写 MyBatis</h3>
+                            <ul class="text-xs space-y-1 list-disc pl-4">
+                              ${art.right.map(s => `<li class="art-line">${this.esc(s)}</li>`).join('')}
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                      <p class="text-xs opacity-60">少掉的正是左边那一长串样板代码。</p>`;
+                } else if (art.type === 'relation') {
+                    root.innerHTML = art.nodes.map((n, i) => `
+                      <div class="art-line">
+                        <div class="card bg-base-200 border border-base-300">
+                          <div class="card-body p-3 flex-row items-center gap-3">
+                            <span class="text-2xl flex-none">${this.esc(n.icon || '•')}</span>
+                            <div class="min-w-0">
+                              <div class="text-sm font-bold">${this.esc(n.label)}</div>
+                              <div class="text-xs opacity-70">${this.esc(n.sub || '')}</div>
+                            </div>
+                          </div>
+                        </div>
+                        ${i < art.nodes.length - 1 ? `<div class="text-center text-xs opacity-60 my-1">▼ ${this.esc(art.edges[i] || '')}</div>` : ''}
+                      </div>`).join('');
+                } else if (art.type === 'flow') {
+                    root.innerHTML = art.steps.map((s, i) => `
+                      <div class="art-line flex items-start gap-3">
+                        <span class="badge badge-primary badge-sm mt-0.5 flex-none">${i + 1}</span>
+                        <div class="min-w-0">
+                          <div class="text-sm">${this.esc(s.label)}</div>
+                          ${s.note ? `<div class="text-xs opacity-70 mt-0.5">${this.esc(s.note)}</div>` : ''}
+                        </div>
+                      </div>`).join('');
+                } else if (art.type === 'data') {
+                    root.innerHTML = `
+                      <div class="overflow-x-auto">
+                        <table class="table table-xs table-zebra bg-base-200">
+                          <thead><tr>${art.headers.map(h => `<th>${this.esc(h)}</th>`).join('')}</tr></thead>
+                          <tbody>${art.rows.map(r => `<tr class="art-line">${r.map(c => `<td>${this.esc(c)}</td>`).join('')}</tr>`).join('')}</tbody>
+                        </table>
+                      </div>`;
+                } else if (art.type === 'mapping') {
+                    root.innerHTML = art.rows.map(r => `
+                      <div class="art-line flex items-center gap-2 text-sm flex-wrap">
+                        <code class="badge badge-ghost">${this.esc(r.col)}</code>
+                        <span class="opacity-60">→</span>
+                        <code class="badge badge-primary">${this.esc(r.prop)}</code>
+                        <span class="text-xs opacity-60">${this.esc(r.note || '')}</span>
+                      </div>`).join('');
+                } else if (art.type === 'code') {
+                    const lines = String(art.code || '').split('\n');
+                    root.innerHTML = `
+                      <div class="text-xs opacity-60 mb-1">${this.esc(art.caption || '')}</div>
+                      <pre class="bg-base-200 rounded-box p-3 text-xs overflow-x-auto leading-relaxed"><code>${lines.map(l => `<span class="code-line block">${this.esc(l) || '&nbsp;'}</span>`).join('')}</code></pre>`;
+                }
+            },
+
+            playArt() {
+                const root = this.$refs.artRoot;
+                if (!root || typeof anime === 'undefined') return;
+                const targets = [...root.querySelectorAll('.art-line, .code-line')];
+                if (!targets.length) return;
+                anime({
+                    targets,
+                    opacity: [0, 1],
+                    translateY: [8, 0],
+                    delay: anime.stagger(140),
+                    duration: 320,
+                    easing: 'easeOutQuad',
+                });
+                // 动画引擎被暂停时（页面切到后台），兜底把元素摆到最终状态，别让内容看不见
+                setTimeout(() => {
+                    targets.forEach(el => {
+                        el.style.opacity = '1';
+                        el.style.transform = 'none';
+                    });
+                }, targets.length * 140 + 320 + 400);
+            },
+
+            quizAnswered(i) { return Object.prototype.hasOwnProperty.call(this.quizChoice, i); },
+
+            answerQuiz(i, j) {
+                if (this.quizAnswered(i)) return;
+                this.quizChoice[i] = j;
+                const q = QUIZ[i];
+                this.$nextTick(() => { if (this.renderArt) this.renderArt(); });
+                if (this.autoSpeak) {
+                    const right = j === q.answer;
+                    this.speak(
+                        right ? `答对了。${q.explain}` : `答错了，正确答案是 ${String.fromCharCode(65 + q.answer)}。${q.explain}`,
+                        'teacher'
+                    );
+                }
+            },
+        };
+    }
+
+    window.app = app;
+})();
+</script>
+</body>
+</html>

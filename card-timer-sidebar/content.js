@@ -44,7 +44,7 @@ body.${BODY_CLASS} { padding-right: 33vw; }
             const tag = (e.target && e.target.tagName) || '';
             const inEditableField = tag === 'INPUT' || tag === 'TEXTAREA';
 
-            if (!e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey && e.code === 'KeyO') {
+            if (e.ctrlKey && !e.shiftKey && e.altKey && !e.metaKey && e.code === 'KeyC') {
                 e.preventDefault();
                 const shown = iframe.classList.toggle('shown');
                 document.body.classList.toggle(BODY_CLASS, shown);

@@ -13,7 +13,7 @@ Edge/Chrome extension that shows [card-timer.html](https://don-up.github.io/tool
 
 | Shortcut | Action |
 | --- | --- |
-| `Shift+O` | Toggle the card-timer sidebar |
+| `Ctrl+Alt+C` | Toggle the card-timer sidebar |
 | `Q` | Set the card-name input to the current text selection and focus it |
 | `W` | Append `<br>{{selection}}` and auto-submit (creates the card) |
 | `E` | Append `<br>{selection}` to the card input without submitting |
@@ -24,6 +24,6 @@ State (favorites, recent cards) lives in IndexedDB inside the iframe and persist
 
 ## Notes
 
-- First time you press `Shift+O`, Edge may show a one-time notice that the extension is controlling the shortcut.
+- First time you press `Ctrl+Alt+C`, Edge may show a one-time notice that the extension is controlling the shortcut.
 - On page reload, the iframe is reinjected; in-progress card editing is lost (same behavior as the iframe embedded in `cn2en-json.html`).
 - Some sites with strict `frame-src` CSP may block the iframe; that's a site policy, not an extension bug.

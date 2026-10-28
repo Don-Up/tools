@@ -1,0 +1,4 @@
+- [cn2en-json CN/EN serialization format](project_cn2en_pipe_format.md) — output is `${cn}<br>\n${en}` (no trailing pipe); format has changed 3× in one day, re-confirm before adding new channels
+- [Check uncommitted local edits before staging](feedback_check_uncommitted_before_commit.md) — `git status` + `git diff` before `git add`; user's IDE WIP must not be swept into commits
+- [Subagents must not commit or operate git](feedback_no_subagent_commits.md) — implementer/reviewer subagents edit files and report back; controller stages and commits only after explicit user confirmation
+- [ai.html does not require API Key (Vercel auth)](project_ai_html_no_apikey.md) — Vercel serverless function handles auth; don't pester user about API Key when debugging ai.html

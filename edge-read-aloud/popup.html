@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <title>朗读选中文字</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="panel">
+        <div class="panel-title">
+            朗读选中文字
+            <span class="kbd">Alt+2</span>
+        </div>
+
+        <div class="field field-voice">
+            <label for="voiceSelect">语音</label>
+            <select id="voiceSelect"></select>
+        </div>
+
+        <div class="field">
+            <label for="rateInput">速度</label>
+            <input type="range" id="rateInput" min="0.5" max="2" step="0.1" value="1">
+            <span class="value" id="rateValue">1.0</span>
+        </div>
+
+        <div class="field">
+            <label for="pitchInput">音调</label>
+            <input type="range" id="pitchInput" min="0.5" max="1.5" step="0.1" value="1">
+            <span class="value" id="pitchValue">1.0</span>
+        </div>
+
+        <div class="field">
+            <label for="volumeInput">音量</label>
+            <input type="range" id="volumeInput" min="0" max="1" step="0.1" value="1">
+            <span class="value" id="volumeValue">1.0</span>
+        </div>
+
+        <div class="buttons">
+            <button type="button" id="testBtn" class="btn">试听</button>
+            <button type="button" id="readBtn" class="btn btn-primary">朗读选中</button>
+            <button type="button" id="stopBtn" class="btn">停止</button>
+        </div>
+
+        <div class="status" id="status"></div>
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>
