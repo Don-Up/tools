@@ -1268,6 +1268,7 @@
                     <label class="mode-radio-label"><input type="radio" name="playMode" value="infinite"> 无限循环</label>
                     <label class="mode-radio-label"><input type="checkbox" id="randomVoiceToggle"> 随机</label>
                     <label class="mode-radio-label" title="→ 先弹上一句中文,↓ 看英文,再按 → 才跳下一句"><input type="checkbox" id="reviewPreToggle"> review pre</label>
+                    <label class="mode-radio-label" title="切到别的标签页 / 窗口时,自动停止朗读"><input type="checkbox" id="cancelOnLeaveToggle"> 离开即停</label>
                 </div>
             </div>
             <div class="tts-sub-row">
@@ -1324,6 +1325,7 @@
                     <li><kbd>Alt+S</kbd></li><li>分句跟读模式下循环朗读选中分句</li>
                     <li>单句 / 连续 / 循环</li><li>单句:R 读一次后停;连续:R 读完一句后自动跳到下一句,末句后回第一句;循环:无限循环当前句 (Mode 3 旁)</li>
                     <li>随机</li><li>开启时每次朗读随机挑选一个英文语音 (循环 右侧)</li>
+                    <li>离开即停</li><li>开启后切到别的标签页 / 窗口时自动停止朗读 (review pre 右侧)</li>
                     <li><kbd>Alt+H</kbd></li><li>隐藏 / 显示中文句子</li>
                     <li><kbd>Alt+L</kbd></li><li>难句复习(列表在上,输入框在下)</li>
                     <li>小字英文</li><li>中文上方的小字英文,点一下能改写(可以带 HTML 标签,<b> 粗体显示成橙色</b>;写 [[基词]]注音}} 可以加注音,注音浮在词上面);编辑时看到的是源码(标签原样),点外面才渲染成样子;改的存进每条数据的第三格,不影响 JSON 原文;Mode 1 常显,Mode 2 / 3 跟着下面的英文一起显隐</li>
@@ -3713,6 +3715,24 @@
         cancelJustNow = true;
     }
 
+    // 离开页面就自动停掉朗读(cancelOnLeave 开关打开时才生效)
+    // 换标签页 / 最小化窗口 -> 页面看不见了,靠 visibilitychange
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden && cancelOnLeave) stopPlayback();
+    });
+    // 切到别的程序窗口时页面还是看得见的,只能靠 blur;
+    // 但点进页面里自己的 iframe(右侧边栏)也会触发 blur,那种不算"离开"
+    let leaveBlurTimer = null;
+    window.addEventListener('blur', () => {
+        if (!cancelOnLeave) return;
+        clearTimeout(leaveBlurTimer);
+        leaveBlurTimer = setTimeout(() => {
+            const ae = document.activeElement;
+            if (ae && ae.tagName === 'IFRAME') return;
+            stopPlayback();
+        }, 200);
+    });
+
     document.addEventListener('keydown', (e) => {
         if (document.activeElement === aiQuestion) return;
         if (e.code === 'Space' && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) {
@@ -4235,6 +4255,7 @@
     const STORAGE_KEY_RANDOM_VOICE = 'cn2en-json:randomVoice';
     const STORAGE_KEY_REVIEW_PRE = 'cn2en-json:reviewPre';
     const STORAGE_KEY_LOOP_COUNT = 'cn2en-json:loopCount';
+    const STORAGE_KEY_CANCEL_ON_LEAVE = 'cn2en-json:cancelOnLeave';
     const DEFAULT_AI_SYSTEM_PROMPT = AI_SYSTEM_PROMPT;
 
     let voicesCN = [];
@@ -4245,6 +4266,8 @@
     let randomVoiceEnabled = false;
     // review pre:开着的时候 → 不直接翻页,先弹当前句复习一遍
     let reviewPreEnabled = false;
+    // cancelOnLeave:开着的时候,离开这个页面(切标签页 / 切窗口 / 最小化)就自动停掉朗读
+    let cancelOnLeave = false;
     let reviewPreOpen = false;
     let reviewPreShowEn = false;
     let reviewPreShowRt = false;
@@ -4980,6 +5003,13 @@
         reviewPreEnabled = reviewPreToggle.checked;
         localStorage.setItem(STORAGE_KEY_REVIEW_PRE, String(reviewPreEnabled));
         if (!reviewPreEnabled) closeReviewPre();
+    });
+    const cancelOnLeaveToggle = document.getElementById('cancelOnLeaveToggle');
+    cancelOnLeave = localStorage.getItem(STORAGE_KEY_CANCEL_ON_LEAVE) === "true";
+    cancelOnLeaveToggle.checked = cancelOnLeave;
+    cancelOnLeaveToggle.addEventListener('change', () => {
+        cancelOnLeave = cancelOnLeaveToggle.checked;
+        localStorage.setItem(STORAGE_KEY_CANCEL_ON_LEAVE, String(cancelOnLeave));
     });
     cnRateInput.addEventListener('input', () => {
         cnRate = parseFloat(cnRateInput.value);
