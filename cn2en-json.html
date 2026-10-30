@@ -3680,6 +3680,39 @@
     bgCloseBtn.addEventListener('click', () => { bgModal.hidden = true; });
     bgModalBackdrop.addEventListener('click', () => { bgModal.hidden = true; });
 
+    // 停止令牌:只有真的按了停止(空格 / R / 4 / 5 / 6 / 7)才 +1。
+    // 连续 / 循环的连锁靠它判断"自己是不是被停了"。
+    // 不能拿 speakEn 的调用次数来算 —— 别处(CN 念完接着念英文)也会调 speakEn,
+    // 那样会把好好的连锁误杀掉,表现就是"只播一遍就不动了"
+    let stopToken = 0;
+    let cancelJustNow = false;   // 刚 cancel 过,新的一句晚一点再念
+
+    // 停掉当前所有朗读。空格键用的就是它,R / 4 / 5 / 6 / 7 开始新朗读前也先调它。
+    // 顺序要紧:先把"正在播放"的状态全清掉,再 cancel ——
+    // cancel 会触发正在念的那句的 onend,状态先清掉,onend 里就不会接着往下读了
+    function stopPlayback() {
+        if (favPlayButton) {
+            favPlayButton.textContent = '播放';
+            favPlayButton = null;
+        }
+        if (randomPlaying) {
+            randomPlaying = false;
+            favListRandomPlay.textContent = '随机播放';
+        }
+        if (sequentialPlaying) {
+            sequentialPlaying = false;
+            sequentialQueue = [];
+            sequentialIndex = 0;
+            favListSequentialPlay.textContent = '顺序播放';
+        }
+        if (loopReadActive) {
+            loopReadActive = false;
+        }
+        stopToken++;   // 让当前这句的 onend 连锁失效
+        window.speechSynthesis.cancel();
+        cancelJustNow = true;
+    }
+
     document.addEventListener('keydown', (e) => {
         if (document.activeElement === aiQuestion) return;
         if (e.code === 'Space' && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) {
@@ -3688,24 +3721,7 @@
             if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
                 e.preventDefault();
                 e.stopPropagation();
-                window.speechSynthesis.cancel();
-                if (favPlayButton) {
-                    favPlayButton.textContent = '播放';
-                    favPlayButton = null;
-                }
-                if (randomPlaying) {
-                    randomPlaying = false;
-                    favListRandomPlay.textContent = '随机播放';
-                }
-                if (sequentialPlaying) {
-                    sequentialPlaying = false;
-                    sequentialQueue = [];
-                    sequentialIndex = 0;
-                    favListSequentialPlay.textContent = '顺序播放';
-                }
-                if (loopReadActive) {
-                    loopReadActive = false;
-                }
+                stopPlayback();
             }
             return;
         }
@@ -3894,6 +3910,7 @@
             }
         }
         if ((e.key === 'r' || e.key === 'PageDown') && !e.ctrlKey && !e.altKey && !e.metaKey) {
+            stopPlayback();     // 先把正在念的停掉,再从头读这一句
             if (entries.length === 0) return;
             e.preventDefault();
             readCurrentEn();
@@ -4290,12 +4307,21 @@
         if (!force && !ttsEnabledEn) return;
         const content = text ?? entries[currentIndex][1];
         if (!content) return;
-        window.speechSynthesis.cancel();
+        // 记住这次发声属于哪一轮:只有真按了停止(空格 / R / 4-7)令牌才会变,
+        // 所以别处顺带调来的 speakEn 不会把这条连锁误杀掉
+        const token = stopToken;
+        // 只在真的有东西在念 / 排队时才 cancel:
+        // 取消之后紧接着 speak,Chrome 有可能把新的一句一起带走,表现就是"只播一遍"
+        const wasSpeaking = window.speechSynthesis.speaking || window.speechSynthesis.pending;
+        if (wasSpeaking) window.speechSynthesis.cancel();
+        const needDelay = wasSpeaking || cancelJustNow;   // 刚 cancel 过,新的一句慢一点再念
+        cancelJustNow = false;
         const utterance = new SpeechSynthesisUtterance(content);
         utterance.voice = voice;
         utterance.rate = enRate;
         if (mode === 'continuous') {
             utterance.onend = () => {
+                if (token !== stopToken) return;   // 已经被停掉了
                 if (playMode !== 'continuous') return;
                 if (entries.length === 0) return;
                 currentIndex = (currentIndex + 1) % entries.length;
@@ -4305,6 +4331,7 @@
             };
         } else if (mode === 'loop' || mode === 'infinite') {
             utterance.onend = () => {
+                if (token !== stopToken) return;   // 已经被停掉了
                 if (playMode !== 'loop' && playMode !== 'infinite') return;
                 if (entries.length === 0) return;
                 loopPlayed++;
@@ -4323,7 +4350,15 @@
                 speakEn(true, undefined, 'loop');
             };
         }
-        window.speechSynthesis.speak(utterance);
+        if (needDelay) {
+            // 推迟一拍再念,和"先按空格再按 5"的节奏完全一致
+            setTimeout(() => {
+                if (token !== stopToken) return;   // 这期间被停了,就不念了
+                window.speechSynthesis.speak(utterance);
+            }, 50);
+        } else {
+            window.speechSynthesis.speak(utterance);
+        }
     }
 
     // 读当前英文(选中的是英文就只读选中的,否则读整句;按当前播放方式走)
@@ -4760,21 +4795,25 @@
             } else if (e.code === 'Digit4' || e.code === 'Numpad4') {
                 if (tag === 'INPUT' || tag === 'TEXTAREA') return;
                 e.preventDefault();
+                stopPlayback();
                 setPlayMode('single');
                 readCurrentEn();
             } else if (e.code === 'Digit5' || e.code === 'Numpad5') {
                 if (tag === 'INPUT' || tag === 'TEXTAREA') return;
                 e.preventDefault();
+                stopPlayback();
                 setPlayMode('continuous');
                 readCurrentEn();
             } else if (e.code === 'Digit6' || e.code === 'Numpad6') {
                 if (tag === 'INPUT' || tag === 'TEXTAREA') return;
                 e.preventDefault();
+                stopPlayback();
                 setPlayMode('loop');
                 readCurrentEn();
             } else if (e.code === 'Digit7' || e.code === 'Numpad7') {
                 if (tag === 'INPUT' || tag === 'TEXTAREA') return;
                 e.preventDefault();
+                stopPlayback();
                 setPlayMode('infinite');
                 readCurrentEn();
             }
