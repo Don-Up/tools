@@ -1269,6 +1269,7 @@
                     <label class="mode-radio-label"><input type="checkbox" id="randomVoiceToggle"> 随机</label>
                     <label class="mode-radio-label" title="→ 先弹上一句中文,↓ 看英文,再按 → 才跳下一句"><input type="checkbox" id="reviewPreToggle"> review pre</label>
                     <label class="mode-radio-label" title="切到别的标签页 / 窗口时,自动停止朗读"><input type="checkbox" id="cancelOnLeaveToggle"> 离开即停</label>
+                    <label class="mode-radio-label" title="TTS 朗读时自动把中文句子藏起来,读完自动放回来"><input type="checkbox" id="hideCnWhileTtsToggle"> 念时藏中文</label>
                 </div>
             </div>
             <div class="tts-sub-row">
@@ -1326,6 +1327,7 @@
                     <li>单句 / 连续 / 循环</li><li>单句:R 读一次后停;连续:R 读完一句后自动跳到下一句,末句后回第一句;循环:无限循环当前句 (Mode 3 旁)</li>
                     <li>随机</li><li>开启时每次朗读随机挑选一个英文语音 (循环 右侧)</li>
                     <li>离开即停</li><li>开启后切到别的标签页 / 窗口时自动停止朗读 (review pre 右侧)</li>
+                    <li>念时藏中文</li><li>开启后朗读时自动把中文句子藏起来,读完自动放回来 (离开即停 右侧)</li>
                     <li><kbd>Alt+H</kbd></li><li>隐藏 / 显示中文句子</li>
                     <li><kbd>Alt+L</kbd></li><li>难句复习(列表在上,输入框在下)</li>
                     <li>小字英文</li><li>中文上方的小字英文,点一下能改写(可以带 HTML 标签,<b> 粗体显示成橙色</b>;写 [[基词]]注音}} 可以加注音,注音浮在词上面);编辑时看到的是源码(标签原样),点外面才渲染成样子;改的存进每条数据的第三格,不影响 JSON 原文;Mode 1 常显,Mode 2 / 3 跟着下面的英文一起显隐</li>
@@ -3711,6 +3713,8 @@
             loopReadActive = false;
         }
         stopToken++;   // 让当前这句的 onend 连锁失效
+        chainRunning = false;
+        restoreCn();   // 停了就把中文放回来
         window.speechSynthesis.cancel();
         cancelJustNow = true;
     }
@@ -4219,7 +4223,7 @@
         }
         emptyState.hidden = true;
         counter.hidden = false;
-        cnText.hidden = cnHiddenByUser;
+        cnText.hidden = cnHiddenByUser;   // TTS 的隐藏走 visibility,这里只管用户自己 Alt+H 藏的
         enText.hidden = false;
         const [cn, en] = entries[currentIndex];
         counter.textContent = `${currentIndex + 1}/${entries.length}`;
@@ -4256,6 +4260,7 @@
     const STORAGE_KEY_REVIEW_PRE = 'cn2en-json:reviewPre';
     const STORAGE_KEY_LOOP_COUNT = 'cn2en-json:loopCount';
     const STORAGE_KEY_CANCEL_ON_LEAVE = 'cn2en-json:cancelOnLeave';
+    const STORAGE_KEY_HIDE_CN_WHILE_TTS = 'cn2en-json:hideCnWhileTts';
     const DEFAULT_AI_SYSTEM_PROMPT = AI_SYSTEM_PROMPT;
 
     let voicesCN = [];
@@ -4284,6 +4289,10 @@
     let enRevealed = false;
     let cnHiddenByUser = false;
     let enShown = true;
+    // 念的时候把中文藏起来(开关打开才有);播完再放回来
+    let hideCnWhileTts = false;
+    let cnHiddenByTts = false;   // 现在这个中文是 TTS 藏的,得由 TTS 放回来
+    let chainRunning = false;    // 连续 / 循环的连锁正在跑:中途不能把中文放回来
 
 
     function saveState() {
@@ -4308,15 +4317,56 @@
         }
     }
 
+    // 念的时候把中文藏起来(开关打开才有)。用户自己按 Alt+H 藏的就不插手。
+    // 用 visibility 不用 hidden:位置不跳,底下的英文不会顶上来
+    function hideCnForTts() {
+        if (!hideCnWhileTts) return;
+        if (cnHiddenByTts || cnHiddenByUser) return;
+        if (entries.length === 0) return;
+        cnHiddenByTts = true;
+        cnText.style.visibility = 'hidden';
+    }
+
+    // 把中文放回来(只有 TTS 藏的才放;用户自己 Alt+H 藏的不动)
+    function restoreCn() {
+        if (!cnHiddenByTts) return;
+        cnHiddenByTts = false;
+        cnText.style.visibility = '';
+    }
+
+    // 播完(而且没有接着念别的)就把中文放回来。
+    // 连续 / 循环的连锁会一句接一句地念,中途不能放回来,等用户停了才放
+    function maybeRestoreCn() {
+        if (!cnHiddenByTts) return;
+        if (chainRunning) return;
+        // Chrome 有时候 end 事件之后 speaking 标志还挂着,一次判断会漏掉,
+        // 所以多试几次,确认真的没在念了再放回来
+        let tries = 0;
+        const check = () => {
+            if (!cnHiddenByTts) return;
+            if (chainRunning) return;
+            if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+                if (++tries < 8) setTimeout(check, 250);
+                return;
+            }
+            restoreCn();
+        };
+        setTimeout(check, 200);
+    }
+
     function speakCn(force) {
         if (entries.length === 0) return;
         if (force || (ttsEnabled && selectedVoice)) {
             window.speechSynthesis.cancel();
+            hideCnForTts();
             const utterance = new SpeechSynthesisUtterance(entries[currentIndex][0]);
             utterance.voice = selectedVoice;
             utterance.rate = cnRate;
             if (!force && ttsEnabledEn && getCurrentEnVoice()) {
-                utterance.onend = () => speakEn();
+                // 中文念完接着念英文;英文要是没念起来,maybeRestoreCn 会把中文放回来
+                utterance.onend = () => { speakEn(); maybeRestoreCn(); };
+            } else {
+                utterance.onend = () => maybeRestoreCn();
             }
             window.speechSynthesis.speak(utterance);
         } else if (ttsEnabledEn && getCurrentEnVoice()) {
@@ -4330,6 +4380,7 @@
         if (!force && !ttsEnabledEn) return;
         const content = text ?? entries[currentIndex][1];
         if (!content) return;
+        hideCnForTts();
         // 记住这次发声属于哪一轮:只有真按了停止(空格 / R / 4-7)令牌才会变,
         // 所以别处顺带调来的 speakEn 不会把这条连锁误杀掉
         const token = stopToken;
@@ -4343,9 +4394,11 @@
         utterance.voice = voice;
         utterance.rate = enRate;
         if (mode === 'continuous') {
+            chainRunning = true;
             utterance.onend = () => {
                 if (token !== stopToken) return;   // 已经被停掉了
-                if (playMode !== 'continuous') return;
+                maybeRestoreCn();                    // 连锁接着念的话这里不会真放回来
+                if (playMode !== 'continuous') { chainRunning = false; maybeRestoreCn(); return; }
                 if (entries.length === 0) return;
                 currentIndex = (currentIndex + 1) % entries.length;
                 saveState();
@@ -4353,9 +4406,11 @@
                 speakEn(true, undefined, 'continuous');
             };
         } else if (mode === 'loop' || mode === 'infinite') {
+            chainRunning = true;
             utterance.onend = () => {
                 if (token !== stopToken) return;   // 已经被停掉了
-                if (playMode !== 'loop' && playMode !== 'infinite') return;
+                maybeRestoreCn();
+                if (playMode !== 'loop' && playMode !== 'infinite') { chainRunning = false; maybeRestoreCn(); return; }
                 if (entries.length === 0) return;
                 loopPlayed++;
                 // 无限循环:一直读当前这句,不往下走
@@ -4372,6 +4427,9 @@
                 }
                 speakEn(true, undefined, 'loop');
             };
+        } else {
+            // 就念这一遍,念完把中文放回来
+            utterance.onend = () => maybeRestoreCn();
         }
         if (needDelay) {
             // 推迟一拍再念,和"先按空格再按 5"的节奏完全一致
@@ -4402,10 +4460,12 @@
         const text = entries.map(e => e[1]).join('. ');
         if (!text) return;
         window.speechSynthesis.cancel();
+        hideCnForTts();
         const utterance = new SpeechSynthesisUtterance(text);
         const enVoice = getCurrentEnVoice();
         if (enVoice) utterance.voice = enVoice;
         utterance.rate = enRate;
+        utterance.onend = () => maybeRestoreCn();
         window.speechSynthesis.speak(utterance);
     }
 
@@ -4415,12 +4475,14 @@
         loopReadActive = false;
         loopReadTextCurrent = '';
         window.speechSynthesis.cancel();
+        restoreCn();   // 循环停了,中文放回来
     }
     function loopReadText(text) {
         if (!text) return;
         window.speechSynthesis.cancel();
         loopReadActive = true;
         loopReadTextCurrent = text;
+        hideCnForTts();
         const speak = () => {
             if (!loopReadActive) return;
             const u = new SpeechSynthesisUtterance(text);
@@ -4431,7 +4493,10 @@
                 if (loopReadActive && loopReadTextCurrent === text) speak();
             };
             u.onerror = () => {
-                if (loopReadTextCurrent === text) loopReadActive = false;
+                if (loopReadTextCurrent === text) {
+                    loopReadActive = false;
+                    restoreCn();   // 出错了,中文放回来
+                }
             };
             window.speechSynthesis.speak(u);
         };
@@ -4504,10 +4569,12 @@
         if (chunk.text.trim()) {
             stopLoopRead();
             window.speechSynthesis.cancel();
+            hideCnForTts();
             const u = new SpeechSynthesisUtterance(chunk.text);
             const enVoice = getCurrentEnVoice();
             if (enVoice) u.voice = enVoice;
             u.rate = enRate;
+            u.onend = () => maybeRestoreCn();   // 这一小段念完,中文放回来
             window.speechSynthesis.speak(u);
         }
         lastFollowAlongChunk = chunk;
@@ -4527,10 +4594,12 @@
         if (lastFollowAlongChunk.text.trim()) {
             stopLoopRead();
             window.speechSynthesis.cancel();
+            hideCnForTts();
             const u = new SpeechSynthesisUtterance(lastFollowAlongChunk.text);
             const enVoice = getCurrentEnVoice();
             if (enVoice) u.voice = enVoice;
             u.rate = enRate;
+            u.onend = () => maybeRestoreCn();
             window.speechSynthesis.speak(u);
         }
     }
@@ -5010,6 +5079,15 @@
     cancelOnLeaveToggle.addEventListener('change', () => {
         cancelOnLeave = cancelOnLeaveToggle.checked;
         localStorage.setItem(STORAGE_KEY_CANCEL_ON_LEAVE, String(cancelOnLeave));
+    });
+    const hideCnWhileTtsToggle = document.getElementById('hideCnWhileTtsToggle');
+    hideCnWhileTts = localStorage.getItem(STORAGE_KEY_HIDE_CN_WHILE_TTS) === "true";
+    hideCnWhileTtsToggle.checked = hideCnWhileTts;
+    hideCnWhileTtsToggle.addEventListener('change', () => {
+        hideCnWhileTts = hideCnWhileTtsToggle.checked;
+        localStorage.setItem(STORAGE_KEY_HIDE_CN_WHILE_TTS, String(hideCnWhileTts));
+        // 关掉开关就把中文放回来
+        if (!hideCnWhileTts) restoreCn();
     });
     cnRateInput.addEventListener('input', () => {
         cnRate = parseFloat(cnRateInput.value);
