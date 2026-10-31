@@ -1270,6 +1270,8 @@
                     <label class="mode-radio-label" title="→ 先弹上一句中文,↓ 看英文,再按 → 才跳下一句"><input type="checkbox" id="reviewPreToggle"> review pre</label>
                     <label class="mode-radio-label" title="切到别的标签页 / 窗口时,自动停止朗读"><input type="checkbox" id="cancelOnLeaveToggle"> 离开即停</label>
                     <label class="mode-radio-label" title="TTS 朗读时自动把中文句子藏起来,读完自动放回来"><input type="checkbox" id="hideCnWhileTtsToggle"> 念时藏中文</label>
+                    <label class="mode-radio-label" title="对话模式:第 1、3、5…句用第一个英文角色,第 2、4、6…句用右边选的第二个英文角色"><input type="checkbox" id="dialogueModeToggle"> 对话</label>
+                    <select id="dialogueRoleSelect" class="voice-select" title="第二个英文角色:第 2、4、6…句用它念" hidden></select>
                 </div>
             </div>
             <div class="tts-sub-row">
@@ -1689,6 +1691,8 @@
     const ttsToggle = document.getElementById('ttsToggle');
     const voiceSelectEn = document.getElementById('voiceSelectEn');
     const ttsToggleEn = document.getElementById('ttsToggleEn');
+    const dialogueModeToggle = document.getElementById('dialogueModeToggle');
+    const dialogueRoleSelect = document.getElementById('dialogueRoleSelect');
     const cnRateInput = document.getElementById('cnRate');
     const enRateInput = document.getElementById('enRate');
     const cnRateValue = document.getElementById('cnRateValue');
@@ -2748,6 +2752,13 @@
         selectTextInCn(cnSelectionMemo.text);
     }
 
+    // 取消选中(加完注释之后用):刚加的那几个字还选着,看着像还没存上
+    function clearCnSelection() {
+        cnSelectionMemo = null;
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount) sel.removeAllRanges();
+    }
+
     // 找出"选中的中文 + 它属于第几句"。
     // state: ok = 现在就选着 / outside = 选的是中文外面的东西 / none = 没选 / memo = 选区被冲掉了,用记下来的那份
     function resolveCnSelection() {
@@ -2920,6 +2931,7 @@
         }
 
         saveState();
+        clearCnSelection();   // 加完了,别还选着刚加的那几个字
         render();
         applyRubyNoteMarkers();
         closeRubyAddModal();
@@ -4119,6 +4131,20 @@
             selectedVoiceEn = voicesEN[0] || null;
             if (selectedVoiceEn) voiceSelectEn.value = selectedVoiceEn.name;
         }
+        // 对话模式的第二个英文角色(开关右边的下拉框):只能用英文音色
+        dialogueRoleSelect.innerHTML =
+            '<optgroup label="英文角色">' +
+            voicesEN.map(v => `<option value="${v.name}">${v.name}</option>`).join("") +
+            '</optgroup>';
+        const savedRole = localStorage.getItem(STORAGE_KEY_DIALOGUE_ROLE);
+        const roleVoice = voicesEN.find(v => v.name === savedRole);
+        if (roleVoice) {
+            dialogueRoleSelect.value = roleVoice.name;
+            dialogueVoice = roleVoice;
+        } else {
+            dialogueVoice = voicesEN[0] || null;
+            if (dialogueVoice) dialogueRoleSelect.value = dialogueVoice.name;
+        }
     }
 
     // 编辑框里删干净了(浏览器会留个 <br>),标一下"空的",
@@ -4333,6 +4359,8 @@
     const STORAGE_KEY_LOOP_COUNT = 'cn2en-json:loopCount';
     const STORAGE_KEY_CANCEL_ON_LEAVE = 'cn2en-json:cancelOnLeave';
     const STORAGE_KEY_HIDE_CN_WHILE_TTS = 'cn2en-json:hideCnWhileTts';
+    const STORAGE_KEY_DIALOGUE_MODE = 'cn2en-json:dialogueMode';
+    const STORAGE_KEY_DIALOGUE_ROLE = 'cn2en-json:dialogueRole';
     const DEFAULT_AI_SYSTEM_PROMPT = AI_SYSTEM_PROMPT;
 
     let voicesCN = [];
@@ -4354,6 +4382,26 @@
         }
         return selectedVoiceEn;
     }
+
+    // 对话模式:这一句(index,0 起)归谁来说
+    // 两个角色都是英文的:
+    //   第 1、3、5…句(下标 0、2、4…)用第一个英文角色 —— EN 选单里那个音色
+    //   第 2、4、6…句(下标 1、3、5…)用第二个英文角色 —— 开关右边的下拉框
+    function isCnVoice(v) {
+        return !!v && v.lang === 'zh-CN';
+    }
+    function dialogueLineFor(index) {
+        const even = index % 2 === 1;          // 第 2、4、6…句
+        const first = getCurrentEnVoice();    // 第一个英文角色
+        const second = dialogueVoice;         // 第二个英文角色(下拉框选的)
+        const voice = even ? (second || first) : first;
+        if (!voice) return null;
+        const entry = entries[index] || [];
+        const cn = isCnVoice(voice);
+        const content = cn ? (entry[0] || '') : (entry[1] || '');
+        if (!content) return null;
+        return { voice, content, cn };
+    }
     let ttsEnabledEn = false;
     let cnRate = 1.0;
     let enRate = 1.0;
@@ -4365,6 +4413,9 @@
     let hideCnWhileTts = false;
     let cnHiddenByTts = false;   // 现在这个中文是 TTS 藏的,得由 TTS 放回来
     let chainRunning = false;    // 连续 / 循环的连锁正在跑:中途不能把中文放回来
+    // 对话模式:第 1、3、5…句用第一个英文角色,第 2、4、6…句用第二个英文角色
+    let dialogueMode = false;
+    let dialogueVoice = null;    // 第二个英文角色(开关右边的下拉框里选的)
 
 
     function saveState() {
@@ -4430,6 +4481,11 @@
 
     function speakCn(force) {
         if (entries.length === 0) return;
+        if (dialogueMode) {
+            // 对话模式:每句都由角色来说,说什么语言、用什么音色都归角色定
+            speakEn(force);
+            return;
+        }
         if (force || (ttsEnabled && selectedVoice)) {
             window.speechSynthesis.cancel();
             hideCnForTts();
@@ -4449,10 +4505,20 @@
     }
 
     function speakEn(force, text, mode) {
-        const voice = getCurrentEnVoice();
+        let voice = getCurrentEnVoice();
+        let content = text ?? entries[currentIndex][1];
+        let cn = false;
+        if (dialogueMode && !text) {
+            // 对话模式:这一句由角色来说 —— 说什么语言、用什么音色都由角色定
+            const line = dialogueLineFor(currentIndex);
+            if (!line) return;
+            voice = line.voice;
+            content = line.content;
+            cn = line.cn;
+        }
         if (!voice) return;
-        if (!force && !ttsEnabledEn) return;
-        const content = text ?? entries[currentIndex][1];
+        // 对话模式不看 CN / EN 的 TTS 开关:每句都由自己的角色说出来
+        if (!dialogueMode && !force && !ttsEnabledEn) return;
         if (!content) return;
         hideCnForTts();
         // 记住这次发声属于哪一轮:只有真按了停止(空格 / R / 4-7)令牌才会变,
@@ -4466,7 +4532,7 @@
         cancelJustNow = false;
         const utterance = new SpeechSynthesisUtterance(content);
         utterance.voice = voice;
-        utterance.rate = enRate;
+        utterance.rate = cn ? cnRate : enRate;
         if (mode === 'continuous') {
             chainRunning = true;
             utterance.onend = () => {
@@ -5162,6 +5228,23 @@
         localStorage.setItem(STORAGE_KEY_HIDE_CN_WHILE_TTS, String(hideCnWhileTts));
         // 关掉开关就把中文放回来
         if (!hideCnWhileTts) restoreCn();
+    });
+    // 对话模式:打开时右边出现角色下拉框,选第二个英文角色来说第 2、4、6…句
+    dialogueMode = localStorage.getItem(STORAGE_KEY_DIALOGUE_MODE) === "true";
+    dialogueModeToggle.checked = dialogueMode;
+    dialogueRoleSelect.hidden = !dialogueMode;
+    dialogueModeToggle.addEventListener('change', () => {
+        dialogueMode = dialogueModeToggle.checked;
+        localStorage.setItem(STORAGE_KEY_DIALOGUE_MODE, String(dialogueMode));
+        dialogueRoleSelect.hidden = !dialogueMode;
+    });
+    dialogueRoleSelect.addEventListener('change', () => {
+        // 只认英文音色
+        const v = voicesEN.find(x => x.name === dialogueRoleSelect.value);
+        if (v) {
+            dialogueVoice = v;
+            localStorage.setItem(STORAGE_KEY_DIALOGUE_ROLE, v.name);
+        }
     });
     cnRateInput.addEventListener('input', () => {
         cnRate = parseFloat(cnRateInput.value);
