@@ -1542,6 +1542,9 @@
     let entries = [];
     let currentIndex = 0;
     let errorTimer = null;
+    // 用户在中文里选中的东西。页面一重画(换句 render / 念的时候藏中文)
+    // 浏览器的选区就冲掉了,这里记一份,Alt+2 / Alt+3 / Alt+4 找不到选区时顶上
+    let cnSelectionMemo = null;   // { text, index }
 
     // === reviewCore 开始 ===
     // 上一次加载(粘贴 / 收藏)的最后一句。第一句 → 第二句时用它来复习,
@@ -1557,6 +1560,7 @@
             if (last && last[0]) prevLoadLastEntry = [last[0], last[1] || ''];
         }
         entries = next;
+        cnSelectionMemo = null;   // 换了一份内容,之前选的那段没意义了
     }
 
     // 复习哪一句:当前这句的前一句;当前是第一句时改用"上一次加载的最后一句"
@@ -2684,6 +2688,7 @@
         entries = pairs;
         carryMiniEn(oldEntries, pairs);
         lastPastedText = '';
+        cnSelectionMemo = null;   // 内容换了,之前选的那段没意义了
         if (entries.length === 0) {
             currentIndex = 0;
         } else if (currentIndex >= entries.length) {
@@ -2704,26 +2709,92 @@
         closeJsonEditModal();
     }
 
+    // 选区变了就记下来(只记中文里面的)
+    document.addEventListener('selectionchange', () => {
+        const sel = window.getSelection();
+        if (!sel || sel.rangeCount === 0) return;
+        const range = sel.getRangeAt(0);
+        if (!cnText.contains(range.commonAncestorContainer)) return;
+        const text = sel.toString().trim();
+        if (!text) return;
+        cnSelectionMemo = { text, index: currentIndex };
+    });
+
+    // 按文字在中文里重新选一遍(选区被冲掉之后自己找回来)
+    function selectTextInCn(text) {
+        if (!text) return false;
+        const walker = document.createTreeWalker(cnText, NodeFilter.SHOW_TEXT);
+        let node;
+        while ((node = walker.nextNode())) {
+            const i = node.textContent.indexOf(text);
+            if (i === -1) continue;
+            const r = document.createRange();
+            r.setStart(node, i);
+            r.setEnd(node, i + text.length);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(r);
+            return true;
+        }
+        return false;
+    }
+
+    // 选区没了之后,把记下来的那段重新选回来(同一句才选得回来)
+    function restoreCnSelection() {
+        if (!cnSelectionMemo) return;
+        if (cnSelectionMemo.index !== currentIndex) return;
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount && sel.toString().trim()) return;   // 用户现在选着别的,别抢
+        selectTextInCn(cnSelectionMemo.text);
+    }
+
+    // 找出"选中的中文 + 它属于第几句"。
+    // state: ok = 现在就选着 / outside = 选的是中文外面的东西 / none = 没选 / memo = 选区被冲掉了,用记下来的那份
+    function resolveCnSelection() {
+        const sel = window.getSelection();
+        const range = sel && sel.rangeCount ? sel.getRangeAt(0) : null;
+        const inCn = !!range && cnText.contains(range.commonAncestorContainer);
+        const text = inCn ? sel.toString().trim() : '';
+        if (text) return { text, index: currentIndex, range, state: 'ok' };
+        // 选了中文外面的东西(比如英文)→ 报错。
+        // 选区是空的(被重画 / 藏中文冲掉了,有时连位置都跑到中文外面)→ 当作没选,走下面兜底
+        const outsideText = range && !inCn ? sel.toString().trim() : '';
+        if (outsideText) return { text: '', index: currentIndex, range, state: 'outside' };
+        const memo = cnSelectionMemo;
+        if (!memo) return { text: '', index: currentIndex, range, state: 'none' };
+        const entry = entries[memo.index];
+        if (!entry || entry[0].indexOf(memo.text) === -1) {
+            return { text: '', index: currentIndex, range, state: 'none' };   // 记的那句已经变了
+        }
+        if (memo.index === currentIndex && selectTextInCn(memo.text)) {
+            const s2 = window.getSelection();
+            const r2 = s2.rangeCount ? s2.getRangeAt(0) : null;
+            return { text: memo.text, index: memo.index, range: r2, state: 'ok' };
+        }
+        // 句子已经换掉了:注释加回原来那句
+        return { text: memo.text, index: memo.index, range: null, state: 'memo' };
+    }
+
     function openRubyAddModal() {
         if (!currentFavId) {
             showError('请先加载收藏');
             return;
         }
         if (entries.length === 0) return;
-        const sel = window.getSelection();
-        if (!sel || sel.rangeCount === 0) {
-            showError('请先选中中文');
-            return;
-        }
-        const range = sel.getRangeAt(0);
-        if (!cnText.contains(range.commonAncestorContainer)) {
+        const pick = resolveCnSelection();
+        if (pick.state === 'outside') {
             showError('请在中文区域内选择');
             return;
         }
-        const cn = entries[currentIndex][0];
+        if (!pick.text) {
+            showError('请先选中中文');
+            return;
+        }
+        const targetIndex = pick.index;
+        const cn = entries[targetIndex] ? entries[targetIndex][0] : '';
 
-        // 落在已有 <ruby> 内 → 修改模式
-        const ruby = nearestRuby(range.commonAncestorContainer);
+        // 落在已有 <ruby> 内 → 修改模式(只改当前这句)
+        const ruby = (pick.range && pick.state === 'ok') ? nearestRuby(pick.range.commonAncestorContainer) : null;
         if (ruby) {
             const rubies = Array.from(cnText.querySelectorAll('ruby'));
             const idx = rubies.indexOf(ruby);
@@ -2743,6 +2814,7 @@
             rubyAddModal.dataset.mode = 'edit';
             rubyAddModal.dataset.blockFull = block.full;
             rubyAddModal.dataset.blockCn = block.cn;
+            rubyAddModal.dataset.targetIndex = String(currentIndex);
             rubyAddModal.hidden = false;
             setTimeout(() => {
                 rubyAddInput.focus();
@@ -2752,11 +2824,7 @@
         }
 
         // 否则按新增流程
-        const text = sel.toString().trim();
-        if (!text) {
-            showError('请先选中中文');
-            return;
-        }
+        const text = pick.text;
         if (!/[一-鿿]/.test(text)) {
             showError('选中文本需包含中文字符');
             return;
@@ -2765,12 +2833,14 @@
             showError('未在当前条目中找到选中文本(可能跨注释边界)');
             return;
         }
-        rubyAddTitle.textContent = '添加注释';
+        // 朗读换句了才补到别的句子上,标题里写清楚是第几句
+        rubyAddTitle.textContent = targetIndex === currentIndex ? '添加注释' : `添加注释(第 ${targetIndex + 1} 句)`;
         rubyAddSelection.textContent = text;
         rubyAddInput.value = '';
         rubyAddNote.value = '';
         rubyAddError.textContent = '';
         rubyAddModal.dataset.mode = 'new';
+        rubyAddModal.dataset.targetIndex = String(targetIndex);
         delete rubyAddModal.dataset.blockFull;
         delete rubyAddModal.dataset.blockCn;
         rubyAddModal.hidden = false;
@@ -2785,6 +2855,7 @@
         delete rubyAddModal.dataset.mode;
         delete rubyAddModal.dataset.blockFull;
         delete rubyAddModal.dataset.blockCn;
+        delete rubyAddModal.dataset.targetIndex;
         rubyAddTitle.textContent = '添加注释';
     }
 
@@ -2795,7 +2866,14 @@
             rubyAddError.textContent = '请输入翻译或笔记';
             return;
         }
-        const cn = entries[currentIndex][0];
+        // 朗读换句的时候注释可能是加到别的句子上的,写回原来那句
+        const parsedIndex = parseInt(rubyAddModal.dataset.targetIndex, 10);
+        const target = Number.isInteger(parsedIndex) ? parsedIndex : currentIndex;
+        if (!entries[target]) {
+            rubyAddError.textContent = '当前条目已变更,请重新选中';
+            return;
+        }
+        const cn = entries[target][0];
         const mode = rubyAddModal.dataset.mode;
         let newCn = cn;
         let rubyText;
@@ -2820,7 +2898,7 @@
             newCn = cn.slice(0, idx) + `{{${rubyText}}}${translation}]]` + cn.slice(idx + rubyText.length);
         }
 
-        entries[currentIndex][0] = newCn;
+        entries[target][0] = newCn;
 
         if (currentFavId) {
             const fav = favorites.find(f => f.id === currentFavId);
@@ -2835,8 +2913,8 @@
             const fav = favorites.find(f => f.id === currentFavId);
             if (fav) {
                 if (!Array.isArray(fav.rubyNotes)) fav.rubyNotes = [];
-                if (!fav.rubyNotes[currentIndex]) fav.rubyNotes[currentIndex] = {};
-                fav.rubyNotes[currentIndex][rubyText] = note;
+                if (!fav.rubyNotes[target]) fav.rubyNotes[target] = {};
+                fav.rubyNotes[target][rubyText] = note;
                 updateFavorite(currentFavId, { rubyNotes: fav.rubyNotes });
             }
         }
@@ -2853,26 +2931,22 @@
             return;
         }
         if (entries.length === 0) return;
-        const sel = window.getSelection();
-        if (!sel || sel.rangeCount === 0) {
-            showError('请先选中要标记的中文');
-            return;
-        }
-        const range = sel.getRangeAt(0);
-        if (!cnText.contains(range.commonAncestorContainer)) {
+        const pick = resolveCnSelection();
+        if (pick.state === 'outside') {
             showError('请在中文区域内选择');
             return;
         }
-        const text = sel.toString().trim();
-        if (!text) {
+        if (!pick.text) {
             showError('请先选中要标记的中文');
             return;
         }
+        const text = pick.text;
         if (!/[一-鿿]/.test(text)) {
             showError('选中文本需包含中文字符');
             return;
         }
-        const cn = entries[currentIndex][0];
+        const target = pick.index;
+        const cn = entries[target] ? entries[target][0] : '';
         const wrapped = `<del>${text}</del>`;
         const idxWrapped = cn.indexOf(wrapped);
         let newCn;
@@ -2886,7 +2960,7 @@
             }
             newCn = cn.slice(0, idx) + wrapped + cn.slice(idx + text.length);
         }
-        entries[currentIndex][0] = newCn;
+        entries[target][0] = newCn;
         const fav = favorites.find(f => f.id === currentFavId);
         if (fav) {
             fav.payload = entries;
@@ -2903,22 +2977,18 @@
             return;
         }
         if (entries.length === 0) return;
-        const sel = window.getSelection();
-        if (!sel || sel.rangeCount === 0) {
-            showError('请先选中要包裹的文本');
-            return;
-        }
-        const range = sel.getRangeAt(0);
-        if (!cnText.contains(range.commonAncestorContainer)) {
+        const pick = resolveCnSelection();
+        if (pick.state === 'outside') {
             showError('请在中文区域内选择');
             return;
         }
-        const text = sel.toString().trim();
-        if (!text) {
+        if (!pick.text) {
             showError('请先选中要包裹的文本');
             return;
         }
-        const cn = entries[currentIndex][0];
+        const text = pick.text;
+        const target = pick.index;
+        const cn = entries[target] ? entries[target][0] : '';
         const wrapped = `<small>${text}</small>`;
         const idxWrapped = cn.indexOf(wrapped);
         let newCn;
@@ -2932,7 +3002,7 @@
             }
             newCn = cn.slice(0, idx) + wrapped + cn.slice(idx + text.length);
         }
-        entries[currentIndex][0] = newCn;
+        entries[target][0] = newCn;
         const fav = favorites.find(f => f.id === currentFavId);
         if (fav) {
             fav.payload = entries;
@@ -4229,6 +4299,8 @@
         counter.textContent = `${currentIndex + 1}/${entries.length}`;
         // <ruby>staples<rt>ˈsteɪplz</rt></ruby>
         cnText.innerHTML = cnToHtml(cn);
+        // innerHTML 一换,浏览器的选区就没了,把用户刚选的那段重新选回来
+        restoreCnSelection();
         cnText.classList.toggle('last-entry', currentIndex === entries.length - 1);
         applyRubyNoteMarkers();
         if (currentMode === 1 || enRevealed) {
@@ -4332,6 +4404,8 @@
         if (!cnHiddenByTts) return;
         cnHiddenByTts = false;
         cnText.style.visibility = '';
+        // 藏起来的时候选区被冲掉了,放回来的时候给用户选回去
+        restoreCnSelection();
     }
 
     // 播完(而且没有接着念别的)就把中文放回来。
