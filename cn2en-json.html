@@ -76,6 +76,16 @@
             cursor: pointer;
         }
         .cn-text.last-entry { color: #4ade80; }
+        /* alt+点中文:改的是原始 json 文本(带 html 标签和 {{基词}}注音]] 这种写法) */
+        .cn-text.editing {
+            font-size: 20px;
+            font-family: Consolas, "Courier New", monospace;
+            text-align: left;
+            color: #e0e0e0;
+            outline: 1px dashed #666;
+            white-space: pre-wrap;
+            cursor: text;
+        }
         /* 小字英文:显示在中文上方,默认是这句的英文原句,点一下能改 */
         .mini-en-text {
             font-size: 20px;
@@ -1338,6 +1348,7 @@
                     <li><kbd>Alt+2</kbd></li><li>为选中中文添加注释</li>
                     <li><kbd>Alt+3</kbd></li><li>选中中文标记为删除线(需先收藏)</li>
                     <li><kbd>Alt+4</kbd></li><li>选中中文包裹为 &lt;small&gt; 小字(需先收藏)</li>
+                    <li><kbd>Alt+点击中文</kbd></li><li>编辑这句中文(显示原始 json 文本,带 html 标签和注音符号,失焦存盘)</li>
                     <li><kbd>Alt+1</kbd></li><li>显示 / 隐藏此帮助</li>
                 </ul>
                 <button id="helpModalClose" class="help-modal-close" type="button">关闭 (Esc)</button>
@@ -1585,6 +1596,9 @@
     // 写过(哪怕是空串)→ 显示读者写的那句,空串就是这一句不显示英文。
     let miniEnEditing = false;
     let miniEnEditIndex = -1;
+    // alt+点中文 → 改这句中文的原始 json 文本(html 标签和 {{基词}}注音]] 原样显示)
+    let cnEditing = false;
+    let cnEditIndex = -1;
 
     function escapeHtml(text) {
         return String(text ?? '')
@@ -4034,14 +4048,88 @@
         navigator.clipboard.writeText(`${cn}|~${en}~~|`);
     }
 
+    // alt+点中文 → 进入编辑状态:显示这句中文的原始 json 文本
+    // (html 标签和 {{基词}}注音]] 都原样摆出来),失焦 = 存盘 + 回到显示状态
+    function startCnEdit() {
+        if (cnEditing) return;
+        const entry = entries[currentIndex];
+        if (!entry) return;
+        stopPlayback();               // 别一边念一边改
+        cnEditing = true;
+        cnEditIndex = currentIndex;
+        cnText.contentEditable = 'true';
+        cnText.classList.add('editing');
+        cnText.textContent = entry[0] ?? '';
+        cnText.focus();
+        placeCaret(cnText, (cnText.textContent || '').length);
+    }
+
+    // 失焦 = 提交。提交只改中文这一格 + 存盘,不重画整个页面
+    // (render() 会重新朗读,不能在这儿调)
+    function commitCnEdit() {
+        if (!cnEditing) return;
+        const idx = cnEditIndex;
+        const raw = cnText.textContent;      // 编辑时看到的就是原始 json 文本
+        cnEditing = false;
+        cnEditIndex = -1;
+        cnText.contentEditable = 'false';
+        cnText.classList.remove('editing');
+        const entry = entries[idx];
+        if (!entry) return;
+        entry[0] = raw;
+        saveState();
+        // 收藏里那条也得跟着改,不然重新加载这个收藏时,中文会被旧值盖掉
+        if (currentFavId) {
+            const fav = favorites.find(f => f.id === currentFavId);
+            if (fav) {
+                fav.payload = entries;
+                fav.hash = hashEntries(entries);
+                updateFavorite(currentFavId, { payload: fav.payload, hash: fav.hash });
+            }
+        }
+        clearCnSelection();   // 内容换了,之前选的那段没意义了
+        if (idx === currentIndex) {
+            cnText.innerHTML = cnToHtml(entry[0]);
+            applyRubyNoteMarkers();
+        }
+    }
+
+    // Esc = 放弃这次编辑,内容还原
+    function revertCnEdit() {
+        if (!cnEditing) return;
+        const idx = cnEditIndex;
+        cnEditing = false;
+        cnEditIndex = -1;
+        cnText.contentEditable = 'false';
+        cnText.classList.remove('editing');
+        const entry = entries[idx];
+        cnText.innerHTML = entry ? cnToHtml(entry[0]) : '';
+    }
+
     cnText.addEventListener('click', (e) => {
-        // if (e.altKey) {
-        //     e.preventDefault();
-        //     copyEntryToClipboard();
-        // } else if (e.ctrlKey) {
-        if (e.ctrlKey) {
+        if (cnEditing) return;      // 已经在编辑了,点一下只是挪光标
+        if (e.altKey) {
+            e.preventDefault();
+            startCnEdit();
+        } else if (e.ctrlKey) {
             e.preventDefault();
             copyEntryWithTildes();
+        }
+    });
+    cnText.addEventListener('blur', () => {
+        commitCnEdit();
+    });
+    cnText.addEventListener('keydown', (e) => {
+        if (!cnEditing) return;
+        // 编辑的时候别让页面级快捷键(方向键翻页那些)抢走按键
+        e.stopPropagation();
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            cnText.blur();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            revertCnEdit();
+            cnText.blur();
         }
     });
     cnText.addEventListener('mouseover', (e) => {
@@ -4307,6 +4395,8 @@
             // 换句子了,先把这次编辑存掉(存到它原来那一句上)
             if (miniEnEditing) commitMiniEn();
         }
+        // 中文正在编辑:先存掉,不然下面重画会把编辑框里的原文冲掉
+        if (cnEditing) commitCnEdit();
         lastRenderedIndex = currentIndex;
         if (entries.length === 0) {
             emptyState.hidden = false;
