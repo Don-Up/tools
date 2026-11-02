@@ -31,6 +31,10 @@
         ruby.has-note {
             color: lightskyblue;
         }
+        /* 注解内容是 ing / ed / that / which / where 的,ruby 换成紫色 */
+        ruby.purple-note {
+            color: #b388ff;
+        }
 
         /*del {*/
         /*    color: #ff6b6b;*/
@@ -2650,6 +2654,14 @@
         rubyTooltip.hidden = true;
     }
 
+    // 注解内容是这些词的时候,ruby 变紫色
+    // 注解 = ruby 上方那段读音/翻译(rt),或者 Ruby Note 里写的笔记 —— 哪个是这几个词都算
+    const PURPLE_NOTE_WORDS = ['ing', 'ed', 'that', 'which', 'where'];
+    function isPurpleNote(text) {
+        if (!text) return false;
+        return PURPLE_NOTE_WORDS.includes(String(text).trim().toLowerCase());
+    }
+
     function applyRubyNoteMarkers() {
         const rubies = cnText.querySelectorAll('ruby');
         if (rubies.length === 0) return;
@@ -2658,10 +2670,19 @@
         const rubyTexts = extractRubyTexts(entries[currentIndex]?.[0] || '');
         Array.from(rubies).forEach((ruby, idx) => {
             const rubyText = rubyTexts[idx];
-            if (rubyText && notesMap[rubyText]) {
+            const note = rubyText ? notesMap[rubyText] : '';
+            if (note) {
                 ruby.classList.add('has-note');
             } else {
                 ruby.classList.remove('has-note');
+            }
+            // ruby 上方那段读音/翻译,或者 Ruby Note,是 ing / ed / that / which / where 就变紫
+            const rt = ruby.querySelector('rt');
+            const rtText = rt ? rt.textContent : '';
+            if (isPurpleNote(note) || isPurpleNote(rtText)) {
+                ruby.classList.add('purple-note');
+            } else {
+                ruby.classList.remove('purple-note');
             }
         });
     }
