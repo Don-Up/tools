@@ -1089,6 +1089,52 @@
             text-align: center;
             white-space: pre-wrap;
         }
+        /* --- 播放列表:Ctrl+Y 贴标题建表,Alt+Y 看表 --- */
+        .playlist-textarea {
+            width: 520px;
+            max-width: calc(100vw - 80px);
+            box-sizing: border-box;
+            min-height: 280px;
+            max-height: 60vh;
+            resize: vertical;
+            font-family: inherit;
+            font-size: 14px;
+            line-height: 1.6;
+            padding: 10px 12px;
+        }
+        .playlist-status {
+            font-size: 13px;
+            text-align: center;
+            min-height: 20px;
+            white-space: pre-wrap;
+            color: #aaa;
+        }
+        .playlist-status.ok { color: #6ee7a8; }
+        .playlist-status.missing { color: #f87171; }
+        .playlist-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            width: 460px;
+            max-width: calc(100vw - 80px);
+            max-height: 50vh;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(95, 168, 211, 0.55) transparent;
+        }
+        .playlist-list li {
+            padding: 6px 10px;
+            border-radius: 4px;
+            color: #ddd;
+            font-size: 14px;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+        .playlist-list li:hover { background: #2a2a2a; }
+        .playlist-list li.current { color: #6cf; border-color: #35507a; background: #232a33; }
+        .playlist-list li.playlist-empty { color: #888; cursor: default; }
+        .playlist-list li.playlist-empty:hover { background: none; }
+        .fav-modal-actions button:disabled { opacity: 0.4; cursor: default; }
         .ruby-add-selected {
             font-size: 14px;
             color: #9aa5b1;
@@ -1336,6 +1382,9 @@
                     <li><kbd>F</kbd></li><li>收藏当前条</li>
                     <li><kbd>Alt+F</kbd></li><li>打开收藏夹</li>
                     <li><kbd>Ctrl+F</kbd></li><li>读剪贴板里的标题,直接加载数据库里对应的那份 JSON(对不上会提示)</li>
+                    <li><kbd>Ctrl+Y</kbd></li><li>贴一批标题建播放列表(一行一个,标题要和收藏夹里的名字对上,对不上会提示;确认后先显示第一篇)</li>
+                    <li><kbd>Alt+Y</kbd></li><li>看当前播放列表(点某一条跳到那一篇,顺带把列表播放打开)</li>
+                    <li>播放列表</li><li>连续 / 有限循环模式下,一篇念完自动接下一篇,最后一篇之后回到第一篇;自己粘 JSON 或从收藏夹直接打开一篇会把它关掉</li>
                     <li><kbd>Alt+R</kbd></li><li>读全文 / 循环读选中文本</li>
                     <li><kbd>Alt+A</kbd> <kbd>PgUp</kbd></li><li>分句跟读 (按 ,  —  :  ;  .  ?  ". 分句)</li>
                     <li><kbd>A</kbd> <kbd>Del</kbd></li><li>再次朗读当前分句 (基于上次 Alt+A)</li>
@@ -1480,6 +1529,30 @@
                 <div class="fav-modal-actions">
                     <button id="jsonEditOk">确定</button>
                     <button id="jsonEditCancel">取消</button>
+                </div>
+            </div>
+        </div>
+        <div id="playlistModal" class="fav-modal" hidden>
+            <div id="playlistBackdrop" class="fav-modal-backdrop"></div>
+            <div class="fav-modal-panel">
+                <div class="fav-modal-title">标题列表</div>
+                <textarea id="playlistInput" class="fav-input playlist-textarea" spellcheck="false" placeholder="每行一个标题(要和收藏夹里的名字对得上)"></textarea>
+                <div id="playlistStatus" class="playlist-status"></div>
+                <div class="fav-modal-actions">
+                    <button id="playlistCheck">检查</button>
+                    <button id="playlistOk">确认</button>
+                    <button id="playlistCancel">取消</button>
+                </div>
+            </div>
+        </div>
+        <div id="playlistViewModal" class="fav-modal" hidden>
+            <div id="playlistViewBackdrop" class="fav-modal-backdrop"></div>
+            <div class="fav-modal-panel">
+                <div class="fav-modal-title">播放列表</div>
+                <ul id="playlistViewList" class="playlist-list"></ul>
+                <div id="playlistViewStatus" class="playlist-status"></div>
+                <div class="fav-modal-actions">
+                    <button id="playlistViewClose">关闭 (Esc)</button>
                 </div>
             </div>
         </div>
@@ -2237,12 +2310,14 @@
         });
     }
 
-    async function loadFavorite(fav) {
+    async function loadFavorite(fav, keepPlaylist = false) {
         const payload = fav.payload;
         if (!Array.isArray(payload)) {
             showError('收藏数据无效');
             return;
         }
+        // 从收藏夹直接打开一篇:关掉列表播放(播放列表自己跳过去时会传 keepPlaylist)
+        if (!keepPlaylist) deactivatePlaylist();
         clearAiHistory();
         lastPastedText = '';
         carryMiniEn(entries, payload);
@@ -2724,6 +2799,7 @@
             }
         }
         const oldEntries = entries;
+        deactivatePlaylist();   // 自己改出来的 JSON:关掉列表播放
         entries = pairs;
         carryMiniEn(oldEntries, pairs);
         lastPastedText = '';
@@ -3915,6 +3991,14 @@
                 e.preventDefault();
                 e.stopPropagation();
                 hideAllCn();
+            } else if (!playlistModal.hidden) {
+                e.preventDefault();
+                e.stopPropagation();
+                closePlaylistModal();
+            } else if (!playlistViewModal.hidden) {
+                e.preventDefault();
+                e.stopPropagation();
+                closePlaylistView();
             }
         }
         if (e.key === '1' && e.altKey && !e.ctrlKey && !e.shiftKey && !e.metaKey) {
@@ -3924,7 +4008,7 @@
             else closeHelpModal();
             return;
         }
-        if (!favSaveModal.hidden || !noteModal.hidden || !globalNoteModal.hidden || !hardModal.hidden || !jsonEditModal.hidden || !cardsModal.hidden || !rubyNotesModal.hidden || !rubyAddModal.hidden || !systemPromptModal.hidden || !helpModal.hidden || !cnModal.hidden || !bgModal.hidden) {
+        if (!favSaveModal.hidden || !noteModal.hidden || !globalNoteModal.hidden || !hardModal.hidden || !jsonEditModal.hidden || !cardsModal.hidden || !rubyNotesModal.hidden || !rubyAddModal.hidden || !systemPromptModal.hidden || !helpModal.hidden || !cnModal.hidden || !bgModal.hidden || !playlistModal.hidden || !playlistViewModal.hidden) {
             return;
         }
         // Alt+L 开关难句复习弹窗
@@ -4651,6 +4735,11 @@
                 maybeRestoreCn();                    // 连锁接着念的话这里不会真放回来
                 if (playMode !== 'continuous') { chainRunning = false; maybeRestoreCn(); return; }
                 if (entries.length === 0) return;
+                // 这一篇到最后一句了:有播放列表就换下一篇,没有就回到本篇第一句
+                if (currentIndex + 1 >= entries.length && playlistActive && advancePlaylist()) {
+                    speakEn(true, undefined, 'continuous');
+                    return;
+                }
                 currentIndex = (currentIndex + 1) % entries.length;
                 saveState();
                 render();
@@ -4672,6 +4761,11 @@
                 const target = parseInt(loopCountInput.value, 10) || 0;
                 if (target > 0 && loopPlayed >= target) {
                     loopPlayed = 0;
+                    // 这一篇念完了:有播放列表就换下一篇,没有就回到本篇第一句
+                    if (currentIndex + 1 >= entries.length && playlistActive && advancePlaylist()) {
+                        speakEn(true, undefined, 'loop');
+                        return;
+                    }
                     currentIndex = (currentIndex + 1) % entries.length;
                     saveState();
                     render();
@@ -4918,6 +5012,7 @@
     }
 
     function parseAndLoad(text) {
+        deactivatePlaylist();   // 自己粘的 JSON:关掉列表播放
         clearCardsInIframe();
         clearAiHistory();
         lastPastedText = text;
@@ -4997,28 +5092,28 @@
 
     document.addEventListener('keydown', async function (e) {
         if (document.activeElement === aiQuestion) return;
-        if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'KeyN' && globalNoteModal.hidden && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
+        if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'KeyN' && globalNoteModal.hidden && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && playlistModal.hidden && playlistViewModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
             e.preventDefault();
             openGlobalNoteModal();
             return;
         }
-        if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'Digit2' && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
+        if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'Digit2' && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && playlistModal.hidden && playlistViewModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
             e.preventDefault();
             openRubyAddModal();
             return;
         }
-        if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'Digit3' && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
+        if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'Digit3' && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && playlistModal.hidden && playlistViewModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
             e.preventDefault();
             wrapSelectionInDel();
             return;
         }
-        if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'Digit4' && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
+        if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'Digit4' && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && playlistModal.hidden && playlistViewModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
             e.preventDefault();
@@ -5036,7 +5131,7 @@
             document.body.classList.toggle('side-panel-open', shown);
             if (shown) postCnEnToChild();
         }
-        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyV' && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden) {
+        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyV' && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && playlistModal.hidden && playlistViewModal.hidden) {
             e.preventDefault();
             try {
                 const text = await navigator.clipboard.readText();
@@ -5046,7 +5141,7 @@
             }
         }
         // Ctrl+F:读剪贴板里的标题,直接加载数据库里对应的那份 JSON
-        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyF' && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden) {
+        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyF' && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && playlistModal.hidden && playlistViewModal.hidden) {
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
             e.preventDefault();
@@ -5066,7 +5161,24 @@
                 showError(`剪贴板读取失败: ${err.message || err}`);
             }
         }
-        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyX' && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden) {
+        // Ctrl+Y:贴一批标题建一张播放列表(标题要在收藏夹里对得上)
+        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyY' && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && playlistModal.hidden && playlistViewModal.hidden) {
+            const tag = e.target.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+            e.preventDefault();
+            await refreshFavorites();   // 先把收藏夹拉最新,刚收藏的标题才认得出
+            openPlaylistModal();
+            return;
+        }
+        // Alt+Y:看当前播放列表
+        if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'KeyY' && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && playlistModal.hidden) {
+            const tag = e.target.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+            e.preventDefault();
+            openPlaylistView();
+            return;
+        }
+        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyX' && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && playlistModal.hidden && playlistViewModal.hidden) {
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
             e.preventDefault();
@@ -5110,7 +5222,7 @@
             enShown = !enShown;
             applyEnVisibility();
         }
-        if (!e.ctrlKey && !e.altKey && !e.shiftKey && e.code === 'KeyZ' && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden) {
+        if (!e.ctrlKey && !e.altKey && !e.shiftKey && e.code === 'KeyZ' && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && playlistModal.hidden && playlistViewModal.hidden) {
             if (entries.length === 0) return;
             if (cnModal.hidden) {
                 showAllCn();
@@ -5118,7 +5230,7 @@
                 hideAllCn();
             }
         }
-        if (!e.ctrlKey && !e.altKey && !e.shiftKey && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
+        if (!e.ctrlKey && !e.altKey && !e.shiftKey && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && playlistModal.hidden && playlistViewModal.hidden && systemPromptModal.hidden && helpModal.hidden && cnModal.hidden && bgModal.hidden) {
             const tag = e.target.tagName;
             if (e.code === 'KeyN' && noteModal.hidden && tag !== 'INPUT' && tag !== 'TEXTAREA') {
                 if (entries.length === 0) return;
@@ -5180,7 +5292,7 @@
             openRubyNotesModal();
             return;
         }
-        if (entries.length > 0 && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden) {
+        if (entries.length > 0 && hardModal.hidden && favSaveModal.hidden && noteModal.hidden && jsonEditModal.hidden && cardsModal.hidden && rubyNotesModal.hidden && rubyAddModal.hidden && playlistModal.hidden && playlistViewModal.hidden) {
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
             if (e.code === 'ArrowLeft') {
@@ -5216,7 +5328,200 @@
         }
     });
 
+    // --- 播放列表:Ctrl+Y 贴一批标题建表,Alt+Y 看表 ---
+    // 标题按名字去收藏夹里找(和 Ctrl+F 一样),找不到的先提醒用户
+    const playlistModal = document.getElementById('playlistModal');
+    const playlistBackdrop = document.getElementById('playlistBackdrop');
+    const playlistInput = document.getElementById('playlistInput');
+    const playlistStatus = document.getElementById('playlistStatus');
+    const playlistCheckBtn = document.getElementById('playlistCheck');
+    const playlistOkBtn = document.getElementById('playlistOk');
+    const playlistCancelBtn = document.getElementById('playlistCancel');
+    const playlistViewModal = document.getElementById('playlistViewModal');
+    const playlistViewBackdrop = document.getElementById('playlistViewBackdrop');
+    const playlistViewList = document.getElementById('playlistViewList');
+    const playlistViewStatus = document.getElementById('playlistViewStatus');
+    const playlistViewCloseBtn = document.getElementById('playlistViewClose');
+
+    const STORAGE_KEY_PLAYLIST = 'cn2en-json:playlist';
+    let playlist = [];        // [{id, name}]
+    let playlistIndex = -1;   // 现在在列表里的第几篇(-1 = 不在列表里)
+    let playlistActive = false;   // 列表播放开着没有
+
+    function savePlaylist() {
+        try {
+            localStorage.setItem(STORAGE_KEY_PLAYLIST, JSON.stringify({ items: playlist, index: playlistIndex, active: playlistActive }));
+        } catch (e) {}
+    }
+
+    function loadPlaylist() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY_PLAYLIST);
+            if (!raw) return;
+            const data = JSON.parse(raw);
+            if (!data || !Array.isArray(data.items)) return;
+            playlist = data.items.filter(it => it && it.id != null && it.name);
+            playlistIndex = Number.isInteger(data.index) ? data.index : -1;
+            playlistActive = data.active === true;
+        } catch (e) {}
+    }
+
+    // 自己粘一份 JSON、或者从收藏夹里直接点开一篇,列表播放就关掉:
+    // 这时候放的是用户自己挑的内容,不该被列表自动换掉。
+    // 列表自己跳到下一篇时走的是 replaceEntries,不受这个影响
+    function deactivatePlaylist() {
+        if (!playlistActive) return;
+        playlistActive = false;
+        savePlaylist();
+    }
+
+    function parsePlaylistTitles(text) {
+        return String(text || '').split('\n').map(s => s.trim()).filter(Boolean);
+    }
+
+    // 收藏夹里没有的标题挑出来,提醒用户
+    function checkPlaylistTitles(titles) {
+        const found = [];
+        const missing = [];
+        titles.forEach(t => {
+            const fav = findFavoriteByName(t);
+            if (fav) found.push(fav);
+            else missing.push(t);
+        });
+        return { found, missing };
+    }
+
+    function runPlaylistCheck() {
+        const titles = parsePlaylistTitles(playlistInput.value);
+        playlistOkBtn.disabled = true;
+        if (titles.length === 0) {
+            playlistStatus.textContent = '';
+            playlistStatus.className = 'playlist-status';
+            return { found: [], missing: [] };
+        }
+        const { found, missing } = checkPlaylistTitles(titles);
+        if (missing.length > 0) {
+            playlistStatus.textContent = `收藏夹里没有这些标题:\n${missing.map(m => '· ' + m).join('\n')}`;
+            playlistStatus.className = 'playlist-status missing';
+        } else {
+            playlistStatus.textContent = `${found.length} 篇都对上了`;
+            playlistStatus.className = 'playlist-status ok';
+            playlistOkBtn.disabled = false;
+        }
+        return { found, missing };
+    }
+
+    function openPlaylistModal() {
+        playlistInput.value = playlist.length ? playlist.map(it => it.name).join('\n') : '';
+        playlistStatus.textContent = '';
+        playlistStatus.className = 'playlist-status';
+        playlistOkBtn.disabled = true;
+        playlistModal.hidden = false;
+        playlistInput.focus();
+    }
+
+    function closePlaylistModal() {
+        playlistModal.hidden = true;
+    }
+
+    function closePlaylistView() {
+        playlistViewModal.hidden = true;
+    }
+
+    // 确认:标题换成收藏夹里那几篇,先显示第一篇
+    async function confirmPlaylist() {
+        const titles = parsePlaylistTitles(playlistInput.value);
+        if (titles.length === 0) return;
+        const { found, missing } = checkPlaylistTitles(titles);
+        if (missing.length > 0) {
+            runPlaylistCheck();   // 还有对不上的,不让过
+            return;
+        }
+        playlist = found.map(f => ({ id: f.id, name: f.name }));
+        playlistIndex = 0;
+        playlistActive = true;
+        savePlaylist();
+        closePlaylistModal();
+        await loadFavorite(found[0], true);   // 展示第一篇的文本
+    }
+
+    // 一篇念完了换下一篇;最后一篇之后回到第一篇
+    function advancePlaylist() {
+        if (!playlistActive || playlist.length === 0) return false;
+        for (let step = 0; step < playlist.length; step++) {
+            playlistIndex = (playlistIndex + 1) % playlist.length;
+            const item = playlist[playlistIndex];
+            const fav = favorites.find(f => f.id === item.id);
+            if (!fav || !Array.isArray(fav.payload) || fav.payload.length === 0) continue;   // 这篇没了,跳过去
+            carryMiniEn(entries, fav.payload);
+            replaceEntries(fav.payload);
+            currentIndex = 0;
+            saveState();
+            render();
+            savePlaylist();
+            setFavStatus(fav);
+            return true;
+        }
+        return false;
+    }
+
+    function openPlaylistView() {
+        playlistViewList.innerHTML = '';
+        if (playlist.length === 0) {
+            const li = document.createElement('li');
+            li.className = 'playlist-empty';
+            li.textContent = '(还没有播放列表,Ctrl+Y 建一张)';
+            playlistViewList.appendChild(li);
+            playlistViewStatus.textContent = '';
+            playlistViewStatus.className = 'playlist-status';
+        } else {
+            playlist.forEach((item, i) => {
+                const li = document.createElement('li');
+                const fav = favorites.find(f => f.id === item.id);
+                li.textContent = `${i + 1}. ${fav ? fav.name : item.name}`;
+                if (i === playlistIndex) li.className = 'current';
+                li.title = '点一下跳到这一篇';
+                li.addEventListener('click', async () => {
+                    const fav = favorites.find(f => f.id === item.id);
+                    if (!fav) return;
+                    playlistIndex = i;
+                    playlistActive = true;   // 点一条标题 = 重新打开列表播放
+                    savePlaylist();
+                    closePlaylistView();
+                    await loadFavorite(fav, true);
+                });
+                playlistViewList.appendChild(li);
+            });
+            playlistViewStatus.textContent = playlistActive
+                ? '列表播放开着:连续 / 有限循环时会自动接下一篇'
+                : '列表播放关着(自己粘 JSON 或从收藏夹打开一篇会关掉):点一条标题就打开';
+            playlistViewStatus.className = 'playlist-status' + (playlistActive ? ' ok' : '');
+        }
+        playlistViewModal.hidden = false;
+    }
+
+    playlistCheckBtn.addEventListener('click', runPlaylistCheck);
+    playlistOkBtn.addEventListener('click', confirmPlaylist);
+    playlistCancelBtn.addEventListener('click', closePlaylistModal);
+    playlistBackdrop.addEventListener('click', closePlaylistModal);
+    playlistViewCloseBtn.addEventListener('click', closePlaylistView);
+    playlistViewBackdrop.addEventListener('click', closePlaylistView);
+    playlistInput.addEventListener('input', runPlaylistCheck);
+    playlistInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            closePlaylistModal();
+        }
+    });
+    playlistViewModal.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            closePlaylistView();
+        }
+    });
+
     loadState();
+    loadPlaylist();
     refreshFavorites().then(() => {
         if (entries.length > 0) return updateFavStatus();
     }).then(() => render());
