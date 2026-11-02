@@ -251,6 +251,9 @@
             -webkit-backdrop-filter: blur(8px);
             z-index: 20;
         }
+        /* AI 面板默认隐藏,在设置栏里勾 AI 才显示。
+           .ai-panel 是 display:flex,会盖掉浏览器默认的 [hidden]{display:none},要自己写一条 */
+        .ai-panel[hidden] { display: none; }
         .ai-panel-title {
             font-size: 18px;
             color: #888;
@@ -600,6 +603,8 @@
         let columnsConfig = localStorage.getItem('focusTableColumns') || '';
         let selectedVoiceName = localStorage.getItem('focusTableVoiceName') || '';
         let controlsVisible = localStorage.getItem('focusTableControlsVisible') === 'true';
+        // AI 面板默认隐藏,在设置栏里勾 AI 才显示
+        let aiPanelVisible = localStorage.getItem('focusTableAiPanelVisible') === 'true';
         let speechSpeed = parseFloat(localStorage.getItem('focusTableSpeechSpeed')) || 1.0;
         let availableVoices = [];
         let columnsInputEl = null;   // 当前那次的 Columns 输入框,给键盘处理用
@@ -774,6 +779,19 @@
                 autoLabel.appendChild(document.createTextNode(' Auto'));
                 controls.appendChild(autoLabel);
 
+                // AI 面板开关:默认隐藏,勾上才显示左下角的 AI 问答面板
+                const aiLabel = document.createElement('label');
+                const aiCheckbox = document.createElement('input');
+                aiCheckbox.type = 'checkbox';
+                aiCheckbox.checked = aiPanelVisible;
+                aiCheckbox.addEventListener('change', () => {
+                    setAiPanelVisible(aiCheckbox.checked);
+                });
+                aiPanelCheckboxEl = aiCheckbox;
+                aiLabel.appendChild(aiCheckbox);
+                aiLabel.appendChild(document.createTextNode(' AI'));
+                controls.appendChild(aiLabel);
+
                 const colsLabel = document.createElement('label');
                 const colsText = document.createElement('span');
                 colsText.textContent = 'Columns';
@@ -855,7 +873,7 @@
 
             const keys = document.createElement('div');
             keys.className = 'status';
-            keys.innerHTML = '<kbd>C</kbd> 设置栏 &nbsp;·&nbsp; Answer: <kbd>PgDn</kbd> 整段 <kbd>PgUp</kbd> 分句 <kbd>Del</kbd> 重读';
+            keys.innerHTML = '<kbd>C</kbd> 设置栏 &nbsp;·&nbsp; Answer: <kbd>PgDn</kbd> 整段 <kbd>PgUp</kbd> 分句 <kbd>Del</kbd> 重读 &nbsp;·&nbsp; AI 面板在设置栏里开';
             stage.appendChild(keys);
         }
 
@@ -958,9 +976,11 @@
         let lastFollowChunk = null;
 
         // 和 cn2en-json 同一套分句点:分句点算进本句末尾,点后面的空格留给下一句开头
+        // 逗号也算一个分句单位,而且不要求后面跟空格(和破折号一样用 \s*):
+        // "word,word"、"逗号后面换行"这些以前都切不开
         function splitChunksWithPositions(text) {
             const chunks = [];
-            const re = /, |—|: |; |\. |\? |"\. /g;
+            const re = /,\s*|—|: |; |\. |\? |"\. /g;
             let lastEnd = 0;
             let m;
             while ((m = re.exec(text)) !== null) {
@@ -1135,6 +1155,9 @@
                 const sel = window.getSelection && window.getSelection().toString().trim();
                 if (!sel) return;
                 e.preventDefault();
+                // 面板藏着的话,先把面板打开再塞:不然选中的字进了看不见的输入框。
+                // 只开这一次,不写进 localStorage,刷新后还是默认隐藏
+                if (!aiPanelVisible) setAiPanelVisible(true, false);
                 insertSelectionIntoAi(sel);
                 return;
             }
@@ -1201,6 +1224,25 @@
         const aiSend = document.getElementById('aiSend');
         const aiToggle = document.getElementById('aiToggle');
         const aiFullContextToggle = document.getElementById('aiFullContext');
+
+        // AI 面板的显示由设置栏里的 AI 开关控制,默认隐藏。
+        // aiAnswerOpen 记着答案区展开状态:面板藏起来时答案也跟着收,
+        // 重新打开面板再把答案还原回去
+        let aiAnswerOpen = false;
+        let aiPanelCheckboxEl = null;   // 设置栏里那个 AI 开关,别处改了状态要同步它
+        function applyAiPanelVisibility() {
+            aiPanel.hidden = !aiPanelVisible;
+            aiAnswer.hidden = aiPanelVisible ? !aiAnswerOpen : true;
+        }
+        function setAiPanelVisible(visible, persist = true) {
+            aiPanelVisible = visible;
+            if (persist) {
+                try { localStorage.setItem('focusTableAiPanelVisible', String(visible)); } catch (e) {}
+            }
+            if (aiPanelCheckboxEl) aiPanelCheckboxEl.checked = visible;
+            applyAiPanelVisibility();
+        }
+        applyAiPanelVisibility();
 
         const STORAGE_KEY_AI_SYSTEM_PROMPT = 'focus-table:aiSystemPrompt';
         const STORAGE_KEY_AI_FULL_CONTEXT = 'focus-table:aiFullContext';
@@ -1573,10 +1615,12 @@
 
         function showAiAnswer() {
             aiAnswer.hidden = false;
+            aiAnswerOpen = true;
             aiToggle.textContent = '▼ 隐藏';
         }
         function hideAiAnswer() {
             aiAnswer.hidden = true;
+            aiAnswerOpen = false;
             aiToggle.textContent = '▲ 显示';
         }
         function toggleAiAnswer() {
