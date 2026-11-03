@@ -267,13 +267,190 @@ ${text}
     // 默认发音人名称
     const defaultVoiceName = localStorage.getItem('selectedVoice') || "Microsoft Brian Online (Natural) - English (United States)";
 
+    // --- JSON 粘贴 ---
+    // 剪贴板里是 JSON 时,转成 .options 那套 html 再显示
+    function escapeHtmlText(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&' + 'amp;')
+            .replace(/</g, '&' + 'lt;')
+            .replace(/>/g, '&' + 'gt;')
+            .replace(/"/g, '&' + 'quot;');
+    }
+
+    // 依次找第一个有的字段
+    function pickField(obj, names) {
+        for (const n of names) {
+            const v = obj[n];
+            if (v !== undefined && v !== null && v !== '') return v;
+        }
+        return '';
+    }
+
+    // 一条题目 -> <div class="options" data-answer="1"> ... </div>
+    function jsonItemToHtml(item) {
+        const question = pickField(item, ['question', 'title', 'stem', 'q']);
+        const answer = pickField(item, ['data-answer', 'dataAnswer', 'answer', 'correct']);
+        const explain = pickField(item, ['explain', 'explanation', 'analysis']);
+        const shuffle = item['data-shuffle'] !== undefined ? item['data-shuffle'] : item.shuffle;
+
+        let options = pickField(item, ['options', 'choices', 'items']);
+        if (!Array.isArray(options)) options = [];
+
+        const attrs = [`data-answer="${escapeHtmlText(String(answer === '' ? 1 : answer))}"`];
+        if (shuffle !== undefined && String(shuffle) === 'false') attrs.push('data-shuffle="false"');
+
+        const lines = [`<div class="options" ${attrs.join(' ')}>`];
+        lines.push(`<p>${escapeHtmlText(question)}</p>`);
+        options.forEach(opt => {
+            const text = (opt && typeof opt === 'object')
+                ? pickField(opt, ['text', 'content', 'label', 'value'])
+                : opt;
+            lines.push(`<p>${escapeHtmlText(text)}</p>`);
+        });
+        if (explain !== '') lines.push(`<p class="explain">${escapeHtmlText(explain)}</p>`);
+        lines.push('</div>');
+        return lines.join('\n');
+    }
+
+    function jsonToOptionsHtml(data) {
+        const list = Array.isArray(data) ? data : [data];
+        const usable = list.filter(it => it && typeof it === 'object' && !Array.isArray(it));
+        if (usable.length === 0) return '';
+        return usable.map(jsonItemToHtml).join('\n');
+    }
+
+    // text[pos] 处的引号是不是某个 key 的开头(key 后面跟着冒号)
+    function isKeyStart(text, pos) {
+        let j = pos + 1;
+        while (j < text.length) {
+            const c = text[j];
+            if (c === '\\') { j += 2; continue; }
+            if (c === '"') {
+                let k = j + 1;
+                while (k < text.length && /\s/.test(text[k])) k++;
+                return text[k] === ':';
+            }
+            j++;
+        }
+        return false;
+    }
+
+    // 手写 JSON 常犯两种毛病:字符串里的引号没转义、条目之间漏了逗号。
+    // 先按标准 JSON 解析,不行就修一修再试
+    function repairJsonText(text) {
+        let out = '';
+        let i = 0;
+        const n = text.length;
+        let lastSig = '';        // 上一个有意义的字符
+        const stack = [];        // 容器:obj / arr
+        while (i < n) {
+            const ch = text[i];
+            if (ch !== '"') {
+                out += ch;
+                if (ch === '{') stack.push('obj');
+                else if (ch === '}') stack.pop();
+                else if (ch === '[') stack.push('arr');
+                else if (ch === ']') stack.pop();
+                if (!/\s/.test(ch)) lastSig = ch;
+                i++;
+                continue;
+            }
+            // key 读到第一个引号就结束;value 要看引号后面是什么:
+            // 后面是 , } ] 才算这个字符串完了,否则是内容里的引号,补个转义
+            const isKey = stack[stack.length - 1] === 'obj' && (lastSig === '{' || lastSig === ',');
+            let j = i + 1;
+            let buf = '"';
+            while (j < n) {
+                const c = text[j];
+                if (c === '\\') {
+                    buf += text.slice(j, j + 2);
+                    j += 2;
+                    continue;
+                }
+                if (c === '"') {
+                    if (isKey) {
+                        buf += '"';
+                        j++;
+                        break;
+                    }
+                    let k = j + 1;
+                    while (k < n && /\s/.test(text[k])) k++;
+                    const next = text[k];
+                    const endsHere = next === ',' || next === '}' || next === ']' || next === undefined
+                        // 少了个逗号:后面直接就是下一个 key
+                        || (next === '"' && isKeyStart(text, k));
+                    if (endsHere) {
+                        buf += '"';
+                        j++;
+                        break;
+                    }
+                    buf += '\\"';
+                    j++;
+                    continue;
+                }
+                buf += c;
+                j++;
+            }
+            out += buf;
+            i = j;
+            lastSig = '"';
+        }
+        // 漏写的逗号:"值" 换行 "key":  或者  } 换行 {
+        out = out.replace(/("(?:[^"\\]|\\.)*")(\s*\r?\n\s*)("(?:[^"\\]|\\.)*"\s*:)/g, '$1,$2$3');
+        out = out.replace(/(\})(\s*\r?\n\s*)(\{)/g, '$1,$2$3');
+        return out;
+    }
+
+    function parseJsonLoose(text) {
+        try {
+            return JSON.parse(text);
+        } catch (err) {
+            try {
+                return JSON.parse(repairJsonText(text));
+            } catch (err2) {
+                throw err;   // 报原文的错,位置更好找
+            }
+        }
+    }
+
+    // 文本看起来像 JSON 就走 JSON 那条路
+    function looksLikeJson(text) {
+        const t = String(text || '').trim();
+        return t.startsWith('[') || t.startsWith('{');
+    }
+
     document.addEventListener('paste', e => {
-        const htmlData = e.clipboardData.getData('text/html') || e.clipboardData.getData('text/plain');
-        if (!htmlData) return;
+        const textData = e.clipboardData.getData('text/plain') || '';
+        const htmlData = e.clipboardData.getData('text/html') || '';
 
         const container = document.getElementById('content');
+
+        if (looksLikeJson(textData)) {
+            let data;
+            try {
+                data = parseJsonLoose(textData);
+            } catch (err) {
+                alert('JSON 解析失败: ' + (err.message || err));
+                return;
+            }
+            const jsonHtml = jsonToOptionsHtml(data);
+            if (!jsonHtml) {
+                alert('JSON 里没找到题目(需要 question / options)');
+                return;
+            }
+            container.innerHTML = '';
+            container.innerHTML = jsonHtml.replaceAll("**", "").replaceAll("<{", "《").replaceAll("}>", "》").trim();
+            initializeQuestions();
+            Prism.highlightAll();
+            window.scrollTo({top: 0, behavior: 'smooth'});
+            return;
+        }
+
+        const raw = htmlData || textData;
+        if (!raw) return;
+
         container.innerHTML = '';
-        container.innerHTML = htmlData.replaceAll("**", "").replaceAll("<{", "《").replaceAll("}>", "》").trim();
+        container.innerHTML = raw.replaceAll("**", "").replaceAll("<{", "《").replaceAll("}>", "》").trim();
 
         initializeQuestions();
         // document.querySelectorAll('pre code').forEach(code => {
