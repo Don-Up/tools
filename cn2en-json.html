@@ -2617,6 +2617,19 @@
         return out;
     }
 
+    // 包裹标签正好落在 {{ 后面的话,ruby 的基词和注音会被标签拆到两边:
+    // 开标签变成 ruby 的基词,闭标签又跑到 ruby 外面,后面整句都变成小字。
+    // 选区跨出了这个 ruby 块时,把开标签提到整块前面:
+    // {{按}}is b o]]调用 → <small>{{按}}is b o]]调用</small>
+    function fixRubyWrapStart(cn, start, end) {
+        for (const b of extractRubyBlocks(cn)) {
+            const s = b.index;                     // "{{" 的位置
+            const e = b.index + b.full.length;     // "]]" 之后的位置
+            if (start === s + 2 && end > e) return s;   // 正好是基词第一个字
+        }
+        return start;
+    }
+
     function nearestRuby(node) {
         let n = node;
         if (n && n.nodeType === Node.TEXT_NODE) n = n.parentNode;
@@ -3195,8 +3208,10 @@
                     + cn.slice(inside.start + open.length, inside.end - close.length)
                     + cn.slice(inside.end);
             } else {
-                newCn = cn.slice(0, rawRange.start) + open
-                    + cn.slice(rawRange.start, rawRange.end) + close
+                // 开标签正好落在 {{ 后面(选区又跨出了这个 ruby 块)时,提到整块前面
+                const s = fixRubyWrapStart(cn, rawRange.start, rawRange.end);
+                newCn = cn.slice(0, s) + open
+                    + cn.slice(s, rawRange.end) + close
                     + cn.slice(rawRange.end);
             }
         } else {
