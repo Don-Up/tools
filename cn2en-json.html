@@ -2731,7 +2731,7 @@
 
     // 注解内容是这些词的时候,ruby 变紫色
     // 注解 = ruby 上方那段读音/翻译(rt),或者 Ruby Note 里写的笔记 —— 哪个是这几个词都算
-    const PURPLE_NOTE_WORDS = ['ing', 'ed', 'that', 'which', 'where', 'to'];
+    const PURPLE_NOTE_WORDS = ['ing', 'ed', 'that', 'which', 'where', 'to', '祈'];
     function isPurpleNote(text) {
         if (!text) return false;
         return PURPLE_NOTE_WORDS.includes(String(text).trim().toLowerCase());
