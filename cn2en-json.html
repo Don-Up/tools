@@ -46,6 +46,7 @@
 
         small {
             color: #00BFFF;
+            font-family: 隶书;
         }
 
         .error-bar {
@@ -2731,7 +2732,7 @@
 
     // 注解内容是这些词的时候,ruby 变紫色
     // 注解 = ruby 上方那段读音/翻译(rt),或者 Ruby Note 里写的笔记 —— 哪个是这几个词都算
-    const PURPLE_NOTE_WORDS = ['ing', 'ed', 'that', 'which', 'where', 'to', '祈'];
+    const PURPLE_NOTE_WORDS = ['ing', 'ed', 'that', 'which', 'where', 'to', 'whose', '祈'];
     function isPurpleNote(text) {
         if (!text) return false;
         return PURPLE_NOTE_WORDS.includes(String(text).trim().toLowerCase());
@@ -2836,22 +2837,38 @@
     });
 
     // 按文字在中文里重新选一遍(选区被冲掉之后自己找回来)
+    // 文字可能横跨好几个节点(中间夹着 ruby),所以按整段找,再拼回一个 range
     function selectTextInCn(text) {
         if (!text) return false;
         const walker = document.createTreeWalker(cnText, NodeFilter.SHOW_TEXT);
+        const nodes = [];
+        let full = '';
         let node;
         while ((node = walker.nextNode())) {
-            const i = node.textContent.indexOf(text);
-            if (i === -1) continue;
-            const r = document.createRange();
-            r.setStart(node, i);
-            r.setEnd(node, i + text.length);
-            const sel = window.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(r);
-            return true;
+            nodes.push({ node, start: full.length });
+            full += node.textContent;
         }
-        return false;
+        const idx = full.indexOf(text);
+        if (idx === -1) return false;
+        // 起点、终点分别落在哪个文本节点的哪个位置
+        const locate = (pos) => {
+            for (let i = nodes.length - 1; i >= 0; i--) {
+                if (pos >= nodes[i].start) {
+                    return { node: nodes[i].node, offset: pos - nodes[i].start };
+                }
+            }
+            return null;
+        };
+        const s = locate(idx);
+        const e = locate(idx + text.length);
+        if (!s || !e) return false;
+        const r = document.createRange();
+        r.setStart(s.node, s.offset);
+        r.setEnd(e.node, e.offset);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(r);
+        return true;
     }
 
     // 选区没了之后,把记下来的那段重新选回来(同一句才选得回来)
@@ -2885,7 +2902,8 @@
         const memo = cnSelectionMemo;
         if (!memo) return { text: '', index: currentIndex, range, state: 'none' };
         const entry = entries[memo.index];
-        if (!entry || entry[0].indexOf(memo.text) === -1) {
+        // 记的那句可能带 ruby,得按看得见的文字找
+        if (!entry || cnVisibleText(entry[0]).indexOf(memo.text) === -1) {
             return { text: '', index: currentIndex, range, state: 'none' };   // 记的那句已经变了
         }
         if (memo.index === currentIndex && selectTextInCn(memo.text)) {
@@ -3048,7 +3066,92 @@
         closeRubyAddModal();
     }
 
-    function wrapSelectionInDel() {
+    // 原始串里看不见的部分(ruby 标记、html 标签、实体)不占位置,
+    // 这里把它们跳掉,顺带记下每个可见字在原始串里的起止位置
+    function cnVisibleChars(cn) {
+        const raw = String(cn === null || cn === undefined ? '' : cn);
+        const chars = [];
+        let i = 0;
+        const n = raw.length;
+        while (i < n) {
+            const ch = raw[i];
+            // ruby 标记 {{ }} ]] 不显示
+            if ((ch === '{' && raw[i + 1] === '{') || (ch === '}' && raw[i + 1] === '}') || (ch === ']' && raw[i + 1] === ']')) {
+                i += 2;
+                continue;
+            }
+            // html 标签(<small> <del> 这类)不显示
+            const tag = /^<\/?(?:small|del|b|i|u|sub|sup|span|em|strong)>/.exec(raw.slice(i));
+            if (tag) {
+                i += tag[0].length;
+                continue;
+            }
+            // html 实体显示成它本身
+            const ent = /^&(amp|lt|gt|quot|nbsp);/.exec(raw.slice(i));
+            if (ent) {
+                const decoded = { amp: '&', lt: '<', gt: '>', quot: '"', nbsp: '\u00a0' }[ent[1]];
+                chars.push({ ch: decoded, start: i, end: i + ent[0].length });
+                i += ent[0].length;
+                continue;
+            }
+            chars.push({ ch, start: i, end: i + 1 });
+            i++;
+        }
+        return chars;
+    }
+
+    function cnVisibleText(cn) {
+        return cnVisibleChars(cn).map(c => c.ch).join('');
+    }
+
+    // 选区在中文区域里的起止位置(按可见文字算,和 cnVisibleChars 对得上)
+    function cnSelectionOffsets(range) {
+        if (!range) return null;
+        const prefix = document.createRange();
+        try {
+            prefix.selectNodeContents(cnText);
+            prefix.setEnd(range.startContainer, range.startOffset);
+            const start = prefix.toString().length;
+            prefix.setEnd(range.endContainer, range.endOffset);
+            const end = prefix.toString().length;
+            return { start, end };
+        } catch (err) {
+            return null;   // 选区所在节点已经被换掉了
+        }
+    }
+
+    // 选中的那段在原始串里的位置。跨 ruby、跨 <small> 都能算准;
+    // 算不准就返回 null,让调用方退回按文字找的老路
+    function resolveCnRawRange(cn, range) {
+        const offsets = cnSelectionOffsets(range);
+        if (!offsets) return null;
+        const chars = cnVisibleChars(cn);
+        const { start, end } = offsets;
+        if (end <= start || end > chars.length) return null;
+        const visible = chars.slice(start, end).map(c => c.ch).join('');
+        if (visible !== range.toString()) return null;   // 对不上就别乱改
+        return { start: chars[start].start, end: chars[end - 1].end };
+    }
+
+    // [start,end) 这段是不是已经包在 <tag> 里,是的话给出标签在原始串里的位置
+    function findTagRange(cn, tag, start, end) {
+        const open = '<' + tag + '>';
+        const close = '</' + tag + '>';
+        const re = new RegExp('<' + tag + '>([\\s\\S]*?)</' + tag + '>', 'g');
+        let m;
+        while ((m = re.exec(cn)) !== null) {
+            const s = m.index;
+            const e = m.index + m[0].length;
+            if (start >= s + open.length && end <= e - close.length) {
+                return { start: s, end: e };
+            }
+        }
+        return null;
+    }
+
+    // 给选中的中文套 <small> / <del>,已经在里面就取消。
+    // 按原始串里的位置来改,跨 ruby、跨已有标签都不会算错
+    function wrapSelectionInTag(tag, needChinese, emptyMsg) {
         if (!currentFavId) {
             showError('请先收藏当前 JSON');
             return;
@@ -3060,28 +3163,47 @@
             return;
         }
         if (!pick.text) {
-            showError('请先选中要标记的中文');
+            showError(emptyMsg);
             return;
         }
         const text = pick.text;
-        if (!/[一-鿿]/.test(text)) {
+        if (needChinese && !/[一-鿿]/.test(text)) {
             showError('选中文本需包含中文字符');
             return;
         }
         const target = pick.index;
         const cn = entries[target] ? entries[target][0] : '';
-        const wrapped = `<del>${text}</del>`;
-        const idxWrapped = cn.indexOf(wrapped);
-        let newCn;
-        if (idxWrapped >= 0) {
-            newCn = cn.slice(0, idxWrapped) + text + cn.slice(idxWrapped + wrapped.length);
-        } else {
-            const idx = cn.indexOf(text);
-            if (idx === -1) {
-                showError('未在当前条目中找到选中文本(可能跨注释边界)');
-                return;
+        const open = '<' + tag + '>';
+        const close = '</' + tag + '>';
+        let newCn = null;
+        // 先按原始串里的位置算:跨 ruby、跨已有标签都能算准
+        const rawRange = resolveCnRawRange(cn, pick.range);
+        if (rawRange) {
+            const inside = findTagRange(cn, tag, rawRange.start, rawRange.end);
+            if (inside) {
+                // 已经在标签里了 → 取消包裹
+                newCn = cn.slice(0, inside.start)
+                    + cn.slice(inside.start + open.length, inside.end - close.length)
+                    + cn.slice(inside.end);
+            } else {
+                newCn = cn.slice(0, rawRange.start) + open
+                    + cn.slice(rawRange.start, rawRange.end) + close
+                    + cn.slice(rawRange.end);
             }
-            newCn = cn.slice(0, idx) + wrapped + cn.slice(idx + text.length);
+        } else {
+            // 退路:按文字找(句子里没有 ruby / 标签时一样管用)
+            const wrapped = open + text + close;
+            const idxWrapped = cn.indexOf(wrapped);
+            if (idxWrapped >= 0) {
+                newCn = cn.slice(0, idxWrapped) + text + cn.slice(idxWrapped + wrapped.length);
+            } else {
+                const idx = cn.indexOf(text);
+                if (idx === -1) {
+                    showError('未在当前条目中找到选中文本(可能跨注释边界)');
+                    return;
+                }
+                newCn = cn.slice(0, idx) + wrapped + cn.slice(idx + text.length);
+            }
         }
         entries[target][0] = newCn;
         const fav = favorites.find(f => f.id === currentFavId);
@@ -3094,46 +3216,12 @@
         render();
     }
 
+    function wrapSelectionInDel() {
+        wrapSelectionInTag('del', true, '请先选中要标记的中文');
+    }
+
     function wrapSelectionInSmall() {
-        if (!currentFavId) {
-            showError('请先收藏当前 JSON');
-            return;
-        }
-        if (entries.length === 0) return;
-        const pick = resolveCnSelection();
-        if (pick.state === 'outside') {
-            showError('请在中文区域内选择');
-            return;
-        }
-        if (!pick.text) {
-            showError('请先选中要包裹的文本');
-            return;
-        }
-        const text = pick.text;
-        const target = pick.index;
-        const cn = entries[target] ? entries[target][0] : '';
-        const wrapped = `<small>${text}</small>`;
-        const idxWrapped = cn.indexOf(wrapped);
-        let newCn;
-        if (idxWrapped >= 0) {
-            newCn = cn.slice(0, idxWrapped) + text + cn.slice(idxWrapped + wrapped.length);
-        } else {
-            const idx = cn.indexOf(text);
-            if (idx === -1) {
-                showError('未在当前条目中找到选中文本(可能跨注释边界)');
-                return;
-            }
-            newCn = cn.slice(0, idx) + wrapped + cn.slice(idx + text.length);
-        }
-        entries[target][0] = newCn;
-        const fav = favorites.find(f => f.id === currentFavId);
-        if (fav) {
-            fav.payload = entries;
-            fav.hash = hashEntries(entries);
-            updateFavorite(currentFavId, { payload: fav.payload, hash: fav.hash });
-        }
-        saveState();
-        render();
+        wrapSelectionInTag('small', false, '请先选中要包裹的文本');
     }
 
     async function persistNotesForCurrent(notes) {
