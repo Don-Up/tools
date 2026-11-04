@@ -40,7 +40,9 @@
         /*    color: #ff6b6b;*/
         /*}*/
 
+        /* 划掉的文字:正文变灰,删除线还是红的 */
         del {
+            color: #8a9299;
             text-decoration-color: #ff6b6b;
         }
 
@@ -90,6 +92,11 @@
             outline: 1px dashed #666;
             white-space: pre-wrap;
             cursor: text;
+        }
+        /* 中文里用英文括号括起来的那段:小一号 + 灰色 */
+        .paren-text {
+            font-size: 30px;
+            color: #8a9299;
         }
         /* 小字英文:显示在中文上方,默认是这句的英文原句,点一下能改 */
         .mini-en-text {
@@ -2591,11 +2598,13 @@
     }
 
     // {{书架}}bookshelf]] → <ruby>书架<rt>bookshelf</rt></ruby>
+    // 中文里用英文括号括起来的那段(比如"这个功能(feature)很好用")包一层 span,显示成灰色
     function cnToHtml(cn) {
         return String(cn === null || cn === undefined ? '' : cn)
             .replaceAll("{{", "<ruby>")
             .replaceAll("}}", "<rt>")
-            .replaceAll("]]", "</rt></ruby>");
+            .replaceAll("]]", "</rt></ruby>")
+            .replace(/\(([^()]*)\)/g, (_all, inner) => '<span class="paren-text">(' + inner + ')</span>');
     }
 
     function extractRubyBlocks(cn) {
