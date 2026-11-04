@@ -2630,6 +2630,20 @@
         return start;
     }
 
+    // 闭标签正好落在基词后面(选区在 ruby 块里就结束了)的话,标签会把 ruby 拆开:
+    // 是的，{{维护</small>}}maintain]]
+    // 把闭标签挪到整块后面:
+    // <small>是的，{{维护}}maintain]]</small>
+    function fixRubyWrapEnd(cn, start, end) {
+        for (const b of extractRubyBlocks(cn)) {
+            const s = b.index;
+            const e = b.index + b.full.length;
+            const baseEnd = s + 2 + b.cn.length;   // 基词最后一个字之后
+            if (end === baseEnd && start < s) return e;
+        }
+        return end;
+    }
+
     function nearestRuby(node) {
         let n = node;
         if (n && n.nodeType === Node.TEXT_NODE) n = n.parentNode;
@@ -3208,11 +3222,13 @@
                     + cn.slice(inside.start + open.length, inside.end - close.length)
                     + cn.slice(inside.end);
             } else {
-                // 开标签正好落在 {{ 后面(选区又跨出了这个 ruby 块)时,提到整块前面
+                // 开标签正好落在 {{ 后面(选区又跨出了这个 ruby 块)时,提到整块前面;
+                // 闭标签正好落在基词后面(选区在 ruby 块里就结束)时,挪到整块后面
                 const s = fixRubyWrapStart(cn, rawRange.start, rawRange.end);
+                const e = fixRubyWrapEnd(cn, rawRange.start, rawRange.end);
                 newCn = cn.slice(0, s) + open
-                    + cn.slice(s, rawRange.end) + close
-                    + cn.slice(rawRange.end);
+                    + cn.slice(s, e) + close
+                    + cn.slice(e);
             }
         } else {
             // 退路:按文字找(句子里没有 ruby / 标签时一样管用)
