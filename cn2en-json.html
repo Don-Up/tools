@@ -1243,6 +1243,11 @@
             box-sizing: border-box;
             padding: 4px;
         }
+        .ruby-notes-empty {
+            color: #888;
+            font-size: 14px;
+            padding: 12px 4px;
+        }
         .ruby-notes-row {
             display: flex;
             gap: 12px;
@@ -1409,6 +1414,7 @@
                     <li><kbd>Alt+2</kbd></li><li>为选中中文添加注释</li>
                     <li><kbd>Alt+3</kbd></li><li>选中中文标记为删除线(需先收藏)</li>
                     <li><kbd>Alt+4</kbd></li><li>选中中文包裹为 &lt;small&gt; 小字(需先收藏)</li>
+                    <li><kbd>Alt+M</kbd></li><li>注解笔记(给当前这句的注音词写笔记,需先收藏)</li>
                     <li><kbd>Alt+点击中文</kbd></li><li>编辑这句中文(显示原始 json 文本,带 html 标签和注音符号,失焦存盘)</li>
                     <li><kbd>Alt+1</kbd></li><li>显示 / 隐藏此帮助</li>
                 </ul>
@@ -2677,7 +2683,6 @@
 
     function openRubyNotesModal() {
         if (!currentFavId) return;
-        if (cnText.querySelectorAll('ruby').length === 0) return;
         const fav = favorites.find(f => f.id === currentFavId);
         if (!fav) return;
         currentRubyModalSentenceIdx = currentIndex;
@@ -2685,7 +2690,6 @@
         rubyNotesInitialSnapshot = JSON.stringify(fav.rubyNotes);
         currentRubyModalFavId = currentFavId;
         rubyNotesModalTitle.textContent = fav.name || '(未命名)';
-        rubyNotesModalSubtitle.textContent = `${currentIndex + 1}/${entries.length}`;
         renderRubyNotesList();
         rubyNotesModal.hidden = false;
         setTimeout(() => {
@@ -2694,11 +2698,12 @@
         }, 0);
     }
 
+    // 只列当前这句的注解笔记(笔记按 句子序号 → 注解词 存)
     function renderRubyNotesList() {
         rubyNotesList.innerHTML = '';
         const sentenceIdx = currentRubyModalSentenceIdx;
-        const cn = entries[sentenceIdx][0];
-        const rubyTexts = extractRubyTexts(cn);
+        const entry = entries[sentenceIdx];
+        const rubyTexts = entry ? extractRubyTexts(entry[0] || '') : [];
         const fav = favorites.find(f => f.id === currentFavId);
         const notesMap = (fav && Array.isArray(fav.rubyNotes) && fav.rubyNotes[sentenceIdx]) || {};
         rubyTexts.forEach(rubyText => {
@@ -2723,6 +2728,13 @@
             row.appendChild(ta);
             rubyNotesList.appendChild(row);
         });
+        if (rubyTexts.length === 0) {
+            const hint = document.createElement('div');
+            hint.className = 'ruby-notes-empty';
+            hint.textContent = '当前这句没有注解';
+            rubyNotesList.appendChild(hint);
+        }
+        rubyNotesModalSubtitle.textContent = `${currentIndex + 1}/${entries.length}`;
     }
 
     function closeRubyNotesModal() {
@@ -5410,12 +5422,18 @@
             openCardsModal();
             return;
         }
-        if (e.altKey && !e.ctrlKey && !e.shiftKey && e.code === 'KeyP') {
-            if (!favSaveModal.hidden || !noteModal.hidden || !globalNoteModal.hidden || !jsonEditModal.hidden || !cardsModal.hidden || !rubyNotesModal.hidden) return;
-            if (!currentFavId) return;
-            if (cnText.querySelectorAll('ruby').length === 0) return;
+        // Alt+M:打开注解笔记(Alt+P 也认,哪个顺手用哪个)
+        if (e.altKey && !e.ctrlKey && !e.shiftKey && (e.code === 'KeyM' || e.key === 'm' || e.code === 'KeyP')) {
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+            if (!favSaveModal.hidden || !noteModal.hidden || !globalNoteModal.hidden || !jsonEditModal.hidden || !cardsModal.hidden || !rubyNotesModal.hidden) {
+                showError('还有别的弹窗开着,先关掉再按 Alt+M');
+                return;
+            }
+            if (!currentFavId) {
+                showError('请先收藏当前 JSON,注解笔记是按收藏保存的');
+                return;
+            }
             e.preventDefault();
             openRubyNotesModal();
             return;
