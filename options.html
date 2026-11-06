@@ -314,7 +314,8 @@ ${text}
     }
 
     // 一条题目 -> <div class="options" data-answer="1"> ... </div>
-    function jsonItemToHtml(item) {
+    // snippet: 这道题对应的代码片段 { lang, code },渲染成 <pre><code> 放在题目下方
+    function jsonItemToHtml(item, snippet) {
         const question = pickField(item, ['question', 'title', 'stem', 'q']);
         const answer = pickField(item, ['data-answer', 'dataAnswer', 'answer', 'correct']);
         const explain = pickField(item, ['explain', 'explanation', 'analysis']);
@@ -336,14 +337,71 @@ ${text}
         });
         if (explain !== '') lines.push(`<p class="explain">${escapeHtmlText(explain)}</p>`);
         lines.push('</div>');
+
+        // 代码片段:放在这道题的下方(题块外面,免得被当成选项打乱顺序)
+        if (snippet && snippet.code) {
+            const lang = String(snippet.lang || '').replace(/[^A-Za-z0-9_+#.-]/g, '') || 'plaintext';
+            lines.push(`<pre><code class="language-${lang}">${escapeHtmlText(snippet.code)}</code></pre>`);
+        }
         return lines.join('\n');
     }
 
-    function jsonToOptionsHtml(data) {
+    function jsonToOptionsHtml(data, snippets) {
         const list = Array.isArray(data) ? data : [data];
-        const usable = list.filter(it => it && typeof it === 'object' && !Array.isArray(it));
-        if (usable.length === 0) return '';
-        return usable.map(jsonItemToHtml).join('\n');
+        const map = snippets instanceof Map ? snippets : new Map();
+        const parts = [];
+        // 索引和代码片段的编号一一对应(0 = 第一题),所以要按原位置取
+        list.forEach((item, index) => {
+            if (!item || typeof item !== 'object' || Array.isArray(item)) return;
+            parts.push(jsonItemToHtml(item, map.get(index)));
+        });
+        return parts.join('\n');
+    }
+
+    // --- 粘贴内容里的代码片段 ---------------------------------------------
+    // 格式:JSON 数组,后面接若干段代码,每段前面有一行
+    //       "// 索引-编程语言"(如 // 0-typescript),索引从 0 开始
+    // 不需要 "---" 分隔线;有的话也会认(当成分隔线去掉)
+    const SNIPPET_MARKER = /^\s*\/\/\s*(\d+)\s*-\s*([A-Za-z0-9_+#.-]+)\s*$/;
+
+    function splitCodeSnippets(text) {
+        const lines = String(text == null ? '' : text).split(/\r?\n/);
+
+        // 1) 找第一行 "// 索引-编程语言";它之前是 JSON,之后是代码
+        let first = -1;
+        for (let i = 0; i < lines.length; i++) {
+            if (SNIPPET_MARKER.test(lines[i])) { first = i; break; }
+        }
+        if (first === -1) return {jsonText: lines.join('\n'), snippets: new Map()};
+
+        // JSON 部分:去掉结尾可能存在的 "---" 分隔线和空行
+        const head = lines.slice(0, first);
+        while (head.length && head[head.length - 1].trim() === '') head.pop();
+        if (head.length && head[head.length - 1].trim() === '---') head.pop();
+        const jsonText = head.join('\n');
+
+        // 2) 逐行找 "// 索引-编程语言",把它下面的内容存成第 索引 道的代码片段
+        const snippets = new Map();
+        let cur = null;
+        let buf = [];
+        const flush = () => {
+            if (!cur) return;
+            const code = buf.join('\n').replace(/^\n+/, '').replace(/\n+$/, '');
+            snippets.set(cur.index, {lang: cur.lang, code: code});
+        };
+        for (const line of lines.slice(first)) {
+            const m = line.match(SNIPPET_MARKER);
+            if (m) {
+                flush();
+                cur = {index: Number(m[1]), lang: m[2]};
+                buf = [];
+            } else if (cur) {
+                buf.push(line);
+            }
+        }
+        flush();
+
+        return {jsonText: jsonText, snippets: snippets};
     }
 
     // text[pos] 处的引号是不是某个 key 的开头(key 后面跟着冒号)
@@ -456,16 +514,17 @@ ${text}
         window.scrollTo({top: 0, behavior: 'smooth'});
     }
 
-    // JSON 文本 -> 题目
+    // JSON 文本 -> 题目(可以带 "---" + 代码片段)
     function loadJsonText(text) {
+        const {jsonText, snippets} = splitCodeSnippets(text);
         let data;
         try {
-            data = parseJsonLoose(text);
+            data = parseJsonLoose(jsonText);
         } catch (err) {
             alert('JSON 解析失败: ' + (err.message || err));
             return false;
         }
-        const jsonHtml = jsonToOptionsHtml(data);
+        const jsonHtml = jsonToOptionsHtml(data, snippets);
         if (!jsonHtml) {
             alert('JSON 里没找到题目(需要 question / options)');
             return false;
