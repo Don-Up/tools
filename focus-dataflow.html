@@ -1341,8 +1341,11 @@
         let autoPlay = localStorage.getItem('focusDataflowAutoPlay') === 'true';
         let highlightEnabled = localStorage.getItem('focusDataflowHighlight') === 'true';
         let useCn = localStorage.getItem('focusDataflowUseCn') === 'true';
+        // Play Comment:打开后不念步骤讲解,改念当前步骤在代码里高亮的第一条注释
+        let playComment = localStorage.getItem('focusDataflowPlayComment') === 'true';
         let noteSegments = [];
         let codeSnippets = '';
+        let codeLines = [];
         let codeStepLines = new Map();
         let awaitingCodePaste = false;
         let commentUtterance = null;
@@ -1387,6 +1390,7 @@
             closeCodePaste();
             if (!code) return false;
             codeSnippets = code;
+            codeLines = code.split('\n');
             codeStepLines = parseCodeStepLines(code);
             render();
             scrollHighlightIntoView();
@@ -2005,9 +2009,8 @@
             controls.appendChild(enSpeed.speedLabel);
 
             const readBtn = document.createElement('button');
-            const english = currentEnglishText();
             readBtn.textContent = isSpeaking ? 'Stop' : 'Read';
-            readBtn.disabled = !english;
+            readBtn.disabled = !readButtonEnabled();
             if (isSpeaking) readBtn.classList.add('speaking');
             readBtn.addEventListener('click', () => {
                 if (isSpeaking) {
@@ -2065,6 +2068,13 @@
                 useCn = checked;
                 localStorage.setItem('focusDataflowUseCn', String(checked));
                 if (steps.length > 0) render();
+            }));
+
+            // Use CN 右边:Play Comment —— 念代码注释,而不是步骤讲解
+            ctrlRow.appendChild(buildToggle('Play Comment', playComment, (checked) => {
+                playComment = checked;
+                localStorage.setItem('focusDataflowPlayComment', String(checked));
+                readBtn.disabled = !readButtonEnabled();
             }));
 
             controls.appendChild(ctrlRow);
@@ -2144,6 +2154,9 @@
 
         function speakCurrentStep() {
             if (!('speechSynthesis' in window)) return;
+            // Play Comment:不念步骤讲解,改念当前高亮的第一条代码注释
+            // (这一步在代码里没有对应的注释时,退回念讲解)
+            if (playComment && speakHighlightedComment()) return;
             const step = steps[currentIndex];
             if (!step) return;
             const items = [];
@@ -2190,6 +2203,7 @@
             if ('speechSynthesis' in window) {
                 speechSynthesis.cancel();
             }
+            stopCommentTTS();     // 正在念代码注释的话,一起停掉
             clearHighlights();
             setReadButtonState(false);
         }
@@ -2199,6 +2213,67 @@
                 .replace(/^\s*(?:\/\/|\/\*\*?|\*)\s?/, '')
                 .replace(/\s*\*\/\s*$/, '')
                 .trim();
+        }
+
+        // 一行代码里的注释部分:整行都是注释就整行,否则取右侧 // 之后的那截
+        function commentPartOfLine(line) {
+            const text = String(line == null ? '' : line);
+            if (isCommentLine(text, false)) return text;
+            const idx = findTrailingCommentIndex(text);
+            return idx >= 0 ? text.slice(idx) : '';
+        }
+
+        // 当前步骤在代码面板里高亮的第一条注释(原文)
+        function firstHighlightedCommentLine() {
+            if (!codeLines.length) return '';
+            const step = steps[currentIndex];
+            const key = step && step.label ? step.label : String(currentIndex + 1);
+            const idxs = codeStepLines.get(key);
+            if (!idxs || !idxs.length) return '';
+            for (const i of idxs) {
+                const part = commentPartOfLine(codeLines[i] || '');
+                if (part) return part;
+            }
+            return '';
+        }
+
+        // 代码注释 -> 朗读文本
+        //   "// 1-04[印回答] 一轮跑完,..." => "印回答,一轮跑完,..."
+        // 步骤编号不念;[标签] 里的标签先念,后面跟个逗号再念说明
+        function commentSpeechText(raw) {
+            let text = stripCommentMarkers(raw);
+            if (!text) return '';
+            // 去掉行首的步骤编号("// 1-04" / "// 04"),规则和 CODE_MARKER_RE 一致
+            const marker = text.match(/^(\d{1,3}-\d{1,3}|\d{2,3})(?!\d)\s*/);
+            if (marker) text = text.slice(marker[0].length);
+            const tagged = text.match(/^\[([^\]]*)\]\s*([\s\S]*)$/);
+            if (tagged) {
+                const tag = tagged[1].trim();
+                const rest = tagged[2].trim();
+                if (!tag) return rest;
+                if (!rest) return tag;
+                const sep = /[぀-ヿ㐀-䶿一-鿿＀-￯]/.test(tag + rest) ? '，' : ', ';
+                return tag + sep + rest;
+            }
+            return text.trim();
+        }
+
+        // Read 按钮能不能点:念讲解时看有没有英文,念注释时看当前步骤有没有高亮的注释
+        function readButtonEnabled() {
+            if (playComment) return !!commentSpeechText(firstHighlightedCommentLine());
+            return !!currentEnglishText();
+        }
+
+        // 播放"当前高亮的第一条代码注释"(Play Comment 打开时用)
+        function speakHighlightedComment() {
+            const text = commentSpeechText(firstHighlightedCommentLine());
+            if (!text) return false;
+            const pane = stage.querySelector('.code-pane');
+            const el = pane ? pane.querySelector('.cmt-step') : null;
+            stopSpeaking();
+            const ok = speakComment(text, el, { cleaned: true, onDone: () => setReadButtonState(false) });
+            if (ok) setReadButtonState(true);
+            return ok;
         }
 
         function stopCommentTTS() {
@@ -2211,11 +2286,15 @@
             commentUtterance = null;
         }
 
-        function speakComment(rawText, sourceEl) {
-            if (!('speechSynthesis' in window)) return;
-            const cleaned = stripCommentMarkers(rawText);
-            if (!cleaned) return;
-            if (/^[=\-*_~+\s]+$/.test(cleaned)) return;
+        // 朗读一条代码注释
+        //   opts.cleaned:rawText 已经是干净文本,不用再剥 // 标记
+        //   opts.onDone :念完(或出错)后的回调
+        function speakComment(rawText, sourceEl, opts) {
+            if (!('speechSynthesis' in window)) return false;
+            const o = opts || {};
+            const cleaned = o.cleaned ? String(rawText == null ? '' : rawText) : stripCommentMarkers(rawText);
+            if (!cleaned) return false;
+            if (/^[=\-*_~+\s]+$/.test(cleaned)) return false;
 
             stopCommentTTS();
             const ttsReady = prepareTextForTTS(cleaned);
@@ -2226,22 +2305,24 @@
             if (voice && voice.lang && voice.lang.toLowerCase().startsWith(lang.slice(0, 2).toLowerCase())) {
                 utterance.voice = voice;
             }
-            utterance.onend = () => {
+            const finish = () => {
                 if (sourceEl) sourceEl.classList.remove('speaking');
                 if (speakingCmtEl === sourceEl) speakingCmtEl = null;
-                if (commentUtterance === utterance) commentUtterance = null;
+                // 只有当前这条还在播,才算念完(被新的一条顶掉的不算)
+                if (commentUtterance === utterance) {
+                    commentUtterance = null;
+                    if (typeof o.onDone === 'function') o.onDone();
+                }
             };
-            utterance.onerror = () => {
-                if (sourceEl) sourceEl.classList.remove('speaking');
-                if (speakingCmtEl === sourceEl) speakingCmtEl = null;
-                if (commentUtterance === utterance) commentUtterance = null;
-            };
+            utterance.onend = finish;
+            utterance.onerror = finish;
             if (sourceEl) {
                 sourceEl.classList.add('speaking');
                 speakingCmtEl = sourceEl;
             }
             commentUtterance = utterance;
             speechSynthesis.speak(utterance);
+            return true;
         }
 
         let voicesInitialized = false;
