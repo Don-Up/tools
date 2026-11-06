@@ -236,6 +236,18 @@
             display: none;
         }
         #focusJsonFrame.shown { display: block; }
+        #focusOptionsFrame {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            border: none;
+            background: #121212;
+            z-index: 2000;  /* above .controls (1000) so the iframe fully overlays the reader's top bar */
+            display: none;
+        }
+        #focusOptionsFrame.shown { display: block; }
 
         .controls {
             /* 设置controls为fixed以使其固定在页面顶部 */
@@ -698,6 +710,7 @@
 <iframe id="focusMermaidFrame" src="about:blank"></iframe>
 <iframe id="focusClassFrame" src="about:blank"></iframe>
 <iframe id="focusJsonFrame" src="about:blank"></iframe>
+<iframe id="focusOptionsFrame" src="about:blank"></iframe>
 
 <script>
     const isProd = window.location.origin === "https://don-up.github.io"
@@ -716,6 +729,9 @@
     const FOCUS_JSON_URL = !isProd?
         "http://localhost:63342/html-tools/focus-json.html?_ijt=aom9p0ej4n5vi8mvbqdmlpn9d8&_ij_reload=RELOAD_ON_SAVE":
         "https://don-up.github.io/tools/focus-json";
+    const FOCUS_OPTIONS_URL = !isProd?
+        "http://localhost:63342/html-tools/options.html":
+        "https://don-up.github.io/tools/options";
     let isPlaying = false;
     let voices = [];
     let currentSpeaker = localStorage.getItem("currentSpeaker") || "Microsoft Andrew Online (Natural) - English (United States)";
@@ -1595,6 +1611,26 @@
                     pre.appendChild(focusBtn);
                 }
 
+                // Add Focus button for options code blocks (to the left of Copy)
+                if (code.className.includes('language-options')) {
+                    const focusBtn = document.createElement('button');
+                    focusBtn.className = 'focus-options-btn';
+                    focusBtn.style.position = 'absolute';
+                    focusBtn.style.top = '10px';
+                    focusBtn.style.right = '60px';
+                    focusBtn.style.padding = '5px';
+                    focusBtn.style.zIndex = '100';
+                    focusBtn.style.backgroundColor = '#666666';
+                    focusBtn.innerText = 'focus';
+                    focusBtn.title = '在 options.html 里做题';
+                    focusBtn.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        // JSON 用 textContent 更保险(innerText 会按 CSS 规则处理空白)
+                        openOptionsFocus(code.textContent);
+                    });
+                    pre.appendChild(focusBtn);
+                }
+
                 // mermaid / classDiagram 的按钮由上方 mermaid.init 渲染循环统一处理(样式正确,且会真正渲染 SVG)
             })
         }, 100)
@@ -2089,6 +2125,7 @@
     const focusMermaidFrame = document.getElementById('focusMermaidFrame');
     const focusClassFrame = document.getElementById('focusClassFrame');
     const focusJsonFrame = document.getElementById('focusJsonFrame');
+    const focusOptionsFrame = document.getElementById('focusOptionsFrame');
 
     const codeBlocks = document.querySelectorAll('pre code');
     codeBlocks.forEach((block, index) => {
@@ -2174,6 +2211,27 @@
             { type: 'focus-json-load', content: content },
             '*'
         );
+    }
+
+    function sendOptionsToFocusFrame(content) {
+        focusOptionsFrame.contentWindow?.postMessage(
+            { type: 'focus-options-load', content: content },
+            '*'
+        );
+    }
+
+    // ```options``` 代码块 → options.html 子窗口,显示对应的选择题
+    function openOptionsFocus(content) {
+        if (focusOptionsFrame.dataset.loaded !== 'true') {
+            focusOptionsFrame.addEventListener('load', () => {
+                focusOptionsFrame.dataset.loaded = 'true';
+                sendOptionsToFocusFrame(content);
+            }, { once: true });
+            focusOptionsFrame.src = FOCUS_OPTIONS_URL;
+        } else {
+            sendOptionsToFocusFrame(content);
+        }
+        focusOptionsFrame.classList.add('shown');
     }
 
     function openDataflowFocus(text) {
@@ -2273,6 +2331,8 @@
             focusClassFrame.classList.remove('shown');
         } else if (data.type === 'focus-json-close') {
             focusJsonFrame.classList.remove('shown');
+        } else if (data.type === 'focus-options-close') {
+            focusOptionsFrame.classList.remove('shown');
         }
     });
 

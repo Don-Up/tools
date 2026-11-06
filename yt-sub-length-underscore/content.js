@@ -32,6 +32,8 @@
 
   function transformWord(word, maxLength) {
     if (typeof word !== 'string' || word.length === 0) return word;
+    // 总开关关着,一个字都不遮(兜底:不管从哪条路径调进来都先看开关)
+    if (!state.enabled) return word;
     // if (state.applyHideWords && HIDE_WORDS.has(word.toLowerCase())) {
     //   return '____'.repeat(1);
     // }
@@ -51,6 +53,11 @@
     return text.replace(WORD_REGEX, (match) => transformWord(match, cap));
   }
 
+  // 什么时候做下划线遮罩:总开关开着、且不是"暂停看原文"状态
+  function shouldMask() {
+    return state.enabled && !state.showOriginal;
+  }
+
   const state = {
     enabled: true,
     showOriginal: false,
@@ -59,33 +66,24 @@
   };
 
   function effectiveOutput(original) {
-    if (state.showOriginal) return original;
+    // 总开关关着 / 暂停看原文 → 原文原样保留
+    if (!shouldMask()) return original;
     return transformText(original, state.maxLength);
   }
 
+  // 处理一句字幕:按规则把短词换成下划线,文字对得上就不动 DOM
   function processSegment(segment) {
     if (!segment || !segment.isConnected) return;
-    if (!state.enabled) return;
     const currentText = segment.textContent;
     if (typeof currentText !== 'string') return;
     const storedOriginal = segment.getAttribute('data-yt-sub-lu-original');
-    const isTransformed = segment.getAttribute('data-yt-sub-lu-transformed') === 'true';
-
-    if (isTransformed && storedOriginal !== null) {
-      const expected = effectiveOutput(storedOriginal);
-      if (currentText === expected) return;
-    }
-
     const original = storedOriginal !== null ? storedOriginal : currentText;
-    const output = effectiveOutput(original);
-    if (currentText === output) {
-      segment.setAttribute('data-yt-sub-lu-original', original);
-      segment.setAttribute('data-yt-sub-lu-transformed', 'true');
-      return;
-    }
+    const expected = effectiveOutput(original);
     segment.setAttribute('data-yt-sub-lu-original', original);
     segment.setAttribute('data-yt-sub-lu-transformed', 'true');
-    segment.textContent = output;
+    // 文字已经对得上就别再动 DOM(避免和 MutationObserver 互相触发)
+    if (currentText === expected) return;
+    segment.textContent = expected;
   }
 
   function processAllSegments() {

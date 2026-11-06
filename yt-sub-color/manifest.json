@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "YT Sub Color",
+  "version": "1.4",
+  "description": "Color words in YouTube captions with your own rules.",
+  "permissions": ["storage"],
+  "host_permissions": ["*://*.youtube.com/*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "YT Sub Color"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/*"],
+      "js": ["defaults.js", "content.js"],
+      "run_at": "document_start"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <h3>YT Sub Color</h3>
+        <div class="option">
+            <label class="switch">
+                <input type="checkbox" id="enabledCheckbox">
+                <span class="slider"></span>
+            </label>
+            <span class="option-label">Enable word coloring</span>
+        </div>
+        <div class="rules-panel">
+            <div class="panel-title">Coloring rules</div>
+            <div id="rulesList" class="rules-list"></div>
+            <button id="addRuleBtn" type="button" class="add-btn">+ Add rule</button>
+            <p class="panel-hint">Words separated by commas. Changes apply instantly. Later rules win for the same word. Tick &quot;ends with&quot; to match by suffix (e.g. ly, 's). The apostrophe counts as a normal letter, so &apos;s matches there's. Tick &quot;hide&quot; to make matched words invisible while they keep their space — hidden words show up again while the video is paused.</p>
+        </div>
+        <div class="preview">
+            <div>Example:</div>
+            <code id="colorPreview">I am the four of them</code>
+        </div>
+    </div>
+    <script src="defaults.js"></script>
+    <script src="popup.js"></script>
+</body>
+</html>

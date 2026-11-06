@@ -178,9 +178,36 @@
         small {
             color: red;
         }
+
+        /* 关闭按钮(被 reader.html 以 iframe 打开时显示) */
+        .close-btn {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 1px solid #444;
+            background: #252525;
+            color: #e0e0e0;
+            font-size: 20px;
+            line-height: 1;
+            cursor: pointer;
+            z-index: 200;
+        }
+
+        .close-btn:hover {
+            background: #3a3a3a;
+        }
+
+        .close-btn[hidden] {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
+
+<button id="closeBtn" class="close-btn" hidden>×</button>
 
 <h2 onclick="reset()" style="cursor: pointer">🌙 Options</h2>
 <div style="display: flex;height: 30px;align-items: center;">
@@ -419,46 +446,79 @@ ${text}
         return t.startsWith('[') || t.startsWith('{');
     }
 
+    // 把一段 .options html 渲染到页面上
+    function renderOptionsContent(html) {
+        const container = document.getElementById('content');
+        container.innerHTML = '';
+        container.innerHTML = html.replaceAll("**", "").replaceAll("<{", "《").replaceAll("}>", "》").trim();
+        initializeQuestions();
+        Prism.highlightAll();
+        window.scrollTo({top: 0, behavior: 'smooth'});
+    }
+
+    // JSON 文本 -> 题目
+    function loadJsonText(text) {
+        let data;
+        try {
+            data = parseJsonLoose(text);
+        } catch (err) {
+            alert('JSON 解析失败: ' + (err.message || err));
+            return false;
+        }
+        const jsonHtml = jsonToOptionsHtml(data);
+        if (!jsonHtml) {
+            alert('JSON 里没找到题目(需要 question / options)');
+            return false;
+        }
+        renderOptionsContent(jsonHtml);
+        return true;
+    }
+
     document.addEventListener('paste', e => {
         const textData = e.clipboardData.getData('text/plain') || '';
         const htmlData = e.clipboardData.getData('text/html') || '';
 
-        const container = document.getElementById('content');
-
         if (looksLikeJson(textData)) {
-            let data;
-            try {
-                data = parseJsonLoose(textData);
-            } catch (err) {
-                alert('JSON 解析失败: ' + (err.message || err));
-                return;
-            }
-            const jsonHtml = jsonToOptionsHtml(data);
-            if (!jsonHtml) {
-                alert('JSON 里没找到题目(需要 question / options)');
-                return;
-            }
-            container.innerHTML = '';
-            container.innerHTML = jsonHtml.replaceAll("**", "").replaceAll("<{", "《").replaceAll("}>", "》").trim();
-            initializeQuestions();
-            Prism.highlightAll();
-            window.scrollTo({top: 0, behavior: 'smooth'});
+            loadJsonText(textData);
             return;
         }
 
         const raw = htmlData || textData;
         if (!raw) return;
 
-        container.innerHTML = '';
-        container.innerHTML = raw.replaceAll("**", "").replaceAll("<{", "《").replaceAll("}>", "》").trim();
+        renderOptionsContent(raw);
+    });
 
-        initializeQuestions();
-        // document.querySelectorAll('pre code').forEach(code => {
-        //     code.textContent = code.textContent.replace(/^\s*\n/, '');
-        // });
-        Prism.highlightAll();
-        // 回到顶部
-        window.scrollTo({top: 0, behavior: 'smooth'});
+    // --- iframe integration (parent = reader.html) ---
+    const closeBtn = document.getElementById('closeBtn');
+    // 在 reader.html 的 iframe 里打开时,关闭按钮一直显示(万一题目没加载出来也能退出去)
+    if (window.parent && window.parent !== window) {
+        closeBtn.hidden = false;
+    }
+    closeBtn.addEventListener('click', () => {
+        window.speechSynthesis.cancel();
+        if (window.parent && window.parent !== window) {
+            window.parent.postMessage({type: 'focus-options-close'}, '*');
+        }
+    });
+
+    window.addEventListener('message', (e) => {
+        const data = e.data;
+        if (!data || typeof data !== 'object') return;
+        if (data.type !== 'focus-options-load') return;
+        const content = data.content;
+        let ok = false;
+        if (typeof content === 'string' && content.trim()) {
+            ok = loadJsonText(content);
+        } else if (content && typeof content === 'object') {
+            // 直接发来一个对象/数组也行
+            const jsonHtml = jsonToOptionsHtml(content);
+            if (jsonHtml) {
+                renderOptionsContent(jsonHtml);
+                ok = true;
+            }
+        }
+        if (ok) closeBtn.hidden = false;
     });
 
     let isSpeaking = false;
