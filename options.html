@@ -358,17 +358,17 @@ ${text}
         const list = Array.isArray(data) ? data : [data];
         const map = snippets instanceof Map ? snippets : new Map();
         const parts = [];
-        // 索引和代码片段的编号一一对应(0 = 第一题),所以要按原位置取
+        // 索引和代码片段的编号一一对应(1 = 第一题),所以要按原位置取
         list.forEach((item, index) => {
             if (!item || typeof item !== 'object' || Array.isArray(item)) return;
-            parts.push(jsonItemToHtml(item, map.get(index)));
+            parts.push(jsonItemToHtml(item, map.get(index + 1)));
         });
         return parts.join('\n');
     }
 
     // --- 粘贴内容里的代码片段 ---------------------------------------------
     // 格式:JSON 数组,后面接若干段代码,每段前面有一行
-    //       "// 索引-编程语言"(如 // 0-typescript),索引从 0 开始
+    //       "// 索引-编程语言"(如 // 1-typescript),索引从 1 开始(1 = 第一题)
     // 不需要 "---" 分隔线;有的话也会认(当成分隔线去掉)
     const SNIPPET_MARKER = /^\s*\/\/\s*(\d+)\s*-\s*([A-Za-z0-9_+#.-]+)\s*$/;
 
