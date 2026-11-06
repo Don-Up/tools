@@ -175,6 +175,13 @@
             overflow-x: auto; /* 水平滚动条（当内容过宽时） */
         }
 
+        /* 代码片段:默认藏着,选了答案才显示 */
+        pre.snippet {
+            margin-top: 14px;
+            border: 1px solid #333;
+            background: #171717;
+        }
+
         small {
             color: red;
         }
@@ -336,13 +343,14 @@ ${text}
             lines.push(`<p>${escapeHtmlText(text)}</p>`);
         });
         if (explain !== '') lines.push(`<p class="explain">${escapeHtmlText(explain)}</p>`);
-        lines.push('</div>');
 
-        // 代码片段:放在这道题的下方(题块外面,免得被当成选项打乱顺序)
+        // 代码片段:默认藏着,用户选了答案才显示出来
         if (snippet && snippet.code) {
             const lang = String(snippet.lang || '').replace(/[^A-Za-z0-9_+#.-]/g, '') || 'plaintext';
-            lines.push(`<pre><code class="language-${lang}">${escapeHtmlText(snippet.code)}</code></pre>`);
+            lines.push(`<pre class="snippet" hidden><code class="language-${lang}">${escapeHtmlText(snippet.code)}</code></pre>`);
         }
+
+        lines.push('</div>');
         return lines.join('\n');
     }
 
@@ -673,6 +681,11 @@ ${text}
     }
 
 
+    // 代码片段(<pre class="snippet">):不是选项,不参与乱序和判分
+    function isSnippet(el) {
+        return !!(el && el.classList && el.classList.contains('snippet'));
+    }
+
     function initializeQuestions() {
         document.querySelectorAll('.options').forEach((container, qIndex) => {
             if (container.dataset.processed === 'true') return;
@@ -693,7 +706,14 @@ ${text}
                 explainDiv.style.display = "none"
             }
 
-            let optionElements = children.filter(child => !child.classList.contains('explain')).slice(1);
+            // 代码片段:默认藏着,选了答案才显示(不算选项,也不参与乱序)
+            const snippetEl = container.querySelector(".snippet")
+            if (snippetEl) {
+                snippetEl.hidden = true
+            }
+
+            let optionElements = children.filter(child => !child.classList.contains('explain') && !isSnippet(child)).slice(1);
+            if (optionElements.length === 0) return;   // 没有选项的题不算题目
             optionElements.forEach((opt, i) => {
                 opt.dataset.origIndex = i;
                 opt.textContent = opt.textContent.replace(/^\d+\.\s*/, '').trim();
@@ -714,7 +734,12 @@ ${text}
                 container.appendChild(explainDiv);
             }
 
-            const displayOptions = Array.from(container.children).slice(1);
+            // 代码片段挪到最后:题目 → 选项 → 解析 → 代码
+            if (snippetEl) {
+                container.appendChild(snippetEl);
+            }
+
+            const displayOptions = Array.from(container.children).filter(child => !isSnippet(child)).slice(1);
 
             const correctOrigIndex = originalAnswer - 1;
             const newAnswerIndex = displayOptions.findIndex(opt =>
@@ -852,6 +877,7 @@ ${text}
 
                     opt.dataset.selected = "true"; // 标记被选中
                     explainDiv.style.display = 'block';
+                    if (snippetEl) snippetEl.hidden = false;   // 选了答案,代码片段露出来
                 });
             });
 
@@ -916,11 +942,14 @@ ${text}
 
     function reset() {
         document.querySelectorAll('.options').forEach(container => {
-            const options = Array.from(container.children).slice(1);
+            const options = Array.from(container.children).slice(1).filter(el => !isSnippet(el));
             options.forEach(opt => {
                 opt.style.backgroundColor = '';
                 opt.style.color = '';
             });
+            // 代码片段重新藏起来
+            const snippet = container.querySelector('.snippet');
+            if (snippet) snippet.hidden = true;
         });
     }
 
