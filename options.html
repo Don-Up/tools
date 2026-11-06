@@ -220,10 +220,14 @@
 <div style="display: flex;height: 30px;align-items: center;">
     <select id="voice-select">
     </select>
-    <div style="margin-left: 20px; display: flex;margin-top: 10px;">
+    <div style="margin-left: 20px; display: flex;margin-top: 10px; align-items: center;">
         <label for="rate-slider">Speed:</label>
         <input type="range" id="rate-slider" min="0.5" max="2" step="0.1" value="1" style="margin-left: 10px;">
         <span id="rate-value">1.0</span>
+        <label for="explain-toggle" style="margin-left: 16px; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+            <input type="checkbox" id="explain-toggle">
+            <span>explain</span>
+        </label>
     </div>
 </div>
 <div id="content"></div>
@@ -623,6 +627,8 @@ ${text}
 
     let selectVoice = null
     let currentRate = parseFloat(localStorage.getItem('speechRate')) || 1.0; // Load saved rate or default to 1.0
+    // explain 开关:打开后,选中正确答案时把解析接在答案后面一起念(中间加句号)
+    let explainRead = localStorage.getItem('optionsExplainRead') === 'true';
 
     document.addEventListener('DOMContentLoaded', () => {
         const rateSlider = document.getElementById('rate-slider');
@@ -636,6 +642,15 @@ ${text}
                 currentRate = parseFloat(rateSlider.value);
                 rateValueSpan.textContent = currentRate.toFixed(1);
                 localStorage.setItem('speechRate', currentRate); // Save the preference
+            });
+        }
+
+        const explainToggle = document.getElementById('explain-toggle');
+        if (explainToggle) {
+            explainToggle.checked = explainRead;
+            explainToggle.addEventListener('change', () => {
+                explainRead = explainToggle.checked;
+                localStorage.setItem('optionsExplainRead', String(explainRead));
             });
         }
     });
@@ -678,6 +693,21 @@ ${text}
             isSpeaking = false;
         }
         speechSynthesis.speak(utterance);
+    }
+
+    // 朗读用的选项文本:去掉前面的序号("2. xxx" -> "xxx")
+    function optionSpeechText(opt) {
+        return String(opt.textContent || '').replace(/^\s*\d+\.\s*/, '').trim();
+    }
+
+    // explain 开关打开时:答案后面接上解析,两者中间加个句号
+    function answerWithExplain(answerText, explainText) {
+        let text = answerText;
+        const explain = String(explainText || '').trim();
+        if (!explain) return text;
+        // 答案本身已经有句号/问号就别再叠一个
+        if (!/[.。!！?？;；:：]$/.test(text)) text += '.';
+        return text + ' ' + explain;
     }
 
 
@@ -797,7 +827,7 @@ ${text}
                         result += `<div class="option">${opt.textContent.trim()}</div>`
                     }
                 })
-                result += `|${explainDiv.textContent.trim()}`
+                result += `|${explainDiv ? explainDiv.textContent.trim() : ''}`
                 navigator.clipboard.writeText(result).then(() => {
                 }).catch(err => {
                     alert("Failed to copy: " + err)
@@ -850,7 +880,12 @@ ${text}
                     if (isCorrect) {
                         opt.style.backgroundColor = '#1b5e20';
                         opt.style.color = '#a5d6a7';
-                        speak(opt.textContent, event)
+                        // 念的时候不要序号;explain 打开时,解析接在答案后面(中间加句号)
+                        let spoken = optionSpeechText(opt);
+                        if (explainRead) {
+                            spoken = answerWithExplain(spoken, explainDiv ? explainDiv.textContent : '');
+                        }
+                        speak(spoken, event)
                         // 判断text是否只由字母, 数字，逗号,句号, -, 空格组成
                         // const lastContent = displayOptions[displayOptions.length-1].textContent
                         // if (/^[a-zA-Z0-9,.()’+@"':/;`→—\[\]\-\s]+$/.test(lastContent)) {
@@ -876,7 +911,7 @@ ${text}
                     }
 
                     opt.dataset.selected = "true"; // 标记被选中
-                    explainDiv.style.display = 'block';
+                    if (explainDiv) explainDiv.style.display = 'block';
                     if (snippetEl) snippetEl.hidden = false;   // 选了答案,代码片段露出来
                 });
             });
