@@ -438,6 +438,110 @@
             background: rgba(79, 195, 247, 0.12);
         }
 
+        /* data-snapshot 块:固定高度,一次只显示一条快照 */
+        .data-snapshot {
+            position: relative;
+            height: 300px;
+            background: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 5px;
+            padding: 14px 16px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .data-snapshot .ds-head {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #333;
+            margin-bottom: 10px;
+        }
+
+        .data-snapshot .ds-id {
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+            color: #4fc3f7;
+            font-weight: bold;
+        }
+
+        .data-snapshot .ds-step {
+            font-size: 15px;
+            color: #cfd8dc;
+        }
+
+        .data-snapshot .ds-pos {
+            margin-left: auto;
+            font-size: 13px;
+            color: #888;
+        }
+
+        .data-snapshot .ds-body {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+        }
+
+        .data-snapshot .ds-row {
+            display: flex;
+            gap: 10px;
+            padding: 4px 0;
+            align-items: flex-start;
+        }
+
+        .data-snapshot .ds-key {
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+            color: #b0bec5;
+            flex: 0 0 180px;
+            word-break: break-all;
+        }
+
+        .data-snapshot .ds-val {
+            font-size: 14px;
+            color: #e0e0e0;
+            flex: 1;
+            word-break: break-word;
+            cursor: pointer;
+        }
+
+        .data-snapshot .ds-val:hover {
+            color: #4fc3f7;
+        }
+
+        .data-snapshot .ds-foot {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #333;
+            margin-top: 10px;
+        }
+
+        .data-snapshot .ds-btn {
+            padding: 4px 14px;
+            font-size: 13px;
+            color: #fff;
+            background: #3a86ff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .data-snapshot .ds-btn:hover:not(:disabled) {
+            background: #2a6edc;
+        }
+
+        .data-snapshot .ds-btn:disabled {
+            background: #3a3a3a;
+            color: #777;
+            cursor: default;
+        }
+
         /* 遮罩层（背景半透明） */
         .modal-overlay {
             position: fixed;
@@ -1341,6 +1445,170 @@
         return html;
     }
 
+    // 代码块结束时的渲染:file-structure / data-snapshot / 普通代码
+    function renderCodeBlock(contentDiv, codeLang, codeLines) {
+        if (codeLang === 'file-structure') {
+            const wrapper = document.createElement("div");
+            wrapper.className = "file-structure";
+            for (const raw of codeLines) {
+                if (!raw.trim()) continue;
+                const folderMatch = raw.match(/^(\s*)(?:.*?)(📂)\s+(.*)$/);
+                const fileMatch = !folderMatch && raw.match(/^(\s*)(?:.*?)(📃|🖊️)\s+(.*)$/);
+                const m = folderMatch || fileMatch;
+                const indent = m ? m[1] : raw.match(/^(\s*)/)[1];
+                if (m) {
+                    const marker = m[2];
+                    const text = m[3];
+                    const isFolder = folderMatch !== null;
+                    const el = document.createElement(isFolder ? "div" : "span");
+                    el.className = isFolder
+                        ? "file-structure-folder"
+                        : "file-structure-file";
+                    if (indent) el.style.paddingLeft = `${indent.length}ch`;
+                    el.textContent = `${marker} ${text}`;
+                    el.style.cursor = "pointer";
+                    el.title = "点击播放";
+                    el.onclick = function (event) {
+                        playText(event, el.textContent, el, true);
+                    };
+                    wrapper.appendChild(el);
+                } else {
+                    const el = document.createElement("span");
+                    el.className = "file-structure-path";
+                    if (indent) el.style.paddingLeft = `${indent.length}ch`;
+                    el.textContent = raw.trimEnd();
+                    wrapper.appendChild(el);
+                }
+            }
+            contentDiv.appendChild(wrapper);
+        } else if (codeLang === 'data-snapshot') {
+            contentDiv.appendChild(buildDataSnapshot(codeLines.join("\n")));
+        } else {
+            const pre = document.createElement("pre");
+            const code = document.createElement("code");
+            code.className = `language-${codeLang}`;
+            code.textContent = codeLines.join("\n");
+            pre.appendChild(code);
+            contentDiv.appendChild(pre);
+            hljs.highlightElement(code);
+        }
+    }
+
+    // ```data-snapshot``` 块 -> 固定高度的元素,一次只显示一条快照,
+    // 底部有 Pre / Next 用来切换
+    function buildDataSnapshot(jsonText) {
+        let items = [];
+        try {
+            const data = JSON.parse(jsonText);
+            items = Array.isArray(data) ? data : (data ? [data] : []);
+        } catch (e) {
+            const pre = document.createElement("pre");
+            const code = document.createElement("code");
+            code.className = "language-json";
+            code.textContent = jsonText;
+            pre.appendChild(code);
+            return pre;
+        }
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "data-snapshot";
+
+        const head = document.createElement("div");
+        head.className = "ds-head";
+        const idEl = document.createElement("span");
+        idEl.className = "ds-id";
+        const stepEl = document.createElement("span");
+        stepEl.className = "ds-step";
+        const posEl = document.createElement("span");
+        posEl.className = "ds-pos";
+        head.appendChild(idEl);
+        head.appendChild(stepEl);
+        head.appendChild(posEl);
+
+        const body = document.createElement("div");
+        body.className = "ds-body";
+
+        const foot = document.createElement("div");
+        foot.className = "ds-foot";
+        const prevBtn = document.createElement("button");
+        prevBtn.className = "ds-btn";
+        prevBtn.type = "button";
+        prevBtn.textContent = "Pre";
+        const nextBtn = document.createElement("button");
+        nextBtn.className = "ds-btn";
+        nextBtn.type = "button";
+        nextBtn.textContent = "Next";
+        foot.appendChild(prevBtn);
+        foot.appendChild(nextBtn);
+
+        wrapper.appendChild(head);
+        wrapper.appendChild(body);
+        wrapper.appendChild(foot);
+
+        // 一条快照的内容:id / step / 键值对
+        function renderItem(item) {
+            body.innerHTML = "";
+            const data = (item && typeof item === 'object' && item['data-snapshot'] && typeof item['data-snapshot'] === 'object')
+                ? item['data-snapshot']
+                : (item && typeof item === 'object' ? item : {});
+            const keys = Object.keys(data);
+            if (!keys.length) {
+                const empty = document.createElement("div");
+                empty.className = "ds-row";
+                const v = document.createElement("span");
+                v.className = "ds-val";
+                v.textContent = "(空)";
+                empty.appendChild(v);
+                body.appendChild(empty);
+                return;
+            }
+            keys.forEach(key => {
+                const row = document.createElement("div");
+                row.className = "ds-row";
+                const k = document.createElement("span");
+                k.className = "ds-key";
+                k.textContent = key;
+                const v = document.createElement("span");
+                v.className = "ds-val";
+                const raw = data[key];
+                v.textContent = (raw === null || raw === undefined) ? "" : String(raw);
+                v.title = "点击播放";
+                v.onclick = function (event) {
+                    playText(event, v.textContent, v);
+                };
+                row.appendChild(k);
+                row.appendChild(v);
+                body.appendChild(row);
+            });
+        }
+
+        let index = 0;
+
+        function show(i) {
+            if (!items.length) return;
+            index = Math.max(0, Math.min(items.length - 1, i));
+            const item = items[index] || {};
+            idEl.textContent = item.id || "";
+            stepEl.textContent = item.step || "";
+            posEl.textContent = `${index + 1} / ${items.length}`;
+            prevBtn.disabled = index <= 0;
+            nextBtn.disabled = index >= items.length - 1;
+            renderItem(item);
+        }
+
+        prevBtn.addEventListener("click", (event) => {
+            event.stopPropagation();
+            if (index > 0) show(index - 1);
+        });
+        nextBtn.addEventListener("click", (event) => {
+            event.stopPropagation();
+            if (index < items.length - 1) show(index + 1);
+        });
+
+        show(0);
+        return wrapper;
+    }
+
     function processText(input) {
         const contentDiv = document.getElementById("content");
         contentDiv.innerHTML = "";
@@ -1356,6 +1624,19 @@
         let isInTable = false
 
         lines.forEach((line, index) => {
+            // 代码块里的内容不参与表格/列表解析
+            // (否则 JSON 里的 "- xxx" 或 "|xxx|" 会被误判,那行还会从代码里丢掉)
+            if (isInCodeBlock) {
+                if (line.toString().trim() === "```") {
+                    isInCodeBlock = false;
+                    renderCodeBlock(contentDiv, codeLang, codeLines);
+                    return;
+                }
+                // 代码块里再出现的 ```xxx 忽略(和原来的行为一致)
+                if (!/^```/.test(line.toString().trim())) codeLines.push(line);
+                return;
+            }
+
             if (line.toString().trim().startsWith("|") && line.toString().trim().endsWith("|")) {
                 const rawLine = line.toString().trim();
                 // 将所有**xx**替换为<b>xx</b>
@@ -1417,69 +1698,11 @@
                 if (index === lines.length) return
             }
 
-            if (line.toString().trim() === "```" && isInCodeBlock) {
-                isInCodeBlock = false;
-                if (codeLang === 'file-structure') {
-                    const wrapper = document.createElement("div");
-                    wrapper.className = "file-structure";
-                    for (const raw of codeLines) {
-                        if (!raw.trim()) continue;
-                        const folderMatch = raw.match(/^(\s*)(?:.*?)(📂)\s+(.*)$/);
-                        const fileMatch = !folderMatch && raw.match(/^(\s*)(?:.*?)(📃|🖊️)\s+(.*)$/);
-                        const m = folderMatch || fileMatch;
-                        const indent = m ? m[1] : raw.match(/^(\s*)/)[1];
-                        if (m) {
-                            const marker = m[2];
-                            const text = m[3];
-                            const isFolder = folderMatch !== null;
-                            const el = document.createElement(isFolder ? "div" : "span");
-                            el.className = isFolder
-                                ? "file-structure-folder"
-                                : "file-structure-file";
-                            if (indent) el.style.paddingLeft = `${indent.length}ch`;
-                            el.textContent = `${marker} ${text}`;
-                            el.style.cursor = "pointer";
-                            el.title = "点击播放";
-                            el.onclick = function (event) {
-                                playText(event, el.textContent, el, true);
-                            };
-                            wrapper.appendChild(el);
-                        } else {
-                            const el = document.createElement("span");
-                            el.className = "file-structure-path";
-                            if (indent) el.style.paddingLeft = `${indent.length}ch`;
-                            el.textContent = raw.trimEnd();
-                            wrapper.appendChild(el);
-                        }
-                    }
-                    contentDiv.appendChild(wrapper);
-                } else {
-                    const pre = document.createElement("pre");
-                    const code = document.createElement("code");
-                    code.className = `language-${codeLang}`;
-                    code.textContent = codeLines.join("\n");
-                    pre.appendChild(code);
-                    contentDiv.appendChild(pre);
-                    hljs.highlightElement(code);
-                }
-
-                return;
-            }
-
             const codeBlockStart = line.toString().trim().match(/^```([\w-]*)/);
             if (codeBlockStart) {
-
-                if (isInCodeBlock) {
-                    return;
-                }
                 isInCodeBlock = true;
                 codeLang = codeBlockStart[1] || "plaintext";
                 codeLines = [];
-                return;
-            }
-
-            if (isInCodeBlock) {
-                codeLines.push(line);
                 return;
             }
 
