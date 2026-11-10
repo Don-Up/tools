@@ -1341,8 +1341,10 @@
         let autoPlay = localStorage.getItem('focusDataflowAutoPlay') === 'true';
         let highlightEnabled = localStorage.getItem('focusDataflowHighlight') === 'true';
         let useCn = localStorage.getItem('focusDataflowUseCn') === 'true';
-        // Play Comment:打开后不念步骤讲解,改念当前步骤在代码里高亮的第一条注释
+        // Play Comment:打开后不念步骤讲解,改念当前步骤在代码里高亮的注释
         let playComment = localStorage.getItem('focusDataflowPlayComment') === 'true';
+        // All:配合 Play Comment,念当前步骤高亮的全部注释(而不是第一条)
+        let playAll = localStorage.getItem('focusDataflowPlayAll') === 'true';
         let noteSegments = [];
         let codeSnippets = '';
         let codeLines = [];
@@ -1350,6 +1352,7 @@
         let awaitingCodePaste = false;
         let commentUtterance = null;
         let speakingCmtEl = null;
+        let speakingCmtEls = [];      // All 模式:同时念多条注释时,这些元素都在念
         const stage = document.getElementById('stage');
         const codePasteInput = document.getElementById('codePaste');
         const codeHint = document.getElementById('codeHint');
@@ -2077,6 +2080,13 @@
                 readBtn.disabled = !readButtonEnabled();
             }));
 
+            // Play Comment 右边:All —— 念当前步骤高亮的全部注释,而不是第一条
+            ctrlRow.appendChild(buildToggle('All', playAll, (checked) => {
+                playAll = checked;
+                localStorage.setItem('focusDataflowPlayAll', String(checked));
+                readBtn.disabled = !readButtonEnabled();
+            }));
+
             controls.appendChild(ctrlRow);
 
             return controls;
@@ -2223,18 +2233,25 @@
             return idx >= 0 ? text.slice(idx) : '';
         }
 
-        // 当前步骤在代码面板里高亮的第一条注释(原文)
-        function firstHighlightedCommentLine() {
-            if (!codeLines.length) return '';
+        // 当前步骤在代码面板里高亮的所有注释(原文,按代码顺序)
+        function highlightedCommentLines() {
+            const out = [];
+            if (!codeLines.length) return out;
             const step = steps[currentIndex];
             const key = step && step.label ? step.label : String(currentIndex + 1);
             const idxs = codeStepLines.get(key);
-            if (!idxs || !idxs.length) return '';
+            if (!idxs || !idxs.length) return out;
             for (const i of idxs) {
                 const part = commentPartOfLine(codeLines[i] || '');
-                if (part) return part;
+                if (part) out.push(part);
             }
-            return '';
+            return out;
+        }
+
+        // 当前步骤高亮的第一条注释(原文)
+        function firstHighlightedCommentLine() {
+            const list = highlightedCommentLines();
+            return list.length ? list[0] : '';
         }
 
         // 代码注释 -> 朗读文本
@@ -2264,15 +2281,41 @@
             return !!currentEnglishText();
         }
 
-        // 播放"当前高亮的第一条代码注释"(Play Comment 打开时用)
+        // 多个注释之间的分隔符:中文用句号,英文用句点
+        function commentSeparator(text) {
+            return /[぀-ヿ㐀-䶿一-鿿＀-￯]/.test(text) ? '。' : '. ';
+        }
+
+        // 播放当前步骤高亮的代码注释(Play Comment 打开时用)
+        //   All 关:只念第一条
+        //   All 开:念全部,注释之间用句号隔开
         function speakHighlightedComment() {
-            const text = commentSpeechText(firstHighlightedCommentLine());
-            if (!text) return false;
+            const raws = playAll ? highlightedCommentLines() : [firstHighlightedCommentLine()];
+            const texts = raws.map(commentSpeechText).filter(Boolean);
+            if (!texts.length) return false;
+            const text = texts.join(commentSeparator(texts.join(' ')));
             const pane = stage.querySelector('.code-pane');
-            const el = pane ? pane.querySelector('.cmt-step') : null;
+            const els = pane ? Array.from(pane.querySelectorAll('.cmt-step')) : [];
             stopSpeaking();
-            const ok = speakComment(text, el, { cleaned: true, onDone: () => setReadButtonState(false) });
-            if (ok) setReadButtonState(true);
+            const ok = speakComment(text, els[0] || null, {
+                cleaned: true,
+                onDone: () => {
+                    // All 模式:每一条都要清掉"正在念"的高亮
+                    if (speakingCmtEls.length) {
+                        speakingCmtEls.forEach(el => el.classList.remove('speaking'));
+                        speakingCmtEls = [];
+                    }
+                    setReadButtonState(false);
+                }
+            });
+            if (ok) {
+                // All 模式:所有高亮的注释一起标成"正在念"
+                if (playAll) {
+                    els.forEach(el => el.classList.add('speaking'));
+                    speakingCmtEls = els;
+                }
+                setReadButtonState(true);
+            }
             return ok;
         }
 
@@ -2280,6 +2323,11 @@
             if (speakingCmtEl) {
                 speakingCmtEl.classList.remove('speaking');
                 speakingCmtEl = null;
+            }
+            // All 模式:一次念多条,每一条都要清掉高亮
+            if (speakingCmtEls.length) {
+                speakingCmtEls.forEach(el => el.classList.remove('speaking'));
+                speakingCmtEls = [];
             }
             if (!commentUtterance) return;
             if ('speechSynthesis' in window) speechSynthesis.cancel();
