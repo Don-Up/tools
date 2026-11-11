@@ -582,6 +582,11 @@
             cursor: default;
         }
 
+        /* Copy 按钮靠右下角(把前面的 Pre/Next 挤到左边) */
+        .data-snapshot .ds-btn-copy {
+            margin-left: auto;
+        }
+
         /* 遮罩层（背景半透明） */
         .modal-overlay {
             position: fixed;
@@ -1586,6 +1591,34 @@
         }
     }
 
+    // 复制文本到剪贴板:优先 Clipboard API,
+    // 非安全上下文(file:// 之类)退回 execCommand
+    function copyTextToClipboard(text) {
+        return new Promise((resolve) => {
+            const fallback = () => {
+                try {
+                    const ta = document.createElement("textarea");
+                    ta.value = text;
+                    ta.style.position = "fixed";
+                    ta.style.left = "-9999px";
+                    ta.style.top = "0";
+                    document.body.appendChild(ta);
+                    ta.select();
+                    const ok = document.execCommand("copy");
+                    document.body.removeChild(ta);
+                    return !!ok;
+                } catch (e) {
+                    return false;
+                }
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => resolve(true)).catch(() => resolve(fallback()));
+            } else {
+                resolve(fallback());
+            }
+        });
+    }
+
     // 让 data-snapshot 面板可以拖走:抓住头部拖 -> 变成浮动窗口
     // (滚动正文时它停在原地,方便拖到流程图旁边对照着看),
     // 双击头部 -> 回到原来的位置
@@ -1724,8 +1757,14 @@
         nextBtn.className = "ds-btn";
         nextBtn.type = "button";
         nextBtn.textContent = "Next";
+        const copyBtn = document.createElement("button");
+        copyBtn.className = "ds-btn ds-btn-copy";
+        copyBtn.type = "button";
+        copyBtn.textContent = "Copy";
+        copyBtn.title = "复制当前这条快照的 JSON";
         foot.appendChild(prevBtn);
         foot.appendChild(nextBtn);
+        foot.appendChild(copyBtn);
 
         wrapper.appendChild(head);
         wrapper.appendChild(body);
@@ -1798,6 +1837,20 @@
         nextBtn.addEventListener("click", (event) => {
             event.stopPropagation();
             if (index < items.length - 1) show(index + 1);
+        });
+
+        // 复制当前这一条快照的 JSON(格式化后带缩进,方便贴回代码里)
+        copyBtn.addEventListener("click", (event) => {
+            event.stopPropagation();
+            const item = items[index];
+            if (item === undefined) return;
+            const text = JSON.stringify(item, null, 2);
+            copyTextToClipboard(text).then((ok) => {
+                copyBtn.textContent = ok ? "copied" : "复制失败";
+                setTimeout(() => {
+                    copyBtn.textContent = "Copy";
+                }, 800);
+            });
         });
 
         show(0);
