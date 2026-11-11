@@ -253,6 +253,8 @@
 <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-java.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-kotlin.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script> <!-- Python -->
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>   <!-- Shell/Bash -->
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 
 <script>
@@ -324,6 +326,24 @@ ${text}
         return '';
     }
 
+    // 代码片段的语言名统一成 Prism 认识的名字
+    // (Prism 只认 python,不认 python3 / py 这种写法,不转一下就高亮不了)
+    const PRISM_LANG_ALIAS = {
+        'python': 'python',
+        'python3': 'python',
+        'python2': 'python',
+        'py': 'python',
+        'sh': 'bash',
+        'shell': 'bash',
+        'zsh': 'bash',
+    };
+    function normalizeSnippetLang(lang) {
+        const clean = String(lang == null ? '' : lang).trim().toLowerCase()
+            .replace(/[^a-z0-9_+#.-]/g, '');
+        if (!clean) return 'plaintext';
+        return PRISM_LANG_ALIAS[clean] || clean;
+    }
+
     // 一条题目 -> <div class="options" data-answer="1"> ... </div>
     // snippet: 这道题对应的代码片段 { lang, code },渲染成 <pre><code> 放在题目下方
     function jsonItemToHtml(item, snippet) {
@@ -350,7 +370,7 @@ ${text}
 
         // 代码片段:默认藏着,用户选了答案才显示出来
         if (snippet && snippet.code) {
-            const lang = String(snippet.lang || '').replace(/[^A-Za-z0-9_+#.-]/g, '') || 'plaintext';
+            const lang = normalizeSnippetLang(snippet.lang);
             lines.push(`<pre class="snippet" hidden><code class="language-${lang}">${escapeHtmlText(snippet.code)}</code></pre>`);
         }
 
