@@ -468,6 +468,26 @@
             padding-bottom: 8px;
             border-bottom: 1px solid #333;
             margin-bottom: 10px;
+            cursor: grab;          /* 抓住头部可以拖动面板 */
+            user-select: none;     /* 拖动时不要选中文字 */
+            touch-action: none;    /* 触屏拖动时不要顺手滚页面 */
+        }
+
+        .data-snapshot .ds-head:active {
+            cursor: grabbing;
+        }
+
+        .data-snapshot .ds-drag-hint {
+            color: #6b7a80;
+            font-size: 12px;
+            font-family: inherit;
+        }
+
+        /* 拖起来之后变成浮动窗口:可以拖到流程图旁边对照着看 */
+        .data-snapshot.ds-floating {
+            position: fixed;
+            z-index: 9999;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
         }
 
         .data-snapshot .ds-id {
@@ -1502,7 +1522,9 @@
             }
             contentDiv.appendChild(wrapper);
         } else if (codeLang === 'data-snapshot') {
-            contentDiv.appendChild(buildDataSnapshot(codeLines.join("\n")));
+            const panel = buildDataSnapshot(codeLines.join("\n"));
+            contentDiv.appendChild(panel);
+            makeDraggable(panel);
         } else {
             const pre = document.createElement("pre");
             const code = document.createElement("code");
@@ -1564,6 +1586,89 @@
         }
     }
 
+    // 让 data-snapshot 面板可以拖走:抓住头部拖 -> 变成浮动窗口
+    // (滚动正文时它停在原地,方便拖到流程图旁边对照着看),
+    // 双击头部 -> 回到原来的位置
+    function makeDraggable(el) {
+        const head = el.querySelector('.ds-head');
+        if (!head) return;
+        let dragging = false;
+        let startX = 0, startY = 0, startLeft = 0, startTop = 0;
+        let placeholder = null;
+
+        // 变成浮动窗口:固定到当前所在的位置,原位置留一个占位,正文不会往上跳
+        function toFloating() {
+            if (el.classList.contains('ds-floating')) return;
+            const rect = el.getBoundingClientRect();
+            // 原位置留一个占位,正文不会因为面板浮动而往上跳
+            placeholder = document.createElement("div");
+            placeholder.className = "ds-placeholder";
+            placeholder.style.height = (rect.height + 20) + "px";
+            if (el.parentNode) el.parentNode.insertBefore(placeholder, el);
+            // 挪到 body 下面:正文容器 .container 上有 backdrop-filter,
+            // 它会让 position:fixed 相对容器定位而不是相对视口,
+            // 面板会被甩到一边去(之前跳到右上角就是这个原因)
+            document.body.appendChild(el);
+            el.classList.add('ds-floating');
+            el.style.width = rect.width + 'px';
+            el.style.left = rect.left + 'px';
+            el.style.top = rect.top + 'px';
+        }
+
+        // 归位:回到正文流里
+        function backToFlow() {
+            if (!el.classList.contains('ds-floating')) return;
+            el.classList.remove('ds-floating');
+            el.style.width = "";
+            el.style.left = "";
+            el.style.top = "";
+            if (placeholder && placeholder.parentNode) {
+                placeholder.parentNode.insertBefore(el, placeholder);
+                placeholder.parentNode.removeChild(placeholder);
+            }
+            placeholder = null;
+        }
+
+        head.addEventListener("pointerdown", (e) => {
+            if (e.button !== 0) return;   // 只响应左键
+            toFloating();
+            const rect = el.getBoundingClientRect();
+            dragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            startLeft = rect.left;
+            startTop = rect.top;
+            try { head.setPointerCapture(e.pointerId); } catch (err) { }
+            e.preventDefault();   // 不要开始选文字
+        });
+
+        head.addEventListener("pointermove", (e) => {
+            if (!dragging) return;
+            let left = startLeft + (e.clientX - startX);
+            let top = startTop + (e.clientY - startY);
+            const w = el.offsetWidth || 300;
+            // 别整个拖出窗口(留一点边在屏幕内)
+            left = Math.max(60 - w, Math.min(left, window.innerWidth - 60));
+            top = Math.max(0, Math.min(top, window.innerHeight - 40));
+            el.style.left = left + "px";
+            el.style.top = top + "px";
+        });
+
+        const stopDrag = (e) => {
+            if (!dragging) return;
+            dragging = false;
+            try { head.releasePointerCapture(e.pointerId); } catch (err) { }
+        };
+        head.addEventListener("pointerup", stopDrag);
+        head.addEventListener("pointercancel", stopDrag);
+
+        // 双击头部 -> 归位
+        head.addEventListener("dblclick", (e) => {
+            e.preventDefault();
+            backToFlow();
+        });
+    }
+
     // ```data-snapshot``` 块 -> 固定高度的元素,一次只显示一条快照,
     // 底部有 Pre / Next 用来切换
     function buildDataSnapshot(jsonText) {
@@ -1598,9 +1703,13 @@
         stepEl.className = "ds-step";
         const posEl = document.createElement("span");
         posEl.className = "ds-pos";
+        const dragHint = document.createElement("span");
+        dragHint.className = "ds-drag-hint";
+        dragHint.textContent = "⋮⋮ 拖动 / 双击归位";
         head.appendChild(idEl);
         head.appendChild(stepEl);
         head.appendChild(posEl);
+        head.appendChild(dragHint);
 
         const body = document.createElement("div");
         body.className = "ds-body";
@@ -1698,6 +1807,9 @@
     function processText(input) {
         const contentDiv = document.getElementById("content");
         contentDiv.innerHTML = "";
+        // 上一次渲染时拖出去的快照面板会留在 body 下,这里清掉,
+        // 免得变成删不掉的孤儿面板
+        document.querySelectorAll("body > .data-snapshot.ds-floating").forEach(el => el.remove());
 
         const lines = input.split("\n");
         let isInCodeBlock = false;
