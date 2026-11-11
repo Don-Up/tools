@@ -1090,7 +1090,8 @@
 
         // 步骤编号:单段("1" / "01")或两级("1-1" / "1-12");每段限 1-3 位,免得把 2024-01-01 当成编号
         const STEP_LINE_RE = /^(\d{1,3}-\d{1,3}|\d+)?\s*(?:(→|↳))?\s*([\s\S]*)$/;
-        const CODE_MARKER_RE = /^\s*\/\/\s*(?:(\d{1,3})-(\d{1,3})(?!\d)|(\d{2,3})(?!\d))/;
+        // 步骤标记行:"// 1-2" / "// 01",Python 风格的 "# 01" / "# 1-2" 也认
+        const CODE_MARKER_RE = /^\s*(?:\/\/|#)\s*(?:(\d{1,3})-(\d{1,3})(?!\d)|(\d{2,3})(?!\d))/;
 
         function normalizeStepLabel(raw) {
             if (raw === null || raw === undefined) return null;
@@ -1165,9 +1166,9 @@
             return tokens;
         }
 
-        // 代码里的分节注释行:"// ===== 文件路径(说明) ====="
+        // 代码里的分节注释行:"// ===== 文件路径(说明) ====="(也认 "# =====")
         function isSeparatorLine(line) {
-            return /^\s*\/\/\s*={3,}/.test(String(line === null || line === undefined ? '' : line));
+            return /^\s*(?:\/\/|#)\s*={3,}/.test(String(line === null || line === undefined ? '' : line));
         }
 
         function compareStepKeys(a, b) {
@@ -1359,7 +1360,7 @@
         let codeHintTimer = null;
 
         function isDecorationLine(line) {
-            return /^\s*```/.test(line) || /^\s*\/\/\s*=+\s*$/.test(line);
+            return /^\s*```/.test(line) || /^\s*(?:\/\/|#)\s*=+\s*$/.test(line);
         }
 
         function parseCodeSnippets(text) {
@@ -1412,9 +1413,9 @@
                     map.get(currentStep).push(i);
                     return;
                 }
-                // 非 marker 行:若带右侧 // 注释,且属于当前步骤的范围,记入
+                // 非 marker 行:若带注释(// 或行首 #),且属于当前步骤的范围,记入
                 if (currentStep === null) return;
-                if (findTrailingCommentIndex(line) >= 0) {
+                if (findCommentIndex(line) >= 0) {
                     if (!map.has(currentStep)) map.set(currentStep, []);
                     map.get(currentStep).push(i);
                 }
@@ -1533,7 +1534,19 @@
         function isCommentLine(line, inBlock) {
             if (inBlock) return true;
             const t = line.trim();
-            return t.startsWith('//') || t.startsWith('/*') || t.startsWith('*');
+            // # 开头的整行也当注释(Python / Shell 风格)
+            return t.startsWith('//') || t.startsWith('/*') || t.startsWith('*') || t.startsWith('#');
+        }
+
+        // 一行里注释从哪开始:
+        //   //  出现在任何位置(字符串里的不算)
+        //   #   只认行首(去掉空白后的第一个字符),
+        //        否则 #fff / #include 之类的会被误当成注释
+        function findCommentIndex(line) {
+            const text = String(line == null ? '' : line);
+            const hash = text.match(/^\s*#/);
+            if (hash) return hash[0].length - 1;
+            return findTrailingCommentIndex(text);
         }
 
         function buildKeywordRegexes() {
@@ -1632,7 +1645,7 @@
                     pre.appendChild(document.createTextNode('\n'));
                 } else {
                     // 非注释行:检测是否带右侧 // 注释,若是则拆开渲染,只对注释部分高亮
-                    const commentIdx = findTrailingCommentIndex(line);
+                    const commentIdx = findCommentIndex(line);
                     if (commentIdx >= 0) {
                         appendCodeLineContent(pre, line.slice(0, commentIdx));
                         const span = document.createElement('span');
@@ -2220,7 +2233,7 @@
 
         function stripCommentMarkers(text) {
             return text
-                .replace(/^\s*(?:\/\/|\/\*\*?|\*)\s?/, '')
+                .replace(/^\s*(?:\/\/|#|\/\*\*?|\*)\s?/, '')
                 .replace(/\s*\*\/\s*$/, '')
                 .trim();
         }
@@ -2229,7 +2242,7 @@
         function commentPartOfLine(line) {
             const text = String(line == null ? '' : line);
             if (isCommentLine(text, false)) return text;
-            const idx = findTrailingCommentIndex(text);
+            const idx = findCommentIndex(text);
             return idx >= 0 ? text.slice(idx) : '';
         }
 
