@@ -438,6 +438,111 @@
             background: rgba(79, 195, 247, 0.12);
         }
 
+        /* mindmap 块:参考 mindmap.html 的层级配色 */
+        .mindmap-container {
+            width: 100%;
+            margin: 0 0 12px;
+            padding: 0;
+            overflow-x: auto;
+        }
+
+        .mindmap-container ul {
+            list-style: none;
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .mindmap-container .mindmap-node {
+            margin: 8px 0;
+            padding: 4px 8px;
+            border-radius: 4px;
+            line-height: 1.5;
+            position: relative;
+            cursor: pointer;
+            display: inline-block;
+            min-width: fit-content;
+            white-space: nowrap;
+            box-sizing: border-box;
+        }
+
+        .mindmap-container .node-level-0 {
+            font-size: 18px;
+            font-weight: bold;
+            background: #4285f4;
+            color: #fff;
+            margin-left: 0;
+        }
+
+        .mindmap-container .node-level-1 {
+            font-size: 15px;
+            font-weight: bold;
+            background: #80752c;
+            color: #fff;
+            margin-left: 30px;
+        }
+
+        .mindmap-container .node-level-2 {
+            font-size: 14px;
+            background: #1d953f;
+            color: #eee;
+            margin-left: 60px;
+        }
+
+        .mindmap-container .node-level-3 {
+            font-size: 12px;
+            background: #abc88b;
+            color: #333;
+            margin-left: 90px;
+        }
+
+        .mindmap-container .node-level-4 {
+            font-size: 11px;
+            background: #fedcbd;
+            color: #333;
+            margin-left: 120px;
+        }
+
+        /* 层级连接线 */
+        .mindmap-container .node-level-1::before {
+            content: '';
+            position: absolute;
+            left: -20px;
+            top: 50%;
+            width: 20px;
+            height: 1px;
+            background: #999;
+        }
+
+        .mindmap-container .node-level-2::before {
+            content: '';
+            position: absolute;
+            left: -30px;
+            top: 50%;
+            width: 30px;
+            height: 1px;
+            background: #999;
+        }
+
+        .mindmap-container .node-level-3::before {
+            content: '';
+            position: absolute;
+            left: -40px;
+            top: 50%;
+            width: 40px;
+            height: 1px;
+            background: #999;
+        }
+
+        .mindmap-container .node-level-4::before {
+            content: '';
+            position: absolute;
+            left: -50px;
+            top: 50%;
+            width: 50px;
+            height: 1px;
+            background: #999;
+        }
+
         /* data-snapshot 块:固定高度,一次只显示一条快照 */
         .data-snapshot {
             position: relative;
@@ -1490,7 +1595,67 @@
         return html;
     }
 
-    // 代码块结束时的渲染:file-structure / data-snapshot / 普通代码
+    // mindmap 块:按行首 * 的个数分层显示(参考 mindmap.html)
+    //   * 0 级,** 1 级,*** 2 级……
+    // 一行里可能挤了两个节点:"** 正文口径*** decode_source_body",
+    // 行中出现的新一组星号(两个以上)另起一个节点
+    function splitMindmapLine(line) {
+        const text = String(line == null ? '' : line);
+        const nodes = [];
+        let i = 0;
+        let stars = 0;
+        // 行首连续的星号决定这一行的层级(和 mindmap.html 一样:星号数 - 1)
+        while (i < text.length && text[i] === '*') {
+            stars++;
+            i++;
+        }
+        let textStart = i;
+        while (i < text.length) {
+            if (text[i] === '*' && text[i + 1] === '*') {
+                let j = i;
+                while (j < text.length && text[j] === '*') j++;
+                const head = text.slice(textStart, i).trim();
+                if (head) nodes.push({ level: Math.max(0, stars - 1), text: head });
+                stars = j - i;
+                textStart = j;
+                i = j;
+            } else {
+                i++;
+            }
+        }
+        const tail = text.slice(textStart).trim();
+        if (tail) nodes.push({ level: Math.max(0, stars - 1), text: tail });
+        return nodes;
+    }
+
+    function buildMindmap(text) {
+        const container = document.createElement("div");
+        container.className = "mindmap-container";
+        const ul = document.createElement("ul");
+        String(text == null ? '' : text).split("\n").forEach(raw => {
+            const line = raw.trim();
+            if (!line) return;
+            splitMindmapLine(line).forEach(node => {
+                if (node.text === 'hr') {
+                    ul.appendChild(document.createElement('hr'));
+                    return;
+                }
+                const li = document.createElement('li');
+                li.className = 'mindmap-node node-level-' + Math.min(node.level, 4);
+                li.textContent = node.text;
+                li.title = '点击播放';
+                li.onclick = function (event) {
+                    playText(event, node.text, li);
+                };
+                ul.appendChild(li);
+                ul.appendChild(document.createElement('br'));
+            });
+        });
+        container.appendChild(ul);
+        return container;
+    }
+
+    // 代码块结束时的渲染:file-structure / data-snapshot / mindmap / 普通代码
     function renderCodeBlock(contentDiv, codeLang, codeLines) {
         if (codeLang === 'file-structure') {
             const wrapper = document.createElement("div");
@@ -1530,6 +1695,8 @@
             const panel = buildDataSnapshot(codeLines.join("\n"));
             contentDiv.appendChild(panel);
             makeDraggable(panel);
+        } else if (codeLang === 'mindmap') {
+            contentDiv.appendChild(buildMindmap(codeLines.join("\n")));
         } else {
             const pre = document.createElement("pre");
             const code = document.createElement("code");
@@ -1878,13 +2045,15 @@
             // 代码块里的内容不参与表格/列表解析
             // (否则 JSON 里的 "- xxx" 或 "|xxx|" 会被误判,那行还会从代码里丢掉)
             if (isInCodeBlock) {
-                if (line.toString().trim() === "```") {
+                const trimmed = line.toString().trim();
+                // 结束围栏:``` 或者 ```mindmap 这种带语言名的也行
+                if (/^```\s*[\w-]*\s*$/.test(trimmed)) {
                     isInCodeBlock = false;
                     renderCodeBlock(contentDiv, codeLang, codeLines);
                     return;
                 }
                 // 代码块里再出现的 ```xxx 忽略(和原来的行为一致)
-                if (!/^```/.test(line.toString().trim())) codeLines.push(line);
+                if (!/^```/.test(trimmed)) codeLines.push(line);
                 return;
             }
 
