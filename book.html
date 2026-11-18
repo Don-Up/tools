@@ -568,6 +568,7 @@ function loadFromText(text, sourceName) {
 }
 
 function setEntries(list, startIndex) {
+    stopAudio();           // 换书了:正在播的也停掉
     clearAudioCache();     // 换书了:之前合的音频全部释放
     entries = list;
     index = startIndex || 0;
@@ -800,6 +801,24 @@ function setIndex(i) {
 const PREFETCH_AHEAD = 2;     // 最多提前生成几条(第 2 页时,提前把 3、4 页合好)
 const inflight = new Set();   // 正在合的 key,避免重复请求
 
+function prefetchOne(i, p) {
+    const item = entries[i];
+    if (!item) return;
+    const key = audioKey(i, p);
+    if (!key) return;
+    if (audioCache.has(key)) return;    // 已经有了
+    if (inflight.has(key)) return;      // 正在合
+    inflight.add(key);
+    fetchAudio(item.en, p.voice.Name, p.style, p.rate, p.volume)
+        .then((a) => {
+            audioCache.set(key, a);
+            trimCache();
+            updateCacheInfo();
+        })
+        .catch(() => { /* 预取失败无所谓,翻过去再正常取 */ })
+        .finally(() => { inflight.delete(key); });
+}
+
 function prefetchAhead() {
     if (!settings.autoPlay) return;
     if (!settings.cache) return;
@@ -808,20 +827,16 @@ function prefetchAhead() {
     const p = currentParams();
 
     for (let k = 1; k <= PREFETCH_AHEAD && k < n; k++) {
-        const i = (index + k) % n;
-        const key = audioKey(i, p);
-        if (audioCache.has(key)) continue;    // 已经有了
-        if (inflight.has(key)) continue;       // 正在合
-        inflight.add(key);
-        fetchAudio(entries[i].en, p.voice.Name, p.style, p.rate, p.volume)
-            .then((a) => {
-                audioCache.set(key, a);
-                trimCache();
-                updateCacheInfo();
-            })
-            .catch(() => { /* 预取失败无所谓,翻过去再正常取 */ })
-            .finally(() => { inflight.delete(key); });
+        prefetchOne((index + k) % n, p);
     }
+}
+
+// 音色/风格/语速换了:当前这条也要用新参数重新合一份(否则要点播放才现合,等半天)
+function prefetchCurrent() {
+    if (!settings.autoPlay) return;
+    if (!settings.cache) return;
+    if (!entries.length || !settings.region) return;
+    prefetchOne(index, currentParams());
 }
 
 // 自动朗读延后一点,快速滑动时不会每经过一条就读一句
@@ -1134,17 +1149,25 @@ function audioKey(i, p) {
     return paramsPrefix(p) + item.en;
 }
 
-// 翻页不删缓存,只有两种情况会释放:
-//   1. 换了音色/风格/语速 —— 旧音频对不上参数,留着也没用
-//   2. 加载了新的 JSON —— 见 setEntries()
+// 缓存不因为"翻页"或"换角色"而丢东西:
+//   已经合好的、预生成的一律留着,只有两种情况会整体释放:
+//     1. 加载了新的 JSON —— 见 setEntries()
+//     2. 手动点"清空缓存"
+//   平时只在总体积超上限时,按插入顺序(最老的先丢)挤掉几条,正在播的那条永远不丢
+const MAX_CACHE_BYTES = 30 * 1024 * 1024;   // 约 30MB
+
 function trimCache() {
-    const prefix = paramsPrefix(currentParams());
-    Array.from(audioCache.entries()).forEach(([k, v]) => {
-        if (v.url === audioUrl) return;          // 正在播的先别动
-        if (k.startsWith(prefix)) return;       // 当前参数下的,留着
-        URL.revokeObjectURL(v.url);
-        audioCache.delete(k);
-    });
+    let bytes = 0;
+    audioCache.forEach((v) => { bytes += v.size || 0; });
+    if (bytes > MAX_CACHE_BYTES) {
+        for (const [k, v] of audioCache) {
+            if (bytes <= MAX_CACHE_BYTES) break;
+            if (v.url === audioUrl) continue;    // 正在播的先别动
+            URL.revokeObjectURL(v.url);
+            audioCache.delete(k);
+            bytes -= v.size || 0;
+        }
+    }
     updateCacheInfo();
 }
 
@@ -1383,7 +1406,7 @@ voiceSelect.addEventListener("change", () => {
     renderStyleOptions();
     settings.style = styleSelect.value;
     saveSettings();
-    clearAudioCache();
+    prefetchCurrent();
     prefetchAhead();
 });
 voiceSelectM.addEventListener("change", () => {
@@ -1392,27 +1415,30 @@ voiceSelectM.addEventListener("change", () => {
     renderStyleOptions();
     settings.style = styleSelect.value;
     saveSettings();
-    clearAudioCache();
+    prefetchCurrent();
     prefetchAhead();
 });
 styleSelect.addEventListener("change", () => {
     styleSelectM.value = styleSelect.value;
     settings.style = styleSelect.value;
     saveSettings();
-    clearAudioCache();
+    prefetchCurrent();
     prefetchAhead();
 });
 styleSelectM.addEventListener("change", () => {
     styleSelect.value = styleSelectM.value;
     settings.style = styleSelect.value;
     saveSettings();
-    clearAudioCache();
+    prefetchCurrent();
     prefetchAhead();
 });
 
+// 清空缓存:不动正在播的那条(免得打断),它等停了自然会释放
 function clearAudioCache() {
-    stopAudio();
-    audioCache.forEach((v) => URL.revokeObjectURL(v.url));
+    const keep = audioUrl;
+    audioCache.forEach((v) => {
+        if (v.url !== keep) URL.revokeObjectURL(v.url);
+    });
     audioCache.clear();
     updateCacheInfo();
 }
@@ -1431,7 +1457,7 @@ function bindRange(id, outId, key) {
     });
     // 松手才作废旧缓存(拖动过程中不停音、也不反复请求)
     el.addEventListener("change", function () {
-        clearAudioCache();
+        prefetchCurrent();
         prefetchAhead();
     });
 }
