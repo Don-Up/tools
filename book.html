@@ -351,6 +351,11 @@
         <span id="volumeValue">0%</span>
     </div>
     <div class="row">
+        <label>重复次数</label>
+        <input type="number" id="repeatInput" min="1" max="20" step="1" value="1" style="width: 84px">
+        <span class="hintline">每句连读几遍(1 = 只读一次)</span>
+    </div>
+    <div class="row">
         <label>中文朗读</label>
         <label class="check"><input type="checkbox" id="cnSpeak"> 用浏览器语音读中文</label>
         <label style="min-width: auto; margin-left: 18px;">音频缓存</label>
@@ -434,6 +439,7 @@ let audio = null;          // 当前播放的 <audio>
 let audioUrl = null;
 let playing = false;
 let playingIndex = -1;
+let repeatLeft = 0;         // 这句还要再念几遍
 let fetchToken = 0;        // 防止快速切换时旧请求覆盖新的
 let lockUntil = 0;         // 程序化滚动期间,忽略可见度回调
 let autoTimer = null;
@@ -454,6 +460,7 @@ const settings = Object.assign({
     cnSpeak: false,
     cache: true,
     sysVoice: false,
+    repeat: 1,
     voice: "",
     style: ""
 }, loadSettings());
@@ -1208,6 +1215,7 @@ function markAllPast() {
 function stopAudio() {
     if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
     if (sysSpeakTimer) { clearTimeout(sysSpeakTimer); sysSpeakTimer = null; }
+    repeatLeft = 0;
     if (window.speechSynthesis && sysUtterance) {
         try { window.speechSynthesis.cancel(); } catch (e) { /* 忽略 */ }
         sysUtterance = null;
@@ -1229,6 +1237,14 @@ function stopAudio() {
     playingIndex = -1;
     btnPlay.textContent = "朗读";
     btnPlayM.textContent = "🔊 朗读";
+}
+
+// 一句要连读几遍
+function repeatTimes() {
+    let v = parseInt(settings.repeat, 10);
+    if (!v || v < 1) v = 1;
+    if (v > 20) v = 20;
+    return v;
 }
 
 async function play(which) {
@@ -1270,8 +1286,16 @@ async function play(which) {
 
     audioUrl = url;
     trimCache();          // 只留当前这条 + 下一条,其余释放
+    repeatLeft = repeatTimes() - 1;   // 还要再念几遍
     audio = new Audio(url);
     audio.addEventListener("ended", () => {
+        if (repeatLeft > 0) {
+            repeatLeft--;
+            audio.currentTime = 0;
+            startHighlight(i);        // 重新从头点亮
+            audio.play().catch(() => { /* 忽略 */ });
+            return;
+        }
         playing = false;
         playingIndex = -1;
         markAllPast();       // 读完了,最后一个词也变灰
@@ -1421,53 +1445,63 @@ function playSystem(i) {
 
     stopAudio();
     if (settings.cnSpeak) speakCn(item.cn);
-
-    const u = new SpeechSynthesisUtterance(item.en);
-    u.lang = "en-US";
+    repeatLeft = repeatTimes() - 1;
     let started = false;
-    const v = pickSystemVoice();
-    if (v) u.voice = v;
-    u.rate = Math.min(2, Math.max(0.5, 1 + (settings.rate || 0) / 100));
-    u.volume = Math.min(1, Math.max(0, 1 + (settings.volume || 0) / 100));
 
-    u.onstart = () => {
-        started = true;
-        playing = true;
-        playingIndex = i;
-        btnPlay.textContent = "停止";
-        btnPlayM.textContent = "⏹ 停止";
-        startHighlightSystem(i, u);
-    };
-    u.onend = () => {
-        playing = false;
-        playingIndex = -1;
-        markAllPast();          // 读完了,最后一个词也变灰
-        btnPlay.textContent = "朗读";
-        btnPlayM.textContent = "🔊 朗读";
-    };
-    u.onerror = (ev) => {
-        const err = ev && ev.error ? ev.error : "";
-        if (err && err !== "interrupted" && err !== "canceled") showStatus("系统语音播放失败:" + err);
-        playing = false;
-        btnPlay.textContent = "朗读";
-        btnPlayM.textContent = "🔊 朗读";
-    };
+    const speakOnce = () => {
+        const u = new SpeechSynthesisUtterance(item.en);
+        u.lang = "en-US";
+        const v = pickSystemVoice();
+        if (v) u.voice = v;
+        u.rate = Math.min(2, Math.max(0.5, 1 + (settings.rate || 0) / 100));
+        u.volume = Math.min(1, Math.max(0, 1 + (settings.volume || 0) / 100));
 
-    sysUtterance = u;
-    // iOS 上 cancel 之后马上 speak 经常哑掉,隔一小会儿再说
-    if (sysSpeakTimer) clearTimeout(sysSpeakTimer);
-    sysSpeakTimer = setTimeout(() => {
-        sysSpeakTimer = null;
+        u.onstart = () => {
+            started = true;
+            playing = true;
+            playingIndex = i;
+            btnPlay.textContent = "停止";
+            btnPlayM.textContent = "⏹ 停止";
+            startHighlightSystem(i, u);
+        };
+        u.onend = () => {
+            if (repeatLeft > 0) {          // 还要再念一遍
+                repeatLeft--;
+                speakOnce();
+                return;
+            }
+            playing = false;
+            playingIndex = -1;
+            markAllPast();          // 读完了,最后一个词也变灰
+            btnPlay.textContent = "朗读";
+            btnPlayM.textContent = "🔊 朗读";
+        };
+        u.onerror = (ev) => {
+            const err = ev && ev.error ? ev.error : "";
+            if (err && err !== "interrupted" && err !== "canceled") showStatus("系统语音播放失败:" + err);
+            playing = false;
+            btnPlay.textContent = "朗读";
+            btnPlayM.textContent = "🔊 朗读";
+        };
+
+        sysUtterance = u;
         try {
             window.speechSynthesis.speak(u);
         } catch (e) {
             showStatus("系统语音播放失败:" + e.message);
         }
+    };
+
+    // iOS 上 cancel 之后马上 speak 经常哑掉,隔一小会儿再说
+    if (sysSpeakTimer) clearTimeout(sysSpeakTimer);
+    sysSpeakTimer = setTimeout(() => {
+        sysSpeakTimer = null;
+        speakOnce();
     }, 60);
 
     // 1.5 秒还没开始念,多半是手机浏览器要求先有用户操作
     setTimeout(() => {
-        if (!started && sysUtterance === u) showStatus("系统语音没启动,手机上可能要先点一下页面再朗读");
+        if (!started) showStatus("系统语音没启动,手机上可能要先点一下页面再朗读");
     }, 1500);
 }
 
@@ -1646,6 +1680,16 @@ function bindRange(id, outId, key) {
 bindRange("rateInput", "rateValue", "rate");
 bindRange("volumeInput", "volumeValue", "volume");
 
+// 重复次数:每句连读几遍
+$("repeatInput").addEventListener("change", function () {
+    let v = parseInt(this.value, 10);
+    if (!v || v < 1) v = 1;
+    if (v > 20) v = 20;
+    settings.repeat = v;
+    this.value = v;
+    saveSettings();
+});
+
 function bindCheck(id, key, after) {
     $(id).addEventListener("change", function () {
         settings[key] = this.checked;
@@ -1801,6 +1845,7 @@ function applySettingsToUi() {
     $("rateValue").textContent = settings.rate + "%";
     $("volumeInput").value = settings.volume;
     $("volumeValue").textContent = settings.volume + "%";
+    $("repeatInput").value = settings.repeat || 1;
     $("autoPlay").checked = !!settings.autoPlay;
     $("autoPlayM").checked = !!settings.autoPlay;
     $("wordHl").checked = !!settings.wordHighlight;
