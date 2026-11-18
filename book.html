@@ -46,7 +46,7 @@
     .topbar .spacer { flex: 1; }
     .group { display: flex; align-items: center; gap: 6px; }
 
-    button, select, input[type="text"], input[type="password"], textarea {
+    button, select, input[type="text"], input[type="password"], input[type="number"], textarea {
         background: #252525;
         color: var(--fg);
         border: 1px solid #3a3a3a;
@@ -82,7 +82,9 @@
         border-radius: 4px;
         font-variant-numeric: tabular-nums;
         white-space: nowrap;
+        cursor: pointer;
     }
+    .counter:hover { border-color: var(--accent); color: var(--accent); }
 
     /* ---------- 底部浮动条(手机) ---------- */
     .mobilebar {
@@ -123,6 +125,32 @@
     .panel textarea { min-height: 150px; }
     .panel .hintline { font-size: 12px; color: var(--dim); margin-top: 6px; }
     .panel .sep { height: 1px; background: var(--line); margin: 10px 0; }
+
+    /* ---------- 跳页对话框 ---------- */
+    .dialog {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, .55);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        z-index: 50;
+    }
+    .dialog.hidden { display: none; }
+    .dialog-box {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 16px;
+        width: 290px;
+        max-width: 100%;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, .6);
+    }
+    .dialog-box h3 { margin: 0 0 10px; font-size: 14px; color: var(--accent); font-weight: normal; }
+    .dialog-box .row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+    .dialog-box input[type="number"] { width: 110px; }
+    .dialog-box .hintline { font-size: 12px; color: var(--dim); }
 
     /* ---------- 正文:每条一屏,纵向吸附 ---------- */
     #stage {
@@ -257,7 +285,7 @@
         <input type="file" id="fileInput" hidden>
     </div>
     <div class="spacer"></div>
-    <span class="counter" id="counter">0 / 0</span>
+    <span class="counter" id="counter" title="点一下可以输入页码">0 / 0</span>
     <select id="voiceSelect" title="音色 / 角色"></select>
     <select id="styleSelect" title="说话风格"></select>
     <div class="group">
@@ -272,7 +300,7 @@
 
 <div class="mobilebar">
     <button id="btnMenu" title="菜单">☰</button>
-    <span class="counter" id="counterM">0 / 0</span>
+    <span class="counter" id="counterM" title="点一下可以输入页码">0 / 0</span>
     <div class="spacer"></div>
     <button id="btnPlayM" class="primary">🔊 朗读</button>
 </div>
@@ -312,6 +340,13 @@
     <div class="row">
         <label>自动朗读</label>
         <label class="check"><input type="checkbox" id="autoPlayM"> 翻页后自动读英文</label>
+    </div>
+    <div class="row">
+        <label>连续播放</label>
+        <label class="check"><input type="checkbox" id="contChk"> 读完自动读下一句</label>
+        <label style="min-width: auto; margin-left: 18px;">间隔</label>
+        <input type="number" id="gapInput" min="0" max="600" step="1" value="0" style="width: 84px">
+        <span class="hintline">秒(0 = 马上接下一句)</span>
     </div>
     <div class="row">
         <label>逐词高亮</label>
@@ -366,6 +401,20 @@
     <div class="row">
         <button id="btnCloseSettings">关闭</button>
         <span class="hintline">设置保存在 localStorage;key 只存在本机浏览器里。</span>
+    </div>
+</div>
+
+<div class="dialog hidden" id="pageDialog">
+    <div class="dialog-box">
+        <h3>跳到第几页</h3>
+        <div class="row">
+            <input type="number" id="pageInput" min="1" step="1">
+            <span class="hintline" id="pageHint"></span>
+        </div>
+        <div class="row">
+            <button id="btnPageGo" class="primary">跳转</button>
+            <button id="btnPageCancel">取消</button>
+        </div>
     </div>
 </div>
 
@@ -440,6 +489,7 @@ let audioUrl = null;
 let playing = false;
 let playingIndex = -1;
 let repeatLeft = 0;         // 这句还要再念几遍
+let nextTimer = null;       // 连续播放:停几秒后自动读下一句
 let fetchToken = 0;        // 防止快速切换时旧请求覆盖新的
 let lockUntil = 0;         // 程序化滚动期间,忽略可见度回调
 let autoTimer = null;
@@ -461,6 +511,8 @@ const settings = Object.assign({
     cache: true,
     sysVoice: false,
     repeat: 1,
+    continuous: false,
+    gap: 0,
     voice: "",
     style: ""
 }, loadSettings());
@@ -806,12 +858,43 @@ function updateCounter() {
     counterM.textContent = text;
 }
 
+// 点页码:弹框出来直接输页码跳转
+function openPageDialog() {
+    if (!entries.length) { showStatus("还没加载内容,先打开一个文件"); return; }
+    const inp = $("pageInput");
+    inp.max = String(entries.length);
+    inp.value = String(index + 1);
+    $("pageHint").textContent = `共 ${entries.length} 页`;
+    $("pageDialog").classList.remove("hidden");
+    inp.focus();
+    inp.select();
+}
+
+function closePageDialog() {
+    $("pageDialog").classList.add("hidden");
+}
+
+function jumpToPage(n) {
+    const total = entries.length;
+    if (!total) return;
+    let t = parseInt(n, 10);
+    if (!t || t < 1) t = 1;
+    if (t > total) t = total;
+    closePageDialog();
+    const target = t - 1;
+    if (target === index) return;
+    lockUntil = Date.now() + 1200;   // 别让滚动回调又改回去(跨得远,动画久一点)
+    setIndex(target);
+    scrollToSlide(target, true);
+}
+
 function setIndex(i) {
     if (!entries.length) return;
     if (i === index) { updateCounter(); return; }
     index = i;
     updateCounter();
     saveEntries();
+    if (nextTimer) { clearTimeout(nextTimer); nextTimer = null; }   // 手动翻页:取消待播的下一句
     if (playing) stopAudio();
     if (settings.autoPlay) scheduleAutoPlay();
     prefetchAhead();
@@ -840,9 +923,14 @@ function prefetchOne(i, p) {
         .finally(() => { inflight.delete(key); });
 }
 
+// 要不要预取:自动朗读 或者 连续播放(下一句马上要念,得提前合好)
+function wantPrefetch() {
+    return !!(settings.autoPlay || settings.continuous);
+}
+
 function prefetchAhead() {
     if (settings.sysVoice) return;      // 系统音色模式:一条音频都不生成
-    if (!settings.autoPlay) return;
+    if (!wantPrefetch()) return;
     if (!settings.cache) return;
     if (!entries.length || !settings.region) return;
     const n = entries.length;
@@ -856,7 +944,7 @@ function prefetchAhead() {
 // 音色/风格/语速换了:当前这条也要用新参数重新合一份(否则要点播放才现合,等半天)
 function prefetchCurrent() {
     if (settings.sysVoice) return;      // 系统音色模式:一条音频都不生成
-    if (!settings.autoPlay) return;
+    if (!wantPrefetch()) return;
     if (!settings.cache) return;
     if (!entries.length || !settings.region) return;
     prefetchOne(index, currentParams());
@@ -1215,6 +1303,7 @@ function markAllPast() {
 function stopAudio() {
     if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
     if (sysSpeakTimer) { clearTimeout(sysSpeakTimer); sysSpeakTimer = null; }
+    if (nextTimer) { clearTimeout(nextTimer); nextTimer = null; }
     repeatLeft = 0;
     if (window.speechSynthesis && sysUtterance) {
         try { window.speechSynthesis.cancel(); } catch (e) { /* 忽略 */ }
@@ -1245,6 +1334,19 @@ function repeatTimes() {
     if (!v || v < 1) v = 1;
     if (v > 20) v = 20;
     return v;
+}
+
+// 连续播放:这句念完(重复次数用完)后,停 gap 秒自动翻到下一句继续读
+function scheduleNext() {
+    if (!settings.continuous) return;
+    if (nextTimer) { clearTimeout(nextTimer); nextTimer = null; }
+    const gap = Math.max(0, parseFloat(settings.gap) || 0);
+    nextTimer = setTimeout(() => {
+        nextTimer = null;
+        if (!entries.length) return;
+        move(1);
+        if (!settings.autoPlay) play(index);   // 自动朗读开着的话,setIndex 里已经安排过了
+    }, gap * 1000);
 }
 
 async function play(which) {
@@ -1301,6 +1403,7 @@ async function play(which) {
         markAllPast();       // 读完了,最后一个词也变灰
         btnPlay.textContent = "朗读";
         btnPlayM.textContent = "🔊 朗读";
+        scheduleNext();      // 连续播放:停一下再读下一句
     });
     audio.addEventListener("error", () => {
         showStatus("音频播放失败");
@@ -1475,6 +1578,7 @@ function playSystem(i) {
             markAllPast();          // 读完了,最后一个词也变灰
             btnPlay.textContent = "朗读";
             btnPlayM.textContent = "🔊 朗读";
+            scheduleNext();         // 连续播放:停一下再读下一句
         };
         u.onerror = (ev) => {
             const err = ev && ev.error ? ev.error : "";
@@ -1616,6 +1720,19 @@ $("pasteText").addEventListener("paste", () => {
 btnPlay.addEventListener("click", togglePlay);
 btnPlayM.addEventListener("click", togglePlay);
 
+// 页码跳转
+counter.addEventListener("click", openPageDialog);
+counterM.addEventListener("click", openPageDialog);
+$("btnPageGo").addEventListener("click", () => jumpToPage($("pageInput").value));
+$("btnPageCancel").addEventListener("click", closePageDialog);
+$("pageInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); jumpToPage($("pageInput").value); }
+    else if (e.key === "Escape") closePageDialog();
+});
+$("pageDialog").addEventListener("click", (e) => {
+    if (e.target === $("pageDialog")) closePageDialog();   // 点外面关闭
+});
+
 voiceSelect.addEventListener("change", () => {
     voiceSelectM.value = voiceSelect.value;
     settings.voice = voiceSelect.value;
@@ -1686,6 +1803,25 @@ $("repeatInput").addEventListener("change", function () {
     if (!v || v < 1) v = 1;
     if (v > 20) v = 20;
     settings.repeat = v;
+    this.value = v;
+    saveSettings();
+});
+
+// 连续播放:读完自动读下一句,中间停几秒
+function applyContinuousUi() {
+    $("contChk").checked = !!settings.continuous;
+    $("gapInput").value = settings.gap || 0;
+}
+$("contChk").addEventListener("change", function () {
+    settings.continuous = this.checked;
+    saveSettings();
+    applyContinuousUi();
+});
+$("gapInput").addEventListener("change", function () {
+    let v = parseFloat(this.value);
+    if (!v || v < 0) v = 0;
+    if (v > 600) v = 600;
+    settings.gap = v;
     this.value = v;
     saveSettings();
 });
@@ -1846,6 +1982,7 @@ function applySettingsToUi() {
     $("volumeInput").value = settings.volume;
     $("volumeValue").textContent = settings.volume + "%";
     $("repeatInput").value = settings.repeat || 1;
+    applyContinuousUi();
     $("autoPlay").checked = !!settings.autoPlay;
     $("autoPlayM").checked = !!settings.autoPlay;
     $("wordHl").checked = !!settings.wordHighlight;
