@@ -397,6 +397,7 @@ const FALLBACK_VOICES = [
 const LS_ENTRIES = "book.entries";
 const LS_INDEX = "book.index";
 const LS_SETTINGS = "book.settings";
+const LS_VOICES = "book.voices";
 
 // ---------------------------------------------------------------- DOM
 
@@ -445,7 +446,9 @@ const settings = Object.assign({
     cnClickNext: false,
     blankNext: false,
     cnSpeak: false,
-    cache: true
+    cache: true,
+    voice: "",
+    style: ""
 }, loadSettings());
 
 function loadSettings() {
@@ -902,18 +905,30 @@ function ttsUrl(region) {
 
 let lastNetworkError = null;
 
+// 请求加超时,免得网络不通时 fetch 一直挂着
+async function fetchWithTimeout(url, options, ms) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), ms);
+    try {
+        return await fetch(url, Object.assign({}, options, { signal: ctrl.signal }));
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
 // 依次试区域,找到一个 key 能用的就记住
 async function resolveRegion() {
     const tried = [];
+    let netFails = 0;
     const order = settings.region ? [settings.region, ...COMMON_REGIONS] : COMMON_REGIONS;
     for (const region of order) {
         if (tried.includes(region)) continue;
         tried.push(region);
         $("regionState").textContent = `测试 ${region} ...`;
         try {
-            const res = await fetch(voicesUrl(region), {
+            const res = await fetchWithTimeout(voicesUrl(region), {
                 headers: { "Ocp-Apim-Subscription-Key": settings.key }
-            });
+            }, 6000);
             if (res.ok) {
                 const list = await res.json();
                 if (Array.isArray(list) && list.length) {
@@ -928,6 +943,8 @@ async function resolveRegion() {
             }
         } catch (e) {
             lastNetworkError = e;   // 网络不通 / CORS 被拦,换下一个再试
+            netFails++;
+            if (netFails >= 3) break;   // 连着三个区域都连不上,基本是网络问题,别再试了
             continue;
         }
     }
@@ -935,14 +952,52 @@ async function resolveRegion() {
     return null;
 }
 
+// 音色列表缓存到 localStorage:刷新页面时先拿缓存顶上,下拉框立刻有内容
+function readCachedVoices() {
+    try {
+        const raw = localStorage.getItem(LS_VOICES);
+        if (!raw) return null;
+        const o = JSON.parse(raw);
+        if (!o || !Array.isArray(o.list) || !o.list.length) return null;
+        if (Date.now() - (o.t || 0) > 24 * 3600 * 1000) return null;   // 一天过期
+        if (o.key && settings.key && o.key !== settings.key) return null;  // key 换了,旧缓存作废
+        return o.list;
+    } catch (e) {
+        return null;
+    }
+}
+
+function writeCachedVoices(list) {
+    try {
+        // 只留用得到的字段,不然 localStorage 装不下
+        const slim = list
+            .filter((v) => /^en/i.test(v.Locale || ""))
+            .map((v) => ({
+                Name: v.Name, DisplayName: v.DisplayName, ShortName: v.ShortName,
+                Gender: v.Gender, Locale: v.Locale, StyleList: v.StyleList || [],
+                VoiceTag: { VoicePersonalities: (v.VoiceTag && v.VoiceTag.VoicePersonalities) || [] }
+            }));
+        const save = slim.length ? slim : list;
+        localStorage.setItem(LS_VOICES, JSON.stringify({ t: Date.now(), key: settings.key, list: save }));
+    } catch (e) { /* 装不下就算了 */ }
+}
+
 async function loadVoices(force) {
     if (voicesLoaded && !force) return voices;
+
+    // 先把缓存(或兜底)填上,页面一打开下拉框就有东西,不用等网络
+    if (!voices.length) {
+        const cached = force ? null : readCachedVoices();
+        voices = cached || FALLBACK_VOICES.slice();
+        renderVoiceOptions();
+    }
+
     const result = await resolveRegion();
     if (result) {
         voices = result.voices;
         voicesLoaded = true;
+        writeCachedVoices(result.voices);
     } else {
-        voices = FALLBACK_VOICES;
         voicesLoaded = true;
         if (lastNetworkError) {
             showStatus("连不上 Azure 语音服务(可能是网络或 CORS 被拦),先用兜底音色。可在设置里换区域。");
@@ -977,10 +1032,13 @@ function fillVoiceSelect(sel, prev) {
 }
 
 function renderVoiceOptions() {
-    const prev = voiceSelect.value;
+    const prev = voiceSelect.value || settings.voice || "";
     fillVoiceSelect(voiceSelect, prev);
     fillVoiceSelect(voiceSelectM, voiceSelect.value);
     renderStyleOptions();
+    settings.voice = voiceSelect.value;    // 记下当前选中的,刷新后能选回来
+    settings.style = styleSelect.value;
+    saveSettings();
 }
 
 function fillStyleSelect(sel, styles, prev) {
@@ -1002,7 +1060,7 @@ function fillStyleSelect(sel, styles, prev) {
 function renderStyleOptions() {
     const v = currentVoice();
     const styles = (v && v.StyleList) || [];
-    const prev = styleSelect.value;
+    const prev = styleSelect.value || settings.style || "";
     fillStyleSelect(styleSelect, styles, prev);
     fillStyleSelect(styleSelectM, styles, styleSelect.value);
 }
@@ -1300,23 +1358,33 @@ btnPlayM.addEventListener("click", togglePlay);
 
 voiceSelect.addEventListener("change", () => {
     voiceSelectM.value = voiceSelect.value;
+    settings.voice = voiceSelect.value;
     renderStyleOptions();
+    settings.style = styleSelect.value;
+    saveSettings();
     clearAudioCache();
     prefetchAhead();
 });
 voiceSelectM.addEventListener("change", () => {
     voiceSelect.value = voiceSelectM.value;
+    settings.voice = voiceSelect.value;
     renderStyleOptions();
+    settings.style = styleSelect.value;
+    saveSettings();
     clearAudioCache();
     prefetchAhead();
 });
 styleSelect.addEventListener("change", () => {
     styleSelectM.value = styleSelect.value;
+    settings.style = styleSelect.value;
+    saveSettings();
     clearAudioCache();
     prefetchAhead();
 });
 styleSelectM.addEventListener("change", () => {
     styleSelect.value = styleSelectM.value;
+    settings.style = styleSelect.value;
+    saveSettings();
     clearAudioCache();
     prefetchAhead();
 });
