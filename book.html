@@ -297,6 +297,11 @@
     </div>
     <div class="sep"></div>
     <div class="row">
+        <label>系统音色</label>
+        <label class="check"><input type="checkbox" id="sysChk"> 用系统默认英文音色(手机自带,不生成音频)</label>
+        <span class="hintline" id="sysVoiceInfo"></span>
+    </div>
+    <div class="row">
         <label>音色 / 角色</label>
         <select id="voiceSelectM"></select>
     </div>
@@ -448,6 +453,7 @@ const settings = Object.assign({
     blankNext: false,
     cnSpeak: false,
     cache: true,
+    sysVoice: false,
     voice: "",
     style: ""
 }, loadSettings());
@@ -678,19 +684,27 @@ function startHighlight(i) {
 
 function highlightTick() {
     if (!audio || !playing) { hlRaf = null; return; }
-    const t = audio.currentTime;
+    setHighlight(idxByTime(audio.currentTime));
+    hlRaf = requestAnimationFrame(highlightTick);
+}
+
+// 把第 idx 个词点亮,前面的变灰
+function setHighlight(idx) {
+    if (idx === hlLast) return;
+    if (hlLast >= 0 && hlWords[hlLast]) hlWords[hlLast].el.classList.remove("on");
+    for (let k = 0; k < idx; k++) hlWords[k].el.classList.add("past");
+    for (let k = idx; k < hlWords.length; k++) hlWords[k].el.classList.remove("past");
+    if (hlWords[idx]) hlWords[idx].el.classList.add("on");
+    hlLast = idx;
+}
+
+// 时间 -> 第几个词
+function idxByTime(t) {
     let idx = hlWords.length - 1;
     for (let k = 0; k < hlWords.length; k++) {
         if (t < hlWords[k].end) { idx = k; break; }
     }
-    if (idx !== hlLast) {
-        if (hlLast >= 0 && hlWords[hlLast]) hlWords[hlLast].el.classList.remove("on");
-        for (let k = 0; k < idx; k++) hlWords[k].el.classList.add("past");
-        for (let k = idx; k < hlWords.length; k++) hlWords[k].el.classList.remove("past");
-        if (hlWords[idx]) hlWords[idx].el.classList.add("on");
-        hlLast = idx;
-    }
-    hlRaf = requestAnimationFrame(highlightTick);
+    return idx;
 }
 
 function stopHighlight() {
@@ -820,6 +834,7 @@ function prefetchOne(i, p) {
 }
 
 function prefetchAhead() {
+    if (settings.sysVoice) return;      // 系统音色模式:一条音频都不生成
     if (!settings.autoPlay) return;
     if (!settings.cache) return;
     if (!entries.length || !settings.region) return;
@@ -833,6 +848,7 @@ function prefetchAhead() {
 
 // 音色/风格/语速换了:当前这条也要用新参数重新合一份(否则要点播放才现合,等半天)
 function prefetchCurrent() {
+    if (settings.sysVoice) return;      // 系统音色模式:一条音频都不生成
     if (!settings.autoPlay) return;
     if (!settings.cache) return;
     if (!entries.length || !settings.region) return;
@@ -1191,6 +1207,11 @@ function markAllPast() {
 
 function stopAudio() {
     if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
+    if (sysSpeakTimer) { clearTimeout(sysSpeakTimer); sysSpeakTimer = null; }
+    if (window.speechSynthesis && sysUtterance) {
+        try { window.speechSynthesis.cancel(); } catch (e) { /* 忽略 */ }
+        sysUtterance = null;
+    }
     stopHighlight();
     if (audio) {
         audio.pause();
@@ -1213,6 +1234,7 @@ function stopAudio() {
 async function play(which) {
     const i = (typeof which === "number") ? which : index;
     if (!entries.length || i < 0 || i >= entries.length) return;
+    if (settings.sysVoice) { playSystem(i); return; }   // 系统音色模式:不生成音频
     const item = entries[i];
     const p = currentParams();
 
@@ -1287,6 +1309,166 @@ function speakCn(text) {
         u.rate = 1;
         window.speechSynthesis.speak(u);
     } catch (e) { /* 忽略 */ }
+}
+
+// ---------------- 系统音色(手机/浏览器自带的英文朗读) ----------------
+// 打开这个模式就不再请求 Azure、不生成任何音频,直接用系统自带的英文嗓音念
+let sysVoices = [];
+let sysUtterance = null;
+let sysSpeakTimer = null;
+
+function loadSystemVoices() {
+    if (!window.speechSynthesis) return;
+    const grab = () => {
+        try { sysVoices = window.speechSynthesis.getVoices() || []; } catch (e) { sysVoices = []; }
+        updateSysVoiceInfo();
+    };
+    grab();
+    if (typeof window.speechSynthesis.addEventListener === "function") {
+        window.speechSynthesis.addEventListener("voiceschanged", grab);
+    } else {
+        window.speechSynthesis.onvoiceschanged = grab;
+    }
+}
+
+// 优先挑手机本地的英文音色,其次 en-US
+function pickSystemVoice() {
+    const en = sysVoices.filter((v) => /^en/i.test(v.lang || ""));
+    if (!en.length) return null;
+    const local = en.filter((v) => v.localService);
+    const us = (arr) => arr.find((v) => /^en[-_]US/i.test(v.lang || ""));
+    return us(local) || local[0] || us(en) || en[0];
+}
+
+function updateSysVoiceInfo() {
+    const el = $("sysVoiceInfo");
+    if (!el) return;
+    if (!settings.sysVoice) { el.textContent = ""; return; }
+    if (!window.speechSynthesis) { el.textContent = "这个浏览器不支持系统语音"; return; }
+    const v = pickSystemVoice();
+    el.textContent = v
+        ? `当前系统音色:${v.name} (${v.lang})${v.localService ? " · 本地" : " · 在线"}`
+        : "没找到英文系统音色,会用 en-US 兜底";
+}
+
+// 每个词在原文里的起始字符位置(和渲染时按空白切词的方式保持一致)
+function wordOffsets(text) {
+    const offs = [];
+    let pos = 0;
+    String(text == null ? "" : text).split(/(\s+)/).forEach((part) => {
+        if (!part) return;
+        if (!/^\s+$/.test(part)) offs.push(pos);
+        pos += part.length;
+    });
+    return offs;
+}
+
+function wordIndexAt(offs, charIndex) {
+    let idx = -1;
+    for (let k = 0; k < offs.length; k++) {
+        if (offs[k] <= charIndex) idx = k; else break;
+    }
+    return idx;
+}
+
+// 粗估一句念完要多久(秒):音节数 * 0.19 + 词数 * 0.06
+function estimateDuration(text) {
+    const parts = String(text || "").split(/\s+/).filter(Boolean);
+    let syl = 0;
+    parts.forEach((p) => { syl += syllables(p); });
+    return Math.max(0.8, syl * 0.19 + parts.length * 0.06);
+}
+
+// 系统语音的逐词高亮:优先用浏览器给的 boundary 词边界,没有就按估算时间线走
+function startHighlightSystem(i, u) {
+    stopHighlight();
+    if (!settings.wordHighlight) return;
+    const slide = slides[i];
+    const en = slide && slide.querySelector(".en");
+    if (!en) return;
+    const wordEls = Array.from(en.querySelectorAll(".w"));
+    if (!wordEls.length) return;
+
+    const text = entries[i].en || "";
+    const est = estimateDuration(text);
+    hlWords = buildWordTimes(text, est, wordEls);
+    hlLast = -1;
+
+    const offs = wordOffsets(text);
+    let gotBoundary = false;
+
+    u.onboundary = (ev) => {
+        if (ev.name && ev.name !== "word") return;
+        gotBoundary = true;
+        if (hlRaf) { cancelAnimationFrame(hlRaf); hlRaf = null; }
+        const idx = wordIndexAt(offs, ev.charIndex);
+        if (idx >= 0) setHighlight(idx);
+    };
+
+    const t0 = performance.now();
+    const tick = () => {
+        if (sysUtterance !== u || !playing) { hlRaf = null; return; }
+        if (!gotBoundary) setHighlight(idxByTime((performance.now() - t0) / 1000));
+        hlRaf = requestAnimationFrame(tick);
+    };
+    hlRaf = requestAnimationFrame(tick);
+}
+
+function playSystem(i) {
+    const item = entries[i];
+    if (!item) return;
+    if (!window.speechSynthesis) { showStatus("这个浏览器不支持系统语音"); return; }
+
+    stopAudio();
+    if (settings.cnSpeak) speakCn(item.cn);
+
+    const u = new SpeechSynthesisUtterance(item.en);
+    u.lang = "en-US";
+    let started = false;
+    const v = pickSystemVoice();
+    if (v) u.voice = v;
+    u.rate = Math.min(2, Math.max(0.5, 1 + (settings.rate || 0) / 100));
+    u.volume = Math.min(1, Math.max(0, 1 + (settings.volume || 0) / 100));
+
+    u.onstart = () => {
+        started = true;
+        playing = true;
+        playingIndex = i;
+        btnPlay.textContent = "停止";
+        btnPlayM.textContent = "⏹ 停止";
+        startHighlightSystem(i, u);
+    };
+    u.onend = () => {
+        playing = false;
+        playingIndex = -1;
+        markAllPast();          // 读完了,最后一个词也变灰
+        btnPlay.textContent = "朗读";
+        btnPlayM.textContent = "🔊 朗读";
+    };
+    u.onerror = (ev) => {
+        const err = ev && ev.error ? ev.error : "";
+        if (err && err !== "interrupted" && err !== "canceled") showStatus("系统语音播放失败:" + err);
+        playing = false;
+        btnPlay.textContent = "朗读";
+        btnPlayM.textContent = "🔊 朗读";
+    };
+
+    sysUtterance = u;
+    // iOS 上 cancel 之后马上 speak 经常哑掉,隔一小会儿再说
+    if (sysSpeakTimer) clearTimeout(sysSpeakTimer);
+    sysSpeakTimer = setTimeout(() => {
+        sysSpeakTimer = null;
+        try {
+            window.speechSynthesis.speak(u);
+        } catch (e) {
+            showStatus("系统语音播放失败:" + e.message);
+        }
+    }, 60);
+
+    // 1.5 秒还没开始念,多半是手机浏览器要求先有用户操作
+    setTimeout(() => {
+        if (!started && sysUtterance === u) showStatus("系统语音没启动,手机上可能要先点一下页面再朗读");
+    }, 1500);
 }
 
 // ---------------------------------------------------------------- 文件
@@ -1522,6 +1704,33 @@ $("blankChkM").addEventListener("change", function () { syncBlank(this, $("blank
 bindCheck("cnSpeak", "cnSpeak");
 bindCheck("cacheToggle", "cache", () => { if (!settings.cache) clearAudioCache(); });
 
+// 系统音色开关:打开后用手机/浏览器自带的英文嗓音,不再请求 Azure、不生成音频
+function applySysVoiceUi() {
+    const on = !!settings.sysVoice;
+    const chk = $("sysChk");
+    if (chk) chk.checked = on;
+    voiceSelect.disabled = on;
+    voiceSelectM.disabled = on;
+    styleSelect.disabled = on;
+    styleSelectM.disabled = on;
+    updateSysVoiceInfo();
+}
+
+function syncSysVoice(src) {
+    settings.sysVoice = src.checked;
+    saveSettings();
+    applySysVoiceUi();
+    if (settings.sysVoice) {
+        stopAudio();              // 别让两种声音同时响
+        loadSystemVoices();
+        showStatus("已切到系统英文音色,不再生成音频", true);
+    } else {
+        loadVoices();             // 切回 Azure,把音色列表拉起来
+        showStatus("已切回 Azure 音色", true);
+    }
+}
+$("sysChk").addEventListener("change", function () { syncSysVoice(this); });
+
 $("regionInput").addEventListener("change", function () {
     settings.region = this.value.trim();
     saveSettings();
@@ -1610,6 +1819,7 @@ function applySettingsToUi() {
         opt.value = r;
         $("regionList").appendChild(opt);
     });
+    applySysVoiceUi();
 }
 
 restoreEntries();
@@ -1618,7 +1828,8 @@ buildSlides();
 scrollToSlide(index, false);
 applyAnim();
 updateCounter();
-loadVoices();   // 后台拿音色列表,顺带把区域试出来
+loadSystemVoices();               // 读一下系统自带的音色列表
+if (!settings.sysVoice) loadVoices();   // 系统音色模式下不联网、不试区域
 </script>
 </body>
 </html>
