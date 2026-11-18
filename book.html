@@ -424,6 +424,7 @@ let index = 0;
 let slides = [];           // 每条一个 .slide
 let voices = [];           // Azure 音色列表
 let voicesLoaded = false;
+let voicesSource = "";     // "cache" | "fallback" | "azure"
 let audio = null;          // 当前播放的 <audio>
 let audioUrl = null;
 let playing = false;
@@ -919,16 +920,19 @@ async function fetchWithTimeout(url, options, ms) {
 // 依次试区域,找到一个 key 能用的就记住
 async function resolveRegion() {
     const tried = [];
-    let netFails = 0;
+    let fastFails = 0;   // 秒失败 = 网络根本不通
+    let slowFails = 0;   // 超时 = 只是网慢
     const order = settings.region ? [settings.region, ...COMMON_REGIONS] : COMMON_REGIONS;
     for (const region of order) {
         if (tried.includes(region)) continue;
         tried.push(region);
         $("regionState").textContent = `测试 ${region} ...`;
+        const t0 = Date.now();
         try {
+            // 音色列表有 1MB 上下,慢网要留够时间,别 6 秒就掐了
             const res = await fetchWithTimeout(voicesUrl(region), {
                 headers: { "Ocp-Apim-Subscription-Key": settings.key }
-            }, 6000);
+            }, 30000);
             if (res.ok) {
                 const list = await res.json();
                 if (Array.isArray(list) && list.length) {
@@ -942,9 +946,14 @@ async function resolveRegion() {
                 continue;   // key 在这个区域无效,换下一个
             }
         } catch (e) {
-            lastNetworkError = e;   // 网络不通 / CORS 被拦,换下一个再试
-            netFails++;
-            if (netFails >= 3) break;   // 连着三个区域都连不上,基本是网络问题,别再试了
+            lastNetworkError = e;   // 网络不通 / CORS 被拦 / 超时
+            if (Date.now() - t0 < 2500) {
+                fastFails++;
+                if (fastFails >= 3) break;   // 连着三个区域秒挂,基本是网络问题,别再试了
+            } else {
+                slowFails++;
+                if (slowFails >= 2) break;   // 连续两个区域都慢到超时,换区域也没用
+            }
             continue;
         }
     }
@@ -989,18 +998,30 @@ async function loadVoices(force) {
     if (!voices.length) {
         const cached = force ? null : readCachedVoices();
         voices = cached || FALLBACK_VOICES.slice();
+        voicesSource = cached ? "cache" : "fallback";
         renderVoiceOptions();
     }
 
+    // 缓存是全的、区域也记得 → 这次刷新完全不用联网,下拉框直接就是完整的
+    if (!force && voicesSource === "cache" && settings.region) {
+        voicesLoaded = true;
+        prefetchAhead();
+        return voices;
+    }
+
+    showStatus("正在获取音色列表 ...");
     const result = await resolveRegion();
     if (result) {
         voices = result.voices;
+        voicesSource = "azure";
         voicesLoaded = true;
         writeCachedVoices(result.voices);
+        showStatus(`音色列表已加载:${result.voices.length} 个`, true);
     } else {
         voicesLoaded = true;
+        if (voicesSource === "fallback") voices = FALLBACK_VOICES.slice();
         if (lastNetworkError) {
-            showStatus("连不上 Azure 语音服务(可能是网络或 CORS 被拦),先用兜底音色。可在设置里换区域。");
+            showStatus("连不上 Azure 语音服务(可能是网络慢或 CORS 被拦),先用兜底音色。可在设置里换区域。");
         } else {
             showStatus("Azure 拒绝了当前 key,已改用兜底音色,请在设置里确认 key 和区域。");
         }
@@ -1069,7 +1090,7 @@ async function fetchAudio(text, voiceName, style, rate, volume) {
     const region = settings.region;
     if (!region) throw new Error("还没确定 Azure 区域");
     const ssml = buildSsml(text, voiceName, style, rate, volume);
-    const res = await fetch(ttsUrl(region), {
+    const res = await fetchWithTimeout(ttsUrl(region), {
         method: "POST",
         headers: {
             "Ocp-Apim-Subscription-Key": settings.key,
@@ -1078,7 +1099,7 @@ async function fetchAudio(text, voiceName, style, rate, volume) {
             "User-Agent": "book-html"
         },
         body: ssml
-    });
+    }, 60000);
     if (!res.ok) {
         let detail = "";
         try { detail = (await res.text()).slice(0, 300); } catch (e) { /* 忽略 */ }
