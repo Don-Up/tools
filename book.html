@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Book · 中英对照</title>
+<style>
+    :root {
+        --bg: #121212;
+        --panel: #1a1a1a;
+        --line: #2a2a2a;
+        --fg: #e0e0e0;
+        --dim: #888;
+        --cn: wheat;
+        --accent: #00bfff;
+        --bar: 52px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;          /* 滚动交给 #stage */
+    }
+
+    body {
+        background-color: var(--bg);
+        color: var(--fg);
+        font-family: Arial, "Microsoft YaHei", sans-serif;
+    }
+
+    /* ---------- 顶栏(桌面) ---------- */
+    .topbar {
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        height: var(--bar);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 12px;
+        background: rgba(26, 26, 26, .92);
+        border-bottom: 1px solid var(--line);
+        z-index: 20;
+    }
+    .topbar .spacer { flex: 1; }
+    .group { display: flex; align-items: center; gap: 6px; }
+
+    button, select, input[type="text"], input[type="password"], textarea {
+        background: #252525;
+        color: var(--fg);
+        border: 1px solid #3a3a3a;
+        border-radius: 4px;
+        padding: 5px 8px;
+        font-family: inherit;
+        font-size: 13px;
+        outline: none;
+    }
+    button { cursor: pointer; }
+    button:hover { background: #333; border-color: #4a4a4a; }
+    button.primary { border-color: var(--accent); color: var(--accent); }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    select { max-width: 230px; }
+    textarea { width: 100%; font-family: Consolas, "Courier New", monospace; resize: vertical; }
+
+    label.check {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 13px;
+        color: var(--dim);
+        user-select: none;
+        cursor: pointer;
+    }
+
+    .counter {
+        font-size: 15px;
+        color: var(--fg);
+        background: rgba(37, 37, 37, .8);
+        padding: 3px 10px;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
+    /* ---------- 底部浮动条(手机) ---------- */
+    .mobilebar {
+        display: none;
+        position: fixed;
+        left: 0; right: 0; bottom: 0;
+        height: var(--bar);
+        height: calc(var(--bar) + env(safe-area-inset-bottom));
+        padding: 0 10px;
+        padding: 0 10px env(safe-area-inset-bottom);
+        align-items: center;
+        gap: 10px;
+        background: rgba(26, 26, 26, .82);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-top: 1px solid var(--line);
+        z-index: 20;
+    }
+    .mobilebar .spacer { flex: 1; }
+    .mobilebar button { padding: 7px 12px; font-size: 15px; }
+    .mobilebar .counter { font-size: 14px; }
+
+    /* ---------- 面板 / 底部抽屉 ---------- */
+    .panel {
+        position: fixed;
+        top: var(--bar); left: 0; right: 0;
+        background: var(--panel);
+        border-bottom: 1px solid var(--line);
+        padding: 12px;
+        z-index: 15;
+        max-height: 60vh;
+        overflow: auto;
+    }
+    .panel.hidden { display: none; }
+    .panel h3 { margin: 0 0 8px; font-size: 14px; color: var(--accent); font-weight: normal; }
+    .panel .row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+    .panel .row > label { min-width: 92px; font-size: 13px; color: var(--dim); }
+    .panel textarea { min-height: 150px; }
+    .panel .hintline { font-size: 12px; color: var(--dim); margin-top: 6px; }
+    .panel .sep { height: 1px; background: var(--line); margin: 10px 0; }
+
+    /* ---------- 正文:每条一屏,纵向吸附 ---------- */
+    #stage {
+        position: relative;
+        height: 100vh;
+        height: 100dvh;
+        overflow-y: auto;
+        overflow-x: hidden;
+        scroll-snap-type: y mandatory;
+        overscroll-behavior-y: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+    /* 关掉滑动动画:页面不可滚动,靠手势直接翻页(JS 里瞬移) */
+    #stage.no-anim {
+        scroll-snap-type: none;
+        overflow: hidden;
+        touch-action: none;
+    }
+    #stage.no-anim .slide { touch-action: none; }
+    .slide {
+        height: 100vh;
+        height: 100dvh;
+        scroll-snap-align: start;
+        scroll-snap-stop: always;
+        display: grid;
+        place-items: center;
+        padding: calc(var(--bar) + 12px) 20px 24px;   /* 顶部给固定顶栏让位 */
+        touch-action: pan-y;
+    }
+    .slide-inner {
+        width: 100%;
+        max-width: 1000px;
+        max-height: 100%;       /* 内容太长时自己滚,不撑破吸附点 */
+        overflow-y: auto;
+        text-align: center;
+    }
+    .en {
+        font-size: clamp(22px, 4.2vw, 44px);
+        color: #ececec;
+        line-height: 1.35;
+        text-align: left;        /* 英文区域左对齐 */
+        cursor: pointer;
+        user-select: text;
+        padding: 8px 12px;
+        border-radius: 6px;
+    }
+    .en:hover { background: rgba(255, 255, 255, .04); }
+    .en .w { transition: color .09s linear; }
+    .en .w.past { color: #9a9a9a; }      /* 已读过的词 */
+    .en .w.on { color: var(--accent); }  /* 正在读的词 */
+    .cn {
+        margin-top: 24px;
+        font-size: clamp(16px, 2.4vw, 24px);
+        color: var(--cn);
+        font-family: 华文细黑, "Microsoft YaHei", sans-serif;
+        line-height: 1.45;
+        text-align: left;        /* 中文也左对齐 */
+    }
+    .empty {
+        color: var(--dim);
+        font-size: 16px;
+        line-height: 2;
+    }
+    .empty kbd {
+        background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 4px;
+        padding: 2px 7px; font-family: Consolas, monospace; color: var(--fg);
+    }
+
+    /* ---------- 状态条 ---------- */
+    .status {
+        position: fixed;
+        left: 0; right: 0; bottom: 10px;
+        background: #7a1f1f;
+        color: #fff;
+        padding: 8px 12px;
+        font-size: 13px;
+        display: none;
+        z-index: 30;
+        word-break: break-all;
+    }
+    .status.show { display: block; }
+    .status.info { background: #1f4a7a; }
+
+    .drop-hint {
+        position: fixed; inset: 0;
+        background: rgba(0, 0, 0, .6);
+        display: none;
+        align-items: center; justify-content: center;
+        font-size: 22px; color: var(--accent);
+        z-index: 40;
+    }
+    .drop-hint.show { display: flex; }
+
+    /* ---------- 手机布局 ---------- */
+    @media (max-width: 760px) {
+        .topbar { display: none; }
+        .mobilebar { display: flex; }
+        .status { bottom: calc(var(--bar) + env(safe-area-inset-bottom) + 10px); }
+        .slide {
+            padding: 16px 10px 78px;
+            padding: 16px 10px calc(var(--bar) + env(safe-area-inset-bottom) + 26px);
+        }
+        /* 英文左右只留 10px(去掉 .en 自己的 12px 内边距) */
+        .en { padding: 8px 0; }
+        /* 面板从底部弹上来 */
+        .panel {
+            top: auto;
+            bottom: 0;
+            left: 0; right: 0;
+            max-height: 82vh;
+            max-height: 82dvh;
+            border-bottom: none;
+            border-top: 1px solid var(--line);
+            border-radius: 14px 14px 0 0;
+            padding-bottom: 16px;
+            padding-bottom: calc(16px + env(safe-area-inset-bottom));
+            box-shadow: 0 -8px 30px rgba(0, 0, 0, .5);
+        }
+        .panel .row > label { min-width: 76px; }
+    }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+    <div class="group">
+        <button id="btnOpen">打开文件</button>
+        <button id="btnPaste">粘贴 JSON</button>
+        <button id="btnSettings">设置</button>
+        <input type="file" id="fileInput" hidden>
+    </div>
+    <div class="spacer"></div>
+    <span class="counter" id="counter">0 / 0</span>
+    <select id="voiceSelect" title="音色 / 角色"></select>
+    <select id="styleSelect" title="说话风格"></select>
+    <div class="group">
+        <button id="btnPlay" class="primary">朗读</button>
+        <label class="check"><input type="checkbox" id="autoPlay"> 自动</label>
+        <label class="check" title="朗读时逐词高亮"><input type="checkbox" id="wordHl"> 逐词</label>
+        <label class="check" title="翻页动画"><input type="checkbox" id="animChk"> 动画</label>
+    </div>
+</div>
+
+<div class="mobilebar">
+    <button id="btnMenu" title="菜单">☰</button>
+    <span class="counter" id="counterM">0 / 0</span>
+    <div class="spacer"></div>
+    <button id="btnPlayM" class="primary">🔊 朗读</button>
+</div>
+
+<div class="panel hidden" id="pastePanel">
+    <h3>粘贴 JSON</h3>
+    <div class="row">
+        <textarea id="pasteText" spellcheck="false" placeholder='{ "中文": "English" }'></textarea>
+    </div>
+    <div class="row">
+        <button id="btnLoadPaste" class="primary">加载</button>
+        <button id="btnClosePaste">关闭</button>
+        <span class="hintline">支持 {"中文": "英文"} 和 {"English": "中文"} 两种方向(自动识别);也支持 [[cn, en], ...]</span>
+    </div>
+</div>
+
+<div class="panel hidden" id="settingsPanel">
+    <h3>设置</h3>
+    <div class="row">
+        <button id="btnOpen2">打开文件</button>
+        <button id="btnPaste2">粘贴 JSON</button>
+    </div>
+    <div class="sep"></div>
+    <div class="row">
+        <label>音色 / 角色</label>
+        <select id="voiceSelectM"></select>
+    </div>
+    <div class="row">
+        <label>说话风格</label>
+        <select id="styleSelectM"></select>
+    </div>
+    <div class="row">
+        <label>自动朗读</label>
+        <label class="check"><input type="checkbox" id="autoPlayM"> 翻页后自动读英文</label>
+    </div>
+    <div class="row">
+        <label>逐词高亮</label>
+        <label class="check"><input type="checkbox" id="wordHlM"> 朗读时逐词点亮</label>
+    </div>
+    <div class="row">
+        <label>滑动动画</label>
+        <label class="check"><input type="checkbox" id="animChkM"> 翻页带动画</label>
+    </div>
+    <div class="sep"></div>
+    <h3>Azure 语音设置</h3>
+    <div class="row">
+        <label>区域 Region</label>
+        <input type="text" id="regionInput" list="regionList" style="width: 160px" placeholder="eastasia">
+        <datalist id="regionList"></datalist>
+        <button id="btnTestVoice">测试连接</button>
+        <span class="hintline" id="regionState"></span>
+    </div>
+    <div class="row">
+        <label>API Key</label>
+        <input type="password" id="keyInput" style="flex: 1; min-width: 280px">
+    </div>
+    <div class="row">
+        <label>语速</label>
+        <input type="range" id="rateInput" min="-50" max="50" step="5" value="0" style="width: 200px">
+        <span id="rateValue">0%</span>
+        <label style="min-width: auto; margin-left: 18px;">音量</label>
+        <input type="range" id="volumeInput" min="-50" max="50" step="5" value="0" style="width: 140px">
+        <span id="volumeValue">0%</span>
+    </div>
+    <div class="row">
+        <label>中文朗读</label>
+        <label class="check"><input type="checkbox" id="cnSpeak"> 用浏览器语音读中文</label>
+        <label style="min-width: auto; margin-left: 18px;">音频缓存</label>
+        <label class="check"><input type="checkbox" id="cacheToggle" checked> 记住已朗读的音频</label>
+        <button id="btnClearCache" style="margin-left: 18px">清空音频缓存</button>
+        <span class="hintline" id="cacheInfo"></span>
+    </div>
+    <div class="row">
+        <button id="btnCloseSettings">关闭</button>
+        <span class="hintline">设置保存在 localStorage;key 只存在本机浏览器里。</span>
+    </div>
+</div>
+
+<main id="stage"></main>
+
+<div class="status" id="status"></div>
+<div class="drop-hint" id="dropHint">松手加载文件</div>
+
+<script>
+"use strict";
+
+// ---------------------------------------------------------------- 常量 / 配置
+
+const DEFAULT_KEY = "12ipSZUmuD44qesS8ge3FaCp2rZ5jcAavpN2udwyeHj75D3WKaHFJQQJ99ALACYeBjFXJ3w3AAAYACOG7jmK";
+
+// Azure Speech 的区域不在 key 里,挨个试,试出来就记住
+const COMMON_REGIONS = [
+    "eastasia", "southeastasia", "eastus", "eastus2", "westus", "westus2",
+    "northcentralus", "southcentralus", "northeurope", "westeurope",
+    "japaneast", "koreacentral", "australiaeast", "canadacentral",
+    "francecentral", "germanywestcentral", "switzerlandnorth", "norwayeast",
+    "polandcentral", "uaenorth", "southafricanorth", "uksouth"
+];
+
+// 拿不到 voices/list 时的兜底音色
+const FALLBACK_VOICES = [
+    { Name: "en-US-AvaMultilingualNeural", DisplayName: "Ava Multilingual", ShortName: "en-US-AvaMultilingualNeural", Gender: "Female", Locale: "en-US", StyleList: [] },
+    { Name: "en-US-JennyNeural", DisplayName: "Jenny", ShortName: "en-US-JennyNeural", Gender: "Female", Locale: "en-US", StyleList: ["angry", "cheerful", "sad", "newscast", "affectionate", "narration-relaxed", "embarrassed", "fearful", "disappointed", "serious", "friendly", "terrified", "unfriendly", "gentle", "ashamed", "dejected", "envy", "excited", "narration-professional"] },
+    { Name: "en-US-GuyNeural", DisplayName: "Guy", ShortName: "en-US-GuyNeural", Gender: "Male", Locale: "en-US", StyleList: ["angry", "cheerful", "sad", "newscast", "affectionate", "narration-relaxed", "embarrassed", "fearful", "disappointed", "serious", "friendly", "terrified", "unfriendly", "gentle", "ashamed", "dejected", "envy", "excited", "narration-professional"] },
+    { Name: "en-US-AriaNeural", DisplayName: "Aria", ShortName: "en-US-AriaNeural", Gender: "Female", Locale: "en-US", StyleList: ["angry", "cheerful", "sad", "newscast", "affectionate", "narration-relaxed", "embarrassed", "fearful", "disappointed", "serious", "friendly", "terrified", "unfriendly", "gentle", "ashamed", "dejected", "envy", "excited", "narration-professional"] },
+    { Name: "en-US-AndrewNeural", DisplayName: "Andrew", ShortName: "en-US-AndrewNeural", Gender: "Male", Locale: "en-US", StyleList: ["angry", "cheerful", "sad", "newscast", "affectionate", "narration-relaxed", "embarrassed", "fearful", "disappointed", "serious", "friendly", "terrified", "unfriendly", "gentle", "ashamed", "dejected", "envy", "excited", "narration-professional"] },
+    { Name: "en-US-AndrewMultilingualNeural", DisplayName: "Andrew Multilingual", ShortName: "en-US-AndrewMultilingualNeural", Gender: "Male", Locale: "en-US", StyleList: [] },
+    { Name: "en-US-BrianMultilingualNeural", DisplayName: "Brian Multilingual", ShortName: "en-US-BrianMultilingualNeural", Gender: "Male", Locale: "en-US", StyleList: [] },
+    { Name: "en-US-EmmaMultilingualNeural", DisplayName: "Emma Multilingual", ShortName: "en-US-EmmaMultilingualNeural", Gender: "Female", Locale: "en-US", StyleList: [] },
+    { Name: "en-GB-SoniaNeural", DisplayName: "Sonia", ShortName: "en-GB-SoniaNeural", Gender: "Female", Locale: "en-GB", StyleList: ["cheerful", "sad", "angry", "friendly", "newscast", "poetry-reading"] },
+    { Name: "en-GB-RyanNeural", DisplayName: "Ryan", ShortName: "en-GB-RyanNeural", Gender: "Male", Locale: "en-GB", StyleList: ["cheerful", "sad", "angry", "friendly", "newscast", "poetry-reading"] }
+];
+
+const LS_ENTRIES = "book.entries";
+const LS_INDEX = "book.index";
+const LS_SETTINGS = "book.settings";
+
+// ---------------------------------------------------------------- DOM
+
+const $ = (id) => document.getElementById(id);
+const stage = $("stage");
+const counter = $("counter");
+const counterM = $("counterM");
+const voiceSelect = $("voiceSelect");
+const voiceSelectM = $("voiceSelectM");
+const styleSelect = $("styleSelect");
+const styleSelectM = $("styleSelectM");
+const statusBar = $("status");
+const fileInput = $("fileInput");
+const pastePanel = $("pastePanel");
+const settingsPanel = $("settingsPanel");
+const dropHint = $("dropHint");
+const btnPlay = $("btnPlay");
+const btnPlayM = $("btnPlayM");
+
+// ---------------------------------------------------------------- 状态
+
+let entries = [];          // [{cn, en}]
+let index = 0;
+let slides = [];           // 每条一个 .slide
+let voices = [];           // Azure 音色列表
+let voicesLoaded = false;
+let audio = null;          // 当前播放的 <audio>
+let audioUrl = null;
+let playing = false;
+let playingIndex = -1;
+let fetchToken = 0;        // 防止快速切换时旧请求覆盖新的
+let lockUntil = 0;         // 程序化滚动期间,忽略可见度回调
+let autoTimer = null;
+let observer = null;
+const ratios = new Map();
+const audioCache = new Map();   // key -> {url, size}
+
+const settings = Object.assign({
+    region: "",
+    key: DEFAULT_KEY,
+    rate: 0,
+    volume: 0,
+    autoPlay: false,
+    wordHighlight: false,
+    anim: true,
+    cnSpeak: false,
+    cache: true
+}, loadSettings());
+
+function loadSettings() {
+    try {
+        return JSON.parse(localStorage.getItem(LS_SETTINGS) || "{}") || {};
+    } catch (e) {
+        return {};
+    }
+}
+function saveSettings() {
+    try {
+        localStorage.setItem(LS_SETTINGS, JSON.stringify(settings));
+    } catch (e) { /* 忽略 */ }
+}
+
+// ---------------------------------------------------------------- 状态条
+
+let statusTimer = null;
+function showStatus(msg, isInfo) {
+    statusBar.textContent = msg;
+    statusBar.className = "status show" + (isInfo ? " info" : "");
+    if (statusTimer) clearTimeout(statusTimer);
+    statusTimer = setTimeout(() => { statusBar.className = "status"; }, isInfo ? 4000 : 8000);
+}
+
+// ---------------------------------------------------------------- JSON 处理
+
+// 含中日韩统一表意文字的就算"中文侧";英文可能在键、也可能在值
+const CJK_RE = /[㐀-䶿一-鿿豈-﫿]/g;   // 同 /[㐀-䶿一-鿿豈-﫿]/g
+
+function cjkCount(s) {
+    const m = String(s == null ? '' : s).match(CJK_RE);
+    return m ? m.length : 0;
+}
+
+// 判断一对文本里哪边是中文、哪边是英文
+function orient(a, b) {
+    const ca = cjkCount(a);
+    const cb = cjkCount(b);
+    if (ca > 0 && cb === 0) return { cn: String(a), en: String(b) };   // 键是中文
+    if (cb > 0 && ca === 0) return { cn: String(b), en: String(a) };   // 值是中文
+    if (ca > 0 && cb > 0) {
+        // 两边都有中文(比如英文句子里夹了中文词):中文多的那侧当中文
+        return ca >= cb ? { cn: String(a), en: String(b) } : { cn: String(b), en: String(a) };
+    }
+    // 两边都没中文:按老约定,键当中文
+    return { cn: String(a), en: String(b) };
+}
+
+// 把各种形状的 JSON 统一成 [{cn, en}]
+function normalizeEntries(raw) {
+    if (Array.isArray(raw)) {
+        const out = [];
+        raw.forEach((item, i) => {
+            if (Array.isArray(item) && item.length >= 2) {
+                out.push(orient(item[0], item[1]));
+            } else if (item && typeof item === 'object') {
+                const a = item.cn ?? item.zh ?? item.chinese ?? item.text ?? item.source ?? item.original;
+                const b = item.en ?? item.english ?? item.translation ?? item.target;
+                if (typeof a === 'string' && typeof b === 'string') {
+                    // 字段名明确写着 cn/en 就直接用,否则交给正则判断
+                    const explicit =
+                        (typeof item.cn === 'string' || typeof item.zh === 'string' || typeof item.chinese === 'string') &&
+                        (typeof item.en === 'string' || typeof item.english === 'string');
+                    out.push(explicit ? { cn: a, en: b } : orient(a, b));
+                } else {
+                    throw new Error(`第 ${i + 1} 项缺少中英字段`);
+                }
+            } else if (typeof item === 'string') {
+                throw new Error(`第 ${i + 1} 项是字符串,应该是一对中英文本`);
+            }
+        });
+        return out;
+    }
+    if (raw && typeof raw === 'object') {
+        // 键值哪个是中文,由正则判断
+        return Object.entries(raw).map(([k, v]) => orient(k, v));
+    }
+    throw new Error("JSON 顶层必须是对象或数组");
+}
+
+// 不是 JSON 的话,退一步按"两行一组"(中文一行、英文一行)解析
+function parseLooseText(text) {
+    const lines = text.split(/\r?\n/).map((l) => l.trim()).filter((l) => l);
+    if (lines.length < 2) return null;
+    const out = [];
+    for (let i = 0; i + 1 < lines.length; i += 2) {
+        out.push(orient(lines[i], lines[i + 1]));   // 哪行是中文同样靠正则判断
+    }
+    return out;
+}
+
+function loadFromText(text, sourceName) {
+    let parsed;
+    try {
+        parsed = JSON.parse(text);
+    } catch (err) {
+        const loose = parseLooseText(text);
+        if (loose && loose.length) {
+            setEntries(loose, 0);
+            showStatus(`不是合法 JSON,按两行一组解析出 ${loose.length} 条`, true);
+            return true;
+        }
+        showStatus(`JSON 解析失败: ${err.message}`);
+        return false;
+    }
+    try {
+        const list = normalizeEntries(parsed);
+        setEntries(list, 0);
+        showStatus(`已加载 ${list.length} 条${sourceName ? '(' + sourceName + ')' : ''}`, true);
+        return true;
+    } catch (err) {
+        showStatus(err.message);
+        return false;
+    }
+}
+
+function setEntries(list, startIndex) {
+    clearAudioCache();     // 换书了:之前合的音频全部释放
+    entries = list;
+    index = startIndex || 0;
+    saveEntries();
+    buildSlides();
+    scrollToSlide(index, false);
+    updateCounter();
+    prefetchAhead();      // 提前把后面几条合好,第一次滑动就是秒响
+}
+
+function saveEntries() {
+    try {
+        localStorage.setItem(LS_ENTRIES, JSON.stringify(entries));
+        localStorage.setItem(LS_INDEX, String(index));
+    } catch (e) { /* 忽略 */ }
+}
+
+function restoreEntries() {
+    try {
+        const raw = localStorage.getItem(LS_ENTRIES);
+        if (!raw) return;
+        const list = normalizeEntries(JSON.parse(raw));
+        entries = list;
+        const saved = parseInt(localStorage.getItem(LS_INDEX) || "0", 10);
+        if (!isNaN(saved) && saved >= 0 && saved < entries.length) index = saved;
+    } catch (e) {
+        entries = [];
+    }
+}
+
+// ---------------------------------------------------------------- 幻灯片
+
+// 英文按词拆成 span,逐词高亮要用
+function renderEnglish(el, text) {
+    el.textContent = "";
+    String(text == null ? '' : text).split(/(\s+)/).forEach((part) => {
+        if (!part) return;
+        if (/^\s+$/.test(part)) {
+            el.appendChild(document.createTextNode(part));
+            return;
+        }
+        const span = document.createElement("span");
+        span.className = "w";
+        span.textContent = part;
+        el.appendChild(span);
+    });
+}
+
+// ---------------- 逐词高亮 ----------------
+// Azure REST 不返回词级时间戳,这里按"音节数 + 标点停顿"在本地估算,
+// 再按音频总时长归一化。误差大约是句长的 10%。
+function syllables(word) {
+    const w = String(word).toLowerCase().replace(/[^a-z]/g, "");
+    if (!w) return 1;
+    const m = w.match(/[aeiouy]+/g);
+    let n = m ? m.length : 1;
+    if (w.length > 2 && w.endsWith("e") && n > 1) n--;   // 结尾哑音 e
+    if (/[^aeiou]le$/.test(w)) n++;                      // -ble/-ple/-tle 之类算一个音节
+    return Math.max(1, n);
+}
+
+function wordWeight(part) {
+    let w = syllables(part);
+    if (/[.!?]["')\]]?$/.test(part)) w += 0.9;        // 句末停顿
+    else if (/[,;:]["')\]]?$/.test(part)) w += 0.45;  // 逗号停顿
+    else if (/[—–-]$/.test(part)) w += 0.6;          // 破折号
+    return w;
+}
+
+let hlWords = [];    // [{el, start, end}]
+let hlLast = -1;
+let hlRaf = null;
+
+function buildWordTimes(text, duration, wordEls) {
+    const words = [];
+    let wi = 0;
+    String(text == null ? '' : text).split(/(\s+)/).forEach((part) => {
+        if (!part || /^\s+$/.test(part)) return;
+        words.push({ el: wordEls[wi++], weight: wordWeight(part) });
+    });
+    const total = words.reduce((s, w) => s + w.weight, 0) || 1;
+    let acc = 0;
+    words.forEach((w) => {
+        w.start = (acc / total) * duration;
+        acc += w.weight;
+        w.end = (acc / total) * duration;
+    });
+    return words;
+}
+
+function startHighlight(i) {
+    stopHighlight();
+    if (!settings.wordHighlight) return;
+    const slide = slides[i];
+    const en = slide && slide.querySelector(".en");
+    if (!en || !audio) return;
+    const wordEls = en.querySelectorAll(".w");
+    if (!wordEls.length) return;
+
+    // 音频总时长优先用真实值,拿不到就按每字符 1/14 秒估
+    let dur = (audio.duration && isFinite(audio.duration)) ? audio.duration : 0;
+    if (!dur) dur = (entries[i].en || "").length / 14;
+    hlWords = buildWordTimes(entries[i].en, dur, wordEls);
+    hlLast = -1;
+    hlRaf = requestAnimationFrame(highlightTick);
+}
+
+function highlightTick() {
+    if (!audio || !playing) { hlRaf = null; return; }
+    const t = audio.currentTime;
+    let idx = hlWords.length - 1;
+    for (let k = 0; k < hlWords.length; k++) {
+        if (t < hlWords[k].end) { idx = k; break; }
+    }
+    if (idx !== hlLast) {
+        if (hlLast >= 0 && hlWords[hlLast]) hlWords[hlLast].el.classList.remove("on");
+        for (let k = 0; k < idx; k++) hlWords[k].el.classList.add("past");
+        for (let k = idx; k < hlWords.length; k++) hlWords[k].el.classList.remove("past");
+        if (hlWords[idx]) hlWords[idx].el.classList.add("on");
+        hlLast = idx;
+    }
+    hlRaf = requestAnimationFrame(highlightTick);
+}
+
+function stopHighlight() {
+    if (hlRaf) { cancelAnimationFrame(hlRaf); hlRaf = null; }
+    hlWords.forEach((w) => w.el.classList.remove("on"));   // 已读过的词保持灰色
+    hlWords = [];
+    hlLast = -1;
+}
+
+function buildSlides() {
+    stage.innerHTML = "";
+    ratios.clear();
+    slides = [];
+
+    if (!entries.length) {
+        const sec = document.createElement("section");
+        sec.className = "slide";
+        const wrap = document.createElement("div");
+        wrap.className = "slide-inner empty";
+        wrap.innerHTML = '还没有内容<br><span style="font-size:14px">打开本地文件,或点「粘贴 JSON」</span>';
+        sec.appendChild(wrap);
+        stage.appendChild(sec);
+        slides = [sec];
+        return;
+    }
+
+    entries.forEach((item, i) => {
+        const sec = document.createElement("section");
+        sec.className = "slide";
+        sec.dataset.index = String(i);
+
+        const wrap = document.createElement("div");
+        wrap.className = "slide-inner";
+
+        const en = document.createElement("div");
+        en.className = "en";
+        renderEnglish(en, item.en);
+        en.title = "点击朗读";
+        en.addEventListener("click", () => { if (!suppressClick) play(i); });
+
+        const cn = document.createElement("div");
+        cn.className = "cn";
+        cn.textContent = item.cn;
+
+        wrap.appendChild(en);
+        wrap.appendChild(cn);
+        sec.appendChild(wrap);
+        stage.appendChild(sec);
+    });
+
+    slides = Array.from(stage.querySelectorAll(".slide"));
+    observeSlides();
+}
+
+function observeSlides() {
+    if (observer) observer.disconnect();
+    observer = new IntersectionObserver(onIntersect, {
+        root: stage,
+        threshold: [0, 0.2, 0.4, 0.6, 0.8, 1]
+    });
+    slides.forEach((s) => observer.observe(s));
+}
+
+function onIntersect(list) {
+    list.forEach((e) => ratios.set(e.target, e.intersectionRatio));
+    if (Date.now() < lockUntil) return;    // 程序化滚动中,忽略
+
+    let best = null;
+    let bestRatio = 0;
+    ratios.forEach((r, el) => {
+        if (r > bestRatio) { bestRatio = r; best = el; }
+    });
+    if (best && bestRatio >= 0.5 && best.dataset.index !== undefined) {
+        setIndex(Number(best.dataset.index));
+    }
+}
+
+function updateCounter() {
+    const text = `${entries.length ? index + 1 : 0} / ${entries.length}`;
+    counter.textContent = text;
+    counterM.textContent = text;
+}
+
+function setIndex(i) {
+    if (!entries.length) return;
+    if (i === index) { updateCounter(); return; }
+    index = i;
+    updateCounter();
+    saveEntries();
+    if (playing) stopAudio();
+    if (settings.autoPlay) scheduleAutoPlay();
+    prefetchAhead();
+}
+
+// 预取后面几条的音频:Azure REST 是整句合成完才发,延迟主要在合成,
+// 所以提前把后面几条合好,翻过去就能秒响(每条仍然只合成一次)
+const PREFETCH_AHEAD = 2;     // 最多提前生成几条(第 2 页时,提前把 3、4 页合好)
+const inflight = new Set();   // 正在合的 key,避免重复请求
+
+function prefetchAhead() {
+    if (!settings.autoPlay) return;
+    if (!settings.cache) return;
+    if (!entries.length || !settings.region) return;
+    const n = entries.length;
+    const p = currentParams();
+
+    for (let k = 1; k <= PREFETCH_AHEAD && k < n; k++) {
+        const i = (index + k) % n;
+        const key = audioKey(i, p);
+        if (audioCache.has(key)) continue;    // 已经有了
+        if (inflight.has(key)) continue;       // 正在合
+        inflight.add(key);
+        fetchAudio(entries[i].en, p.voice.Name, p.style, p.rate, p.volume)
+            .then((a) => {
+                audioCache.set(key, a);
+                trimCache();
+                updateCacheInfo();
+            })
+            .catch(() => { /* 预取失败无所谓,翻过去再正常取 */ })
+            .finally(() => { inflight.delete(key); });
+    }
+}
+
+// 自动朗读延后一点,快速滑动时不会每经过一条就读一句
+function scheduleAutoPlay() {
+    if (autoTimer) clearTimeout(autoTimer);
+    autoTimer = setTimeout(() => {
+        autoTimer = null;
+        if (settings.autoPlay && !playing) play(index);
+    }, 350);
+}
+
+function scrollToSlide(i, smooth) {
+    const s = slides[i];
+    if (!s) return;
+    const anim = settings.anim && smooth !== false;
+    stage.scrollTo({ top: s.offsetTop, behavior: anim ? "smooth" : "auto" });
+}
+
+// 关掉动画时,浏览器不吸附了,自己在滚动停下后瞬移到最近的一屏
+let snapTimer = null;
+stage.addEventListener("scroll", () => {
+    if (settings.anim) return;
+    if (snapTimer) clearTimeout(snapTimer);
+    snapTimer = setTimeout(() => {
+        snapTimer = null;
+        if (settings.anim || !entries.length) return;
+        let best = index;
+        let bestDist = Infinity;
+        slides.forEach((s, i) => {
+            if (s.dataset.index === undefined) return;
+            const d = Math.abs(s.offsetTop - stage.scrollTop);
+            if (d < bestDist) { bestDist = d; best = i; }
+        });
+        if (best !== index) scrollToSlide(best, false);
+    }, 120);
+}, { passive: true });
+
+function move(delta) {
+    if (!entries.length) return;
+    const n = entries.length;
+    const target = (index + delta + n) % n;
+    lockUntil = Date.now() + 700;      // 锁住可见度回调,避免中途乱跳
+    setIndex(target);
+    scrollToSlide(target, true);
+}
+
+// ---------------------------------------------------------------- Azure TTS
+
+function escapeXml(s) {
+    return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&apos;");
+}
+
+function buildSsml(text, voiceName, style, rate, volume) {
+    let body = escapeXml(text);
+    if (rate !== 0 || volume !== 0) {
+        const attrs = [];
+        if (rate !== 0) attrs.push(`rate="${rate > 0 ? '+' : ''}${rate}%"`);
+        if (volume !== 0) attrs.push(`volume="${volume > 0 ? '+' : ''}${volume}%"`);
+        body = `<prosody ${attrs.join(" ")}>${body}</prosody>`;
+    }
+    if (style) {
+        body = `<mstts:express-as style="${escapeXml(style)}">${body}</mstts:express-as>`;
+    }
+    const locale = (voiceName.match(/^([a-z]{2}-[A-Z]{2})/) || [])[1] || "en-US";
+    return `<?xml version="1.0" encoding="utf-8"?>
+<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="${locale}">
+  <voice name="${escapeXml(voiceName)}">${body}</voice>
+</speak>`;
+}
+
+function voicesUrl(region) {
+    return `https://${region}.tts.speech.microsoft.com/cognitiveservices/voices/list`;
+}
+function ttsUrl(region) {
+    return `https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`;
+}
+
+let lastNetworkError = null;
+
+// 依次试区域,找到一个 key 能用的就记住
+async function resolveRegion() {
+    const tried = [];
+    const order = settings.region ? [settings.region, ...COMMON_REGIONS] : COMMON_REGIONS;
+    for (const region of order) {
+        if (tried.includes(region)) continue;
+        tried.push(region);
+        $("regionState").textContent = `测试 ${region} ...`;
+        try {
+            const res = await fetch(voicesUrl(region), {
+                headers: { "Ocp-Apim-Subscription-Key": settings.key }
+            });
+            if (res.ok) {
+                const list = await res.json();
+                if (Array.isArray(list) && list.length) {
+                    settings.region = region;
+                    saveSettings();
+                    $("regionInput").value = region;
+                    $("regionState").textContent = `可用区域: ${region}`;
+                    return { region: region, voices: list };
+                }
+            } else if (res.status === 401) {
+                continue;   // key 在这个区域无效,换下一个
+            }
+        } catch (e) {
+            lastNetworkError = e;   // 网络不通 / CORS 被拦,换下一个再试
+            continue;
+        }
+    }
+    $("regionState").textContent = "";
+    return null;
+}
+
+async function loadVoices(force) {
+    if (voicesLoaded && !force) return voices;
+    const result = await resolveRegion();
+    if (result) {
+        voices = result.voices;
+        voicesLoaded = true;
+    } else {
+        voices = FALLBACK_VOICES;
+        voicesLoaded = true;
+        if (lastNetworkError) {
+            showStatus("连不上 Azure 语音服务(可能是网络或 CORS 被拦),先用兜底音色。可在设置里换区域。");
+        } else {
+            showStatus("Azure 拒绝了当前 key,已改用兜底音色,请在设置里确认 key 和区域。");
+        }
+    }
+    renderVoiceOptions();
+    prefetchAhead();       // 区域刚定下来,顺手把后面几条合好
+    return voices;
+}
+
+function currentVoice() {
+    const name = voiceSelect.value;
+    return voices.find((v) => v.Name === name) || voices[0] || FALLBACK_VOICES[0];
+}
+
+function fillVoiceSelect(sel, prev) {
+    sel.innerHTML = "";
+    const english = voices.filter((v) => /^en/i.test(v.Locale || ""));
+    const list = english.length ? english : voices;
+    list.forEach((v) => {
+        const opt = document.createElement("option");
+        opt.value = v.Name;
+        const gender = v.Gender === "Male" ? "男" : v.Gender === "Female" ? "女" : "";
+        const tag = v.VoiceTag && v.VoiceTag.VoicePersonalities && v.VoiceTag.VoicePersonalities.length
+            ? ` · ${v.VoiceTag.VoicePersonalities.slice(0, 3).join("/")}` : "";
+        opt.textContent = `${v.DisplayName || v.ShortName || v.Name} (${v.Locale || ""}${gender ? " " + gender : ""}) ${v.Name}${tag}`;
+        sel.appendChild(opt);
+    });
+    if (prev && voices.some((v) => v.Name === prev)) sel.value = prev;
+}
+
+function renderVoiceOptions() {
+    const prev = voiceSelect.value;
+    fillVoiceSelect(voiceSelect, prev);
+    fillVoiceSelect(voiceSelectM, voiceSelect.value);
+    renderStyleOptions();
+}
+
+function fillStyleSelect(sel, styles, prev) {
+    sel.innerHTML = "";
+    const none = document.createElement("option");
+    none.value = "";
+    none.textContent = "默认风格";
+    sel.appendChild(none);
+    styles.forEach((s) => {
+        const opt = document.createElement("option");
+        opt.value = s;
+        opt.textContent = s;
+        sel.appendChild(opt);
+    });
+    sel.disabled = styles.length === 0;
+    if (prev && styles.includes(prev)) sel.value = prev;
+}
+
+function renderStyleOptions() {
+    const v = currentVoice();
+    const styles = (v && v.StyleList) || [];
+    const prev = styleSelect.value;
+    fillStyleSelect(styleSelect, styles, prev);
+    fillStyleSelect(styleSelectM, styles, styleSelect.value);
+}
+
+async function fetchAudio(text, voiceName, style, rate, volume) {
+    const region = settings.region;
+    if (!region) throw new Error("还没确定 Azure 区域");
+    const ssml = buildSsml(text, voiceName, style, rate, volume);
+    const res = await fetch(ttsUrl(region), {
+        method: "POST",
+        headers: {
+            "Ocp-Apim-Subscription-Key": settings.key,
+            "Content-Type": "application/ssml+xml",
+            "X-Microsoft-OutputFormat": "audio-24khz-48kbitrate-mono-mp3",
+            "User-Agent": "book-html"
+        },
+        body: ssml
+    });
+    if (!res.ok) {
+        let detail = "";
+        try { detail = (await res.text()).slice(0, 300); } catch (e) { /* 忽略 */ }
+        throw new Error(`Azure 返回 ${res.status}${detail ? ": " + detail : ""}`);
+    }
+    const blob = await res.blob();
+    return { url: URL.createObjectURL(blob), size: blob.size };
+}
+
+// 音频的生命周期:预生成下一条 -> 翻过去直接播 -> 再翻过去就把它删掉
+// 所以缓存最多留两条:正在播的 + 预取好的下一条
+// 音频的生命周期:预生成下一条 -> 翻过去直接播 -> 再翻过去就把它删掉
+// 所以只留两份:当前这条 + 预取好的下一条,其余立刻释放
+function currentParams() {
+    return {
+        voice: currentVoice(),
+        style: styleSelect.value || "",
+        rate: parseInt(settings.rate, 10) || 0,
+        volume: parseInt(settings.volume, 10) || 0
+    };
+}
+
+// 参数放在最前面,方便判断这份音频是不是当前参数下合成的
+function paramsPrefix(p) {
+    return [p.voice.Name, p.style, p.rate, p.volume].join("|") + "|";
+}
+
+// 同一条 + 同样的音色/风格/语速,才算同一份音频
+function audioKey(i, p) {
+    const item = entries[i];
+    if (!item) return "";
+    return paramsPrefix(p) + item.en;
+}
+
+// 翻页不删缓存,只有两种情况会释放:
+//   1. 换了音色/风格/语速 —— 旧音频对不上参数,留着也没用
+//   2. 加载了新的 JSON —— 见 setEntries()
+function trimCache() {
+    const prefix = paramsPrefix(currentParams());
+    Array.from(audioCache.entries()).forEach(([k, v]) => {
+        if (v.url === audioUrl) return;          // 正在播的先别动
+        if (k.startsWith(prefix)) return;       // 当前参数下的,留着
+        URL.revokeObjectURL(v.url);
+        audioCache.delete(k);
+    });
+    updateCacheInfo();
+}
+
+// 设置里显示缓存了多少条、占多少内存
+function updateCacheInfo() {
+    let bytes = 0;
+    audioCache.forEach((v) => { bytes += v.size || 0; });
+    const kb = bytes / 1024;
+    const size = kb > 1024 ? (kb / 1024).toFixed(1) + " MB" : Math.round(kb) + " KB";
+    const el = $("cacheInfo");
+    if (el) el.textContent = audioCache.size ? `已缓存 ${audioCache.size} 条 / ${size}` : "";
+}
+
+// 读完了:所有词(包括最后一个)都算读过,一起变灰
+function markAllPast() {
+    hlWords.forEach((w) => {
+        w.el.classList.remove("on");
+        w.el.classList.add("past");
+    });
+}
+
+function stopAudio() {
+    if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
+    stopHighlight();
+    if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+        audio = null;
+    }
+    if (audioUrl) {
+        // 缓存里的地址不能释放,不然缓存就废了
+        if (!Array.from(audioCache.values()).some((v) => v.url === audioUrl)) {
+            URL.revokeObjectURL(audioUrl);
+        }
+        audioUrl = null;
+    }
+    playing = false;
+    playingIndex = -1;
+    btnPlay.textContent = "朗读";
+    btnPlayM.textContent = "🔊 朗读";
+}
+
+async function play(which) {
+    const i = (typeof which === "number") ? which : index;
+    if (!entries.length || i < 0 || i >= entries.length) return;
+    const item = entries[i];
+    const p = currentParams();
+
+    stopAudio();
+    if (settings.cnSpeak) speakCn(item.cn);
+
+    const token = ++fetchToken;
+    const cacheKey = audioKey(i, p);
+
+    let cached = settings.cache ? audioCache.get(cacheKey) : null;
+    let url = cached ? cached.url : null;
+    if (!url) {
+        btnPlay.disabled = true;
+        btnPlayM.disabled = true;
+        try {
+            if (!settings.region) {
+                await loadVoices();
+                if (!settings.region) throw new Error("还没确定 Azure 区域");
+            }
+            const a = await fetchAudio(item.en, p.voice.Name, p.style, p.rate, p.volume);
+            url = a.url;
+            if (settings.cache) audioCache.set(cacheKey, a);
+            updateCacheInfo();
+        } catch (err) {
+            showStatus(`朗读失败: ${err.message}`);
+            return;
+        } finally {
+            btnPlay.disabled = false;
+            btnPlayM.disabled = false;
+        }
+    }
+    if (token !== fetchToken) return;   // 期间又切了条目
+
+    audioUrl = url;
+    trimCache();          // 只留当前这条 + 下一条,其余释放
+    audio = new Audio(url);
+    audio.addEventListener("ended", () => {
+        playing = false;
+        playingIndex = -1;
+        markAllPast();       // 读完了,最后一个词也变灰
+        btnPlay.textContent = "朗读";
+        btnPlayM.textContent = "🔊 朗读";
+    });
+    audio.addEventListener("error", () => {
+        showStatus("音频播放失败");
+    });
+    try {
+        await audio.play();
+        playing = true;
+        playingIndex = i;
+        btnPlay.textContent = "停止";
+        btnPlayM.textContent = "⏹ 停止";
+        startHighlight(i);          // 逐词高亮跟着播放走
+        prefetchAhead();             // 预取也跟着"自动朗读"开关走
+    } catch (err) {
+        showStatus(`播放被浏览器拦了,再点一次: ${err.message}`);
+    }
+}
+
+function togglePlay() {
+    if (playing) stopAudio();
+    else play(index);
+}
+
+// 中文用浏览器自带的语音(可选)
+function speakCn(text) {
+    try {
+        if (!window.speechSynthesis) return;
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = "zh-CN";
+        u.rate = 1;
+        window.speechSynthesis.speak(u);
+    } catch (e) { /* 忽略 */ }
+}
+
+// ---------------------------------------------------------------- 文件
+
+function handleFile(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+        loadFromText(String(reader.result || ""), file.name);
+    };
+    reader.onerror = () => showStatus("文件读取失败");
+    reader.readAsText(file, "utf-8");
+}
+
+// ---------------------------------------------------------------- 手势
+
+// 滑动了就不算点击,别误触发朗读
+let suppressClick = false;
+let touchX = 0;
+let touchY = 0;
+
+stage.addEventListener("touchstart", (e) => {
+    if (!e.touches.length) return;
+    touchX = e.touches[0].clientX;
+    touchY = e.touches[0].clientY;
+    suppressClick = false;
+}, { passive: true });
+
+stage.addEventListener("touchmove", (e) => {
+    if (!e.touches.length) return;
+    const dx = e.touches[0].clientX - touchX;
+    const dy = e.touches[0].clientY - touchY;
+    if (Math.abs(dx) > 10 || Math.abs(dy) > 10) suppressClick = true;
+}, { passive: true });
+
+// 关掉动画时页面不能滚,抬手时按滑动方向直接翻页
+let gestX = 0, gestY = 0, gestT = 0, gestOn = false;
+
+stage.addEventListener("touchstart", (e) => {
+    if (settings.anim || !e.touches.length) return;
+    gestX = e.touches[0].clientX;
+    gestY = e.touches[0].clientY;
+    gestT = Date.now();
+    gestOn = true;
+}, { passive: true });
+
+stage.addEventListener("touchend", (e) => {
+    if (settings.anim || !gestOn) return;
+    gestOn = false;
+    const t = e.changedTouches && e.changedTouches[0];
+    if (!t) return;
+    const dx = t.clientX - gestX;
+    const dy = t.clientY - gestY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const dt = Date.now() - gestT;
+    if (dist < 50 && !(dt < 300 && dist > 25)) return;   // 距离太短且不是轻扫
+    if (Math.abs(dy) >= Math.abs(dx)) {
+        move(dy < 0 ? 1 : -1);      // 上滑下一条,下滑上一条
+    } else {
+        move(dx < 0 ? 1 : -1);      // 左滑下一条,右滑上一条
+    }
+}, { passive: true });
+
+stage.addEventListener("click", (e) => {
+    if (suppressClick) { suppressClick = false; e.stopPropagation(); }
+}, true);
+
+// ---------------------------------------------------------------- 事件
+
+fileInput.addEventListener("change", () => {
+    handleFile(fileInput.files[0]);
+    fileInput.value = "";
+});
+
+function openFile() { fileInput.click(); }
+
+function togglePaste() {
+    pastePanel.classList.toggle("hidden");
+    settingsPanel.classList.add("hidden");
+    if (!pastePanel.classList.contains("hidden")) $("pasteText").focus();
+}
+
+function toggleSettings() {
+    settingsPanel.classList.toggle("hidden");
+    pastePanel.classList.add("hidden");
+    if (!settingsPanel.classList.contains("hidden")) {
+        $("regionState").textContent = settings.region ? ("当前区域: " + settings.region) : "";
+    }
+}
+
+$("btnOpen").addEventListener("click", openFile);
+$("btnOpen2").addEventListener("click", openFile);
+$("btnPaste").addEventListener("click", togglePaste);
+$("btnPaste2").addEventListener("click", togglePaste);
+$("btnSettings").addEventListener("click", toggleSettings);
+$("btnMenu").addEventListener("click", toggleSettings);
+$("btnClosePaste").addEventListener("click", () => pastePanel.classList.add("hidden"));
+$("btnCloseSettings").addEventListener("click", () => settingsPanel.classList.add("hidden"));
+$("btnLoadPaste").addEventListener("click", () => {
+    const text = $("pasteText").value;
+    if (!text.trim()) { showStatus("先粘点内容"); return; }
+    if (loadFromText(text)) pastePanel.classList.add("hidden");
+});
+$("pasteText").addEventListener("paste", () => {
+    setTimeout(() => {
+        const text = $("pasteText").value;
+        if (text.trim()) loadFromText(text);
+    }, 0);
+});
+
+btnPlay.addEventListener("click", togglePlay);
+btnPlayM.addEventListener("click", togglePlay);
+
+voiceSelect.addEventListener("change", () => {
+    voiceSelectM.value = voiceSelect.value;
+    renderStyleOptions();
+    clearAudioCache();
+    prefetchAhead();
+});
+voiceSelectM.addEventListener("change", () => {
+    voiceSelect.value = voiceSelectM.value;
+    renderStyleOptions();
+    clearAudioCache();
+    prefetchAhead();
+});
+styleSelect.addEventListener("change", () => {
+    styleSelectM.value = styleSelect.value;
+    clearAudioCache();
+    prefetchAhead();
+});
+styleSelectM.addEventListener("change", () => {
+    styleSelect.value = styleSelectM.value;
+    clearAudioCache();
+    prefetchAhead();
+});
+
+function clearAudioCache() {
+    stopAudio();
+    audioCache.forEach((v) => URL.revokeObjectURL(v.url));
+    audioCache.clear();
+    updateCacheInfo();
+}
+
+$("btnClearCache").addEventListener("click", () => {
+    clearAudioCache();
+    showStatus("音频缓存已清空", true);
+});
+
+function bindRange(id, outId, key) {
+    const el = $(id);
+    el.addEventListener("input", function () {
+        settings[key] = parseInt(this.value, 10);
+        $(outId).textContent = settings[key] + "%";
+        saveSettings();
+    });
+    // 松手才作废旧缓存(拖动过程中不停音、也不反复请求)
+    el.addEventListener("change", function () {
+        clearAudioCache();
+        prefetchAhead();
+    });
+}
+bindRange("rateInput", "rateValue", "rate");
+bindRange("volumeInput", "volumeValue", "volume");
+
+function bindCheck(id, key, after) {
+    $(id).addEventListener("change", function () {
+        settings[key] = this.checked;
+        saveSettings();
+        if (after) after();
+    });
+}
+bindCheck("autoPlay", "autoPlay", () => { $("autoPlayM").checked = settings.autoPlay; });
+bindCheck("autoPlayM", "autoPlay", () => { $("autoPlay").checked = settings.autoPlay; });
+// 逐词高亮:开的时候如果正在播,立刻把高亮挂上
+function syncWordHl(src, dst) {
+    settings.wordHighlight = src.checked;
+    dst.checked = settings.wordHighlight;
+    saveSettings();
+    if (!settings.wordHighlight) {
+        stopHighlight();
+    } else if (playing) {
+        startHighlight(playingIndex >= 0 ? playingIndex : index);
+    }
+}
+$("wordHl").addEventListener("change", function () { syncWordHl(this, $("wordHlM")); });
+$("wordHlM").addEventListener("change", function () { syncWordHl(this, $("wordHl")); });
+
+// 滑动动画开关:关掉后翻页瞬移,不用浏览器的吸附动画
+function applyAnim() {
+    stage.classList.toggle("no-anim", !settings.anim);
+    if (!settings.anim) scrollToSlide(index, false);   // 立刻对齐到当前这条
+}
+function syncAnim(src, dst) {
+    settings.anim = src.checked;
+    dst.checked = settings.anim;
+    saveSettings();
+    applyAnim();
+}
+$("animChk").addEventListener("change", function () { syncAnim(this, $("animChkM")); });
+$("animChkM").addEventListener("change", function () { syncAnim(this, $("animChk")); });
+bindCheck("cnSpeak", "cnSpeak");
+bindCheck("cacheToggle", "cache", () => { if (!settings.cache) clearAudioCache(); });
+
+$("regionInput").addEventListener("change", function () {
+    settings.region = this.value.trim();
+    saveSettings();
+    clearAudioCache();
+});
+$("keyInput").addEventListener("change", function () {
+    settings.key = this.value.trim();
+    saveSettings();
+    voicesLoaded = false;
+    clearAudioCache();
+});
+$("btnTestVoice").addEventListener("click", async () => {
+    settings.region = $("regionInput").value.trim();
+    settings.key = $("keyInput").value.trim();
+    saveSettings();
+    voicesLoaded = false;
+    const list = await loadVoices(true);
+    if (settings.region) {
+        showStatus(`连接成功: ${settings.region},可用音色 ${list.length} 个`, true);
+    }
+});
+
+document.addEventListener("keydown", (e) => {
+    const tag = (e.target.tagName || "").toLowerCase();
+    if (tag === "input" || tag === "textarea" || tag === "select") return;
+
+    if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+        e.preventDefault();
+        move(-1);
+    } else if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+        e.preventDefault();
+        move(1);
+    } else if (e.key === " ") {
+        e.preventDefault();
+        togglePlay();
+    } else if (e.ctrlKey && (e.key === "o" || e.key === "O")) {
+        e.preventDefault();
+        openFile();
+    }
+});
+
+// 拖文件进来
+["dragenter", "dragover"].forEach((evt) => {
+    document.addEventListener(evt, (e) => {
+        e.preventDefault();
+        dropHint.classList.add("show");
+    });
+});
+["dragleave", "drop"].forEach((evt) => {
+    document.addEventListener(evt, (e) => {
+        e.preventDefault();
+        if (evt === "dragleave" && e.relatedTarget) return;
+        dropHint.classList.remove("show");
+    });
+});
+document.addEventListener("drop", (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    handleFile(file);
+});
+
+// ---------------------------------------------------------------- 启动
+
+function applySettingsToUi() {
+    $("regionInput").value = settings.region || "";
+    $("keyInput").value = settings.key || DEFAULT_KEY;
+    $("rateInput").value = settings.rate;
+    $("rateValue").textContent = settings.rate + "%";
+    $("volumeInput").value = settings.volume;
+    $("volumeValue").textContent = settings.volume + "%";
+    $("autoPlay").checked = !!settings.autoPlay;
+    $("autoPlayM").checked = !!settings.autoPlay;
+    $("wordHl").checked = !!settings.wordHighlight;
+    $("wordHlM").checked = !!settings.wordHighlight;
+    $("animChk").checked = settings.anim !== false;
+    $("animChkM").checked = settings.anim !== false;
+    $("cnSpeak").checked = !!settings.cnSpeak;
+    $("cacheToggle").checked = settings.cache !== false;
+    COMMON_REGIONS.forEach((r) => {
+        const opt = document.createElement("option");
+        opt.value = r;
+        $("regionList").appendChild(opt);
+    });
+}
+
+restoreEntries();
+applySettingsToUi();
+buildSlides();
+scrollToSlide(index, false);
+applyAnim();
+updateCounter();
+loadVoices();   // 后台拿音色列表,顺带把区域试出来
+</script>
+</body>
+</html>
