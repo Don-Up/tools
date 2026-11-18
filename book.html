@@ -181,6 +181,8 @@
         line-height: 1.45;
         text-align: left;        /* 中文也左对齐 */
     }
+    body.cn-next .cn { cursor: pointer; }
+    body.cn-next .cn:hover { filter: brightness(1.18); }
     .empty {
         color: var(--dim);
         font-size: 16px;
@@ -263,6 +265,8 @@
         <label class="check"><input type="checkbox" id="autoPlay"> 自动</label>
         <label class="check" title="朗读时逐词高亮"><input type="checkbox" id="wordHl"> 逐词</label>
         <label class="check" title="翻页动画"><input type="checkbox" id="animChk"> 动画</label>
+        <label class="check" title="点击中文跳到下一句"><input type="checkbox" id="cnNextChk"> 点中文</label>
+        <label class="check" title="点击空白处跳到下一句"><input type="checkbox" id="blankChk"> 点空白</label>
     </div>
 </div>
 
@@ -311,6 +315,14 @@
     <div class="row">
         <label>滑动动画</label>
         <label class="check"><input type="checkbox" id="animChkM"> 翻页带动画</label>
+    </div>
+    <div class="row">
+        <label>点中文</label>
+        <label class="check"><input type="checkbox" id="cnNextChkM"> 点击中文跳下一句</label>
+    </div>
+    <div class="row">
+        <label>点空白</label>
+        <label class="check"><input type="checkbox" id="blankChkM"> 点击空白处跳下一句</label>
     </div>
     <div class="sep"></div>
     <h3>Azure 语音设置</h3>
@@ -430,6 +442,8 @@ const settings = Object.assign({
     autoPlay: false,
     wordHighlight: false,
     anim: true,
+    cnClickNext: false,
+    blankNext: false,
     cnSpeak: false,
     cache: true
 }, loadSettings());
@@ -715,10 +729,21 @@ function buildSlides() {
         const cn = document.createElement("div");
         cn.className = "cn";
         cn.textContent = item.cn;
+        cn.title = "点击跳到下一句";
+        cn.addEventListener("click", () => {
+            if (suppressClick) return;
+            if (settings.cnClickNext) move(1);
+        });
 
         wrap.appendChild(en);
         wrap.appendChild(cn);
         sec.appendChild(wrap);
+        sec.addEventListener("click", (e) => {
+            if (suppressClick) return;
+            if (!settings.blankNext) return;
+            if (e.target.closest(".en, .cn")) return;   // 点在文字上不算空白
+            move(1);
+        });
         stage.appendChild(sec);
     });
 
@@ -1360,6 +1385,25 @@ function syncAnim(src, dst) {
 }
 $("animChk").addEventListener("change", function () { syncAnim(this, $("animChkM")); });
 $("animChkM").addEventListener("change", function () { syncAnim(this, $("animChk")); });
+
+// 点中文跳下一句
+function syncCnNext(src, dst) {
+    settings.cnClickNext = src.checked;
+    dst.checked = settings.cnClickNext;
+    saveSettings();
+    document.body.classList.toggle("cn-next", settings.cnClickNext);
+}
+$("cnNextChk").addEventListener("change", function () { syncCnNext(this, $("cnNextChkM")); });
+$("cnNextChkM").addEventListener("change", function () { syncCnNext(this, $("cnNextChk")); });
+
+// 点空白处跳下一句
+function syncBlank(src, dst) {
+    settings.blankNext = src.checked;
+    dst.checked = settings.blankNext;
+    saveSettings();
+}
+$("blankChk").addEventListener("change", function () { syncBlank(this, $("blankChkM")); });
+$("blankChkM").addEventListener("change", function () { syncBlank(this, $("blankChk")); });
 bindCheck("cnSpeak", "cnSpeak");
 bindCheck("cacheToggle", "cache", () => { if (!settings.cache) clearAudioCache(); });
 
@@ -1439,6 +1483,11 @@ function applySettingsToUi() {
     $("wordHlM").checked = !!settings.wordHighlight;
     $("animChk").checked = settings.anim !== false;
     $("animChkM").checked = settings.anim !== false;
+    $("cnNextChk").checked = !!settings.cnClickNext;
+    $("cnNextChkM").checked = !!settings.cnClickNext;
+    $("blankChk").checked = !!settings.blankNext;
+    $("blankChkM").checked = !!settings.blankNext;
+    document.body.classList.toggle("cn-next", !!settings.cnClickNext);
     $("cnSpeak").checked = !!settings.cnSpeak;
     $("cacheToggle").checked = settings.cache !== false;
     COMMON_REGIONS.forEach((r) => {
